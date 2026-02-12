@@ -4056,10 +4056,6 @@
           <span>IA GPS</span>
         </button>
         -->
-        <a href="monitoramento.html" class="nav-item" id="nav-graficos">
-          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
-          <span>Graficos</span>
-        </a>
         <a href="debug-packets.html" class="nav-item" id="nav-debug" style="margin-top: auto; border-top: 1px solid rgba(6, 182, 212, 0.2); padding-top: 20px;">
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></span>
           <span>Debug Pacotes</span>
@@ -6579,7 +6575,6 @@
         'nav-diagnostico': { modulo: 'diagnostico', acao: 'visualizar' },
         'nav-heartbeat': { modulo: 'heartbeat', acao: 'visualizar' },
         'nav-perfis': { modulo: 'usuarios', acao: 'perfis' },
-        'nav-graficos': { modulo: 'graficos', acao: 'visualizar' },
         'nav-debug': { modulo: 'debug', acao: 'visualizar' }
       };
 
@@ -6599,7 +6594,7 @@
           menuAdminVisivel = true;
         }
         // Verificar se algum item do menu técnico está visível
-        if (['nav-notificacoes', 'nav-status', 'nav-diagnostico', 'nav-heartbeat', 'nav-perfis', 'nav-graficos', 'nav-debug'].includes(menuId) && permitido) {
+        if (['nav-notificacoes', 'nav-status', 'nav-diagnostico', 'nav-heartbeat', 'nav-perfis', 'nav-debug'].includes(menuId) && permitido) {
           menuTecnicoVisivel = true;
         }
       }
