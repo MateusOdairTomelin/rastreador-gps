@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Dispositivo - Unifique Rastreador</title>
+  <link rel="icon" type="image/png" sizes="48x48" href="/FAVICON_48x48.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Cores oficiais Unifique */
+            --unifique-cyan: #3FCFD5;
+            --unifique-cyan-dark: #28B8BE;
+            --unifique-blue: #00A2FF;
+            --unifique-deep-blue: #212492;
+            --unifique-violet: #131E7D;
+
+            --primary: #3FCFD5;
+            --primary-light: #5ED8DD;
+            --primary-dark: #0d1042;
+            --accent: #00A2FF;
+            --accent-light: #4DC3FF;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --dark: #0a0d2e;
+            --bg: #0d1042;
+            --bg-light: #131E7D;
+            --border: rgba(63, 207, 213, 0.25);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #080b2a 0%, #0d1042 25%, #131E7D 50%, #212492 75%, #131E7D 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            color: #E8FCFD;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg at 50% 50%,
+                transparent 0deg,
+                rgba(63, 207, 213, 0.1) 60deg,
+                transparent 120deg,
+                rgba(0, 162, 255, 0.08) 180deg,
+                transparent 240deg,
+                rgba(33, 36, 146, 0.1) 300deg,
+                transparent 360deg);
+            animation: bgRotate 60s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes bgRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Grid lines */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(63, 207, 213, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(63, 207, 213, 0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, rgba(63, 207, 213, 0.2), rgba(0, 162, 255, 0.1));
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(63, 207, 213, 0.3);
+            animation: iconFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .header-icon svg {
+            width: 44px;
+            height: 44px;
+            fill: #3FCFD5;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #E8FCFD 0%, #3FCFD5 50%, #00A2FF 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-card {
+            background: rgba(63, 207, 213, 0.06);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px rgba(33, 36, 146, 0.3);
+            border: 1px solid rgba(63, 207, 213, 0.2);
+            animation: fadeInUp 0.8s ease-out 0.2s backwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #5ED8DD;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid transparent;
+            background: linear-gradient(90deg, rgba(63, 207, 213, 0.3), transparent);
+            border-image: linear-gradient(90deg, #3FCFD5, transparent) 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title svg {
+            width: 24px;
+            height: 24px;
+            fill: #3FCFD5;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95em;
+        }
+
+        .label-info {
+            font-size: 0.8em;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: normal;
+            margin-left: 5px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="email"],
+        select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid rgba(63, 207, 213, 0.25);
+            border-radius: 12px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            background: rgba(19, 30, 125, 0.5);
+            color: #E8FCFD;
+        }
+
+        input::placeholder {
+            color: rgba(158, 238, 242, 0.5);
+        }
+
+        select option {
+            background: #0d1042;
+            color: #E8FCFD;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="email"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #3FCFD5;
+            box-shadow: 0 0 0 4px rgba(63, 207, 213, 0.2);
+            background: rgba(19, 30, 125, 0.7);
+        }
+
+        .input-error {
+            border-color: var(--danger) !important;
+            background-color: rgba(239, 68, 68, 0.1) !important;
+        }
+
+        .input-success {
+            border-color: var(--success) !important;
+            background-color: rgba(16, 185, 129, 0.1) !important;
+        }
+
+        .validation-message {
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .validation-message.error {
+            color: #F87171;
+            display: block;
+        }
+
+        .validation-message.success {
+            color: #34D399;
+            display: block;
+        }
+
+        .help-text {
+            font-size: 0.85em;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 5px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        .badge-required {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+            color: #F87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-optional {
+            background: linear-gradient(135deg, rgba(63, 207, 213, 0.15), rgba(63, 207, 213, 0.08));
+            color: #9EEEF2;
+            border: 1px solid rgba(63, 207, 213, 0.25);
+        }
+
+        .apn-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .apn-option {
+            padding: 14px 16px;
+            border: 2px solid rgba(63, 207, 213, 0.25);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            background: rgba(19, 30, 125, 0.4);
+        }
+
+        .apn-option:hover {
+            border-color: #3FCFD5;
+            background: rgba(63, 207, 213, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .apn-option.selected {
+            border-color: #3FCFD5;
+            background: linear-gradient(135deg, rgba(63, 207, 213, 0.2), rgba(0, 162, 255, 0.1));
+            box-shadow: 0 0 20px rgba(63, 207, 213, 0.3);
+        }
+
+        .apn-option-name {
+            font-weight: 600;
+            font-size: 0.95em;
+            margin-bottom: 5px;
+            color: #E8FCFD;
+        }
+
+        .apn-option-value {
+            font-size: 0.8em;
+            color: rgba(158, 238, 242, 0.6);
+            font-family: 'Courier New', monospace;
+        }
+
+        .apn-option.selected .apn-option-name,
+        .apn-option.selected .apn-option-value {
+            color: #3FCFD5;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 14px 40px;
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3FCFD5 0%, #00A2FF 100%);
+            color: white;
+            min-width: 200px;
+            box-shadow: 0 4px 15px rgba(63, 207, 213, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(63, 207, 213, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: #fff;
+        }
+
+        .btn-validate {
+            background: linear-gradient(135deg, #3FCFD5, #00A2FF);
+            color: white;
+            width: auto;
+            padding: 10px 20px;
+            font-size: 0.9em;
+            margin-top: 8px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(63, 207, 213, 0.3);
+        }
+
+        .btn-validate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(63, 207, 213, 0.4);
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .alert.show {
+            display: block;
+            animation: alertSlide 0.3s ease-out;
+        }
+
+        @keyframes alertSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(37, 99, 235, 0.1));
+            color: #60A5FA;
+            border-left: 4px solid #3B82F6;
+            border: 1px solid rgba(37, 99, 235, 0.3);
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1));
+            color: #34D399;
+            border-left: 4px solid #10B981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+            color: #F87171;
+            border-left: 4px solid #EF4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .validation-section {
+            background: rgba(19, 30, 125, 0.4);
+            padding: 24px;
+            border-radius: 16px;
+            margin-top: 20px;
+            border: 1px solid rgba(63, 207, 213, 0.2);
+        }
+
+        .validation-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            gap: 12px;
+            color: #9EEEF2;
+        }
+
+        .validation-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+        }
+
+        .validation-icon.pending {
+            background: rgba(63, 207, 213, 0.15);
+            color: rgba(158, 238, 242, 0.6);
+            border: 2px solid rgba(63, 207, 213, 0.25);
+        }
+
+        .validation-icon.valid {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .validation-icon.invalid {
+            background: linear-gradient(135deg, var(--danger), #DC2626);
+            color: white;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .chip-info-display {
+            background: rgba(19, 30, 125, 0.5);
+            border: 2px solid rgba(63, 207, 213, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .chip-info-display.show {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .chip-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(63, 207, 213, 0.15);
+        }
+
+        .chip-info-item:last-child {
+            border-bottom: none;
+        }
+
+        .chip-info-label {
+            font-weight: 600;
+            color: #9EEEF2;
+        }
+
+        .chip-info-value {
+            color: #3FCFD5;
+            font-family: 'Courier New', monospace;
+        }
+
+        @media (max-width: 768px) {
+            .form-card {
+                padding: 25px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn-primary,
+            .btn-secondary {
+                width: 100%;
+            }
+        }
+
+        /* ====== SELECT E OPTIONS - CORES SÓLIDAS PARA VISIBILIDADE ====== */
+        select {
+            cursor: pointer;
+            background-color: #1a237e !important;
+            color: #E8FCFD !important;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23E8FCFD' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 35px !important;
+        }
+
+        select option {
+            background-color: #1a237e !important;
+            color: #E8FCFD !important;
+            padding: 12px 10px !important;
+            font-size: 14px !important;
+        }
+
+        select option:hover,
+        select option:focus {
+            background-color: #3949ab !important;
+            color: #ffffff !important;
+        }
+
+        select option:checked,
+        select option:active {
+            background-color: #3f51b5 !important;
+            color: #ffffff !important;
+        }
+
+        select optgroup {
+            background-color: #0d1042 !important;
+            color: #00bcd4 !important;
+            font-weight: bold !important;
+            font-size: 13px !important;
+            padding: 8px 5px !important;
+        }
+
+        [data-theme="light"] select {
+            background-color: #ffffff !important;
+            color: #1a237e !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231a237e' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        }
+
+        [data-theme="light"] select option {
+            background-color: #ffffff !important;
+            color: #1a237e !important;
+        }
+
+        [data-theme="light"] select option:hover,
+        [data-theme="light"] select option:checked {
+            background-color: #1976d2 !important;
+            color: #ffffff !important;
+        }
+
+        [data-theme="light"] select optgroup {
+            background-color: #e8eaf6 !important;
+            color: #1a237e !important;
+        }
+    </style>
+    <script src="/scripts/auth.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+                    <circle cx="12" cy="15" r="1.5"/>
+                    <path d="M9 7h6v5H9z" opacity="0.3"/>
+                </svg>
+            </div>
+            <h1>Cadastro de Dispositivo</h1>
+            <p>Unifique Rastreador - Sistema de Rastreamento Veicular</p>
+        </div>
+
+        <div class="form-card">
+            <div id="alertContainer"></div>
+
+            <form id="formDispositivo">
+                <!-- SEÇÃO 1: IDENTIFICAÇÃO DO EQUIPAMENTO -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                        Identificação do Equipamento
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                IMEI do Rastreador
+                                <span class="badge badge-required">Obrigatório</span>
+                            </label>
+                            <input type="text" id="imei" name="imei" placeholder="Ex: 356354870699551" maxlength="15">
+                            <div class="validation-message" id="imeiValidation"></div>
+                            <div class="help-text">15 dígitos numéricos (ex: 356354870699551)</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                Tipo de Dispositivo
+                                <span class="badge badge-required">Obrigatório</span>
+                            </label>
+                            <select id="tipo" name="tipo" required>
+                                <option value="">Carregando tipos...</option>
+                            </select>
+                            <div class="help-text" id="tipoHelp">Modelo do rastreador GPS/OBD2</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEÇÃO 2: INFORMAÇÕES DO CHIP -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 4h2v5l-1-.75L9 9V4zm9 16H6V4h1v9l3-2.25L13 13V4h5v16z"/></svg>
+                        Informações do Chip (SIM Card)
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                IMEI do Chip
+                                <span class="badge badge-required">Obrigatório</span>
+                            </label>
+                            <input type="text" id="imeiChip" name="imei_chip" placeholder="Ex: 898765432101234567" maxlength="20">
+                            <button type="button" class="btn-validate" id="btnValidarChip"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Validar Chip</button>
+                            <div class="validation-message" id="imeiChipValidation"></div>
+                            <div class="help-text">IMEI do SIM Card (cartão SIM inserido no rastreador)</div>
+
+                            <div class="chip-info-display" id="chipInfoDisplay">
+                                <div class="chip-info-item">
+                                    <span class="chip-info-label">Status:</span>
+                                    <span class="chip-info-value" id="chipStatus">-</span>
+                                </div>
+                                <div class="chip-info-item">
+                                    <span class="chip-info-label">Operadora:</span>
+                                    <span class="chip-info-value" id="chipOperadora">-</span>
+                                </div>
+                                <div class="chip-info-item">
+                                    <span class="chip-info-label">Conectado:</span>
+                                    <span class="chip-info-value" id="chipConectado">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                Operadora
+                                <span class="badge badge-required">Obrigatório</span>
+                            </label>
+                            <select id="operadora" name="operadora" required>
+                                <option value="">Selecione uma operadora...</option>
+                                <option value="Vivo">Vivo</option>
+                                <option value="Claro">Claro</option>
+                                <option value="TIM">TIM</option>
+                                <option value="Oi">Oi</option>
+                                <option value="Algar">Algar Telecom</option>
+                                <option value="Unifique">Unifique</option>
+                                <option value="Outra">Outra</option>
+                            </select>
+                            <div class="help-text">Operadora móvel do SIM Card</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEÇÃO 3: CONFIGURAÇÃO APN -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                        Configuração APN (Access Point Name)
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Selecionar APN
+                            <span class="badge badge-optional">Automático</span>
+                        </label>
+                        <div class="apn-list" id="apnList">
+                            <!-- Será preenchido dinamicamente via JavaScript -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            APN Customizada
+                            <span class="badge badge-optional">Opcional</span>
+                        </label>
+                        <input type="text" id="apnCustom" name="apn" placeholder="Ex: unifiqueiot ou vivo.br">
+                        <div class="help-text">Se a APN desejada não está listada acima, digite aqui manualmente</div>
+                    </div>
+                </div>
+
+                <!-- SEÇÃO 4: INFORMAÇÕES DO VEÍCULO -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <svg viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5z"/><circle cx="7.5" cy="14.5" r="1.5"/><circle cx="16.5" cy="14.5" r="1.5"/></svg>
+                        Informações do Veículo
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                Placa do Veículo
+                                <span class="badge badge-required">Obrigatório</span>
+                            </label>
+                            <input type="text" id="placa" name="placa" placeholder="Ex: MES-2829" maxlength="10" required>
+                            <div class="help-text">Placa do veículo (com ou sem hífen)</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                Modelo/Descrição
+                                <span class="badge badge-required">Obrigatório</span>
+                            </label>
+                            <input type="text" id="veiculo" name="veiculo" placeholder="Ex: Evoque Prata" required>
+                            <div class="help-text">Modelo ou descrição do veículo</div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                Ano do Veículo
+                                <span class="badge badge-required">Obrigatório</span>
+                            </label>
+                            <input type="number" id="anoVeiculo" name="ano_veiculo" placeholder="Ex: 2024" min="1950" max="2030" required>
+                            <div class="help-text">Ano de fabricação (o perfil será sugerido automaticamente)</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                Perfil de Tensão
+                                <span class="badge badge-optional">Auto-sugerido</span>
+                            </label>
+                            <select id="perfilVeiculo" name="perfil_veiculo">
+                                <option value="">Carregando perfis...</option>
+                            </select>
+                            <div class="help-text" id="perfilHelp">Define os thresholds de tensão para detectar motor ligado/desligado</div>
+                        </div>
+                    </div>
+
+                    <!-- Indicador de thresholds de tensão -->
+                    <div class="form-group" id="tensao-info" style="display: none;">
+                        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 16px; margin-top: 10px;">
+                            <div style="font-weight: 600; color: #34D399; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z"/></svg>
+                                Thresholds de Tensão Configurados
+                            </div>
+                            <div style="display: flex; gap: 30px; color: rgba(255, 255, 255, 0.8); flex-wrap: wrap;">
+                                <span>Motor Ligado: <strong id="tensaoOn" style="color: #34D399;">-</strong></span>
+                                <span>Motor Desligado: <strong id="tensaoOff" style="color: #F87171;">-</strong></span>
+                            </div>
+                            <div style="font-size: 0.85em; color: rgba(255, 255, 255, 0.5); margin-top: 10px;">
+                                O sistema irá aprender e sugerir ajustes após 48h de uso.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campo Odômetro (aparece apenas para XT40_4F) -->
+                    <div class="form-group" id="odometro-group" style="display: none;">
+                        <label>
+                            Odômetro Inicial (km)
+                            <span class="badge badge-required">Obrigatório para Cabo</span>
+                        </label>
+                        <input type="number" id="odometroInicial" name="odometro_inicial" placeholder="Ex: 45000" min="0" step="1">
+                        <div class="help-text">Quilometragem atual do veículo. O sistema atualizará automaticamente conforme o veículo rodar.</div>
+                    </div>
+                </div>
+
+                <!-- SEÇÃO 5: VALIDAÇÕES -->
+                <div class="form-section">
+                    <div class="validation-section">
+                        <div style="font-weight: 600; margin-bottom: 15px; color: var(--accent); display: flex; align-items: center; gap: 10px;">
+                            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                            Checklist de Validação
+                        </div>
+
+                        <div class="validation-item">
+                            <div class="validation-icon pending" id="validImei">1</div>
+                            <span>IMEI do Rastreador válido (15 dígitos)</span>
+                        </div>
+
+                        <div class="validation-item">
+                            <div class="validation-icon pending" id="validImeiChip">2</div>
+                            <span>IMEI do Chip validado no servidor</span>
+                        </div>
+
+                        <div class="validation-item">
+                            <div class="validation-icon pending" id="validApn">3</div>
+                            <span>APN configurada</span>
+                        </div>
+
+                        <div class="validation-item">
+                            <div class="validation-icon pending" id="validVehicle">4</div>
+                            <span>Informações do veículo preenchidas</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTÕES -->
+                <div class="button-group">
+                    <button type="button" class="btn-secondary" id="btnLimpar">Limpar Formulário</button>
+                    <button type="submit" class="btn-primary" id="btnSubmit"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="vertical-align: middle; margin-right: 6px;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Cadastrar Dispositivo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Definir APNs disponíveis
+        const APNs = {
+            'vivo': { nome: 'Vivo', apn: 'vivo.br' },
+            'claro': { nome: 'Claro', apn: 'claro.com.br' },
+            'tim': { nome: 'TIM', apn: 'tim.br' },
+            'oi': { nome: 'Oi', apn: 'oi.com.br' },
+            'algar': { nome: 'Algar Telecom', apn: 'algar.com.br' },
+            'unifique': { nome: 'Unifique', apn: 'unifiqueiot' }
+        };
+
+        const API_BASE = '/api';
+        let selectedApn = null;
+        let chipValidated = false;
+        let deviceTypes = [];
+        let vehicleProfiles = [];
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDeviceTypes();
+            loadVehicleProfiles();
+            initializeAPNList();
+            setupEventListeners();
+        });
+
+        // Carregar tipos de dispositivos da API
+        async function loadDeviceTypes() {
+            const select = document.getElementById('tipo');
+            const helpText = document.getElementById('tipoHelp');
+
+            try {
+                const response = await fetch(`${API_BASE}/dispositivos/tipos`);
+                const data = await response.json();
+
+                if (data.sucesso && data.tipos) {
+                    deviceTypes = data.tipos;
+                    select.innerHTML = '<option value="">Selecione um tipo...</option>';
+
+                    data.tipos.forEach(tipo => {
+                        const option = document.createElement('option');
+                        option.value = tipo.id;
+                        option.textContent = `${tipo.nome} (${tipo.conexao})`;
+                        option.title = tipo.descricao;
+                        select.appendChild(option);
+                    });
+
+                    helpText.textContent = 'Selecione o modelo do rastreador';
+                } else {
+                    throw new Error('Falha ao carregar tipos');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar tipos:', error);
+                // Fallback com tipos padrão
+                select.innerHTML = `
+                    <option value="">Selecione um tipo...</option>
+                    <option value="XT40_OBD2">XT40 OBD-II (obd2)</option>
+                    <option value="XT40_4F">XT40 Cabo 4F (cabo)</option>
+                    <option value="XT40_UNKNOWN">XT40 Não identificado</option>
+                `;
+                helpText.textContent = 'Tipos carregados do cache local';
+            }
+        }
+
+        // Carregar perfis de veículo da API
+        async function loadVehicleProfiles() {
+            const select = document.getElementById('perfilVeiculo');
+            const helpText = document.getElementById('perfilHelp');
+
+            try {
+                const response = await fetch(`${API_BASE}/dispositivos/perfis-veiculo`);
+                const data = await response.json();
+
+                if (data.sucesso && data.perfis) {
+                    vehicleProfiles = data.perfis;
+                    select.innerHTML = '<option value="">Selecione ou informe o ano...</option>';
+
+                    data.perfis.forEach(perfil => {
+                        const option = document.createElement('option');
+                        option.value = perfil.id;
+                        option.textContent = perfil.nome;
+                        option.dataset.tensaoOn = perfil.tensao_motor_ligado;
+                        option.dataset.tensaoOff = perfil.tensao_motor_deslig;
+                        option.title = perfil.descricao;
+                        select.appendChild(option);
+                    });
+
+                    helpText.textContent = 'Selecione manualmente ou informe o ano para sugestão automática';
+                } else {
+                    throw new Error('Falha ao carregar perfis');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar perfis:', error);
+                // Fallback com perfis padrão
+                select.innerHTML = `
+                    <option value="">Selecione um perfil...</option>
+                    <option value="MODERNO" data-tensao-on="13.2" data-tensao-off="12.8">Veículo Moderno (2015+)</option>
+                    <option value="INTERMEDIARIO" data-tensao-on="12.8" data-tensao-off="12.4">Veículo Intermediário (2008-2014)</option>
+                    <option value="ANTIGO" data-tensao-on="12.4" data-tensao-off="12.0">Veículo Antigo (até 2007)</option>
+                    <option value="DIESEL" data-tensao-on="13.5" data-tensao-off="13.0">Veículo Diesel</option>
+                `;
+            }
+        }
+
+        // Sugerir perfil baseado no ano do veículo
+        function sugerirPerfilPorAno() {
+            const anoInput = document.getElementById('anoVeiculo');
+            const perfilSelect = document.getElementById('perfilVeiculo');
+            const ano = parseInt(anoInput.value);
+
+            if (!ano || ano < 1950 || ano > 2030) {
+                return;
+            }
+
+            let perfilSugerido = 'INTERMEDIARIO';
+            if (ano >= 2015) {
+                perfilSugerido = 'MODERNO';
+            } else if (ano >= 2008) {
+                perfilSugerido = 'INTERMEDIARIO';
+            } else {
+                perfilSugerido = 'ANTIGO';
+            }
+
+            perfilSelect.value = perfilSugerido;
+            atualizarInfoTensao();
+            updateValidation();
+        }
+
+        // Atualizar informações de tensão quando perfil mudar
+        function atualizarInfoTensao() {
+            const perfilSelect = document.getElementById('perfilVeiculo');
+            const tensaoInfo = document.getElementById('tensao-info');
+            const tensaoOn = document.getElementById('tensaoOn');
+            const tensaoOff = document.getElementById('tensaoOff');
+
+            const selectedOption = perfilSelect.options[perfilSelect.selectedIndex];
+
+            if (selectedOption && selectedOption.value) {
+                const perfil = vehicleProfiles.find(p => p.id === selectedOption.value);
+                if (perfil) {
+                    tensaoOn.textContent = `>= ${perfil.tensao_motor_ligado}V`;
+                    tensaoOff.textContent = `< ${perfil.tensao_motor_deslig}V`;
+                    tensaoInfo.style.display = 'block';
+                } else {
+                    // Fallback para data attributes
+                    const on = selectedOption.dataset.tensaoOn;
+                    const off = selectedOption.dataset.tensaoOff;
+                    if (on && off) {
+                        tensaoOn.textContent = `>= ${on}V`;
+                        tensaoOff.textContent = `< ${off}V`;
+                        tensaoInfo.style.display = 'block';
+                    }
+                }
+            } else {
+                tensaoInfo.style.display = 'none';
+            }
+        }
+
+        // Atualizar descrição quando selecionar tipo e mostrar/ocultar campo odômetro
+        function updateTypeDescription() {
+            const select = document.getElementById('tipo');
+            const helpText = document.getElementById('tipoHelp');
+            const selectedType = deviceTypes.find(t => t.id === select.value);
+            const odometroGroup = document.getElementById('odometro-group');
+            const odometroInput = document.getElementById('odometroInicial');
+            const tipoSelecionado = select.value;
+
+            console.log('[Cadastro] Tipo selecionado:', tipoSelecionado);
+
+            // Atualizar descrição do tipo
+            if (selectedType) {
+                helpText.textContent = selectedType.descricao;
+            } else if (tipoSelecionado) {
+                helpText.textContent = 'Tipo selecionado: ' + tipoSelecionado;
+            } else {
+                helpText.textContent = 'Selecione o modelo do rastreador';
+            }
+
+            // Mostrar campo odômetro apenas para XT40_4F (modelo cabo)
+            // Verificar diretamente o valor do select, não depende do deviceTypes
+            if (tipoSelecionado === 'XT40_4F') {
+                console.log('[Cadastro] Mostrando campo odômetro');
+                odometroGroup.style.display = 'block';
+                odometroInput.required = true;
+            } else {
+                odometroGroup.style.display = 'none';
+                odometroInput.required = false;
+                odometroInput.value = ''; // Limpar valor
+            }
+
+            updateValidation();
+        }
+
+        function initializeAPNList() {
+            const apnList = document.getElementById('apnList');
+            apnList.innerHTML = '';
+
+            Object.entries(APNs).forEach(([key, value]) => {
+                const div = document.createElement('div');
+                div.className = 'apn-option';
+                div.innerHTML = `
+                    <div class="apn-option-name">${value.nome}</div>
+                    <div class="apn-option-value">${value.apn}</div>
+                `;
+                div.addEventListener('click', () => selectAPN(key, value.apn, div));
+                apnList.appendChild(div);
+            });
+        }
+
+        function selectAPN(key, apnValue, element) {
+            // Remover seleção anterior
+            document.querySelectorAll('.apn-option').forEach(el => el.classList.remove('selected'));
+
+            // Marcar como selecionado
+            element.classList.add('selected');
+            selectedApn = apnValue;
+            document.getElementById('apnCustom').value = apnValue;
+
+            updateValidation();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('imei').addEventListener('input', validateIMEI);
+            document.getElementById('imeiChip').addEventListener('input', validateIMEIChip);
+            document.getElementById('btnValidarChip').addEventListener('click', validarChipNoServidor);
+            document.getElementById('operadora').addEventListener('change', autoSelectAPN);
+            document.getElementById('tipo').addEventListener('change', updateTypeDescription);
+            document.getElementById('apnCustom').addEventListener('input', () => selectedApn = document.getElementById('apnCustom').value);
+            document.getElementById('placa').addEventListener('input', updateValidation);
+            document.getElementById('veiculo').addEventListener('input', updateValidation);
+            document.getElementById('anoVeiculo').addEventListener('input', sugerirPerfilPorAno);
+            document.getElementById('perfilVeiculo').addEventListener('change', atualizarInfoTensao);
+            document.getElementById('odometroInicial').addEventListener('input', updateValidation);
+            document.getElementById('btnLimpar').addEventListener('click', limparFormulario);
+            document.getElementById('formDispositivo').addEventListener('submit', submitForm);
+        }
+
+        function validateIMEI() {
+            const imei = document.getElementById('imei').value.trim();
+            const validation = document.getElementById('imeiValidation');
+            const input = document.getElementById('imei');
+            const icon = document.getElementById('validImei');
+
+            if (!imei) {
+                validation.className = 'validation-message';
+                input.classList.remove('input-error', 'input-success');
+                icon.className = 'validation-icon pending';
+                return false;
+            }
+
+            const isValid = /^\d{15}$/.test(imei);
+
+            if (isValid) {
+                validation.className = 'validation-message success';
+                validation.textContent = '✓ IMEI válido (15 dígitos)';
+                input.classList.remove('input-error');
+                input.classList.add('input-success');
+                icon.className = 'validation-icon valid';
+                icon.textContent = '✓';
+            } else {
+                validation.className = 'validation-message error';
+                validation.textContent = '✗ IMEI deve ter exatamente 15 dígitos numéricos';
+                input.classList.remove('input-success');
+                input.classList.add('input-error');
+                icon.className = 'validation-icon invalid';
+                icon.textContent = '✗';
+            }
+
+            updateValidation();
+            return isValid;
+        }
+
+        function validateIMEIChip() {
+            const imeiChip = document.getElementById('imeiChip').value.trim();
+            const validation = document.getElementById('imeiChipValidation');
+            const input = document.getElementById('imeiChip');
+
+            if (!imeiChip) {
+                validation.className = 'validation-message';
+                input.classList.remove('input-error', 'input-success');
+                return false;
+            }
+
+            const isValid = /^\d{17,20}$/.test(imeiChip);
+
+            if (isValid) {
+                validation.className = 'validation-message success';
+                validation.textContent = '✓ Formato IMEI válido (17-20 dígitos)';
+                input.classList.remove('input-error');
+                input.classList.add('input-success');
+            } else {
+                validation.className = 'validation-message error';
+                validation.textContent = '✗ IMEI do chip deve ter 17-20 dígitos numéricos';
+                input.classList.remove('input-success');
+                input.classList.add('input-error');
+            }
+
+            updateValidation();
+            return isValid;
+        }
+
+        function validarChipNoServidor() {
+            const imeiChip = document.getElementById('imeiChip').value.trim();
+
+            if (!validateIMEIChip()) {
+                showAlert('Por favor, insira um IMEI de chip válido', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btnValidarChip');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span>Validando...';
+
+            // Simular validação no servidor
+            fetch(`${API_BASE}/dispositivos/validar-chip`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imei_chip: imeiChip })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.sucesso) {
+                    showAlert('✓ Chip validado com sucesso!', 'success');
+
+                    document.getElementById('chipStatus').textContent = 'Validado';
+                    document.getElementById('chipOperadora').textContent = data.dados.operadora || 'Desconhecida';
+                    document.getElementById('chipConectado').textContent = data.dados.timestamp || 'Nunca';
+                    document.getElementById('chipInfoDisplay').classList.add('show');
+
+                    chipValidated = true;
+                    document.getElementById('imeiChipValidation').className = 'validation-message success';
+                    document.getElementById('imeiChipValidation').textContent = '✓ Chip validado no servidor';
+                    document.getElementById('validImeiChip').className = 'validation-icon valid';
+                    document.getElementById('validImeiChip').textContent = '✓';
+                } else {
+                    showAlert('Chip não encontrado. Verifique o IMEI.', 'error');
+                }
+            })
+            .catch(err => {
+                showAlert('Erro ao validar chip: ' + err.message, 'error');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Validar Chip';
+            });
+
+            updateValidation();
+        }
+
+        function autoSelectAPN() {
+            const operadora = document.getElementById('operadora').value;
+            const apnKey = operadora.toLowerCase();
+
+            if (APNs[apnKey]) {
+                const element = Array.from(document.querySelectorAll('.apn-option')).find(el => {
+                    return el.textContent.includes(APNs[apnKey].nome);
+                });
+                if (element) {
+                    selectAPN(apnKey, APNs[apnKey].apn, element);
+                }
+            }
+        }
+
+        function updateValidation() {
+            const imeiValid = validateIMEI();
+            const imeiChipValid = chipValidated;
+            const apnValid = selectedApn || document.getElementById('apnCustom').value;
+            const vehicleValid = document.getElementById('placa').value && document.getElementById('veiculo').value;
+
+            // Verificar odômetro (obrigatório apenas para XT40_4F)
+            const tipoSelecionado = document.getElementById('tipo').value;
+            const odometroInput = document.getElementById('odometroInicial');
+            const odometroValid = tipoSelecionado !== 'XT40_4F' || (odometroInput.value && parseFloat(odometroInput.value) >= 0);
+
+            // Atualizar APN
+            if (apnValid) {
+                document.getElementById('validApn').className = 'validation-icon valid';
+                document.getElementById('validApn').textContent = '✓';
+            } else {
+                document.getElementById('validApn').className = 'validation-icon pending';
+                document.getElementById('validApn').textContent = '3';
+            }
+
+            // Atualizar Veículo
+            if (vehicleValid && odometroValid) {
+                document.getElementById('validVehicle').className = 'validation-icon valid';
+                document.getElementById('validVehicle').textContent = '✓';
+            } else {
+                document.getElementById('validVehicle').className = 'validation-icon pending';
+                document.getElementById('validVehicle').textContent = '4';
+            }
+
+            // Habilitar/Desabilitar botão de submit
+            const allValid = imeiValid && imeiChipValid && apnValid && vehicleValid && odometroValid;
+            document.getElementById('btnSubmit').disabled = !allValid;
+        }
+
+        function limparFormulario() {
+            document.getElementById('formDispositivo').reset();
+            document.querySelectorAll('.apn-option').forEach(el => el.classList.remove('selected'));
+            document.querySelectorAll('.validation-message').forEach(el => el.className = 'validation-message');
+            document.querySelectorAll('input, select').forEach(el => {
+                el.classList.remove('input-error', 'input-success');
+            });
+            document.querySelectorAll('.validation-icon').forEach(el => {
+                el.className = 'validation-icon pending';
+                el.textContent = el.parentElement.querySelector('span').textContent.match(/\d/)[0];
+            });
+            document.getElementById('chipInfoDisplay').classList.remove('show');
+            document.getElementById('alertContainer').innerHTML = '';
+            selectedApn = null;
+            chipValidated = false;
+        }
+
+        function submitForm(e) {
+            e.preventDefault();
+
+            const formData = {
+                imei: document.getElementById('imei').value.trim(),
+                tipo: document.getElementById('tipo').value,
+                imei_chip: document.getElementById('imeiChip').value.trim(),
+                operadora: document.getElementById('operadora').value,
+                apn: document.getElementById('apnCustom').value.trim(),
+                placa: document.getElementById('placa').value.trim(),
+                veiculo: document.getElementById('veiculo').value.trim()
+            };
+
+            // Incluir ano e perfil do veículo
+            const anoVeiculo = document.getElementById('anoVeiculo').value;
+            const perfilVeiculo = document.getElementById('perfilVeiculo').value;
+            if (anoVeiculo) {
+                formData.ano_veiculo = parseInt(anoVeiculo);
+            }
+            if (perfilVeiculo) {
+                formData.perfil_veiculo = perfilVeiculo;
+            }
+
+            // Incluir odômetro inicial se for modelo cabo (XT40_4F)
+            const odometroInicial = document.getElementById('odometroInicial').value;
+            if (formData.tipo === 'XT40_4F' && odometroInicial) {
+                formData.odometro_inicial = parseFloat(odometroInicial);
+            }
+
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span>Cadastrando...';
+
+            fetch(`${API_BASE}/dispositivos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.sucesso) {
+                    showAlert('✓ Dispositivo cadastrado com sucesso!', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/admin-dashboard.html';
+                    }, 2000);
+                } else {
+                    showAlert('Erro ao cadastrar: ' + (data.mensagem || 'Tente novamente'), 'error');
+                }
+            })
+            .catch(err => {
+                showAlert('Erro na requisição: ' + err.message, 'error');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="vertical-align: middle; margin-right: 6px;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Cadastrar Dispositivo';
+            });
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} show`;
+            alert.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+
+            if (type === 'success') {
+                setTimeout(() => alert.remove(), 3000);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+[Unit]
+Description=Rastreador GPS Watchdog
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/tomelin/rastreador/scripts/monitoring/watchdog.sh
+User=root
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

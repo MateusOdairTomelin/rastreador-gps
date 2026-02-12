@@ -1,0 +1,16 @@
+# Grafana Dashboard Provisioning
+# Carrega dashboards automaticamente
+
+apiVersion: 1
+
+providers:
+  - name: 'GPS Tracker Dashboards'
+    orgId: 1
+    folder: 'GPS Tracker'
+    folderUid: 'gps-tracker'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards

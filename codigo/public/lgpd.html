@@ -1,0 +1,1936 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LGPD - Privacidade e Dados | Unifique Rastreador</title>
+  <link rel="icon" type="image/png" sizes="48x48" href="/FAVICON_48x48.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Cores Unifique */
+      --unifique-cyan: #3FCFD5;
+      --unifique-cyan-dark: #28B8BE;
+      --unifique-blue: #00A2FF;
+      --unifique-deep-blue: #212492;
+      --unifique-violet: #131E7D;
+
+      --primary: #3FCFD5;
+      --primary-light: #00A2FF;
+      --primary-dark: #131E7D;
+      --accent: #3FCFD5;
+      --accent-light: #00A2FF;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --text: #1F2937;
+      --text-light: #6B7280;
+      --bg: #F3F4F6;
+      --card: #FFFFFF;
+      --border: #E5E7EB;
+    }
+
+    /* ====== DARK MODE ====== */
+    [data-theme="dark"] {
+      --primary: #3FCFD5;
+      --primary-light: #00A2FF;
+      --primary-dark: #212492;
+      --accent: #3FCFD5;
+      --success: #34D399;
+      --warning: #FBBF24;
+      --danger: #F87171;
+      --text: #F1F5F9;
+      --text-light: #94A3B8;
+      --bg: #0d1042;
+      --card: #131E7D;
+      --border: rgba(63, 207, 213, 0.2);
+    }
+
+    [data-theme="dark"] body {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    [data-theme="dark"] .header {
+      background: linear-gradient(135deg, #131E7D 0%, #212492 50%, #0d1042 100%);
+    }
+
+    [data-theme="dark"] .card {
+      background: var(--card);
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .card-title {
+      color: var(--text);
+    }
+
+    [data-theme="dark"] .card-subtitle {
+      color: var(--text-light);
+    }
+
+    /* Dark Mode - Tabelas */
+    [data-theme="dark"] table {
+      background: var(--card);
+    }
+
+    [data-theme="dark"] th {
+      background: var(--bg);
+      color: var(--text-light);
+    }
+
+    [data-theme="dark"] td {
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] tr:hover {
+      background: rgba(63, 207, 213, 0.1);
+    }
+
+    /* Dark Mode - Badges */
+    [data-theme="dark"] .badge-success {
+      background: rgba(52, 211, 153, 0.2);
+      color: #34D399;
+    }
+
+    [data-theme="dark"] .badge-warning {
+      background: rgba(251, 191, 36, 0.2);
+      color: #FBBF24;
+    }
+
+    [data-theme="dark"] .badge-danger {
+      background: rgba(248, 113, 113, 0.2);
+      color: #F87171;
+    }
+
+    [data-theme="dark"] .badge-info {
+      background: rgba(63, 207, 213, 0.2);
+      color: #3FCFD5;
+    }
+
+    /* Dark Mode - Formulários */
+    [data-theme="dark"] input,
+    [data-theme="dark"] select,
+    [data-theme="dark"] textarea {
+      background: var(--bg);
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    [data-theme="dark"] input::placeholder {
+      color: var(--text-light);
+    }
+
+    [data-theme="dark"] label {
+      color: var(--text-light);
+    }
+
+    /* Dark Mode - Modais */
+    [data-theme="dark"] .modal-overlay {
+      background: rgba(0, 0, 0, 0.8);
+    }
+
+    [data-theme="dark"] .modal-content {
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+
+    [data-theme="dark"] .modal-header {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+
+    [data-theme="dark"] .modal-header h2,
+    [data-theme="dark"] .modal-header h3 {
+      color: var(--text);
+    }
+
+    [data-theme="dark"] .modal-body {
+      color: var(--text);
+    }
+
+    [data-theme="dark"] .modal-footer {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+    }
+
+    /* Dark Mode - Botões */
+    [data-theme="dark"] .btn-outline {
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    [data-theme="dark"] .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Dark Mode - Estatísticas */
+    [data-theme="dark"] .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+
+    [data-theme="dark"] .stat-value {
+      color: var(--text);
+    }
+
+    [data-theme="dark"] .stat-label {
+      color: var(--text-light);
+    }
+
+    /* Dark Mode - Alertas */
+    [data-theme="dark"] .alert {
+      background: var(--card);
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .alert-info {
+      background: rgba(63, 207, 213, 0.1);
+      border-color: rgba(63, 207, 213, 0.3);
+    }
+
+    [data-theme="dark"] .alert-warning {
+      background: rgba(251, 191, 36, 0.1);
+      border-color: rgba(251, 191, 36, 0.3);
+    }
+
+    /* Dark Mode - Tabs */
+    [data-theme="dark"] .tabs {
+      background: var(--card);
+      border-color: var(--border);
+    }
+
+    [data-theme="dark"] .tab {
+      color: var(--text-light);
+    }
+
+    [data-theme="dark"] .tab.active {
+      background: linear-gradient(135deg, #3FCFD5 0%, #00A2FF 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(63, 207, 213, 0.3);
+    }
+
+    [data-theme="dark"] .tab:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Dark Mode - Ações */
+    [data-theme="dark"] .btn-icon {
+      color: var(--text-light);
+    }
+
+    [data-theme="dark"] .btn-icon:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+    }
+
+    /* Dark Mode - Scrollbar */
+    [data-theme="dark"] ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    [data-theme="dark"] ::-webkit-scrollbar-track {
+      background: var(--bg);
+    }
+
+    [data-theme="dark"] ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    /* Dark Mode - Textos */
+    [data-theme="dark"] h1, [data-theme="dark"] h2,
+    [data-theme="dark"] h3, [data-theme="dark"] h4 {
+      color: var(--text);
+    }
+
+    [data-theme="dark"] p {
+      color: var(--text-light);
+    }
+
+    [data-theme="dark"] .text-muted {
+      color: var(--text-light);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #f0f9ff 0%, rgba(63, 207, 213, 0.08) 50%, #f0f9ff 100%);
+      min-height: 100vh;
+      color: var(--text);
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(63, 207, 213, 0.12) 0%, transparent 60%);
+      border-radius: 50%;
+      top: -200px;
+      right: -200px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #131E7D 0%, #212492 50%, #00A2FF 100%);
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(63, 207, 213, 0.3);
+      position: relative;
+      z-index: 10;
+    }
+
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #3FCFD5, #00A2FF, #3FCFD5);
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+      font-size: 0.9rem;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3FCFD5 0%, #00A2FF 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(63, 207, 213, 0.3);
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #28B8BE 0%, #212492 100%);
+      box-shadow: 0 6px 20px rgba(63, 207, 213, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #DC2626;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-outline:hover {
+      background: var(--bg);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 24px;
+      border: 1px solid rgba(63, 207, 213, 0.2);
+      box-shadow: 0 4px 20px rgba(33, 36, 146, 0.08);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(63, 207, 213, 0.15);
+    }
+
+    .card-full {
+      grid-column: 1 / -1;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--primary);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .status-success {
+      background: #D1FAE5;
+      color: #065F46;
+    }
+
+    .status-warning {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+
+    .status-danger {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+
+    .consent-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    .consent-info {
+      flex: 1;
+    }
+
+    .consent-title {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .consent-meta {
+      font-size: 0.85rem;
+      color: var(--text-light);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table th {
+      background: var(--bg);
+      font-weight: 600;
+      color: var(--text);
+      position: sticky;
+      top: 0;
+    }
+
+    .data-table tr:hover {
+      background: #F9FAFB;
+    }
+
+    .data-table-wrapper {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #3FCFD5 0%, #212492 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+
+    .stat-sublabel {
+      font-size: 0.75rem;
+      opacity: 0.7;
+      margin-top: 8px;
+    }
+
+    .progress-bar {
+      background: rgba(255,255,255,0.3);
+      height: 8px;
+      border-radius: 4px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      background: white;
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .alert {
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .alert-info {
+      background: rgba(63, 207, 213, 0.15);
+      border: 1px solid rgba(63, 207, 213, 0.4);
+      color: #212492;
+    }
+
+    .alert-success {
+      background: #D1FAE5;
+      border: 1px solid #6EE7B7;
+      color: #065F46;
+    }
+
+    .alert-warning {
+      background: #FEF3C7;
+      border: 1px solid #FCD34D;
+      color: #92400E;
+    }
+
+    .alert-danger {
+      background: #FEE2E2;
+      border: 1px solid #FCA5A5;
+      color: #991B1B;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-light);
+    }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-light);
+    }
+
+    .modal-body {
+      margin-bottom: 20px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .form-select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    .form-textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .nav-back {
+      color: white;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0.9;
+    }
+
+    .nav-back:hover {
+      opacity: 1;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin: 30px 0 20px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .admin-only {
+      border: 2px dashed var(--warning);
+    }
+
+    .super-admin-only {
+      border: 2px dashed var(--danger);
+    }
+
+    .badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-admin {
+      background: var(--warning);
+      color: white;
+    }
+
+    .badge-super {
+      background: var(--danger);
+      color: white;
+    }
+
+    .badge-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg);
+      padding: 4px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 6px;
+      font-weight: 500;
+      color: var(--text-light);
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #3FCFD5 0%, #00A2FF 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(63, 207, 213, 0.3);
+    }
+
+    .tab:hover:not(.active) {
+      color: var(--text);
+    }
+
+    .org-card {
+      background: var(--bg);
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+
+    .org-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .org-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .org-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .org-stat {
+      text-align: center;
+    }
+
+    .org-stat-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #212492;
+    }
+
+    .org-stat-label {
+      font-size: 0.75rem;
+      color: var(--text-light);
+    }
+
+    @media (max-width: 768px) {
+      .grid-3, .grid-4 {
+        grid-template-columns: 1fr;
+      }
+
+      .header {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .tabs {
+        flex-wrap: wrap;
+      }
+    }
+
+    /* ====== SELECT E OPTIONS - CORES SÓLIDAS PARA VISIBILIDADE ====== */
+    select {
+      cursor: pointer;
+      background-color: #1a237e !important;
+      color: #E8FCFD !important;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23E8FCFD' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 35px !important;
+    }
+
+    select option {
+      background-color: #1a237e !important;
+      color: #E8FCFD !important;
+      padding: 12px 10px !important;
+      font-size: 14px !important;
+    }
+
+    select option:hover,
+    select option:focus {
+      background-color: #3949ab !important;
+      color: #ffffff !important;
+    }
+
+    select option:checked,
+    select option:active {
+      background-color: #3f51b5 !important;
+      color: #ffffff !important;
+    }
+
+    select optgroup {
+      background-color: #0d1042 !important;
+      color: #00bcd4 !important;
+      font-weight: bold !important;
+      font-size: 13px !important;
+      padding: 8px 5px !important;
+    }
+
+    [data-theme="light"] select {
+      background-color: #ffffff !important;
+      color: #1a237e !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231a237e' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    }
+
+    [data-theme="light"] select option {
+      background-color: #ffffff !important;
+      color: #1a237e !important;
+    }
+
+    [data-theme="light"] select option:hover,
+    [data-theme="light"] select option:checked {
+      background-color: #1976d2 !important;
+      color: #ffffff !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <a href="/admin-dashboard.html" class="nav-back"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> Voltar ao Dashboard</a>
+      <h1>LGPD - Privacidade e Dados</h1>
+    </div>
+    <div class="header-actions">
+      <span id="userInfo"></span>
+      <span id="roleBadge"></span>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Alert de status -->
+    <div id="mainAlert" class="alert hidden"></div>
+
+    <!-- Tabs de navegação -->
+    <div class="tabs" id="mainTabs">
+      <button class="tab active" data-tab="meus-dados">Meus Dados</button>
+      <button class="tab" data-tab="admin" id="tabAdmin">Administração</button>
+      <button class="tab hidden" data-tab="super-admin" id="tabSuperAdmin">Super Admin</button>
+    </div>
+
+    <!-- ========== TAB: MEUS DADOS ========== -->
+    <div id="tab-meus-dados" class="tab-content">
+      <h2 class="section-title">Meus Consentimentos</h2>
+      <div class="grid">
+        <div class="card">
+          <h3 class="card-title">Status dos Consentimentos</h3>
+          <div id="consentStatus">
+            <div class="loading">
+              <div class="spinner"></div>
+              Carregando...
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Ações de Consentimento</h3>
+          <div id="consentActions">
+            <p style="color: var(--text-light); margin-bottom: 16px;">
+              Você pode aceitar ou revogar seus consentimentos a qualquer momento.
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <button class="btn btn-success" onclick="aceitarConsentimentos()" id="btnAceitar">
+                Aceitar Todos os Consentimentos
+              </button>
+              <button class="btn btn-outline" onclick="window.open('/politica-privacidade.html', '_blank')">
+                Ver Política de Privacidade
+              </button>
+              <button class="btn btn-outline" onclick="window.open('/termos-uso.html', '_blank')">
+                Ver Termos de Uso
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="section-title">Meus Dados</h2>
+      <div class="grid">
+        <div class="card">
+          <h3 class="card-title">Exportar Meus Dados (Portabilidade)</h3>
+          <p style="color: var(--text-light); margin-bottom: 16px;">
+            Conforme a LGPD, você tem direito de exportar todos os seus dados pessoais em formato JSON.
+          </p>
+          <button class="btn btn-primary" onclick="exportarDados()" id="btnExportar">
+            Exportar Meus Dados
+          </button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Solicitar Exclusão de Dados</h3>
+          <p style="color: var(--text-light); margin-bottom: 16px;">
+            Você pode solicitar a exclusão de seus dados pessoais. A solicitação será analisada em até 15 dias úteis.
+          </p>
+          <button class="btn btn-danger" onclick="abrirModalExclusao()">
+            Solicitar Exclusão
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== TAB: ADMINISTRAÇÃO (Admin) ========== -->
+    <div id="tab-admin" class="tab-content hidden">
+      <h2 class="section-title">Colaboradores da Organização <span class="badge badge-admin">ADMIN</span></h2>
+
+      <div class="grid">
+        <div class="card card-full admin-only">
+          <h3 class="card-title">Usuários e Status de Consentimento</h3>
+          <div id="orgUsersTable">
+            <div class="loading">
+              <div class="spinner"></div>
+              Carregando...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="section-title">Motoristas <span class="badge badge-admin">ADMIN</span></h2>
+
+      <div class="grid">
+        <div class="card card-full admin-only">
+          <h3 class="card-title">Motoristas e Status de Consentimento</h3>
+          <p style="color: var(--text-light); margin-bottom: 16px;">
+            Motoristas precisam aceitar os termos no APP antes de vincular veículos.
+          </p>
+          <div id="motoristasTable">
+            <div class="loading">
+              <div class="spinner"></div>
+              Carregando...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="section-title">Políticas de Retenção <span class="badge badge-admin">ADMIN</span></h2>
+
+      <div class="grid">
+        <div class="card admin-only">
+          <h3 class="card-title">Políticas de Retenção de Dados</h3>
+          <div id="retentionPolicies">
+            <div class="loading">
+              <div class="spinner"></div>
+              Carregando...
+            </div>
+          </div>
+        </div>
+
+        <div class="card admin-only">
+          <h3 class="card-title">Estimativa de Limpeza</h3>
+          <div id="cleanupEstimate">
+            <div class="loading">
+              <div class="spinner"></div>
+              Carregando...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top: 20px;">
+        <div class="card card-full admin-only">
+          <h3 class="card-title">Solicitações de Exclusão Pendentes</h3>
+          <div id="exclusionRequests">
+            <div class="loading">
+              <div class="spinner"></div>
+              Carregando...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== TAB: SUPER ADMIN ========== -->
+    <div id="tab-super-admin" class="tab-content hidden">
+      <h2 class="section-title">Visão Geral LGPD <span class="badge badge-super">SUPER ADMIN</span></h2>
+
+      <!-- Estatísticas Gerais -->
+      <div class="grid grid-4" id="statsCards">
+        <div class="stat-card">
+          <div class="stat-value" id="statTotalUsuarios">-</div>
+          <div class="stat-label">Total de Usuários</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressUsuarios" style="width: 0%"></div>
+          </div>
+          <div class="stat-sublabel"><span id="statUsuariosConformes">0</span> em conformidade</div>
+        </div>
+
+        <div class="stat-card" style="background: linear-gradient(135deg, #00A2FF 0%, #212492 100%);">
+          <div class="stat-value" id="statTotalMotoristas">-</div>
+          <div class="stat-label">Total de Motoristas</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressMotoristas" style="width: 0%"></div>
+          </div>
+          <div class="stat-sublabel"><span id="statMotoristasConformes">0</span> em conformidade</div>
+        </div>
+
+        <div class="stat-card" style="background: linear-gradient(135deg, #28B8BE 0%, #131E7D 100%);">
+          <div class="stat-value" id="statSolicitacoesPendentes">-</div>
+          <div class="stat-label">Solicitações Pendentes</div>
+        </div>
+
+        <div class="stat-card" style="background: linear-gradient(135deg, #212492 0%, #131E7D 100%);">
+          <div class="stat-value" id="statSolicitacoesProcessadas">-</div>
+          <div class="stat-label">Solicitações Processadas</div>
+        </div>
+      </div>
+
+      <h2 class="section-title">Organizações <span class="badge badge-super">SUPER ADMIN</span></h2>
+
+      <div class="grid">
+        <div class="card card-full super-admin-only">
+          <h3 class="card-title">Conformidade por Organização</h3>
+          <div id="organizacoesLista">
+            <div class="loading">
+              <div class="spinner"></div>
+              Carregando...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="section-title">Todos os Usuários <span class="badge badge-super">SUPER ADMIN</span></h2>
+
+      <div class="grid">
+        <div class="card card-full super-admin-only">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 class="card-title" style="margin-bottom: 0;">Lista de Usuários</h3>
+            <select class="form-select" style="width: auto;" id="filterOrgUsuarios" onchange="carregarTodosUsuarios()">
+              <option value="">Todas as organizações</option>
+            </select>
+          </div>
+          <div id="todosUsuariosTable">
+            <div class="loading">
+              <div class="spinner"></div>
+              Carregando...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="section-title">Ações Administrativas <span class="badge badge-super">SUPER ADMIN</span></h2>
+
+      <div class="grid">
+        <div class="card super-admin-only">
+          <h3 class="card-title">Status da Última Limpeza</h3>
+          <div id="cleanupStatus">
+            <div class="loading">
+              <div class="spinner"></div>
+              Carregando...
+            </div>
+          </div>
+        </div>
+
+        <div class="card super-admin-only">
+          <h3 class="card-title">Executar Limpeza</h3>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button class="btn btn-primary" onclick="carregarDadosSuperAdmin()">
+              Atualizar Todos os Dados
+            </button>
+            <button class="btn btn-danger" onclick="executarLimpezaManual()" id="btnLimpeza">
+              Executar Limpeza Manual
+            </button>
+            <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 10px;">
+              A limpeza manual exclui permanentemente dados conforme as políticas de retenção.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Exclusão -->
+  <div class="modal-overlay" id="modalExclusao">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Solicitar Exclusão de Dados</h3>
+        <button class="modal-close" onclick="fecharModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning">
+          <span><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></span>
+          <div>Esta ação não pode ser desfeita. Seus dados serão permanentemente excluídos após aprovação.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo de Exclusão</label>
+          <select class="form-select" id="tipoExclusao">
+            <option value="meus_dados">Todos os meus dados pessoais</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Motivo (opcional)</label>
+          <textarea class="form-textarea" id="motivoExclusao" placeholder="Descreva o motivo da solicitação..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+        <button class="btn btn-danger" onclick="confirmarExclusao()">Confirmar Solicitação</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Estado global
+    let token = localStorage.getItem('accessToken');
+    let usuario = null;
+    let isSuperAdmin = false;
+    let isAdmin = false;
+
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', () => {
+      // Carregar tema salvo
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+
+      if (!token) {
+        window.location.href = '/login.html';
+        return;
+      }
+      init();
+      setupTabs();
+    });
+
+    async function init() {
+      try {
+        // Decodificar token para info do usuário
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        usuario = payload;
+        isSuperAdmin = payload.role === 'super_admin';
+        isAdmin = payload.role === 'admin' || payload.role === 'super_admin';
+
+        document.getElementById('userInfo').textContent = payload.nome;
+
+        // Badge de role
+        const roleBadge = document.getElementById('roleBadge');
+        if (isSuperAdmin) {
+          roleBadge.innerHTML = '<span class="badge badge-super">SUPER ADMIN</span>';
+        } else if (isAdmin) {
+          roleBadge.innerHTML = '<span class="badge badge-admin">ADMIN</span>';
+        }
+
+        // Mostrar/ocultar tabs baseado no role
+        if (isSuperAdmin) {
+          document.getElementById('tabSuperAdmin').classList.remove('hidden');
+        }
+        if (!isAdmin) {
+          document.getElementById('tabAdmin').classList.add('hidden');
+        }
+
+        // Carregar dados do usuário
+        await carregarConsentimentos();
+
+        // Se for admin, carregar dados administrativos
+        if (isAdmin) {
+          await carregarDadosAdmin();
+        }
+
+        // Se for super admin, carregar dados globais
+        if (isSuperAdmin) {
+          await carregarDadosSuperAdmin();
+        }
+      } catch (error) {
+        console.error('Erro na inicialização:', error);
+        mostrarAlerta('Erro ao carregar dados. Faça login novamente.', 'danger');
+      }
+    }
+
+    // Setup das tabs
+    function setupTabs() {
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const tabId = tab.dataset.tab;
+
+          // Remover active de todas
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+
+          // Esconder todos os conteúdos
+          document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+          });
+
+          // Mostrar o conteúdo selecionado
+          document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+        });
+      });
+    }
+
+    // API Helper
+    async function api(endpoint, options = {}) {
+      const response = await fetch(`/api${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          ...options.headers
+        }
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login.html';
+        return;
+      }
+
+      return response.json();
+    }
+
+    // Mostrar alerta
+    function mostrarAlerta(mensagem, tipo = 'info') {
+      const alert = document.getElementById('mainAlert');
+      alert.className = `alert alert-${tipo}`;
+      alert.innerHTML = mensagem;
+      alert.classList.remove('hidden');
+
+      setTimeout(() => {
+        alert.classList.add('hidden');
+      }, 5000);
+    }
+
+    // Carregar consentimentos do usuário
+    async function carregarConsentimentos() {
+      try {
+        const data = await api('/lgpd/verificar');
+
+        const container = document.getElementById('consentStatus');
+
+        if (data.consentimentosValidos) {
+          container.innerHTML = `
+            <div class="alert alert-success" style="margin-bottom: 0;">
+              <span><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>
+              <div>
+                <strong>Todos os consentimentos estão válidos!</strong><br>
+                Você aceitou a Política de Privacidade e os Termos de Uso.
+              </div>
+            </div>
+          `;
+          document.getElementById('btnAceitar').disabled = true;
+          document.getElementById('btnAceitar').textContent = 'Consentimentos Aceitos';
+        } else {
+          let html = `
+            <div class="alert alert-warning" style="margin-bottom: 16px;">
+              <span><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></span>
+              <div>
+                <strong>Consentimentos pendentes!</strong><br>
+                Por favor, aceite os termos abaixo para continuar.
+              </div>
+            </div>
+          `;
+
+          data.pendentes.forEach(p => {
+            const titulo = p.tipo === 'privacidade' ? 'Política de Privacidade' : 'Termos de Uso';
+            html += `
+              <div class="consent-item">
+                <div class="consent-info">
+                  <div class="consent-title">${titulo}</div>
+                  <div class="consent-meta">Versão ${p.versao} - Pendente</div>
+                </div>
+                <span class="status-badge status-warning">Pendente</span>
+              </div>
+            `;
+          });
+
+          container.innerHTML = html;
+        }
+      } catch (error) {
+        console.error('Erro ao carregar consentimentos:', error);
+        document.getElementById('consentStatus').innerHTML = `
+          <div class="alert alert-danger">Erro ao carregar consentimentos</div>
+        `;
+      }
+    }
+
+    // Aceitar consentimentos
+    async function aceitarConsentimentos() {
+      try {
+        document.getElementById('btnAceitar').disabled = true;
+        document.getElementById('btnAceitar').textContent = 'Processando...';
+
+        const data = await api('/lgpd/consentimento/inicial', { method: 'POST' });
+
+        if (data.sucesso) {
+          mostrarAlerta('Consentimentos registrados com sucesso!', 'success');
+          await carregarConsentimentos();
+        } else {
+          throw new Error(data.mensagem);
+        }
+      } catch (error) {
+        console.error('Erro ao aceitar consentimentos:', error);
+        mostrarAlerta('Erro ao registrar consentimentos: ' + error.message, 'danger');
+        document.getElementById('btnAceitar').disabled = false;
+        document.getElementById('btnAceitar').textContent = 'Aceitar Todos os Consentimentos';
+      }
+    }
+
+    // Exportar dados
+    async function exportarDados() {
+      try {
+        document.getElementById('btnExportar').disabled = true;
+        document.getElementById('btnExportar').textContent = 'Exportando...';
+
+        const response = await fetch('/api/lgpd/meus-dados', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        // Criar download
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `meus-dados-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        mostrarAlerta('Dados exportados com sucesso!', 'success');
+      } catch (error) {
+        console.error('Erro ao exportar dados:', error);
+        mostrarAlerta('Erro ao exportar dados', 'danger');
+      } finally {
+        document.getElementById('btnExportar').disabled = false;
+        document.getElementById('btnExportar').textContent = 'Exportar Meus Dados';
+      }
+    }
+
+    // Modal de exclusão
+    function abrirModalExclusao() {
+      document.getElementById('modalExclusao').classList.add('active');
+    }
+
+    function fecharModal() {
+      document.getElementById('modalExclusao').classList.remove('active');
+    }
+
+    async function confirmarExclusao() {
+      try {
+        const tipo = document.getElementById('tipoExclusao').value;
+        const motivo = document.getElementById('motivoExclusao').value;
+
+        const data = await api('/lgpd/solicitar-exclusao', {
+          method: 'POST',
+          body: JSON.stringify({ tipo, motivo })
+        });
+
+        if (data.sucesso) {
+          fecharModal();
+          mostrarAlerta('Solicitação de exclusão registrada. Será processada em até 15 dias úteis.', 'success');
+        } else {
+          throw new Error(data.mensagem);
+        }
+      } catch (error) {
+        console.error('Erro ao solicitar exclusão:', error);
+        mostrarAlerta('Erro ao solicitar exclusão: ' + error.message, 'danger');
+      }
+    }
+
+    // ========== FUNÇÕES ADMIN ==========
+
+    async function carregarDadosAdmin() {
+      await Promise.all([
+        carregarUsuariosOrganizacao(),
+        carregarMotoristasOrganizacao(),
+        carregarPoliticas(),
+        carregarEstimativa(),
+        carregarSolicitacoes()
+      ]);
+    }
+
+    async function carregarUsuariosOrganizacao() {
+      try {
+        const data = await api('/lgpd/admin/usuarios-organizacao');
+
+        if (!data.usuarios || data.usuarios.length === 0) {
+          document.getElementById('orgUsersTable').innerHTML = `
+            <div class="alert alert-info">Nenhum usuário encontrado nesta organização.</div>
+          `;
+          return;
+        }
+
+        let html = `
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Email</th>
+                  <th>Papel</th>
+                  <th>Privacidade</th>
+                  <th>Termos</th>
+                  <th>Último Aceite</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+
+        for (const u of data.usuarios) {
+          const privBadge = u.consentimentos.privacidade
+            ? '<span class="status-badge status-success">OK</span>'
+            : '<span class="status-badge status-danger">Pendente</span>';
+          const termosBadge = u.consentimentos.termos_uso
+            ? '<span class="status-badge status-success">OK</span>'
+            : '<span class="status-badge status-danger">Pendente</span>';
+          const ultimoAceite = u.ultimo_aceite
+            ? new Date(u.ultimo_aceite).toLocaleDateString('pt-BR')
+            : '-';
+
+          html += `
+            <tr>
+              <td><strong>${u.nome}</strong></td>
+              <td>${u.email}</td>
+              <td>${u.role}</td>
+              <td>${privBadge}</td>
+              <td>${termosBadge}</td>
+              <td>${ultimoAceite}</td>
+            </tr>
+          `;
+        }
+
+        html += '</tbody></table></div>';
+        document.getElementById('orgUsersTable').innerHTML = html;
+      } catch (error) {
+        document.getElementById('orgUsersTable').innerHTML = `
+          <div class="alert alert-danger">Erro ao carregar usuários: ${error.message}</div>
+        `;
+      }
+    }
+
+    async function carregarMotoristasOrganizacao() {
+      try {
+        const data = await api('/lgpd/admin/motoristas');
+
+        if (!data.motoristas || data.motoristas.length === 0) {
+          document.getElementById('motoristasTable').innerHTML = `
+            <div class="alert alert-info">Nenhum motorista cadastrado nesta organização.</div>
+          `;
+          return;
+        }
+
+        let html = `
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>CPF</th>
+                  <th>Email</th>
+                  <th>Privacidade</th>
+                  <th>Termos</th>
+                  <th>Último Aceite</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+
+        for (const m of data.motoristas) {
+          const privBadge = m.consentimentos.privacidade
+            ? '<span class="status-badge status-success">OK</span>'
+            : '<span class="status-badge status-warning">Pendente (APP)</span>';
+          const termosBadge = m.consentimentos.termos_uso
+            ? '<span class="status-badge status-success">OK</span>'
+            : '<span class="status-badge status-warning">Pendente (APP)</span>';
+          const ultimoAceite = m.ultimo_aceite
+            ? new Date(m.ultimo_aceite).toLocaleDateString('pt-BR')
+            : '-';
+
+          html += `
+            <tr>
+              <td><strong>${m.nome}</strong></td>
+              <td>${m.cpf || '-'}</td>
+              <td>${m.email || '-'}</td>
+              <td>${privBadge}</td>
+              <td>${termosBadge}</td>
+              <td>${ultimoAceite}</td>
+            </tr>
+          `;
+        }
+
+        html += '</tbody></table></div>';
+        document.getElementById('motoristasTable').innerHTML = html;
+      } catch (error) {
+        document.getElementById('motoristasTable').innerHTML = `
+          <div class="alert alert-danger">Erro ao carregar motoristas: ${error.message}</div>
+        `;
+      }
+    }
+
+    async function carregarPoliticas() {
+      try {
+        const data = await api('/lgpd/retencao/politicas');
+
+        let html = '<table class="data-table"><thead><tr><th>Tipo de Dado</th><th>Retenção</th></tr></thead><tbody>';
+
+        for (const [key, value] of Object.entries(data.politicas)) {
+          const desc = data.descricao[key] || key;
+          html += `<tr><td>${desc}</td><td>${value} dias</td></tr>`;
+        }
+
+        html += '</tbody></table>';
+        document.getElementById('retentionPolicies').innerHTML = html;
+      } catch (error) {
+        document.getElementById('retentionPolicies').innerHTML = `
+          <div class="alert alert-danger">Erro ao carregar políticas</div>
+        `;
+      }
+    }
+
+    async function carregarEstimativa() {
+      try {
+        const data = await api('/lgpd/retencao/estimativa');
+
+        let html = '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">';
+        let total = 0;
+
+        for (const [key, value] of Object.entries(data.estimativa)) {
+          total += value.count;
+          html += `
+            <div style="background: var(--bg); padding: 8px; border-radius: 4px; text-align: center;">
+              <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">${value.count.toLocaleString()}</div>
+              <div style="font-size: 0.7rem; color: var(--text-light);">${key}</div>
+            </div>
+          `;
+        }
+
+        html += '</div>';
+        html += `<p style="margin-top: 12px; text-align: center; font-size: 0.85rem; color: var(--text-light);">
+          Total a excluir: <strong>${total.toLocaleString()}</strong> registros
+        </p>`;
+
+        document.getElementById('cleanupEstimate').innerHTML = html;
+      } catch (error) {
+        document.getElementById('cleanupEstimate').innerHTML = `
+          <div class="alert alert-danger">Erro ao carregar estimativa</div>
+        `;
+      }
+    }
+
+    async function carregarSolicitacoes() {
+      try {
+        const data = await api('/lgpd/solicitacoes-exclusao?status=pendente');
+
+        if (!data.solicitacoes || data.solicitacoes.length === 0) {
+          document.getElementById('exclusionRequests').innerHTML = `
+            <div class="alert alert-info" style="margin-bottom: 0;">
+              Nenhuma solicitação de exclusão pendente.
+            </div>
+          `;
+          return;
+        }
+
+        let html = '<table class="data-table"><thead><tr><th>ID</th><th>Tipo</th><th>Usuário</th><th>Data</th><th>Ações</th></tr></thead><tbody>';
+
+        for (const s of data.solicitacoes) {
+          html += `
+            <tr>
+              <td>#${s.id}</td>
+              <td>${s.tipo}</td>
+              <td>ID: ${s.usuario_id}</td>
+              <td>${new Date(s.created_at).toLocaleString('pt-BR')}</td>
+              <td>
+                <button class="btn btn-success btn-sm" onclick="processarExclusao(${s.id}, true)">Aprovar</button>
+                <button class="btn btn-danger btn-sm" onclick="processarExclusao(${s.id}, false)">Recusar</button>
+              </td>
+            </tr>
+          `;
+        }
+
+        html += '</tbody></table>';
+        document.getElementById('exclusionRequests').innerHTML = html;
+      } catch (error) {
+        document.getElementById('exclusionRequests').innerHTML = `
+          <div class="alert alert-danger">Erro ao carregar solicitações</div>
+        `;
+      }
+    }
+
+    async function processarExclusao(id, aprovar) {
+      const confirmed = await showConfirm(`Tem certeza que deseja ${aprovar ? 'APROVAR' : 'RECUSAR'} esta solicitação?`, {
+        title: aprovar ? 'Aprovar solicitação' : 'Recusar solicitação',
+        type: aprovar ? 'warning' : 'danger',
+        confirmText: aprovar ? 'Aprovar' : 'Recusar'
+      });
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        const data = await api(`/lgpd/processar-exclusao/${id}`, {
+          method: 'POST',
+          body: JSON.stringify({ aprovar })
+        });
+
+        if (data.sucesso) {
+          mostrarAlerta(`Solicitação ${aprovar ? 'aprovada' : 'recusada'} com sucesso!`, 'success');
+          await carregarSolicitacoes();
+        } else {
+          throw new Error(data.mensagem);
+        }
+      } catch (error) {
+        mostrarAlerta('Erro ao processar solicitação: ' + error.message, 'danger');
+      }
+    }
+
+    // ========== FUNÇÕES SUPER ADMIN ==========
+
+    async function carregarDadosSuperAdmin() {
+      await Promise.all([
+        carregarEstatisticasGlobais(),
+        carregarOrganizacoes(),
+        carregarTodosUsuarios(),
+        carregarStatusLimpeza()
+      ]);
+    }
+
+    async function carregarEstatisticasGlobais() {
+      try {
+        const data = await api('/lgpd/admin/estatisticas');
+
+        if (data.sucesso) {
+          const stats = data.estatisticas;
+
+          // Usuários
+          document.getElementById('statTotalUsuarios').textContent = stats.usuarios.total;
+          document.getElementById('statUsuariosConformes').textContent = stats.usuarios.com_consentimento;
+          document.getElementById('progressUsuarios').style.width = `${stats.usuarios.taxa_conformidade}%`;
+
+          // Motoristas
+          document.getElementById('statTotalMotoristas').textContent = stats.motoristas.total;
+          document.getElementById('statMotoristasConformes').textContent = stats.motoristas.com_consentimento;
+          document.getElementById('progressMotoristas').style.width = `${stats.motoristas.taxa_conformidade}%`;
+
+          // Solicitações
+          document.getElementById('statSolicitacoesPendentes').textContent = stats.solicitacoes_exclusao.pendentes;
+          document.getElementById('statSolicitacoesProcessadas').textContent = stats.solicitacoes_exclusao.processadas;
+        }
+      } catch (error) {
+        console.error('Erro ao carregar estatísticas:', error);
+      }
+    }
+
+    async function carregarOrganizacoes() {
+      try {
+        const data = await api('/lgpd/admin/organizacoes');
+
+        if (!data.organizacoes || data.organizacoes.length === 0) {
+          document.getElementById('organizacoesLista').innerHTML = `
+            <div class="alert alert-info">Nenhuma organização encontrada.</div>
+          `;
+          return;
+        }
+
+        // Preencher select de filtro
+        const select = document.getElementById('filterOrgUsuarios');
+        select.innerHTML = '<option value="">Todas as organizações</option>';
+        data.organizacoes.forEach(org => {
+          select.innerHTML += `<option value="${org.id}">${org.nome}</option>`;
+        });
+
+        // Renderizar cards das organizações
+        let html = '';
+        for (const org of data.organizacoes) {
+          const taxaUsuarios = org.usuarios > 0
+            ? Math.round((org.conformidade.usuarios / org.usuarios) * 100)
+            : 100;
+          const taxaMotoristas = org.motoristas > 0
+            ? Math.round((org.conformidade.motoristas / org.motoristas) * 100)
+            : 100;
+
+          html += `
+            <div class="org-card">
+              <div class="org-header">
+                <span class="org-name">${org.nome}</span>
+                ${taxaUsuarios >= 100 && taxaMotoristas >= 100
+                  ? '<span class="badge badge-success">100% Conforme</span>'
+                  : '<span class="status-badge status-warning">Pendências</span>'}
+              </div>
+              <div class="org-stats">
+                <div class="org-stat">
+                  <div class="org-stat-value">${org.usuarios}</div>
+                  <div class="org-stat-label">Usuários (${org.conformidade.usuarios} OK)</div>
+                </div>
+                <div class="org-stat">
+                  <div class="org-stat-value">${org.motoristas}</div>
+                  <div class="org-stat-label">Motoristas (${org.conformidade.motoristas} OK)</div>
+                </div>
+                <div class="org-stat">
+                  <div class="org-stat-value">${org.dispositivos}</div>
+                  <div class="org-stat-label">Dispositivos</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        document.getElementById('organizacoesLista').innerHTML = html;
+      } catch (error) {
+        document.getElementById('organizacoesLista').innerHTML = `
+          <div class="alert alert-danger">Erro ao carregar organizações: ${error.message}</div>
+        `;
+      }
+    }
+
+    async function carregarTodosUsuarios() {
+      try {
+        const orgId = document.getElementById('filterOrgUsuarios').value;
+        const endpoint = orgId ? `/lgpd/admin/usuarios?organizacao_id=${orgId}` : '/lgpd/admin/usuarios';
+        const data = await api(endpoint);
+
+        if (!data.usuarios || data.usuarios.length === 0) {
+          document.getElementById('todosUsuariosTable').innerHTML = `
+            <div class="alert alert-info">Nenhum usuário encontrado.</div>
+          `;
+          return;
+        }
+
+        let html = `
+          <div class="data-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nome</th>
+                  <th>Email</th>
+                  <th>Role Global</th>
+                  <th>Organizações</th>
+                  <th>Privacidade</th>
+                  <th>Termos</th>
+                  <th>Último Aceite</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+
+        for (const u of data.usuarios) {
+          const privBadge = u.consentimentos.privacidade
+            ? '<span class="status-badge status-success">OK</span>'
+            : '<span class="status-badge status-danger">Pendente</span>';
+          const termosBadge = u.consentimentos.termos_uso
+            ? '<span class="status-badge status-success">OK</span>'
+            : '<span class="status-badge status-danger">Pendente</span>';
+          const ultimoAceite = u.ultimo_aceite
+            ? new Date(u.ultimo_aceite).toLocaleDateString('pt-BR')
+            : '-';
+          const orgs = u.organizacoes.map(o => o.nome).join(', ') || '-';
+
+          html += `
+            <tr>
+              <td>${u.id}</td>
+              <td><strong>${u.nome}</strong></td>
+              <td>${u.email}</td>
+              <td>${u.role}</td>
+              <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${orgs}</td>
+              <td>${privBadge}</td>
+              <td>${termosBadge}</td>
+              <td>${ultimoAceite}</td>
+            </tr>
+          `;
+        }
+
+        html += '</tbody></table></div>';
+        html += `<p style="margin-top: 12px; font-size: 0.85rem; color: var(--text-light);">Total: ${data.total} usuários</p>`;
+        document.getElementById('todosUsuariosTable').innerHTML = html;
+      } catch (error) {
+        document.getElementById('todosUsuariosTable').innerHTML = `
+          <div class="alert alert-danger">Erro ao carregar usuários: ${error.message}</div>
+        `;
+      }
+    }
+
+    async function carregarStatusLimpeza() {
+      try {
+        const data = await api('/lgpd/retencao/status');
+
+        let html = '';
+
+        if (data.ultimaExecucao) {
+          const dataExec = new Date(data.ultimaExecucao);
+          const proxima = new Date(data.proxima);
+
+          html = `
+            <div class="alert alert-success" style="margin-bottom: 16px;">
+              <span><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>
+              <div>Última execução: ${dataExec.toLocaleString('pt-BR')}</div>
+            </div>
+            <p><strong>Próxima execução:</strong> ${proxima.toLocaleString('pt-BR')}</p>
+          `;
+
+          if (data.estatisticas && Object.keys(data.estatisticas).length > 0) {
+            html += '<h4 style="margin-top: 16px; margin-bottom: 10px;">Registros excluídos:</h4>';
+            html += '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">';
+            for (const [key, value] of Object.entries(data.estatisticas)) {
+              if (typeof value === 'number') {
+                html += `
+                  <div style="background: var(--bg); padding: 8px; border-radius: 4px; text-align: center;">
+                    <div style="font-size: 1rem; font-weight: 700; color: var(--success);">${value.toLocaleString()}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-light);">${key}</div>
+                  </div>
+                `;
+              }
+            }
+            html += '</div>';
+          }
+        } else {
+          html = `
+            <div class="alert alert-info">
+              <span><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span>
+              <div>Nenhuma limpeza executada ainda. A primeira execução ocorrerá em até 6 horas.</div>
+            </div>
+          `;
+        }
+
+        document.getElementById('cleanupStatus').innerHTML = html;
+      } catch (error) {
+        document.getElementById('cleanupStatus').innerHTML = `
+          <div class="alert alert-danger">Erro ao carregar status</div>
+        `;
+      }
+    }
+
+    async function executarLimpezaManual() {
+      const confirmed = await showConfirm('Esta ação excluirá permanentemente dados antigos conforme as políticas de retenção. Deseja continuar?', {
+        title: 'Executar limpeza manual',
+        type: 'danger',
+        confirmText: 'Executar'
+      });
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        document.getElementById('btnLimpeza').disabled = true;
+        document.getElementById('btnLimpeza').textContent = 'Executando...';
+
+        const data = await api('/lgpd/retencao/executar', { method: 'POST' });
+
+        if (data.sucesso) {
+          mostrarAlerta('Limpeza executada com sucesso!', 'success');
+          await carregarDadosSuperAdmin();
+        } else {
+          throw new Error(data.mensagem);
+        }
+      } catch (error) {
+        mostrarAlerta('Erro ao executar limpeza: ' + error.message, 'danger');
+      } finally {
+        document.getElementById('btnLimpeza').disabled = false;
+        document.getElementById('btnLimpeza').textContent = 'Executar Limpeza Manual';
+      }
+    }
+  </script>
+  <script src="/scripts/toast.js"></script>
+</body>
+</html>

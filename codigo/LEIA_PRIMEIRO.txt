@@ -1,0 +1,138 @@
+════════════════════════════════════════════════════════════════════════════════
+                   ⚠️  DIAGNÓSTICO DO RASTREADOR GT06
+════════════════════════════════════════════════════════════════════════════════
+
+🎯 SITUAÇÃO RESUMIDA:
+
+✅ SERVIDOR ESTÁ 100% FUNCIONAL
+   └─ TCP porta 8877 rodando
+   └─ Dashboard pronto em http://6754056cd710.sn.mynetname.net:62000
+   └─ Parser de LOGIN funciona
+   └─ WebSocket funciona
+   └─ Banco de dados funciona
+
+❌ RASTREADOR NÃO ENVIA GPS
+   └─ Conecta a cada 30 segundos (heartbeat)
+   └─ Mas NÃO envia dados de localização
+   └─ Dashboard fica vazio
+   └─ Debug mostra 0 Location packets
+
+
+════════════════════════════════════════════════════════════════════════════════
+                           🔧 COMO RESOLVER
+════════════════════════════════════════════════════════════════════════════════
+
+OPÇÃO A: Testes Rápidos (Recomendado)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PASSO 1: Testar se rastreador responde a comandos (2 min)
+─────────────────────────────────────────────────────────
+
+  cd /home/tomelin/rastreador
+  ./teste-status-rastreador.sh
+
+  ✅ Se rastreador RESPONDE:
+     └─ Ir para PASSO 3
+
+  ❌ Se rastreador NÃO RESPONDE:
+     └─ Ver OPÇÃO B
+
+
+PASSO 3: Enviar sequência de inicialização (5 min)
+───────────────────────────────────────────────────
+
+  ./teste-init-completo.sh
+
+  ✅ Se Location packets começam a chegar:
+     └─ PRONTO! Dashboard mostrará GPS
+     └─ Abra: http://6754056cd710.sn.mynetname.net:62000/admin-dashboard.html
+
+  ❌ Se Location packets NÃO chegam:
+     └─ Ver OPÇÃO B
+
+
+OPÇÃO B: Se Rastreador Não Responde
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problema: Rastreador ignora comandos TCP
+
+Soluções:
+
+1. Usar SMS Real
+   └─ Enviar SMS com: #55555#YGPS#1#
+   └─ Para número SIM card do rastreador
+
+2. Acessar Painel Web X3Tech
+   └─ Procure IP do rastreador na rede
+   └─ Padrão: http://10.255.13.X:8080 (verificar manual)
+   └─ Ativar GPS/OBD2 lá
+
+3. Usar APP X3Tech
+   └─ Baixar app da Play Store
+   └─ Conectar rastreador
+   └─ Ativar GPS/OBD2
+
+4. Aumentar Delay Entre Comandos
+   └─ Editar: /home/tomelin/rastreador/server/index.js linha 215
+   └─ Mudar: delay 1500 → 5000 (ms)
+   └─ Reiniciar: npm start
+
+
+════════════════════════════════════════════════════════════════════════════════
+                      📊 VERIFICAR PROGRESSO
+════════════════════════════════════════════════════════════════════════════════
+
+Ver dados em tempo real:
+
+  # Terminal 1: Ver logs do servidor
+  tail -f /tmp/server.log | grep -E "\[Location\]|0x12|latitude"
+
+  # Terminal 2: Verificar API
+  watch -n 1 'curl -s http://localhost:62000/api/debug/packets | jq .por_tipo'
+
+  # Browser: Dashboard
+  http://6754056cd710.sn.mynetname.net:62000/admin-dashboard.html
+
+  # Browser: Debug
+  http://6754056cd710.sn.mynetname.net:62000/debug-packets.html
+
+
+════════════════════════════════════════════════════════════════════════════════
+                        📁 DOCUMENTAÇÃO DISPONÍVEL
+════════════════════════════════════════════════════════════════════════════════
+
+Diagnóstico Detalhado:
+  cat /home/tomelin/rastreador/DIAGNOSTICO_FINAL_GT06.md
+
+Implementação Completa:
+  cat /home/tomelin/rastreador/RESUMO_IMPLEMENTACAO_GT06.md
+
+Checklist de Testes:
+  cat /home/tomelin/rastreador/CHECKLIST_VALIDACAO.md
+
+Status Anterior:
+  cat /home/tomelin/rastreador/DIAGNOSTICO_GT06.md
+
+
+════════════════════════════════════════════════════════════════════════════════
+                    🚀 PRÓXIMO PASSO (CLIQUE AQUI!)
+════════════════════════════════════════════════════════════════════════════════
+
+Execute no terminal:
+
+  cd /home/tomelin/rastreador && ./teste-status-rastreador.sh
+
+Isso vai:
+  1. Enviar comando STATUS para rastreador
+  2. Verificar nos logs se responde
+  3. Indicar próximos passos
+
+
+════════════════════════════════════════════════════════════════════════════════
+
+Qualquer dúvida, ver DIAGNOSTICO_FINAL_GT06.md ou deixa mensagem!
+
+Última atualização: 2025-12-10 11:57 UTC
+Status: Aguardando ação do usuário para resolver
+
+════════════════════════════════════════════════════════════════════════════════

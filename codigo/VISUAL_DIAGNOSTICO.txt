@@ -1,0 +1,208 @@
+════════════════════════════════════════════════════════════════════════════════
+                        FLUXO VISUAL DO PROBLEMA
+════════════════════════════════════════════════════════════════════════════════
+
+🔴 O QUE ESTÁ ACONTECENDO AGORA
+═════════════════════════════════════════════════════════════════════════════
+
+    Rastreador X3Tech XT40              Servidor Node.js
+    (10.255.13.1:42525)                (localhost:8877)
+    ┌──────────────────┐                ┌─────────────────┐
+    │                  │                │                 │
+    │  [LOGIN 0x01]    │                │                 │
+    │  IMEI: 356354... │──────────────>│  ✅ Recebido    │
+    │  Serial: 0x0001  │                │  ✅ Parseado    │
+    │                  │                │  ✅ IMEI ok     │
+    │                  │                │                 │
+    │                  │<───────────────│  ACK 0x05       │
+    │  ✅ ACK OK       │                │                 │
+    │                  │                │                 │
+    │                  │<───────────────│  Comando 1/6    │
+    │  ❌ IGNORADO     │  #55555#YGPS#1#│  GPS_ON         │
+    │                  │                │                 │
+    │                  │<───────────────│  Comando 2/6    │
+    │  ❌ IGNORADO     │  #55555#YOBD#1#│  OBD_ON         │
+    │                  │                │                 │
+    │    (30 seg)      │                │                 │
+    │   [Aguarda]      │                │                 │
+    │                  │                │                 │
+    │  [LOGIN 0x01]    │                │                 │
+    │  (repetindo...)  │──────────────>│  ✅ Recebido    │
+    │                  │                │  (loop infinito)│
+    │                  │                │                 │
+    │  ❌ NUNCA ENVIA  │                │  ❌ Nenhum dado │
+    │  LOCATION (0x12) │                │  GPS recebido   │
+    │  ❌ NUNCA ENVIA  │                │                 │
+    │  OBD2 (0x94)     │                │                 │
+    │                  │                │                 │
+    └──────────────────┘                └─────────────────┘
+
+    RESULTADO: Dashboard vazio, nenhuma localização
+
+
+════════════════════════════════════════════════════════════════════════════════
+
+🟢 O QUE DEVE ACONTECER (APÓS RESOLVER)
+═════════════════════════════════════════════════════════════════════════════
+
+    Rastreador X3Tech XT40              Servidor Node.js
+    (10.255.13.1:42525)                (localhost:8877)
+    ┌──────────────────┐                ┌─────────────────┐
+    │                  │                │                 │
+    │  [LOGIN 0x01]    │                │                 │
+    │  IMEI: 356354... │──────────────>│  ✅ Recebido    │
+    │                  │                │  ✅ Parseado    │
+    │                  │                │  ✅ ACK enviado │
+    │  ✅ ACK OK       │<───────────────│                 │
+    │                  │                │                 │
+    │  ✅ PROCESSANDO  │<───────────────│  Comando 1/6    │
+    │  #55555#YGPS#1#  │  GPS_ON         │                 │
+    │                  │                │                 │
+    │  ✅ PROCESSANDO  │<───────────────│  Comando 2/6    │
+    │  #55555#YOBD#1#  │  OBD_ON         │                 │
+    │                  │                │                 │
+    │  ✅ GPS ATIVADO  │                │                 │
+    │  ✅ OBD ATIVADO  │                │                 │
+    │                  │                │                 │
+    │ [LOCATION 0x12]  │                │                 │
+    │ LAT: -23.550505  │──────────────>│  ✅ Recebido    │
+    │ LON: -46.633333  │                │  ✅ Parseado    │
+    │ SPEED: 50 km/h   │                │  ✅ Salvo DB    │
+    │ DIR: 90°         │                │  ✅ Broadcast   │
+    │                  │<───────────────│  ACK 0x05       │
+    │  ✅ ACK OK       │                │                 │
+    │                  │                │                 │
+    │ [LOCATION 0x12]  │                │                 │
+    │ LAT: -23.550510  │──────────────>│  ✅ Recebido    │
+    │ LON: -46.633340  │                │  ✅ Parseado    │
+    │ (a cada 10s)     │                │  ✅ Salvo DB    │
+    │                  │                │  ✅ Broadcast   │
+    │                  │                │                 │
+    │ [OBD2 0x94]      │                │                 │
+    │ RPM: 2500        │──────────────>│  ✅ Recebido    │
+    │ TEMP: 85°C       │                │  ✅ Parseado    │
+    │ FUEL: 60%        │                │  ✅ Salvo DB    │
+    │                  │                │                 │
+    │ ... continuando  │                │                 │
+    │                  │                │                 │
+    └──────────────────┘                └─────────────────┘
+
+    RESULTADO: Dashboard com localização em tempo real, mapa preenchido
+
+
+════════════════════════════════════════════════════════════════════════════════
+
+📊 FLUXO DE DADOS (VISÃO DO DASHBOARD)
+═════════════════════════════════════════════════════════════════════════════
+
+ANTES (Agora):
+┌─────────────────────────────────┐
+│   Dashboard Admin               │
+├─────────────────────────────────┤
+│                                 │
+│  Dispositivos: 1                │
+│  Status: OFFLINE ❌             │
+│                                 │
+│  Mapa:  [VAZIO - SEM DADOS]     │
+│         └─ Nenhum marcador      │
+│                                 │
+│  Localização: N/A               │
+│  Velocidade: 0 km/h             │
+│  GPS: SEM SATÉLITE              │
+│                                 │
+│  Debug: 0 Location packets      │
+│         0 OBD2 packets          │
+│         0 Alarmes               │
+│                                 │
+└─────────────────────────────────┘
+
+
+DEPOIS (Após resolver):
+┌─────────────────────────────────┐
+│   Dashboard Admin               │
+├─────────────────────────────────┤
+│                                 │
+│  Dispositivos: 1                │
+│  Status: ONLINE ✅              │
+│                                 │
+│  Mapa:  [COM DADOS]             │
+│         └─ Marcador em SP       │
+│         └─ -23.550505°          │
+│         └─ -46.633333°          │
+│                                 │
+│  Localização: São Paulo, SP     │
+│  Velocidade: 50 km/h ↗          │
+│  GPS: 12 satélites ✅           │
+│                                 │
+│  Debug: 45 Location packets ✅  │
+│         23 OBD2 packets ✅       │
+│         2 Alarmes               │
+│                                 │
+└─────────────────────────────────┘
+
+
+════════════════════════════════════════════════════════════════════════════════
+
+🔍 ONDE VER O PROBLEMA EM TEMPO REAL
+═════════════════════════════════════════════════════════════════════════════
+
+1. Dashboard Debug (visão do problema):
+   http://6754056cd710.sn.mynetname.net:62000/debug-packets.html
+
+   Mostra: "0 Location packets" ❌
+   Esperado: "X Location packets" ✅
+
+
+2. Logs do servidor:
+   tail -f /tmp/server.log | grep -E "Location|0x12"
+
+   Mostra: NADA (nenhuma location no log) ❌
+   Esperado: "[Location] parseLocation() called" ✅
+
+
+3. API de debug:
+   curl http://localhost:62000/api/debug/packets | jq .por_tipo
+
+   Mostra:
+   {
+     "login": 8,
+     "location": 0 ❌
+     "obd2": 0 ❌
+     "alarm": 0 ❌
+     "status": 0 ❌
+   }
+
+   Esperado:
+   {
+     "login": 8,
+     "location": 20+ ✅
+     "obd2": 10+ ✅
+     "alarm": 0,
+     "status": 0
+   }
+
+
+════════════════════════════════════════════════════════════════════════════════
+
+🔧 PRÓXIMAS AÇÕES
+═════════════════════════════════════════════════════════════════════════════
+
+1. Executar teste de status (2 min):
+   ./teste-status-rastreador.sh
+
+2. Se responde → executar init completo (5 min):
+   ./teste-init-completo.sh
+
+3. Se não responde → usar painel X3Tech ou SMS:
+   Enviar SMS: #55555#YGPS#1#
+
+4. Verificar novamente:
+   curl http://localhost:62000/api/debug/packets | jq .por_tipo
+
+
+════════════════════════════════════════════════════════════════════════════════
+
+Status Atual: Aguardando resposta do rastreador ⏳
+Última atualização: 2025-12-10 11:58 UTC
+
+════════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rastreador Veicular - Dashboard</title>
+  <link rel="icon" type="image/png" sizes="48x48" href="/FAVICON_48x48.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1a2332 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      text-align: center;
+      color: #e2e8f0;
+    }
+
+    .spinner {
+      border: 4px solid rgba(37, 99, 235, 0.2);
+      border-top: 4px solid #2563eb;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 30px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    p {
+      font-size: 16px;
+      color: #94a3b8;
+      margin-bottom: 30px;
+    }
+
+    a {
+      display: inline-block;
+      padding: 12px 30px;
+      background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    a:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <h1><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="vertical-align: middle; margin-right: 8px;"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg> Rastreador Veicular</h1>
+    <p>Verificando autenticação...</p>
+    <a href="/login.html">Clique aqui se não redirecionar automaticamente</a>
+  </div>
+
+  <script>
+    // Verificar autenticação e redirecionar
+    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+
+    if (token) {
+      // Verificar se token é válido
+      fetch('/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => {
+        if (res.ok) {
+          window.location.href = '/admin-dashboard.html';
+        } else {
+          // Token inválido, ir para login
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('usuario');
+          sessionStorage.removeItem('accessToken');
+          sessionStorage.removeItem('refreshToken');
+          sessionStorage.removeItem('usuario');
+          window.location.href = '/login.html';
+        }
+      })
+      .catch(() => {
+        window.location.href = '/login.html';
+      });
+    } else {
+      // Sem token, ir para login
+      window.location.href = '/login.html';
+    }
+  </script>
+</body>
+</html>

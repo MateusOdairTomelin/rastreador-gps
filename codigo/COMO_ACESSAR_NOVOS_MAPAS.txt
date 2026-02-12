@@ -1,0 +1,270 @@
+================================================================================
+                    COMO ACESSAR A NOVA INTERFACE DE MAPAS
+================================================================================
+
+ACESSO RÁPIDO:
+═════════════════════════════════════════════════════════════════════════════
+
+1. ABRIR NO NAVEGADOR:
+
+   http://localhost:62000/admin-dashboard.html
+
+2. SELECIONAR UM VEÍCULO (ex: EVOQUE PRATA)
+
+3. CLICAR NO BOTÃO "DETALHES" ou na linha do veículo
+
+
+VISÃO GERAL DA TELA DE DETALHES:
+═════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ HEADER: EVOQUE PRATA | Online | Download CSV | Voltar                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                           │
+│  CARD 1: 📍 LOCALIZAÇÃO GPS [6h] [12h] [24h*] [48h]                     │
+│  ├─ Latitude/Longitude/Velocidade/Direção                                │
+│  ├─ MAPA COM ROTA SUAVIZADA (com cores por evento)                       │
+│  └─ Última atualização                                                    │
+│                                                                           │
+│  CARD 2: 🔧 DADOS OBD2                                                   │
+│  ├─ RPM / Temperatura Motor / Combustível / Ignição                       │
+│  ├─ Odômetro / Horímetro / Bateria / Tensão                              │
+│  └─ Última leitura                                                        │
+│                                                                           │
+│  CARD 3: 🚨 ALARMES                                                      │
+│  ├─ Total 24h / Pendentes / Críticos                                      │
+│  └─ Lista de alarmes recentes                                             │
+│                                                                           │
+│  CARD 4: 📊 ESTATÍSTICAS (última hora)                                    │
+│  ├─ RPM médio/máximo                                                      │
+│  ├─ Temperatura máxima                                                    │
+│  └─ Combustível médio                                                     │
+│                                                                           │
+│  CARD 5: 📊 ESTATÍSTICAS DE ROTA (24h)                                    │
+│  ├─ Distância Total                                                       │
+│  ├─ Pontos GPS                                                            │
+│  ├─ Tempo Ocioso                                                          │
+│  ├─ Excessos Velocidade                                                   │
+│  └─ Total Eventos                                                         │
+│                                                                           │
+│  CARD 6: 📜 HISTÓRICO (com abas)                                          │
+│  ├─ LOCALIZAÇÕES: Data, Lat, Lon, Velocidade, Direção                   │
+│  ├─ OBD2: Data, RPM, Temp, Combustível, Ignição, Bateria                │
+│  └─ ALARMES: Data, Tipo, Severidade, Descrição, Status                   │
+│                                                                           │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+NOVOS RECURSOS:
+═════════════════════════════════════════════════════════════════════════════
+
+1. MAPA COM ROTA SUAVIZADA
+   ✓ Pontos interpolados: 5000+ em vez de 1000
+   ✓ Curvas suavizadas que acompanham o trajeto real
+   ✓ Segmentação por tipo de evento com cores:
+     • Azul (#2196F3) = Trajeto normal
+     • Laranja (#FF8C00) = Excesso de velocidade
+     • Vermelho (#FF0000) = Motor ocioso
+     • Preto (#333333) = Parada longa
+
+2. MARCADORES DE EVENTOS
+   ✓ 🟢 Verde = Início da rota
+   ✓ 🔵 Azul = Fim da rota
+   ✓ 🟠 Laranja = Ponto de excesso de velocidade
+   ✓ 🔴 Vermelho = Momento de ociosidade
+
+   Clique em cada marcador para ver detalhes do evento!
+
+3. BOTÕES DE PERÍODO TEMPORAL
+   ✓ [6h] - Últimas 6 horas
+   ✓ [12h] - Últimas 12 horas
+   ✓ [24h] - Últimas 24 horas (padrão)
+   ✓ [48h] - Últimas 48 horas
+
+   Clique para recarregar mapa com período selecionado
+
+4. DOWNLOAD DE DADOS
+   ✓ Clique em "📥 Download CSV"
+   ✓ Selecione a aba desejada (Localizações, OBD2 ou Alarmes)
+   ✓ Arquivo será baixado em formato .csv
+   ✓ Abra em Excel, Google Sheets ou qualquer editor de texto
+
+
+EXEMPLOS DE USO:
+═════════════════════════════════════════════════════════════════════════════
+
+CENÁRIO 1: Analisar Rota de Hoje
+─────────────────────────────────────────────────────────────────────────
+1. Abrir dashboard
+2. Selecionar veículo
+3. Clicar "Detalhes"
+4. Mapa já carrega com 24h de histórico
+5. Ver pontos de excesso em LARANJA
+6. Ver pontos de ociosidade em VERMELHO
+7. Clicar em evento para mais detalhes
+
+CENÁRIO 2: Comparar Último Turno
+─────────────────────────────────────────────────────────────────────────
+1. Abrir detalhes do veículo
+2. Clicar [12h] para ver último turno
+3. Analisar trajeto e eventos
+4. Exportar dados em CSV para análise
+
+CENÁRIO 3: Auditar Comportamento do Motorista
+─────────────────────────────────────────────────────────────────────────
+1. Abrir detalhes
+2. Ver card "Estatísticas de Rota (24h)"
+3. Verificar:
+   - Total de "Excessos Velocidade" (laranja)
+   - Total de "Tempo Ocioso" (vermelho)
+4. Clicar em eventos no mapa para investigar
+5. Download CSV para relatório formal
+
+CENÁRIO 4: Planejamento de Rotas
+─────────────────────────────────────────────────────────────────────────
+1. Ver "Distância Total" (24h)
+2. Identificar padrões de trajeto
+3. Usar [48h] para ver tendências
+4. Exportar para análise de consumo de combustível
+
+
+INFORMAÇÕES TÉCNICAS:
+═════════════════════════════════════════════════════════════════════════════
+
+API ENDPOINTS UTILIZADOS:
+
+GET /api/analise-rota/:imei/rota-suavizada?horas=24
+├─ Retorna pontos interpolados para visualização
+├─ Máx 50 pontos por segmento
+└─ Resposta: {"sucesso":true, "dados": {"pontos": [...]}}
+
+GET /api/analise-rota/:imei/analisar?horas=24
+├─ Retorna análise completa com eventos
+├─ Inclui estatísticas detalhadas
+└─ Resposta: {"sucesso":true, "dados": {"estatisticas":{...}}}
+
+GET /api/dispositivos
+├─ Lista todos os veículos
+└─ Inclui status, localização atual, etc
+
+GET /api/dispositivos/:imei/localizacao-atual
+├─ Localização GPS em tempo real
+└─ Atualizado a cada 5 segundos
+
+GET /api/dispositivos/:imei/obd2-atual
+├─ Dados do motor em tempo real
+└─ RPM, temperatura, combustível, bateria
+
+GET /api/dispositivos/:imei/alarmes?limit=10
+├─ Lista dos últimos alarmes
+└─ Com tipo, severidade, descrição
+
+
+TROUBLESHOOTING:
+═════════════════════════════════════════════════════════════════════════════
+
+PROBLEMA: Mapa não carrega
+SOLUÇÃO:
+  1. Verifique conexão com internet
+  2. Abra console (F12) para ver erros
+  3. Reinicie o servidor: killall node && nohup node server/index.js &
+  4. Limpe cache do navegador (Ctrl+Shift+Delete)
+
+PROBLEMA: Pontos não aparecem no mapa
+SOLUÇÃO:
+  1. Verifique se há dados GPS para o período
+  2. Tente [24h] para período maior
+  3. Verifique logs do servidor: tail -f nohup.out
+
+PROBLEMA: Mapa carrega lentamente
+SOLUÇÃO:
+  1. Use período menor ([6h] em vez de [48h])
+  2. Feche outras abas do navegador
+  3. Limpe dados de navegação
+
+PROBLEMA: Download CSV não funciona
+SOLUÇÃO:
+  1. Certifique-se que há dados na aba selecionada
+  2. Clique em uma aba com dados (ex: Localizações)
+  3. Verifique bloqueador de pop-ups
+
+
+DADOS EXIBIDOS:
+═════════════════════════════════════════════════════════════════════════════
+
+LOCALIZAÇÃO GPS:
+  • Latitude / Longitude (6 casas decimais)
+  • Velocidade (km/h)
+  • Direção (graus: 0°=N, 90°=E, 180°=S, 270°=W)
+  • Última atualização
+
+OBD2 (Motor):
+  • RPM (Rotações por minuto)
+  • Temperatura do motor (°C)
+  • Nível de combustível (%)
+  • Estado da ignição (ON/OFF/IDLE/MOVING)
+  • Odômetro embarcado (km)
+  • Horímetro embarcado (horas)
+  • Nível bateria (%)
+  • Tensão bateria (V)
+
+ALARMES:
+  • Tipo de alarme (GPS não obtido, excesso velocidade, etc)
+  • Severidade (crítico/aviso/info)
+  • Descrição do evento
+  • Timestamp
+  • Status (resolvido/pendente)
+
+ESTATÍSTICAS:
+  • Distância total percorrida
+  • Número de pontos GPS registrados
+  • Tempo total com motor ocioso
+  • Quantidade de excessos de velocidade
+  • Total de eventos registrados
+
+
+PERGUNTAS FREQUENTES:
+═════════════════════════════════════════════════════════════════════════════
+
+P: A rota anterior ainda funciona?
+R: Sim! O código mantém retrocompatibilidade. Se a rota suavizada não tiver
+   dados, usa a análise normal automaticamente.
+
+P: Posso exportar em outros formatos?
+R: Por enquanto apenas CSV. Futuramente: Excel, PDF, KML (Google Earth).
+
+P: Quanto espaço ocupam os dados históricos?
+R: ~1 MB para 1 semana de dados de um veículo. Banco otimizado para crescimento.
+
+P: Os dados são atualizados em tempo real?
+R: Sim! Mapa atualiza a cada 5 segundos enquanto página está aberta.
+
+P: Posso acessar de outro IP/rede?
+R: Se configurado, sim. Verifique firewall e permissões do servidor.
+
+
+DOCUMENTAÇÃO COMPLETA:
+═════════════════════════════════════════════════════════════════════════════
+
+Para informações técnicas detalhadas, veja:
+→ /CORRECOES_GOOGLE_MAPS.md (documentação técnica)
+→ /RESUMO_CORRECOES_MAPS.txt (relatório executivo)
+
+
+SUPORTE:
+═════════════════════════════════════════════════════════════════════════════
+
+Servidor: http://localhost:62000
+Dashboard: http://localhost:62000/admin-dashboard.html
+API: http://localhost:62000/api/status
+
+Em caso de problemas, verifique:
+→ Servidor está rodando: ps aux | grep "node server"
+→ Banco de dados está ok: check ./prisma
+→ Logs do servidor: tail -100 nohup.out
+
+
+================================================================================
+                    Aproveite a nova visualização de mapas!
+                  Qualquer dúvida, consulte a documentação técnica.
+================================================================================

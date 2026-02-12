@@ -1,0 +1,416 @@
+version: '3.8'
+
+# ============================================================================
+# ARQUITETURA MICROSERVIÇOS PARA 5000+ RASTREADORES
+# ============================================================================
+#
+# Componentes:
+# - HAProxy: Load balancer para TCP e HTTP
+# - TCP Gateway (1-3): Aceita conexões de rastreadores
+# - Location Processor (1-5): Processa localizações GPS
+# - Status Processor (1-2): Processa heartbeats e OBD2
+# - Alarm Processor (1-2): Processa alarmes (alta prioridade)
+# - API Server (1-3): HTTP/WebSocket para frontend
+# - PostgreSQL + TimescaleDB: Banco de dados
+# - Redis: Cache, Pub/Sub e Streams
+# - PgBouncer: Connection pooling
+#
+# Para usar: docker-compose -f docker-compose.microservices.yml up -d
+# ============================================================================
+
+services:
+  # ============ LOAD BALANCER ============
+  haproxy:
+    image: haproxy:2.8-alpine
+    container_name: rastreador-haproxy
+    restart: unless-stopped
+    ports:
+      - "8877:8877"   # TCP (rastreadores)
+      - "80:80"       # HTTP
+      - "62000:62000" # API alternativa
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - tcp-gateway-1
+      - api-server-1
+    networks:
+      - rastreador-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============ TCP GATEWAYS ============
+  tcp-gateway-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.tcp-gateway
+    container_name: rastreador-gw-1
+    restart: unless-stopped
+    environment:
+      GATEWAY_ID: gw-1
+      TCP_PORT: 8877
+      MAX_CONNECTIONS: 2000
+      CONNECTION_TIMEOUT: 120000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_ENABLED: "true"
+      REDIS_STREAMS_DB: 2
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  tcp-gateway-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.tcp-gateway
+    container_name: rastreador-gw-2
+    restart: unless-stopped
+    environment:
+      GATEWAY_ID: gw-2
+      TCP_PORT: 8877
+      MAX_CONNECTIONS: 2000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_ENABLED: "true"
+      REDIS_STREAMS_DB: 2
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+
+  # ============ LOCATION PROCESSORS ============
+  location-processor-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    container_name: rastreador-loc-1
+    restart: unless-stopped
+    command: ["node", "server/workers/location-processor.js"]
+    environment:
+      WORKER_ID: loc-1
+      BATCH_SIZE: 10
+      BLOCK_TIME: 5000
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@pgbouncer:6432/rastreador_db?schema=public&pgbouncer=true
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_ENABLED: "true"
+      REDIS_STREAMS_DB: 2
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2'
+
+  location-processor-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    container_name: rastreador-loc-2
+    restart: unless-stopped
+    command: ["node", "server/workers/location-processor.js"]
+    environment:
+      WORKER_ID: loc-2
+      BATCH_SIZE: 10
+      BLOCK_TIME: 5000
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@pgbouncer:6432/rastreador_db?schema=public&pgbouncer=true
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_ENABLED: "true"
+      REDIS_STREAMS_DB: 2
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2'
+
+  location-processor-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    container_name: rastreador-loc-3
+    restart: unless-stopped
+    command: ["node", "server/workers/location-processor.js"]
+    environment:
+      WORKER_ID: loc-3
+      BATCH_SIZE: 10
+      BLOCK_TIME: 5000
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@pgbouncer:6432/rastreador_db?schema=public&pgbouncer=true
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_ENABLED: "true"
+      REDIS_STREAMS_DB: 2
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2'
+
+  # ============ STATUS PROCESSOR ============
+  status-processor-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    container_name: rastreador-status-1
+    restart: unless-stopped
+    command: ["node", "server/workers/status-processor.js"]
+    environment:
+      WORKER_ID: status-1
+      BATCH_SIZE: 20
+      BLOCK_TIME: 5000
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@pgbouncer:6432/rastreador_db?schema=public&pgbouncer=true
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_ENABLED: "true"
+      REDIS_STREAMS_DB: 2
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+
+  # ============ ALARM PROCESSOR (Alta Prioridade) ============
+  alarm-processor-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    container_name: rastreador-alarm-1
+    restart: unless-stopped
+    command: ["node", "server/workers/alarm-processor.js"]
+    environment:
+      WORKER_ID: alarm-1
+      BATCH_SIZE: 5
+      BLOCK_TIME: 1000
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@pgbouncer:6432/rastreador_db?schema=public&pgbouncer=true
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_ENABLED: "true"
+      REDIS_STREAMS_DB: 2
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+
+  # ============ API SERVERS ============
+  api-server-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: rastreador-api-1
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      API_ID: api-1
+      ENABLE_TCP: "false"
+      IS_MASTER: "false"
+      API_PORT: 62000
+      HTTP_PORT: 62000
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@pgbouncer:6432/rastreador_db?schema=public&pgbouncer=true
+      DATABASE_URL_DIRECT: postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_ENABLED: "true"
+      JWT_SECRET: ${JWT_SECRET:-XtG0pyFff/g85H5enWL5o6KSxgQwbSvhgTlZA7/dvKHGVL6I6xM00nIfyU6y72ueupGaVGwcG70KSJakivvYpg==}
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    volumes:
+      - app_logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2'
+
+  api-server-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: rastreador-api-2
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      API_ID: api-2
+      ENABLE_TCP: "false"
+      IS_MASTER: "false"
+      API_PORT: 62000
+      HTTP_PORT: 62000
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@pgbouncer:6432/rastreador_db?schema=public&pgbouncer=true
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_ENABLED: "true"
+      JWT_SECRET: ${JWT_SECRET:-XtG0pyFff/g85H5enWL5o6KSxgQwbSvhgTlZA7/dvKHGVL6I6xM00nIfyU6y72ueupGaVGwcG70KSJakivvYpg==}
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    volumes:
+      - app_logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2'
+
+  # ============ BANCO DE DADOS ============
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: rastreador-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}
+      POSTGRES_DB: rastreador_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    command: >
+      postgres
+      -c shared_buffers=1GB
+      -c effective_cache_size=3GB
+      -c maintenance_work_mem=256MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=32MB
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=10MB
+      -c max_connections=200
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rastreador_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '4'
+
+  # ============ PGBOUNCER ============
+  pgbouncer:
+    image: edoburu/pgbouncer:1.22.0
+    container_name: rastreador-pgbouncer
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 2000
+      DEFAULT_POOL_SIZE: 100
+      MIN_POOL_SIZE: 20
+      RESERVE_POOL_SIZE: 50
+    ports:
+      - "6432:6432"
+    networks:
+      - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============ REDIS ============
+  redis:
+    image: redis:7-alpine
+    container_name: rastreador-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - rastreador-network
+    command: redis-server --appendonly yes --maxmemory 1gb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2'
+
+# ============ NETWORKS ============
+networks:
+  rastreador-network:
+    driver: bridge
+
+# ============ VOLUMES ============
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_logs:
+    driver: local

@@ -1,0 +1,846 @@
+/**
+ * Service de Organizações (Multi-Tenant)
+ * Gerencia operações de organizações, convites e usuários
+ */
+
+const prisma = require('../db/prisma');
+const crypto = require('crypto');
+const auditoriaService = require('./auditoria.service');
+const { ACOES } = require('./auditoria.service');
+
+class OrganizacaoService {
+
+  /**
+   * Criar nova organização
+   */
+  async criar(dados, usuarioCriadorId) {
+    let { nome, slug, cnpj, email, telefone, plano_id, cor_primaria, cor_secundaria, logo_url, config_tema } = dados;
+
+    // Sanitizar e validar campos
+    nome = (nome || '').trim().substring(0, 100);
+    email = (email || '').trim().substring(0, 255);
+    telefone = telefone ? telefone.trim().substring(0, 20) : null;
+    cnpj = cnpj ? cnpj.trim().substring(0, 18) : null;
+    logo_url = logo_url ? logo_url.trim() : null;  // TEXT column - sem limite
+    cor_primaria = cor_primaria ? cor_primaria.trim().substring(0, 7) : null;
+    cor_secundaria = cor_secundaria ? cor_secundaria.trim().substring(0, 7) : null;
+
+    // Validar config_tema se fornecido
+    if (config_tema && typeof config_tema !== 'object') {
+      try {
+        config_tema = JSON.parse(config_tema);
+      } catch (e) {
+        config_tema = null;
+      }
+    }
+
+    // Converter strings vazias para null
+    if (cnpj === '') cnpj = null;
+    if (telefone === '') telefone = null;
+    if (logo_url === '') logo_url = null;
+
+    if (!nome) throw new Error('Nome é obrigatório');
+    if (!email) throw new Error('Email é obrigatório');
+
+    // Verificar se slug já existe
+    const slugFinal = this.gerarSlug(slug || nome);
+    const existente = await prisma.organizacao.findUnique({
+      where: { slug: slugFinal }
+    });
+
+    if (existente) {
+      throw new Error('Slug já está em uso');
+    }
+
+    // Verificar CNPJ se fornecido
+    if (cnpj) {
+      const cnpjExistente = await prisma.organizacao.findUnique({
+        where: { cnpj }
+      });
+      if (cnpjExistente) {
+        throw new Error('CNPJ já cadastrado');
+      }
+    }
+
+    // Criar organização
+    const organizacao = await prisma.organizacao.create({
+      data: {
+        nome,
+        slug: slugFinal,
+        cnpj,
+        email,
+        telefone,
+        plano_id: plano_id || null,
+        ...(cor_primaria && { cor_primaria }),
+        ...(cor_secundaria && { cor_secundaria }),
+        ...(logo_url && { logo_url }),
+        ...(config_tema && { config_tema })
+      }
+    });
+
+    // Se houver usuário criador, associá-lo como proprietário
+    if (usuarioCriadorId) {
+      await prisma.usuarioOrganizacao.create({
+        data: {
+          usuario_id: usuarioCriadorId,
+          organizacao_id: organizacao.id,
+          role: 'proprietario',
+          is_default: true
+        }
+      });
+    }
+
+    // Registrar auditoria
+    await auditoriaService.registrar({
+      usuarioId: usuarioCriadorId,
+      organizacaoId: organizacao.id,
+      acao: ACOES.CRIAR_ORGANIZACAO,
+      recurso: 'organizacao',
+      recursoId: organizacao.id,
+      detalhes: `Organização "${nome}" criada`,
+      dadosNovos: { nome, slug: slugFinal, email, cnpj, plano_id }
+    });
+
+    return organizacao;
+  }
+
+  /**
+   * Gerar slug a partir do nome
+   */
+  gerarSlug(texto) {
+    return texto
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 50);
+  }
+
+  /**
+   * Listar todas as organizações (super_admin)
+   */
+  async listarTodas(filtros = {}) {
+    const where = {};
+
+    if (filtros.status) {
+      where.status = filtros.status;
+    }
+
+    if (filtros.busca) {
+      where.OR = [
+        { nome: { contains: filtros.busca, mode: 'insensitive' } },
+        { slug: { contains: filtros.busca, mode: 'insensitive' } },
+        { email: { contains: filtros.busca, mode: 'insensitive' } }
+      ];
+    }
+
+    return prisma.organizacao.findMany({
+      where,
+      include: {
+        plano: true,
+        _count: {
+          select: {
+            usuarios: true,
+            dispositivos: true
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  /**
+   * Buscar organização por ID
+   */
+  async buscarPorId(id) {
+    return prisma.organizacao.findUnique({
+      where: { id },
+      include: {
+        plano: true,
+        _count: {
+          select: {
+            usuarios: true,
+            dispositivos: true
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * Buscar organização por slug
+   */
+  async buscarPorSlug(slug) {
+    return prisma.organizacao.findUnique({
+      where: { slug },
+      include: {
+        plano: true
+      }
+    });
+  }
+
+  /**
+   * Atualizar organização
+   */
+  async atualizar(id, dados, usuarioId = null) {
+    let { nome, email, telefone, logo_url, cor_primaria, cor_secundaria, config_tema, timezone, plano_id, status, cnpj } = dados;
+
+    // Buscar dados anteriores para auditoria
+    const anterior = await prisma.organizacao.findUnique({ where: { id } });
+
+    // Sanitizar campos
+    if (nome !== undefined) nome = nome ? nome.trim().substring(0, 100) : null;
+    if (email !== undefined) email = email ? email.trim().substring(0, 255) : null;
+    if (telefone !== undefined) telefone = telefone ? telefone.trim().substring(0, 20) : null;
+    if (cnpj !== undefined) cnpj = cnpj ? cnpj.trim().substring(0, 18) : null;
+    if (logo_url !== undefined) logo_url = logo_url ? logo_url.trim() : null;  // TEXT column
+    if (cor_primaria !== undefined) cor_primaria = cor_primaria ? cor_primaria.trim().substring(0, 7) : null;
+    if (cor_secundaria !== undefined) cor_secundaria = cor_secundaria ? cor_secundaria.trim().substring(0, 7) : null;
+    if (timezone !== undefined) timezone = timezone ? timezone.trim().substring(0, 50) : null;
+
+    // Validar config_tema se fornecido
+    if (config_tema !== undefined && config_tema !== null && typeof config_tema !== 'object') {
+      try {
+        config_tema = JSON.parse(config_tema);
+      } catch (e) {
+        config_tema = null;
+      }
+    }
+
+    // Converter strings vazias para null
+    if (telefone === '') telefone = null;
+    if (logo_url === '') logo_url = null;
+    if (cnpj === '') cnpj = null;
+
+    const dadosAtualizacao = {
+      ...(nome && { nome }),
+      ...(email && { email }),
+      ...(telefone !== undefined && { telefone }),
+      ...(logo_url !== undefined && { logo_url }),
+      ...(cor_primaria && { cor_primaria }),
+      ...(cor_secundaria && { cor_secundaria }),
+      ...(config_tema !== undefined && { config_tema }),
+      ...(timezone && { timezone }),
+      ...(plano_id !== undefined && { plano_id }),
+      ...(status && { status }),
+      ...(cnpj !== undefined && { cnpj })
+    };
+
+    const organizacao = await prisma.organizacao.update({
+      where: { id },
+      data: dadosAtualizacao
+    });
+
+    // Determinar tipo de ação específico
+    let acao = ACOES.EDITAR_ORGANIZACAO;
+    let detalhes = `Organização "${anterior?.nome}" atualizada`;
+
+    if (status && anterior?.status !== status) {
+      if (status === 'ativo') {
+        acao = ACOES.ATIVAR_ORGANIZACAO;
+        detalhes = `Organização "${anterior?.nome}" ativada`;
+      } else if (status === 'suspenso' || status === 'cancelado') {
+        acao = ACOES.SUSPENDER_ORGANIZACAO;
+        detalhes = `Organização "${anterior?.nome}" ${status}`;
+      }
+    }
+
+    // Registrar auditoria
+    await auditoriaService.registrar({
+      usuarioId,
+      organizacaoId: id,
+      acao,
+      recurso: 'organizacao',
+      recursoId: id,
+      detalhes,
+      dadosAnteriores: anterior,
+      dadosNovos: dadosAtualizacao
+    });
+
+    return organizacao;
+  }
+
+  /**
+   * Deletar organização
+   */
+  async deletar(id, usuarioId = null) {
+    // Buscar dados antes de deletar para auditoria
+    const organizacao = await prisma.organizacao.findUnique({ where: { id } });
+
+    // Primeiro verificar se há dispositivos
+    const dispositivos = await prisma.dispositivo.count({
+      where: { organizacao_id: id }
+    });
+
+    if (dispositivos > 0) {
+      throw new Error(`Não é possível excluir: organização possui ${dispositivos} dispositivo(s)`);
+    }
+
+    // Deletar (cascata remove usuarios_organizacoes e convites)
+    const resultado = await prisma.organizacao.delete({
+      where: { id }
+    });
+
+    // Registrar auditoria
+    await auditoriaService.registrar({
+      usuarioId,
+      acao: ACOES.DELETAR_ORGANIZACAO,
+      recurso: 'organizacao',
+      recursoId: id,
+      detalhes: `Organização "${organizacao?.nome}" (${organizacao?.slug}) excluída`
+    });
+
+    return resultado;
+  }
+
+  /**
+   * Estatísticas da organização
+   */
+  async obterEstatisticas(id) {
+    const [dispositivos, usuarios, dispositivosOnline, ultimaLocalizacao] = await Promise.all([
+      prisma.dispositivo.count({ where: { organizacao_id: id } }),
+      prisma.usuarioOrganizacao.count({ where: { organizacao_id: id } }),
+      prisma.dispositivo.count({ where: { organizacao_id: id, status: 'online' } }),
+      prisma.localizacao.findFirst({
+        where: {
+          dispositivo: { organizacao_id: id }
+        },
+        orderBy: { timestamp: 'desc' },
+        select: { timestamp: true }
+      })
+    ]);
+
+    const org = await prisma.organizacao.findUnique({
+      where: { id },
+      include: { plano: true }
+    });
+
+    return {
+      dispositivos: {
+        total: dispositivos,
+        online: dispositivosOnline,
+        limite: org?.plano?.max_dispositivos || 10,
+        percentual_uso: org?.plano?.max_dispositivos
+          ? Math.round((dispositivos / org.plano.max_dispositivos) * 100)
+          : 0
+      },
+      usuarios: {
+        total: usuarios,
+        limite: org?.plano?.max_usuarios || 5,
+        percentual_uso: org?.plano?.max_usuarios
+          ? Math.round((usuarios / org.plano.max_usuarios) * 100)
+          : 0
+      },
+      ultima_atividade: ultimaLocalizacao?.timestamp || null,
+      plano: org?.plano?.nome || 'basico'
+    };
+  }
+
+  // ==================== USUÁRIOS DA ORGANIZAÇÃO ====================
+
+  /**
+   * Listar usuários da organização
+   */
+  async listarUsuarios(organizacaoId) {
+    const associacoes = await prisma.usuarioOrganizacao.findMany({
+      where: { organizacao_id: organizacaoId },
+      include: {
+        usuario: {
+          select: {
+            id: true,
+            email: true,
+            nome: true,
+            ativo: true,
+            ultimo_login: true,
+            created_at: true
+          }
+        }
+      },
+      orderBy: { created_at: 'asc' }
+    });
+
+    return associacoes.map(a => ({
+      ...a.usuario,
+      role: a.role,
+      is_default: a.is_default,
+      associacao_id: a.id
+    }));
+  }
+
+  /**
+   * Alterar role de usuário na organização
+   */
+  async alterarRoleUsuario(organizacaoId, usuarioId, novoRole) {
+    const rolesValidas = ['proprietario', 'admin', 'operador', 'visualizador'];
+    if (!rolesValidas.includes(novoRole)) {
+      throw new Error(`Role inválida. Valores: ${rolesValidas.join(', ')}`);
+    }
+
+    // Verificar se é o único proprietário
+    if (novoRole !== 'proprietario') {
+      const proprietarios = await prisma.usuarioOrganizacao.count({
+        where: {
+          organizacao_id: organizacaoId,
+          role: 'proprietario'
+        }
+      });
+
+      const associacao = await prisma.usuarioOrganizacao.findUnique({
+        where: {
+          usuario_id_organizacao_id: {
+            usuario_id: usuarioId,
+            organizacao_id: organizacaoId
+          }
+        }
+      });
+
+      if (proprietarios === 1 && associacao?.role === 'proprietario') {
+        throw new Error('Não é possível remover o único proprietário');
+      }
+    }
+
+    return prisma.usuarioOrganizacao.update({
+      where: {
+        usuario_id_organizacao_id: {
+          usuario_id: usuarioId,
+          organizacao_id: organizacaoId
+        }
+      },
+      data: { role: novoRole }
+    });
+  }
+
+  /**
+   * Remover usuário da organização
+   */
+  async removerUsuario(organizacaoId, usuarioId) {
+    // Verificar se é o único proprietário
+    const associacao = await prisma.usuarioOrganizacao.findUnique({
+      where: {
+        usuario_id_organizacao_id: {
+          usuario_id: usuarioId,
+          organizacao_id: organizacaoId
+        }
+      }
+    });
+
+    if (associacao?.role === 'proprietario') {
+      const proprietarios = await prisma.usuarioOrganizacao.count({
+        where: {
+          organizacao_id: organizacaoId,
+          role: 'proprietario'
+        }
+      });
+
+      if (proprietarios === 1) {
+        throw new Error('Não é possível remover o único proprietário');
+      }
+    }
+
+    return prisma.usuarioOrganizacao.delete({
+      where: {
+        usuario_id_organizacao_id: {
+          usuario_id: usuarioId,
+          organizacao_id: organizacaoId
+        }
+      }
+    });
+  }
+
+  // ==================== CONVITES ====================
+
+  /**
+   * Criar convite
+   */
+  async criarConvite(organizacaoId, email, role, convidadoPorId) {
+    // Verificar limite de usuários
+    const org = await prisma.organizacao.findUnique({
+      where: { id: organizacaoId },
+      include: { plano: true }
+    });
+
+    const totalUsuarios = await prisma.usuarioOrganizacao.count({
+      where: { organizacao_id: organizacaoId }
+    });
+
+    const limite = org?.plano?.max_usuarios || 5;
+    if (totalUsuarios >= limite) {
+      throw new Error(`Limite de usuários atingido (${totalUsuarios}/${limite})`);
+    }
+
+    // Verificar se já existe usuário com este email na org
+    const usuarioExistente = await prisma.usuario.findUnique({
+      where: { email }
+    });
+
+    if (usuarioExistente) {
+      const jaAssociado = await prisma.usuarioOrganizacao.findUnique({
+        where: {
+          usuario_id_organizacao_id: {
+            usuario_id: usuarioExistente.id,
+            organizacao_id: organizacaoId
+          }
+        }
+      });
+
+      if (jaAssociado) {
+        throw new Error('Usuário já pertence a esta organização');
+      }
+    }
+
+    // Verificar se já existe convite pendente
+    const conviteExistente = await prisma.convite.findFirst({
+      where: {
+        organizacao_id: organizacaoId,
+        email,
+        aceito: false,
+        expires_at: { gt: new Date() }
+      }
+    });
+
+    if (conviteExistente) {
+      throw new Error('Já existe um convite pendente para este email');
+    }
+
+    // Gerar token único
+    const token = crypto.randomBytes(32).toString('hex');
+
+    // Criar convite (expira em 7 dias)
+    const expires_at = new Date();
+    expires_at.setDate(expires_at.getDate() + 7);
+
+    return prisma.convite.create({
+      data: {
+        organizacao_id: organizacaoId,
+        email,
+        role: role || 'operador',
+        token,
+        expires_at,
+        convidado_por: convidadoPorId
+      },
+      include: {
+        organizacao: {
+          select: { nome: true, slug: true }
+        }
+      }
+    });
+  }
+
+  /**
+   * Listar convites da organização
+   */
+  async listarConvites(organizacaoId) {
+    return prisma.convite.findMany({
+      where: { organizacao_id: organizacaoId },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  /**
+   * Cancelar convite
+   */
+  async cancelarConvite(conviteId, organizacaoId) {
+    const convite = await prisma.convite.findUnique({
+      where: { id: conviteId }
+    });
+
+    if (!convite || convite.organizacao_id !== organizacaoId) {
+      throw new Error('Convite não encontrado');
+    }
+
+    return prisma.convite.delete({
+      where: { id: conviteId }
+    });
+  }
+
+  /**
+   * Validar convite por token
+   */
+  async validarConvite(token) {
+    const convite = await prisma.convite.findUnique({
+      where: { token },
+      include: {
+        organizacao: {
+          select: { id: true, nome: true, slug: true, logo_url: true }
+        }
+      }
+    });
+
+    if (!convite) {
+      throw new Error('Convite não encontrado');
+    }
+
+    if (convite.aceito) {
+      throw new Error('Convite já foi utilizado');
+    }
+
+    if (convite.expires_at < new Date()) {
+      throw new Error('Convite expirado');
+    }
+
+    return convite;
+  }
+
+  /**
+   * Aceitar convite (criar conta ou associar existente)
+   */
+  async aceitarConvite(token, dadosUsuario) {
+    const convite = await this.validarConvite(token);
+
+    const { nome, senha } = dadosUsuario;
+
+    // Verificar se usuário já existe
+    let usuario = await prisma.usuario.findUnique({
+      where: { email: convite.email }
+    });
+
+    if (usuario) {
+      // Usuário existe, apenas associar à organização
+      await prisma.usuarioOrganizacao.create({
+        data: {
+          usuario_id: usuario.id,
+          organizacao_id: convite.organizacao_id,
+          role: convite.role,
+          is_default: false
+        }
+      });
+    } else {
+      // Criar novo usuário
+      if (!nome || !senha) {
+        throw new Error('Nome e senha são obrigatórios para novos usuários');
+      }
+
+      const bcrypt = require('bcrypt');
+      const senhaHash = await bcrypt.hash(senha, 12);
+
+      usuario = await prisma.usuario.create({
+        data: {
+          email: convite.email,
+          nome,
+          senha_hash: senhaHash,
+          role: 'usuario'
+        }
+      });
+
+      // Associar à organização
+      await prisma.usuarioOrganizacao.create({
+        data: {
+          usuario_id: usuario.id,
+          organizacao_id: convite.organizacao_id,
+          role: convite.role,
+          is_default: true
+        }
+      });
+    }
+
+    // Marcar convite como aceito
+    await prisma.convite.update({
+      where: { id: convite.id },
+      data: {
+        aceito: true,
+        aceito_em: new Date()
+      }
+    });
+
+    return {
+      usuario: {
+        id: usuario.id,
+        email: usuario.email,
+        nome: usuario.nome
+      },
+      organizacao: convite.organizacao
+    };
+  }
+
+  // ==================== PLANOS ====================
+
+  /**
+   * Listar planos disponíveis
+   */
+  async listarPlanos() {
+    return prisma.plano.findMany({
+      where: { ativo: true },
+      orderBy: { preco_mensal: 'asc' }
+    });
+  }
+
+  /**
+   * Atualizar email de contato do plano
+   */
+  async atualizarEmailPlano(planoId, emailContato) {
+    return prisma.plano.update({
+      where: { id: planoId },
+      data: { email_contato: emailContato || null }
+    });
+  }
+
+  // ==================== GESTÃO GLOBAL DE USUÁRIOS (Super Admin) ====================
+
+  /**
+   * Listar todos os usuários (super_admin)
+   */
+  async listarTodosUsuarios() {
+    return prisma.usuario.findMany({
+      select: {
+        id: true,
+        email: true,
+        nome: true,
+        role: true,
+        ativo: true,
+        ultimo_login: true,
+        created_at: true,
+        organizacoes_permitidas: true,
+        organizacoes: {
+          include: {
+            organizacao: {
+              select: { id: true, nome: true, slug: true }
+            }
+          }
+        },
+        perfis: {
+          include: {
+            perfil: {
+              select: { id: true, nome: true }
+            }
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  /**
+   * Criar usuário e associar a uma organização (super_admin)
+   */
+  async criarUsuarioGlobal(dados) {
+    const { nome, email, senha, organizacao_id, role_org, role, organizacoes_permitidas } = dados;
+
+    // Verificar se email já existe
+    const existente = await prisma.usuario.findUnique({
+      where: { email }
+    });
+
+    if (existente) {
+      throw new Error('Email já cadastrado');
+    }
+
+    const bcrypt = require('bcrypt');
+    const senhaHash = await bcrypt.hash(senha, 12);
+
+    // Determinar role global (super_admin ou usuario)
+    const roleGlobal = role === 'super_admin' ? 'super_admin' : 'usuario';
+
+    // Preparar dados do usuário
+    const userData = {
+      email,
+      nome,
+      senha_hash: senhaHash,
+      role: roleGlobal
+    };
+
+    // Se for super_admin, salvar organizações permitidas
+    if (roleGlobal === 'super_admin' && organizacoes_permitidas) {
+      userData.organizacoes_permitidas = JSON.stringify(organizacoes_permitidas);
+    }
+
+    // Criar usuário
+    const usuario = await prisma.usuario.create({
+      data: userData
+    });
+
+    // Se foi fornecida uma organização, associar (não obrigatório para super_admin)
+    if (organizacao_id) {
+      await prisma.usuarioOrganizacao.create({
+        data: {
+          usuario_id: usuario.id,
+          organizacao_id: organizacao_id,
+          role: role_org || 'operador',
+          is_default: true
+        }
+      });
+    }
+
+    console.log(`[Usuário] Criado: ${email} com role ${roleGlobal}`);
+    return usuario;
+  }
+
+  /**
+   * Atualizar usuário (super_admin)
+   */
+  async atualizarUsuarioGlobal(usuarioId, dados) {
+    const { nome, email, senha, ativo, organizacao_id, role_org, role, organizacoes_permitidas } = dados;
+
+    const updateData = {};
+    if (nome) updateData.nome = nome;
+    if (email) updateData.email = email;
+    if (ativo !== undefined) updateData.ativo = ativo;
+
+    // Permitir alteração da role global (super_admin/usuario)
+    if (role) {
+      updateData.role = role === 'super_admin' ? 'super_admin' : 'usuario';
+    }
+
+    // Atualizar organizações permitidas para super_admin
+    if (organizacoes_permitidas !== undefined) {
+      if (organizacoes_permitidas && organizacoes_permitidas.length > 0) {
+        updateData.organizacoes_permitidas = JSON.stringify(organizacoes_permitidas);
+      } else {
+        updateData.organizacoes_permitidas = null;
+      }
+    }
+
+    if (senha) {
+      const bcrypt = require('bcrypt');
+      updateData.senha_hash = await bcrypt.hash(senha, 12);
+    }
+
+    const usuario = await prisma.usuario.update({
+      where: { id: usuarioId },
+      data: updateData
+    });
+
+    // Se foi fornecida uma organização, atualizar ou criar associação
+    if (organizacao_id && role_org) {
+      await prisma.usuarioOrganizacao.upsert({
+        where: {
+          usuario_id_organizacao_id: {
+            usuario_id: usuarioId,
+            organizacao_id: organizacao_id
+          }
+        },
+        update: { role: role_org },
+        create: {
+          usuario_id: usuarioId,
+          organizacao_id: organizacao_id,
+          role: role_org,
+          is_default: false
+        }
+      });
+    }
+
+    console.log(`[Usuário] Atualizado: ID ${usuarioId}, role: ${updateData.role || 'mantido'}`);
+    return usuario;
+  }
+
+  /**
+   * Deletar usuário (super_admin)
+   */
+  async deletarUsuarioGlobal(usuarioId) {
+    // Verificar se é super_admin
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: usuarioId }
+    });
+
+    if (usuario?.role === 'super_admin') {
+      throw new Error('Não é possível excluir um super admin');
+    }
+
+    // Deletar (cascata remove associações)
+    return prisma.usuario.delete({
+      where: { id: usuarioId }
+    });
+  }
+}
+
+module.exports = new OrganizacaoService();

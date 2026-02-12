@@ -1,0 +1,44 @@
+# Prometheus Configuration for GPS Tracker Platform
+# Configurado para Docker Swarm com auto-scaling
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # ============ PROMETHEUS ============
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ============ APP (Docker Swarm DNS) ============
+  - job_name: 'gps-app'
+    dns_sd_configs:
+      - names:
+          - 'tasks.app'
+        type: 'A'
+        port: 62000
+    metrics_path: /api/metrics
+    scrape_interval: 10s
+
+  # ============ HAPROXY STATS ============
+  - job_name: 'haproxy'
+    static_configs:
+      - targets: ['haproxy:8404']
+    metrics_path: /stats;csv
+    scrape_interval: 10s
+
+  # ============ REDIS ============
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s

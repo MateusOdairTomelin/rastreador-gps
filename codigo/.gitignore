@@ -1,0 +1,20 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+# Logs
+logs/
+*.log
+
+# Backups (large files)
+backups/*.dump
+backups/*.sql
+backups/*.tar.gz
+backups/*.rdb
+backups/pre-migration-*/
+
+# Data volumes
+data/
+
+# OS
+.DS_Store

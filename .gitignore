@@ -1,0 +1,97 @@
+# =============================================
+# RASTREADOR GPS - .gitignore
+# =============================================
+
+# ========== DEPENDÊNCIAS ==========
+node_modules/
+*/node_modules/
+**/node_modules/
+
+# ========== ARQUIVOS DE AMBIENTE ==========
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+*.env
+
+# ========== DADOS E BACKUPS ==========
+backups/
+*.dump
+*.sql
+*.backup
+database-backup.*
+redis-backup.*
+*.rdb
+
+# ========== OSRM (Mapas - muito grande) ==========
+osrm-data/
+*.osrm
+*.osrm.*
+
+# ========== LOGS ==========
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========== BUILD E CACHE ==========
+dist/
+build/
+.cache/
+.npm/
+.yarn/
+*.tgz
+
+# ========== IDE E EDITOR ==========
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ========== DOCKER (volumes locais) ==========
+docker-data/
+postgres-data/
+redis-data/
+grafana-data/
+
+# ========== ARQUIVOS TEMPORÁRIOS ==========
+tmp/
+temp/
+*.tmp
+*.temp
+
+# ========== CERTIFICADOS E CHAVES ==========
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+ssl/
+
+# ========== ARQUIVOS GRANDES ==========
+*.tar.gz
+*.zip
+*.rar
+*.7z
+*.pdf
+
+# ========== APP MOTORISTA (build) ==========
+motorista-app/.expo/
+motorista-app/android/app/build/
+motorista-app/ios/build/
+motorista-app/node_modules/
+motorista-app/.gradle/
+
+# ========== PRISMA ==========
+prisma/migrations/**/migration_lock.toml
+
+# ========== ARQUIVOS ESPECÍFICOS DO PROJETO ==========
+monitor-*.log
+monitor-*.sh
+projeto-rastreador.tar.gz
+*.dump

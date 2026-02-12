@@ -1,0 +1,57 @@
+# Dockerfile para TCP Gateway
+# Gateway stateless para conexões de rastreadores
+
+FROM node:18-slim
+
+# Instalar dependências mínimas (tini para gerenciar processos)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tini \
+    openssl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copiar apenas arquivos necessários
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Instalar dependências de produção
+RUN npm ci --only=production --ignore-scripts
+
+# Gerar cliente Prisma
+RUN npx prisma generate
+
+# Copiar código do gateway
+COPY server/tcp-gateway.js ./server/
+COPY server/tcp-packet-buffer.js ./server/
+COPY server/parsers ./server/parsers/
+COPY server/services/redis-streams.service.js ./server/services/
+COPY server/middleware/tcp-security.middleware.js ./server/middleware/
+
+# Criar diretório de logs e ajustar permissões
+RUN mkdir -p logs && chown -R node:node /app
+
+# Usar usuário não-root (segurança)
+USER node
+
+# Variáveis de ambiente padrão
+ENV NODE_ENV=production
+ENV TCP_PORT=8877
+ENV TCP_PORT_OBD2=8878
+ENV TELTONIKA_PORT=8879
+ENV MAX_CONNECTIONS=2000
+ENV CONNECTION_TIMEOUT=120000
+ENV REDIS_ENABLED=true
+
+# Expor portas TCP (XT40, OBD2, Teltonika)
+EXPOSE 8877 8878 8879
+
+# Usar tini para gerenciar processos
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Health check simples (verificar se processo está rodando)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "process.exit(0)" || exit 1
+
+# Comando de inicialização
+CMD ["node", "server/tcp-gateway.js"]

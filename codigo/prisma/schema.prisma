@@ -1,0 +1,1137 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_DIRECT")
+}
+
+// ========== MULTI-TENANT: PLANOS ==========
+model Plano {
+  id                  Int       @id @default(autoincrement())
+  nome                String    @unique @db.VarChar(50)  // basico, profissional, enterprise
+  descricao           String?   @db.VarChar(255)
+
+  // Limites
+  max_dispositivos    Int       @default(10)
+  max_usuarios        Int       @default(5)
+  max_historico_dias  Int       @default(30)  // Retenção de dados GPS
+
+  // Funcionalidades (JSON array)
+  funcionalidades     String?   @db.Text  // ["relatorios", "api", "whitelabel", "suporte_prioritario"]
+
+  // Preço
+  preco_mensal        Float?    @db.DoublePrecision
+
+  // Email de contato (para planos sob consulta)
+  email_contato       String?   @db.VarChar(100)
+
+  ativo               Boolean   @default(true)
+  created_at          DateTime  @default(now())
+
+  organizacoes        Organizacao[]
+
+  @@map("planos")
+}
+
+// ========== MULTI-TENANT: ORGANIZAÇÕES ==========
+model Organizacao {
+  id              Int       @id @default(autoincrement())
+  nome            String    @db.VarChar(100)
+  slug            String    @unique @db.VarChar(50)  // URL-friendly identifier
+  cnpj            String?   @unique @db.VarChar(18)
+  email           String    @db.VarChar(255)
+  telefone        String?   @db.VarChar(20)
+
+  // Configurações visuais
+  logo_url        String?   @db.Text  // Suporta URLs longas e data URLs (base64)
+  cor_primaria    String?   @default("#3FCFD5") @db.VarChar(7)
+  cor_secundaria  String?   @default("#00A2FF") @db.VarChar(7)
+  config_tema     Json?     // Configurações avançadas de tema (cores de fundo, texto, etc.)
+
+  // Configurações regionais
+  timezone        String    @default("America/Sao_Paulo") @db.VarChar(50)
+
+  // Plano e limites
+  plano_id        Int?
+  plano           Plano?    @relation(fields: [plano_id], references: [id], onDelete: SetNull)
+
+  // Status
+  status          String    @default("ativo") @db.VarChar(20)  // ativo, suspenso, cancelado
+
+  // Timestamps
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  // Relacionamentos
+  usuarios        UsuarioOrganizacao[]
+  dispositivos    Dispositivo[]
+  veiculos        Veiculo[]
+  convites        Convite[]
+  audit_logs      AuditLog[]
+  geofences       Geofence[]
+  notificacoes    Notificacao[]
+  configuracao_notificacao ConfiguracaoNotificacao?
+  motoristas      Motorista[]
+  perfis_permissao PerfilPermissao[]
+  usuarios_perfis  UsuarioPerfilPermissao[]
+  multas          Multa[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([plano_id])
+  @@map("organizacoes")
+}
+
+// ========== MULTI-TENANT: ASSOCIAÇÃO USUÁRIO <-> ORGANIZAÇÃO ==========
+model UsuarioOrganizacao {
+  id              Int       @id @default(autoincrement())
+  usuario_id      Int
+  organizacao_id  Int
+
+  // Papel do usuário NESTA organização
+  role            String    @default("operador") @db.VarChar(20)  // proprietario, admin, operador, visualizador
+
+  // Organização padrão (para usuários em múltiplas orgs)
+  is_default      Boolean   @default(false)
+
+  created_at      DateTime  @default(now())
+
+  usuario         Usuario     @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  organizacao     Organizacao @relation(fields: [organizacao_id], references: [id], onDelete: Cascade)
+
+  @@unique([usuario_id, organizacao_id])
+  @@index([usuario_id])
+  @@index([organizacao_id])
+  @@map("usuarios_organizacoes")
+}
+
+// ========== MULTI-TENANT: CONVITES ==========
+model Convite {
+  id              Int       @id @default(autoincrement())
+  organizacao_id  Int
+
+  email           String    @db.VarChar(255)
+  role            String    @default("operador") @db.VarChar(20)
+  token           String    @unique @db.VarChar(100)
+
+  expires_at      DateTime
+  aceito          Boolean   @default(false)
+  aceito_em       DateTime?
+
+  // Quem convidou
+  convidado_por   Int?
+
+  created_at      DateTime  @default(now())
+
+  organizacao     Organizacao @relation(fields: [organizacao_id], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([organizacao_id])
+  @@index([email])
+  @@map("convites")
+}
+
+// ========== AUTENTICAÇÃO E USUÁRIOS ==========
+model Usuario {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique @db.VarChar(255)
+  senha_hash      String    @db.VarChar(255)
+  nome            String    @db.VarChar(100)
+
+  // Role global (super_admin tem acesso a tudo)
+  role            String    @default("usuario") @db.VarChar(20)  // "super_admin", "usuario"
+  ativo           Boolean   @default(true)
+
+  // Organizações permitidas para super_admin (JSON: ["todas"] ou [1, 2, 3])
+  // Se null ou ["todas"], super_admin tem acesso a todas as organizações
+  // Se array de IDs, super_admin só tem acesso a essas organizações
+  organizacoes_permitidas String? @db.Text
+
+  // Controle de acesso
+  ultimo_login    DateTime?
+  tentativas_login Int      @default(0)
+  bloqueado_ate   DateTime?
+
+  // Relacionamentos
+  refresh_tokens  RefreshToken[]
+  audit_logs      AuditLog[]
+  organizacoes    UsuarioOrganizacao[]
+  consentimentos  Consentimento[]
+  perfis          UsuarioPerfilPermissao[]
+
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  @@index([email])
+  @@index([role])
+  @@map("usuarios")
+}
+
+// ========== PERFIS DE PERMISSÃO ==========
+model PerfilPermissao {
+  id              Int       @id @default(autoincrement())
+  nome            String    @db.VarChar(100)
+  descricao       String?   @db.VarChar(255)
+
+  // Organização dona do perfil (null = perfil global/sistema)
+  organizacao_id  Int?
+
+  // Permissões em formato JSON
+  // Exemplo: {"veiculos": ["listar", "criar", "editar"], "motoristas": ["listar"]}
+  permissoes      String    @db.Text
+
+  // Perfil padrão do sistema (não pode ser editado/excluído)
+  sistema         Boolean   @default(false)
+  ativo           Boolean   @default(true)
+
+  criado_por      Int?
+
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  organizacao     Organizacao? @relation(fields: [organizacao_id], references: [id], onDelete: Cascade)
+  usuarios        UsuarioPerfilPermissao[]
+
+  @@index([organizacao_id])
+  @@index([nome])
+  @@map("perfis_permissao")
+}
+
+// Associação Usuário <-> Perfil de Permissão
+model UsuarioPerfilPermissao {
+  id              Int       @id @default(autoincrement())
+  usuario_id      Int
+  perfil_id       Int
+
+  // Organização onde este perfil se aplica (null = todas)
+  organizacao_id  Int?
+
+  created_at      DateTime  @default(now())
+
+  usuario         Usuario          @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  perfil          PerfilPermissao  @relation(fields: [perfil_id], references: [id], onDelete: Cascade)
+  organizacao     Organizacao?     @relation(fields: [organizacao_id], references: [id], onDelete: Cascade)
+
+  @@unique([usuario_id, perfil_id, organizacao_id])
+  @@index([usuario_id])
+  @@index([perfil_id])
+  @@map("usuarios_perfis_permissao")
+}
+
+model RefreshToken {
+  id              Int       @id @default(autoincrement())
+  usuario_id      Int
+  token           String    @unique @db.VarChar(500)
+  expires_at      DateTime
+  revogado        Boolean   @default(false)
+  ip              String?   @db.VarChar(45)
+  user_agent      String?   @db.VarChar(500)
+
+  usuario         Usuario   @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime  @default(now())
+
+  @@index([usuario_id])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id              Int       @id @default(autoincrement())
+  usuario_id      Int?
+  organizacao_id  Int?      // Multi-tenant: organização do contexto
+
+  acao            String    @db.VarChar(50)   // "LOGIN", "LOGOUT", "CRIAR_DISPOSITIVO", "CORTAR_COMBUSTIVEL", etc.
+  recurso         String?   @db.VarChar(50)   // "dispositivo", "usuario", "comando"
+  recurso_id      String?   @db.VarChar(50)   // ID ou IMEI do recurso
+  detalhes        String?   @db.Text          // JSON com detalhes adicionais
+  ip              String?   @db.VarChar(45)
+  user_agent      String?   @db.VarChar(500)
+  sucesso         Boolean   @default(true)
+
+  usuario         Usuario?     @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+  organizacao     Organizacao? @relation(fields: [organizacao_id], references: [id], onDelete: SetNull)
+
+  created_at      DateTime  @default(now())
+
+  @@index([usuario_id])
+  @@index([organizacao_id])
+  @@index([acao])
+  @@index([created_at(sort: Desc)])
+  @@map("audit_logs")
+}
+
+model Dispositivo {
+  id               Int            @id @default(autoincrement())
+  imei             String         @unique @db.VarChar(15)
+  tipo             String         @db.VarChar(50)
+  placa            String?        @db.VarChar(10)
+  veiculo          String?        @db.VarChar(100)
+  status           String         @default("offline") @db.VarChar(20)
+  status_uso       String         @default("ativo") @db.VarChar(20)  // "ativo", "disponivel", "inativo"
+  estado_ignicao   String         @default("off") @db.VarChar(20)  // "off", "acc_on", "idle", "moving", "ligado"
+  ultima_conexao   DateTime?
+
+  // Multi-tenant: organização proprietária
+  organizacao_id   Int?
+  organizacao      Organizacao?   @relation(fields: [organizacao_id], references: [id], onDelete: SetNull)
+
+  // Informações de conectividade
+  operadora        String?        @db.VarChar(50)      // Ex: "UniRaster", "Vivo", "Claro"
+  imei_chip        String?        @db.VarChar(20)      // IMEI do SIM card
+  telefone_chip    String?        @db.VarChar(20)      // Número de telefone do chip
+  apn              String?        @db.VarChar(100)     // APN da operadora
+
+  // ========== CONFIGURAÇÃO DE IGNIÇÃO ==========
+  // Para dispositivos sem sensor físico de ACC (ex: XT40-4F cabo)
+  // Detecta motor ligado pela tensão do alternador
+  usa_ignicao_virtual  Boolean    @default(false)      // Se true, usa tensão para detectar ignição
+  tensao_motor_ligado  Float      @default(12.8) @db.DoublePrecision  // Tensão mínima para motor ligado (V) - alternador ativo
+  tensao_motor_deslig  Float      @default(12.4) @db.DoublePrecision  // Tensão máxima para motor desligado (V) - bateria repouso
+
+  // Para dispositivos conectados no pós-chave (só funciona com chave ligada)
+  // Lógica híbrida: pós-chave + tensão para diferenciar meia chave de motor ligado
+  conexao_pos_chave    Boolean    @default(true)       // Padrão: todos usam pós-chave + tensão
+
+  // ========== PERFIL DO VEÍCULO (para calibração automática de tensão) ==========
+  // Define thresholds de tensão apropriados para cada tipo/ano de veículo
+  perfil_veiculo       String?    @db.VarChar(30)      // MODERNO, INTERMEDIARIO, ANTIGO, DIESEL, CAMINHAO_24V, PERSONALIZADO
+  ano_veiculo          Int?                            // Ano de fabricação do veículo
+
+  // ========== AUTO-CALIBRAÇÃO DE TENSÃO ==========
+  // Sistema aprende os thresholds ideais baseado no uso real
+  calibracao_status    String?    @db.VarChar(30)      // PENDENTE, EM_APRENDIZADO, CALIBRADO, SUGESTAO_DISPONIVEL
+  calibracao_inicio    DateTime?                       // Quando iniciou a coleta de dados
+  tensao_sugerida_on   Float?     @db.DoublePrecision  // Threshold sugerido pelo sistema para motor ON
+  tensao_sugerida_off  Float?     @db.DoublePrecision  // Threshold sugerido pelo sistema para motor OFF
+  calibracao_confianca Float?     @db.DoublePrecision  // 0-1, confiança na sugestão
+
+  // Calibração de odômetro por dispositivo
+  // Fórmula: odometro_calibrado = (odometro_bruto * fator) + offset
+  odometro_fator   Float          @default(1.0) @db.DoublePrecision  // Fator multiplicador
+  odometro_offset  Float          @default(0.0) @db.DoublePrecision  // Offset em km
+
+  // ========== TOTAIS ACUMULADOS (para dispositivos sem OBD2) ==========
+  odometro_total   Float          @default(0.0) @db.DoublePrecision  // Total de km percorridos
+  horimetro_total  Float          @default(0.0) @db.DoublePrecision  // Total de horas com motor ligado
+
+  // ========== VIAGEM ATUAL (atualizado em tempo real) ==========
+  viagem_inicio       DateTime?                                     // Quando a ignição ligou
+  viagem_odometro     Float       @default(0.0) @db.DoublePrecision  // Km da viagem atual
+  viagem_horimetro    Float       @default(0.0) @db.DoublePrecision  // Horas da viagem atual
+  viagem_vel_max      Float       @default(0.0) @db.DoublePrecision  // Velocidade máxima da viagem
+  viagem_vel_soma     Float       @default(0.0) @db.DoublePrecision  // Soma das velocidades (para média)
+  viagem_vel_count    Int         @default(0)                       // Contagem de amostras de velocidade
+  viagem_origem_lat   Float?      @db.DoublePrecision                // Latitude de INÍCIO da viagem (fixo)
+  viagem_origem_lng   Float?      @db.DoublePrecision                // Longitude de INÍCIO da viagem (fixo)
+  viagem_ultima_lat   Float?      @db.DoublePrecision                // Última latitude (para cálculo incremental)
+  viagem_ultima_lng   Float?      @db.DoublePrecision                // Última longitude
+
+  // ========== STATUS DO GPS ==========
+  gps_status          String?     @db.VarChar(30)                    // "OK", "NO_FIX_FACTORY", "INVALID_REGION", "NO_SIGNAL"
+  ultimo_erro_gps     DateTime?                                       // Último erro de GPS detectado
+
+  // ========== MOTORISTA VINCULADO ==========
+  motorista_id        Int?
+  motorista           Motorista?  @relation(fields: [motorista_id], references: [id], onDelete: SetNull)
+
+  // ========== VEÍCULO VINCULADO ==========
+  veiculo_id          Int?
+  veiculo_rel         Veiculo?    @relation(fields: [veiculo_id], references: [id], onDelete: SetNull)
+  historico_veiculos  VeiculoDispositivoHistorico[]
+
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
+
+  localizacoes     Localizacao[]
+  dados_obd2       DadosOBD2[]
+  alarmes          Alarme[]
+  viagens          Viagem[]
+  geofenceEventos  GeofenceEvento[]
+  notificacoes     Notificacao[]
+  historicoMotoristas HistoricoMotorista[]
+
+  @@index([imei])
+  @@index([status])
+  @@index([status_uso])
+  @@index([organizacao_id])
+  @@index([organizacao_id, status])
+  @@index([organizacao_id, status_uso])
+  @@index([veiculo_id])
+  @@map("dispositivos")
+}
+
+model Localizacao {
+  id              Int         @id @default(autoincrement())
+  dispositivo_id  Int
+  latitude        Float       @db.DoublePrecision
+  longitude       Float       @db.DoublePrecision
+  altitude        Float?      @db.DoublePrecision
+  velocidade      Float       @default(0) @db.DoublePrecision
+  direcao         Float       @default(0) @db.DoublePrecision
+  estado_ignicao  String?     @db.VarChar(20)  // 'off', 'acc_on', 'idle', 'moving'
+  precisao        Float?      @db.DoublePrecision
+  ignicao         Boolean?    // Estado da ignição no momento da localização
+  timestamp       DateTime
+  created_at      DateTime    @default(now())
+
+  dispositivo     Dispositivo @relation(fields: [dispositivo_id], references: [id], onDelete: Cascade)
+
+  @@index([dispositivo_id, timestamp(sort: Desc)])
+  @@index([timestamp])
+  @@map("localizacoes")
+}
+
+model DadosOBD2 {
+  id                       Int         @id @default(autoincrement())
+  dispositivo_id           Int
+
+  // Dados básicos OBD2
+  rpm                      Int?
+  temperatura_motor        Float?      @db.DoublePrecision
+  nivel_combustivel        Float?      @db.DoublePrecision
+  ignicao                  Boolean     @default(false)
+  velocidade               Float?      @db.DoublePrecision  // Velocidade no momento (para determinar ocioso/movimento)
+
+  // Odômetros (separados: plataforma vs embarcado)
+  odometro_plataforma      Float?      @db.DoublePrecision  // Calculado pela plataforma via GPS
+  odometro_embarcado       Float?      @db.DoublePrecision  // Vindo do dispositivo rastreador
+
+  // Horímetros (separados: plataforma vs embarcado)
+  hora_motor_plataforma    Float?      @db.DoublePrecision  // Calculado pela plataforma via ignição
+  hora_motor_embarcada     Float?      @db.DoublePrecision  // Vindo do dispositivo rastreador
+
+  // Bateria (em percentual e tensão)
+  percentual_bateria       Float?      @db.DoublePrecision  // 0-100%
+  tensao_bateria           Float?      @db.DoublePrecision  // Em Volts (bateria de backup do rastreador)
+  tensao_principal         Float?      @db.DoublePrecision  // Em Volts (bateria do veículo 12-14V) - ESSENCIAL para ignição virtual
+
+  timestamp                DateTime
+  created_at               DateTime    @default(now())
+
+  dispositivo              Dispositivo @relation(fields: [dispositivo_id], references: [id], onDelete: Cascade)
+
+  @@index([dispositivo_id, timestamp(sort: Desc)])
+  @@index([timestamp])
+  @@map("dados_obd2")
+}
+
+model Alarme {
+  id              Int         @id @default(autoincrement())
+  dispositivo_id  Int
+  tipo_alarme     String      @db.VarChar(50)
+  descricao       String?     @db.Text
+  severidade      String      @default("info") @db.VarChar(20)
+  resolvido       Boolean     @default(false)
+  timestamp       DateTime
+  created_at      DateTime    @default(now())
+
+  dispositivo     Dispositivo @relation(fields: [dispositivo_id], references: [id], onDelete: Cascade)
+
+  @@index([dispositivo_id, timestamp(sort: Desc)])
+  @@index([tipo_alarme])
+  @@index([resolvido])
+  @@map("alarmes")
+}
+
+// ========== MÉTRICAS DO SISTEMA (CPU, RAM, Disco, etc.) ==========
+model MetricaSistema {
+  id              Int         @id @default(autoincrement())
+
+  // CPU
+  cpu_usage       Float       @db.DoublePrecision  // Uso em %
+  cpu_cores       Int                              // Número de cores
+
+  // Memória
+  mem_usage       Float       @db.DoublePrecision  // Uso em %
+  mem_total       BigInt                           // Total em bytes
+  mem_used        BigInt                           // Usado em bytes
+
+  // Disco
+  disk_usage      Float       @db.DoublePrecision  // Uso em %
+  disk_total      BigInt                           // Total em bytes
+  disk_used       BigInt                           // Usado em bytes
+
+  // Load Average
+  load_1min       Float       @db.DoublePrecision
+  load_5min       Float       @db.DoublePrecision
+  load_15min      Float       @db.DoublePrecision
+
+  // Processo Node.js
+  process_uptime  Float       @db.DoublePrecision  // Uptime em segundos
+  process_memory  BigInt                           // Heap usado em bytes
+
+  // Sistema
+  os_uptime       Float       @db.DoublePrecision  // Uptime do SO em segundos
+
+  // Alertas (JSON)
+  alerts          String?     @db.Text             // JSON com alertas
+  health_status   String      @db.VarChar(20)      // healthy, warning, critical
+
+  timestamp       DateTime    @default(now())
+
+  @@index([timestamp(sort: Desc)])
+  @@map("metricas_sistema")
+}
+
+// ========== LOGS DO SERVIDOR ==========
+model LogServidor {
+  id              Int         @id @default(autoincrement())
+
+  nivel           String      @db.VarChar(10)      // info, warn, error, debug
+  categoria       String      @db.VarChar(50)      // TCP, WS, API, GPS, OBD2, etc.
+  mensagem        String      @db.Text
+  dados           String?     @db.Text             // JSON com dados extras
+
+  timestamp       DateTime    @default(now())
+
+  @@index([timestamp(sort: Desc)])
+  @@index([nivel])
+  @@index([categoria])
+  @@map("logs_servidor")
+}
+
+// ========== HISTÓRICO DE VIAGENS (para dispositivos sem OBD2) ==========
+model Viagem {
+  id              Int         @id @default(autoincrement())
+  dispositivo_id  Int
+  motorista_id    Int?        // Motorista que realizou a viagem (se identificado)
+
+  // Timestamps da viagem
+  inicio          DateTime                                       // Quando ligou o motor
+  fim             DateTime                                       // Quando desligou o motor
+
+  // Métricas da viagem
+  duracao_minutos Float       @db.DoublePrecision                // Duração em minutos
+  distancia_km    Float       @db.DoublePrecision                // Distância percorrida em km
+  velocidade_media Float      @db.DoublePrecision                // Velocidade média em km/h
+  velocidade_max  Float       @db.DoublePrecision                // Velocidade máxima em km/h
+
+  // Pontos de origem e destino
+  origem_lat      Float       @db.DoublePrecision
+  origem_lng      Float       @db.DoublePrecision
+  destino_lat     Float       @db.DoublePrecision
+  destino_lng     Float       @db.DoublePrecision
+
+  created_at      DateTime    @default(now())
+
+  dispositivo     Dispositivo @relation(fields: [dispositivo_id], references: [id], onDelete: Cascade)
+  motorista       Motorista?  @relation(fields: [motorista_id], references: [id], onDelete: SetNull)
+  multas          Multa[]     // Multas ocorridas durante esta viagem
+
+  @@index([dispositivo_id, inicio(sort: Desc)])
+  @@index([dispositivo_id, fim(sort: Desc)])
+  @@index([motorista_id, inicio(sort: Desc)])
+  @@map("viagens")
+}
+
+// ========== CORREÇÕES GPS COM FEEDBACK DO USUÁRIO ==========
+// Armazena correções feitas pela IA para treinamento supervisionado
+model CorrecaoGPS {
+  id              Int         @id @default(autoincrement())
+  dispositivo_id  Int
+
+  // Ponto original (antes da correção)
+  lat_original    Float       @db.DoublePrecision
+  lon_original    Float       @db.DoublePrecision
+  vel_original    Float       @db.DoublePrecision
+
+  // Ponto corrigido (depois da correção)
+  lat_corrigido   Float       @db.DoublePrecision
+  lon_corrigido   Float       @db.DoublePrecision
+  vel_corrigido   Float       @db.DoublePrecision
+
+  // Informações da correção
+  motivo          String      @db.VarChar(50)      // "outlier", "kalman", "interpolacao"
+  metodo          String      @db.VarChar(50)      // "kalman_filter", "interpolacao_linear", etc.
+  confianca       Float       @db.DoublePrecision  // 0-1, confiança da correção
+  distancia_correcao Float    @db.DoublePrecision  // Metros movidos na correção
+
+  // Feedback do usuário para treinamento
+  status          String      @default("pendente") @db.VarChar(20)  // "pendente", "aprovado", "rejeitado"
+  avaliacao       Int?                             // 1-5 estrelas (qualidade da correção)
+  comentario      String?     @db.Text             // Feedback textual
+  avaliado_em     DateTime?                        // Quando foi avaliado
+
+  // Contexto da viagem (para visualização)
+  viagem_id       Int?                             // Viagem relacionada (se houver)
+  timestamp       DateTime                         // Momento do ponto GPS
+  created_at      DateTime    @default(now())
+
+  @@index([dispositivo_id, status])
+  @@index([status, created_at(sort: Desc)])
+  @@index([timestamp])
+  @@map("correcoes_gps")
+}
+
+// ========== APROVAÇÃO DE ROTAS/VIAGENS ==========
+// Armazena o status de aprovação de correções por viagem
+model AprovacaoRota {
+  id              Int         @id @default(autoincrement())
+  dispositivo_id  Int
+  viagem_id       Int?                             // Viagem específica (se houver)
+
+  // Período da rota (se não for viagem específica)
+  data_inicio     DateTime
+  data_fim        DateTime
+
+  // Status de aprovação
+  status          String      @default("pendente") @db.VarChar(20)  // "pendente", "aprovado", "rejeitado"
+
+  // Dados da correção proposta (JSON com pontos originais e corrigidos)
+  pontos_originais   String   @db.Text             // JSON array de pontos originais
+  pontos_corrigidos  String   @db.Text             // JSON array de pontos corrigidos
+  estatisticas       String?  @db.Text             // JSON com estatísticas da correção
+
+  // Feedback do usuário
+  avaliacao       Int?                             // 1-5 estrelas
+  comentario      String?     @db.Text
+
+  aprovado_em     DateTime?
+  created_at      DateTime    @default(now())
+
+  @@unique([dispositivo_id, viagem_id])
+  @@index([dispositivo_id, status])
+  @@index([status, created_at(sort: Desc)])
+  @@map("aprovacoes_rotas")
+}
+
+// ========== COORDENADAS APRENDIDAS (CACHE DE CORREÇÕES) ==========
+// Armazena coordenadas corrigidas para aplicação automática em rotas futuras
+// Usa sistema de grid espacial para busca rápida de coordenadas similares
+model CoordenadaAprendida {
+  id              Int         @id @default(autoincrement())
+  dispositivo_id  Int
+
+  // Coordenada original (chave de busca)
+  lat_original    Float       @db.DoublePrecision
+  lon_original    Float       @db.DoublePrecision
+
+  // Coordenada corrigida (valor a aplicar)
+  lat_corrigido   Float       @db.DoublePrecision
+  lon_corrigido   Float       @db.DoublePrecision
+
+  // Grid espacial para busca rápida (arredondado para ~11m de precisão)
+  // grid_lat = floor(lat * 10000) / 10000
+  // grid_lon = floor(lon * 10000) / 10000
+  grid_lat        Float       @db.DoublePrecision
+  grid_lon        Float       @db.DoublePrecision
+
+  // Método de correção que gerou este aprendizado
+  metodo          String      @db.VarChar(30)      // "micro_ajuste", "snap_to_road"
+  distancia       Float       @db.DoublePrecision  // Distância da correção em metros
+
+  // Confiança e uso
+  confianca       Float       @default(0.9) @db.DoublePrecision  // 0-1
+  vezes_usado     Int         @default(0)          // Quantas vezes já foi aplicado
+  ultima_uso      DateTime?                        // Última vez que foi usado
+
+  created_at      DateTime    @default(now())
+
+  @@unique([dispositivo_id, grid_lat, grid_lon])
+  @@index([dispositivo_id, grid_lat, grid_lon])
+  @@index([dispositivo_id, lat_original, lon_original])
+  @@map("coordenadas_aprendidas")
+}
+
+// ========== MODELO DE APRENDIZADO DA IA GPS ==========
+// Armazena parâmetros aprendidos para cada região/dispositivo
+model ModeloIA {
+  id              Int         @id @default(autoincrement())
+
+  // Identificação do modelo
+  tipo            String      @db.VarChar(50)      // "global", "dispositivo", "regiao"
+  referencia      String?     @db.VarChar(100)     // IMEI ou identificador da região
+
+  // Parâmetros aprendidos (JSON)
+  parametros      String      @db.Text             // JSON com parâmetros do modelo
+
+  // Métricas de performance
+  total_treinamentos Int      @default(0)
+  total_aprovados    Int      @default(0)
+  total_rejeitados   Int      @default(0)
+  taxa_acerto        Float    @default(0) @db.DoublePrecision  // % de aprovações
+
+  // Configurações
+  ativo           Boolean     @default(true)
+  versao          Int         @default(1)
+
+  updated_at      DateTime    @updatedAt
+  created_at      DateTime    @default(now())
+
+  @@unique([tipo, referencia])
+  @@index([tipo, ativo])
+  @@map("modelos_ia")
+}
+
+// ========== GEOFENCING: CERCAS VIRTUAIS ==========
+model Geofence {
+  id              Int       @id @default(autoincrement())
+  organizacao_id  Int
+  organizacao     Organizacao @relation(fields: [organizacao_id], references: [id], onDelete: Cascade)
+
+  nome            String    @db.VarChar(100)
+  descricao       String?   @db.Text
+  latitude        Float     @db.DoublePrecision
+  longitude       Float     @db.DoublePrecision
+  raio_metros     Int       // Raio em metros (10-50000)
+
+  cor             String?   @default("#3B82F6") @db.VarChar(7)  // Cor hex para o mapa
+  tipo_alerta     String    @default("ambos") @db.VarChar(20)   // "entrada", "saida", "ambos"
+  ativo           Boolean   @default(true)
+
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  eventos         GeofenceEvento[]
+
+  @@index([organizacao_id])
+  @@index([ativo])
+  @@index([organizacao_id, ativo])
+  @@map("geofences")
+}
+
+// ========== GEOFENCING: EVENTOS DE ENTRADA/SAÍDA ==========
+model GeofenceEvento {
+  id              Int       @id @default(autoincrement())
+  geofence_id     Int
+  geofence        Geofence  @relation(fields: [geofence_id], references: [id], onDelete: Cascade)
+
+  dispositivo_id  Int
+  dispositivo     Dispositivo @relation(fields: [dispositivo_id], references: [id], onDelete: Cascade)
+
+  tipo_evento     String    @db.VarChar(20) // "entrada" ou "saida"
+  latitude        Float     @db.DoublePrecision
+  longitude       Float     @db.DoublePrecision
+  velocidade      Float?    @db.DoublePrecision
+
+  timestamp       DateTime  @default(now())
+
+  @@index([geofence_id])
+  @@index([dispositivo_id])
+  @@index([timestamp(sort: Desc)])
+  @@index([geofence_id, timestamp(sort: Desc)])
+  @@index([dispositivo_id, timestamp(sort: Desc)])
+  @@map("geofence_eventos")
+}
+
+// ========== SISTEMA DE NOTIFICAÇÕES ==========
+model Notificacao {
+  id                Int       @id @default(autoincrement())
+  organizacao_id    Int
+  organizacao       Organizacao @relation(fields: [organizacao_id], references: [id], onDelete: Cascade)
+
+  dispositivo_id    Int?
+  dispositivo       Dispositivo? @relation(fields: [dispositivo_id], references: [id], onDelete: Cascade)
+
+  // Tipo e conteúdo
+  tipo              String    @db.VarChar(50)    // geofence_entrada, geofence_saida, excesso_velocidade
+  titulo            String    @db.VarChar(200)
+  mensagem          String    @db.Text
+  dados_extras      String?   @db.Text           // JSON com dados adicionais
+
+  // Status
+  lida              Boolean   @default(false)
+  lida_em           DateTime?
+  severidade        String    @default("info") @db.VarChar(20)  // info, warning, danger
+
+  // Canais
+  enviada_telegram  Boolean   @default(false)
+  telegram_enviado_em DateTime?
+
+  created_at        DateTime  @default(now())
+
+  @@index([organizacao_id, lida, created_at(sort: Desc)])
+  @@index([dispositivo_id, created_at(sort: Desc)])
+  @@index([tipo])
+  @@map("notificacoes")
+}
+
+// ========== CADASTRO DE MOTORISTAS ==========
+model Motorista {
+  id              Int       @id @default(autoincrement())
+  organizacao_id  Int
+  organizacao     Organizacao @relation(fields: [organizacao_id], references: [id], onDelete: Cascade)
+
+  // Dados pessoais
+  nome            String    @db.VarChar(100)
+  cpf             String?   @db.VarChar(255)     // Criptografado - tamanho maior necessário
+  telefone        String?   @db.VarChar(255)     // Criptografado - tamanho maior necessário
+  email           String?   @db.VarChar(255)
+  foto_url        String?   @db.Text             // URL ou base64 da foto
+
+  // CNH
+  cnh_numero      String?   @db.VarChar(255)     // Criptografado - tamanho maior necessário
+  cnh_categoria   String?   @db.VarChar(5)       // A, B, C, D, E, AB, etc
+  cnh_validade    DateTime?
+
+  // Push Notifications (App Mobile)
+  push_token      String?   @db.VarChar(255)     // Expo Push Token para notificações
+
+  // Status
+  ativo           Boolean   @default(true)
+
+  // Timestamps
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  // Relacionamentos
+  dispositivos    Dispositivo[]                  // Veículos atualmente vinculados
+  historico       HistoricoMotorista[]
+  consentimentos_motorista ConsentimentoMotorista[]
+  viagens         Viagem[]                       // Viagens realizadas
+  refresh_tokens  RefreshTokenMotorista[]        // Tokens de autenticação (app mobile)
+  multas          Multa[]                        // Multas vinculadas ao motorista
+
+  @@unique([organizacao_id, cpf])
+  @@index([organizacao_id])
+  @@index([organizacao_id, ativo])
+  @@index([nome])
+  @@map("motoristas")
+}
+
+// ========== REFRESH TOKENS PARA MOTORISTAS (APP MOBILE) ==========
+model RefreshTokenMotorista {
+  id              Int       @id @default(autoincrement())
+  motorista_id    Int
+  token           String    @unique @db.VarChar(500)
+  expires_at      DateTime
+  revogado        Boolean   @default(false)
+  ip              String?   @db.VarChar(45)
+  user_agent      String?   @db.VarChar(500)
+  device_info     String?   @db.Text   // Informações do dispositivo mobile
+
+  motorista       Motorista @relation(fields: [motorista_id], references: [id], onDelete: Cascade)
+  created_at      DateTime  @default(now())
+
+  @@index([motorista_id])
+  @@index([token])
+  @@map("refresh_tokens_motorista")
+}
+
+// ========== HISTÓRICO DE MOTORISTAS POR VEÍCULO ==========
+model HistoricoMotorista {
+  id              Int       @id @default(autoincrement())
+  dispositivo_id  Int
+  dispositivo     Dispositivo @relation(fields: [dispositivo_id], references: [id], onDelete: Cascade)
+
+  motorista_id    Int
+  motorista       Motorista @relation(fields: [motorista_id], references: [id], onDelete: Cascade)
+
+  // Período de vinculação
+  inicio          DateTime  @default(now())
+  fim             DateTime?                      // null = ainda vinculado
+
+  // Quem fez a vinculação
+  vinculado_por   Int?                           // usuario_id
+
+  created_at      DateTime  @default(now())
+
+  @@index([dispositivo_id, inicio(sort: Desc)])
+  @@index([motorista_id, inicio(sort: Desc)])
+  @@map("historico_motoristas")
+}
+
+// ========== CONFIGURAÇÃO DE NOTIFICAÇÕES POR ORGANIZAÇÃO ==========
+model ConfiguracaoNotificacao {
+  id                Int       @id @default(autoincrement())
+  organizacao_id    Int       @unique
+  organizacao       Organizacao @relation(fields: [organizacao_id], references: [id], onDelete: Cascade)
+
+  // Telegram
+  telegram_ativo      Boolean   @default(false)
+  telegram_bot_token  String?   @db.VarChar(100)
+  telegram_chat_id    String?   @db.VarChar(50)
+
+  // Som no Dashboard
+  som_ativo           Boolean   @default(true)
+
+  // Debounce (em segundos)
+  debounce_geofence   Int       @default(60)
+  debounce_velocidade Int       @default(300)
+
+  // Quais eventos notificar
+  notificar_geofence_entrada  Boolean @default(true)
+  notificar_geofence_saida    Boolean @default(true)
+  notificar_excesso_velocidade Boolean @default(true)
+
+  // Limite de velocidade customizado (km/h, null = usar limite da via)
+  velocidade_limite_custom    Int?
+
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  @@map("configuracoes_notificacao")
+}
+
+// ========== LGPD: CONSENTIMENTOS ==========
+model Consentimento {
+  id              Int       @id @default(autoincrement())
+  usuario_id      Int
+  usuario         Usuario   @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+
+  // Tipo de consentimento
+  tipo            String    @db.VarChar(50)   // "privacidade", "termos_uso", "cookies", "marketing"
+
+  // Dados do consentimento
+  aceito          Boolean   @default(true)
+  versao_documento String   @db.VarChar(20)   // Versão do documento aceito (ex: "1.0")
+
+  // Metadata
+  ip              String?   @db.VarChar(45)
+  user_agent      String?   @db.VarChar(500)
+
+  // Timestamps
+  data_aceite     DateTime  @default(now())
+  data_revogacao  DateTime?                   // Se foi revogado
+
+  @@index([usuario_id, tipo])
+  @@index([tipo, aceito])
+  @@map("consentimentos")
+}
+
+// ========== LGPD: SOLICITAÇÕES DE EXCLUSÃO DE DADOS ==========
+model SolicitacaoExclusao {
+  id              Int       @id @default(autoincrement())
+  usuario_id      Int?                        // Pode ser null se já foi excluído
+  organizacao_id  Int?
+
+  // O que excluir
+  tipo            String    @db.VarChar(50)   // "meus_dados", "dispositivo", "motorista"
+  recurso_id      String?   @db.VarChar(50)   // ID do recurso (se aplicável)
+
+  // Status
+  status          String    @default("pendente") @db.VarChar(20)  // pendente, processando, concluido, recusado
+  motivo          String?   @db.Text          // Motivo da solicitação
+  motivo_recusa   String?   @db.Text          // Se foi recusado, por quê
+
+  // Processamento
+  processado_por  Int?                        // usuario_id que processou
+  processado_em   DateTime?
+
+  // Dados excluídos (para auditoria)
+  dados_excluidos String?   @db.Text          // JSON com resumo do que foi excluído
+
+  created_at      DateTime  @default(now())
+
+  @@index([usuario_id])
+  @@index([status])
+  @@index([created_at(sort: Desc)])
+  @@map("solicitacoes_exclusao")
+}
+
+// ========== LGPD: CONSENTIMENTOS DE MOTORISTAS (APP) ==========
+model ConsentimentoMotorista {
+  id              Int       @id @default(autoincrement())
+  motorista_id    Int
+  motorista       Motorista @relation(fields: [motorista_id], references: [id], onDelete: Cascade)
+
+  // Tipo de consentimento
+  tipo            String    @db.VarChar(50)   // "privacidade", "termos_uso", "localizacao"
+
+  // Dados do consentimento
+  aceito          Boolean   @default(true)
+  versao_documento String   @db.VarChar(20)   // Versão do documento aceito (ex: "1.0")
+
+  // Metadata
+  ip              String?   @db.VarChar(45)
+  user_agent      String?   @db.VarChar(500)
+
+  // Timestamps
+  data_aceite     DateTime  @default(now())
+  data_revogacao  DateTime?                   // Se foi revogado
+
+  @@index([motorista_id, tipo])
+  @@index([tipo, aceito])
+  @@map("consentimentos_motorista")
+}
+
+// ========== VEÍCULOS (Entidade separada de Dispositivo) ==========
+// Permite trocar rastreador sem perder histórico do veículo
+model Veiculo {
+  id              Int       @id @default(autoincrement())
+  placa           String    @db.VarChar(10)
+  modelo          String?   @db.VarChar(100)
+  marca           String?   @db.VarChar(50)
+  ano             Int?
+  cor             String?   @db.VarChar(30)
+  tipo_veiculo    String?   @db.VarChar(30)   // carro, moto, caminhão, van, ônibus
+  chassi          String?   @db.VarChar(20)
+  renavam         String?   @db.VarChar(15)
+
+  organizacao_id  Int
+  organizacao     Organizacao @relation(fields: [organizacao_id], references: [id], onDelete: Cascade)
+
+  dispositivos    Dispositivo[]
+  historico_dispositivos VeiculoDispositivoHistorico[]
+  multas          Multa[]
+
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  @@unique([organizacao_id, placa])
+  @@index([organizacao_id])
+  @@index([placa])
+  @@map("veiculos")
+}
+
+// ========== HISTÓRICO DE DISPOSITIVOS POR VEÍCULO ==========
+// Rastreia todos os dispositivos que já foram vinculados a um veículo
+model VeiculoDispositivoHistorico {
+  id              Int       @id @default(autoincrement())
+  veiculo_id      Int
+  dispositivo_id  Int
+  data_vinculo    DateTime  @default(now())
+  data_desvinculo DateTime?
+  ativo           Boolean   @default(true)
+
+  veiculo         Veiculo     @relation(fields: [veiculo_id], references: [id], onDelete: Cascade)
+  dispositivo     Dispositivo @relation(fields: [dispositivo_id], references: [id], onDelete: Cascade)
+
+  @@index([veiculo_id])
+  @@index([dispositivo_id])
+  @@index([veiculo_id, ativo])
+  @@map("veiculo_dispositivo_historico")
+}
+
+// ========== GESTÃO DE MULTAS ==========
+model Multa {
+  id                Int       @id @default(autoincrement())
+  organizacao_id    Int
+  organizacao       Organizacao @relation(fields: [organizacao_id], references: [id], onDelete: Cascade)
+
+  // Vinculações
+  veiculo_id        Int
+  veiculo           Veiculo   @relation(fields: [veiculo_id], references: [id], onDelete: Cascade)
+  motorista_id      Int?      // Identificado automaticamente via GPS
+  motorista         Motorista? @relation(fields: [motorista_id], references: [id], onDelete: SetNull)
+  viagem_id         Int?      // Viagem onde ocorreu a infração
+  viagem            Viagem?   @relation(fields: [viagem_id], references: [id], onDelete: SetNull)
+
+  // Dados da multa
+  numero_auto       String?   @db.VarChar(30)   // Número do auto de infração
+  data_infracao     DateTime
+  hora_infracao     String?   @db.VarChar(5)    // HH:MM
+  local_infracao    String?   @db.VarChar(255)
+
+  // Coordenadas GPS no momento (para validação)
+  latitude          Float?    @db.DoublePrecision
+  longitude         Float?    @db.DoublePrecision
+
+  // Infração
+  codigo_infracao   String?   @db.VarChar(20)   // Código CTB (ex: 746-1)
+  descricao_infracao String?  @db.VarChar(500)
+  gravidade         String?   @db.VarChar(20)   // leve, media, grave, gravissima
+  pontos            Int       @default(0)
+
+  // Valores
+  valor_original    Float     @db.DoublePrecision
+  valor_desconto    Float?    @db.DoublePrecision  // Valor com desconto (pagamento antecipado)
+  valor_pago        Float?    @db.DoublePrecision
+
+  // Datas
+  data_vencimento   DateTime?
+  data_vencimento_desconto DateTime?  // Prazo para desconto
+  data_pagamento    DateTime?
+
+  // Status
+  status            String    @default("pendente") @db.VarChar(20)  // pendente, paga, vencida, recorrida, cancelada, convertida_advertencia
+
+  // Documentos
+  comprovante_url   String?   @db.Text          // Comprovante de pagamento
+  notificacao_url   String?   @db.Text          // Imagem da notificação
+
+  // Observações
+  observacoes       String?   @db.Text
+
+  // Identificação do condutor (NIC)
+  nic_enviado       Boolean   @default(false)   // Notificação de Identificação do Condutor
+  nic_data_envio    DateTime?
+  nic_data_limite   DateTime?
+
+  // Timestamps
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  created_by        Int?      // Usuário que cadastrou
+
+  // Relacionamentos
+  recursos          RecursoMulta[]
+
+  @@index([organizacao_id])
+  @@index([veiculo_id])
+  @@index([motorista_id])
+  @@index([status])
+  @@index([data_infracao])
+  @@index([data_vencimento])
+  @@map("multas")
+}
+
+model RecursoMulta {
+  id              Int       @id @default(autoincrement())
+  multa_id        Int
+  multa           Multa     @relation(fields: [multa_id], references: [id], onDelete: Cascade)
+
+  // Dados do recurso
+  tipo            String    @db.VarChar(30)    // defesa_previa, jari, cetran, recurso_especial
+  data_protocolo  DateTime
+  numero_protocolo String?  @db.VarChar(50)
+
+  // Argumentos
+  motivo          String?   @db.Text           // Motivo/fundamentação do recurso
+
+  // Anexos (prova GPS, fotos, documentos)
+  anexos          Json?                        // Array de URLs dos anexos
+
+  // Resultado
+  status          String    @default("em_analise") @db.VarChar(20)  // em_analise, deferido, indeferido, parcialmente_deferido
+  data_resultado  DateTime?
+  resultado       String?   @db.Text           // Descrição do resultado
+
+  // Timestamps
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  created_by      Int?
+
+  @@index([multa_id])
+  @@index([status])
+  @@map("recursos_multa")
+}
+
+// ========== CACHE DE LIMITES DE VELOCIDADE ==========
+// Armazena limites de velocidade por coordenada para evitar
+// consultas repetidas a APIs externas (OSM/Overpass)
+model CacheLimiteVelocidade {
+  id              Int       @id @default(autoincrement())
+
+  // Coordenadas (arredondadas para ~10m de precisão)
+  lat_key         String    @db.VarChar(12)   // Ex: "-23.5505"
+  lng_key         String    @db.VarChar(12)   // Ex: "-46.6333"
+
+  // Dados da via
+  limite          Int       @default(60)      // Limite em km/h
+  nome_via        String?   @db.VarChar(255)  // Nome da rua/rodovia
+  tipo_via        String?   @db.VarChar(50)   // residential, primary, motorway, etc
+
+  // Metadados
+  fonte           String    @default("osm") @db.VarChar(20)  // osm, manual, padrao
+  confianca       Float     @default(1.0)     // 0-1, confiabilidade do dado
+
+  // Timestamps
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  expires_at      DateTime?                   // Para invalidar cache antigo (opcional)
+
+  @@unique([lat_key, lng_key])
+  @@index([lat_key, lng_key])
+  @@index([created_at])
+  @@map("cache_limites_velocidade")
+}

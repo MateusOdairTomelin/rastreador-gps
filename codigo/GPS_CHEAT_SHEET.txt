@@ -1,0 +1,160 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                       XT40 GPS/OBD2 - CHEAT SHEET                           ║
+║                         Ativar Localização em Tempo Real                    ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+┌─ PASSO 1: INICIAR SERVIDOR ────────────────────────────────────────────────┐
+│                                                                              │
+│  Terminal 1:                                                                │
+│  $ npm start                                                                │
+│                                                                              │
+│  Esperado: 🚗 Servidor TCP (Rastreador) escutando em 0.0.0.0:8877           │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ PASSO 2: DESCOBRIR IMEI ──────────────────────────────────────────────────┐
+│                                                                              │
+│  Terminal 2:                                                                │
+│  $ curl http://localhost:8000/api/conexoes | jq '.dispositivos[0].imei'     │
+│                                                                              │
+│  Retorna: "358758091234567"  ← COPIE ESTE NÚMERO                            │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ PASSO 3: ENVIAR COMANDOS ────────────────────────────────────────────────┐
+│                                                                              │
+│  Terminal 2:                                                                │
+│  $ IMEI="358758091234567"  (copie do passo anterior)                        │
+│                                                                              │
+│  OPÇÃO A: Tudo de Uma Vez                                                   │
+│  $ curl -X POST http://localhost:8000/api/comandos/$IMEI/init \            │
+│    -H "Content-Type: application/json"                                      │
+│    (Envia: GPS_ON + OBD_ON + UPLOAD_10S + ONLINE_ON)                       │
+│                                                                              │
+│  OPÇÃO B: Comandos Individuais                                              │
+│  $ curl -X POST http://localhost:8000/api/comandos/$IMEI \                 │
+│    -H "Content-Type: application/json" \                                    │
+│    -d '{"comando": "GPS_ON"}'                                               │
+│                                                                              │
+│  $ curl -X POST http://localhost:8000/api/comandos/$IMEI \                 │
+│    -H "Content-Type: application/json" \                                    │
+│    -d '{"comando": "OBD_ON"}'                                               │
+│                                                                              │
+│  $ curl -X POST http://localhost:8000/api/comandos/$IMEI \                 │
+│    -H "Content-Type: application/json" \                                    │
+│    -d '{"comando": "UPLOAD_10S"}'                                           │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ PASSO 4: AGUARDAR ───────────────────────────────────────────────────────┐
+│                                                                              │
+│  $ sleep 20  (espere o rastreador processar e enviar dados)                 │
+│                                                                              │
+│  Ver logs em tempo real:                                                    │
+│  Procurar no Terminal 1 por:                                                │
+│  🌍 [GPS] Dados de localização para 358758091234567:                        │
+│     lat: -23.5505                                                           │
+│     lon: -46.6333                                                           │
+│     speed: 0                                                                │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ PASSO 5: VERIFICAR DADOS ────────────────────────────────────────────────┐
+│                                                                              │
+│  Terminal 2:                                                                │
+│  $ curl http://localhost:8000/api/localizacoes | jq '.'                     │
+│                                                                              │
+│  OU                                                                          │
+│                                                                              │
+│  $ curl http://localhost:8000/api/heartbeats/$IMEI | jq '.'                 │
+│                                                                              │
+│  Se vir: latitude, longitude, velocidade = ✅ FUNCIONANDO!                  │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                            COMANDOS DISPONÍVEIS                             ║
+╠════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  GPS_ON     → Ativar GPS                  #55555#YGPS#1#                    ║
+║  GPS_OFF    → Desativar GPS               #55555#YGPS#0#                    ║
+║  OBD_ON     → Ativar OBD2                 #55555#YOBD#1#                    ║
+║  OBD_OFF    → Desativar OBD2              #55555#YOBD#0#                    ║
+║  UPLOAD_10S → Enviar dados a cada 10s     #55555#YUP#10#                    ║
+║  UPLOAD_30S → Enviar dados a cada 30s     #55555#YUP#30#                    ║
+║  UPLOAD_60S → Enviar dados a cada 60s     #55555#YUP#60#                    ║
+║  STATUS     → Ver status do rastreador    #55555#YSTATUS#                   ║
+║  VERSION    → Ver versão                  #55555#YVERSION#                  ║
+║                                                                              ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                          MODO INTERATIVO (Fácil)                            ║
+╠════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  $ ./commands-gps.sh                                                        ║
+║                                                                              ║
+║  Menu:                                                                      ║
+║  1) Listar dispositivos conectados                                          ║
+║  2) Enviar GPS_ON                                                           ║
+║  3) Enviar OBD_ON                                                           ║
+║  4) Enviar UPLOAD_10S                                                       ║
+║  5) Enviar UPLOAD_30S                                                       ║
+║  6) Enviar todos os comandos init                                           ║
+║  7) Ver status                                                              ║
+║  8) Ver localizações                                                        ║
+║  9) Listar comandos                                                         ║
+║  0) Sair                                                                    ║
+║                                                                              ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                          TROUBLESHOOTING RÁPIDO                             ║
+╠════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  ❌ Nenhuma localização aparece?                                            ║
+║     1. Verificar GPS tem sinal (próximo a janela)                           ║
+║     2. Rodar: curl -X POST http://localhost:8000/api/comandos/$IMEI \       ║
+║           -H "Content-Type: application/json" \                             ║
+║           -d '{"comando": "GPS_ON"}'                                        ║
+║     3. Aguardar 30 segundos (primeira vez pode ser lento)                   ║
+║                                                                              ║
+║  ❌ Comando não funciona?                                                   ║
+║     1. Rodar: curl http://localhost:8000/api/conexoes                       ║
+║     2. IMEI aparece na lista? Se não, XT40 desconectou                      ║
+║     3. Se sim, tentar: curl -X POST ... -d '{"comando": "STATUS"}'          ║
+║                                                                              ║
+║  ❌ Rastreador não conecta?                                                 ║
+║     1. Verificar IP/Porta do XT40 em sua configuração                       ║
+║     2. Firewall pode estar bloqueando porta 8877                            ║
+║     3. Verificar com: sudo netstat -tlnp | grep 8877                        ║
+║                                                                              ║
+║  📚 Documentação Completa:                                                  ║
+║     → Ler: GPS_TROUBLESHOOTING.md                                           ║
+║     → Ler: RESUMO_GPS_SOLUCAO.md                                            ║
+║                                                                              ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  🚀 QUICKSTART RESUMIDO (Copiar e Colar)                                 ┃
+┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃                                                                            ┃
+┃  # Terminal 1                                                              ┃
+┃  npm start                                                                 ┃
+┃                                                                            ┃
+┃  # Terminal 2                                                              ┃
+┃  IMEI=$(curl -s http://localhost:8000/api/conexoes | jq -r '.dispositivos[0].imei')
+┃  curl -X POST http://localhost:8000/api/comandos/$IMEI/init \             ┃
+┃    -H "Content-Type: application/json"                                    ┃
+┃  sleep 20                                                                  ┃
+┃  curl http://localhost:8000/api/localizacoes | jq '.dados[0]'             ┃
+┃                                                                            ┃
+┃  PRONTO! Você vê latitude, longitude = ✅ GPS FUNCIONANDO                 ┃
+┃                                                                            ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+═══════════════════════════════════════════════════════════════════════════════
+                   Arquivo criado: 2025-12-10
+                   Versão: 1.0
+                   Status: Pronto para Impressão
+═══════════════════════════════════════════════════════════════════════════════

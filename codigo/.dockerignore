@@ -1,0 +1,55 @@
+# Dependências
+node_modules
+npm-debug.log
+
+# Git
+.git
+.gitignore
+
+# Logs
+logs
+*.log
+nohup.out
+
+# Ambiente local
+.env
+.env.local
+.env.*.local
+
+# OSRM (muito grande)
+osrm-data
+
+# Backups
+*.tar
+*.tar.gz
+*.dump
+
+# IDE
+.vscode
+.idea
+
+# Testes
+*.test.js
+*.spec.js
+coverage
+
+# Documentação desnecessária
+*.md
+*.txt
+!README.md
+
+# Arquivos temporários
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# PM2
+ecosystem.config.js
+
+# Claude
+.claude
+
+# Scripts de desenvolvimento
+*.sh
+coleta_dados

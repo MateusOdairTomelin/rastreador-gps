@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "Unifique Rastreador Motorista",
+    "slug": "uniraster-motorista",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "uniraster-motorista",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#3FCFD5"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.uniraster.motorista",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Acesso a camera para escanear QR Code do veiculo"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#3FCFD5"
+      },
+      "package": "com.uniraster.motorista",
+      "permissions": [
+        "CAMERA",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir acesso a camera para escanear QR Code do veiculo"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#3FCFD5"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "177d2419-6c58-4724-b825-0a6bdb302be2"
+      },
+      "router": {}
+    },
+    "owner": "teste_raster"
+  }
+}

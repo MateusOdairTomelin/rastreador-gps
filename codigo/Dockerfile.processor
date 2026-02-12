@@ -1,0 +1,49 @@
+# Dockerfile para Processors (Location, Status, Alarm)
+# Workers que consomem do Redis Streams e processam dados
+
+FROM node:18-slim
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    tini \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copiar arquivos de dependências
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Instalar dependências de produção
+RUN npm ci --only=production
+
+# Gerar cliente Prisma
+RUN npx prisma generate
+
+# Copiar código da aplicação
+COPY server ./server/
+
+# Criar diretórios e ajustar permissões
+RUN mkdir -p logs data && chown -R node:node /app
+
+# Usar usuário não-root (segurança)
+USER node
+
+# Variáveis de ambiente padrão
+ENV NODE_ENV=production
+ENV REDIS_ENABLED=true
+ENV BATCH_SIZE=10
+ENV BLOCK_TIME=5000
+
+# Usar tini para gerenciar processos
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Health check (verifica se PID 1 está rodando - node é PID 1 com tini)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD test -f /proc/1/cmdline || exit 1
+
+# Comando será especificado no docker-compose
+CMD ["node", "server/workers/location-processor.js"]

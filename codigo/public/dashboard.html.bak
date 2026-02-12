@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestão de Rastreadores - X3Tech XT40</title>
+  <link rel="stylesheet" href="/styles/dashboard.css">
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2>🚗 Rastreador</h2>
+      <ul>
+        <li><a href="#" class="nav-link active" data-view="devices">📋 Dispositivos</a></li>
+        <li><a href="#" class="nav-link" data-view="add-device">➕ Adicionar</a></li>
+        <li><a href="#" class="nav-link" data-view="monitoring">📊 Monitoramento</a></li>
+      </ul>
+    </nav>
+
+    <main class="content">
+      <!-- View: Lista de Dispositivos -->
+      <div id="view-devices" class="view active">
+        <h1>Dispositivos Cadastrados</h1>
+        <div id="devices-list" class="devices-container"></div>
+      </div>
+
+      <!-- View: Adicionar Dispositivo -->
+      <div id="view-add-device" class="view">
+        <h1>Cadastrar Rastreador</h1>
+        <form id="form-add-device" class="form-container">
+          <div class="form-group">
+            <label>Modelo: <span class="required">*</span></label>
+            <select name="tipo" required>
+              <option value="">Selecione...</option>
+              <option value="XT40_OBD2">XT40 OBD2</option>
+              <option value="XT40">XT40</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>IMEI do Rastreador: <span class="required">*</span></label>
+            <input type="text" name="imei" maxlength="15" required
+                   placeholder="Ex: 123456789012345">
+          </div>
+
+          <div class="form-group">
+            <label>Placa do Veículo:</label>
+            <input type="text" name="placa" maxlength="10"
+                   placeholder="Ex: ABC-1234">
+          </div>
+
+          <div class="form-group">
+            <label>Nome do Veículo:</label>
+            <input type="text" name="veiculo" maxlength="100"
+                   placeholder="Ex: Caminhão Mercedes 2020">
+          </div>
+
+          <div class="form-group">
+            <label>Operadora:</label>
+            <select name="operadora">
+              <option value="">Selecione...</option>
+              <option value="Unifique">Unifique</option>
+              <option value="Vivo">Vivo</option>
+              <option value="Claro">Claro</option>
+              <option value="TIM">TIM</option>
+              <option value="Oi">Oi</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>IMEI do Chip (SIM):</label>
+            <input type="text" name="imei_chip" maxlength="20"
+                   placeholder="Ex: 12345678901234567890">
+          </div>
+
+          <div class="form-group">
+            <label>APN:</label>
+            <input type="text" name="apn" maxlength="100"
+                   placeholder="Ex: unifique.com.br">
+          </div>
+
+          <button type="submit" class="btn-primary">Cadastrar Dispositivo</button>
+        </form>
+      </div>
+
+      <!-- View: Monitoramento -->
+      <div id="view-monitoring" class="view">
+        <h1>Monitoramento em Tempo Real</h1>
+        <div id="monitoring-grid" class="monitoring-container"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/scripts/dashboard.js"></script>
+</body>
+</html>

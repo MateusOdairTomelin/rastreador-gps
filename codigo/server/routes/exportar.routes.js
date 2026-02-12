@@ -1,0 +1,2412 @@
+/**
+ * Rotas de Exportação de Dados
+ * Endpoints para download de histórico em CSV e PDF
+ */
+
+const express = require('express');
+const router = express.Router();
+const PDFDocument = require('pdfkit');
+const prisma = require('../db/prisma');
+const https = require('https');
+const http = require('http');
+
+// ✅ Multi-tenant: Middleware de verificação de propriedade
+const { verificarDispositivoTenant } = require('../middleware/tenant-device.middleware');
+
+// ✅ Serviço de limite de velocidade por via
+const velocidadeViaService = require('../services/velocidade-via.service');
+
+// ✅ Serviço de correção GPS (OSRM)
+let gpsFilterService = null;
+try {
+  gpsFilterService = require('../services/gps-filter.service');
+  console.log('[Exportar] GPS Filter Service carregado');
+} catch (e) {
+  console.warn('[Exportar] GPS Filter Service não disponível:', e.message);
+}
+
+// ✅ Tipos de dispositivo para verificar suporte OBD2
+const { supportsOBD2 } = require('../constants/device-types');
+
+// ============ EXPORTAR CSV ============
+
+/**
+ * GET /api/exportar/:imei/csv
+ * Exporta histórico do veículo em formato CSV
+ *
+ * Query params:
+ * - dataInicio: Data inicial (ISO string)
+ * - dataFim: Data final (ISO string)
+ * - incluirLocalizacoes: boolean (default: true)
+ * - incluirOBD2: boolean (default: true)
+ * - incluirAlarmes: boolean (default: true)
+ * - corrigido: boolean (default: true) - usar dados corrigidos pelo OSRM
+ * - estado: string - filtrar por estado (movimento, ocioso, parado, ligado)
+ * - velMin: number - velocidade mínima
+ * - velMax: number - velocidade máxima
+ * - soExcessos: boolean - apenas excessos de velocidade
+ * - tipoAlarme: string - filtrar por tipo de alarme
+ * ✅ Multi-tenant: Verifica propriedade do dispositivo
+ */
+router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
+  try {
+    const { imei } = req.params;
+    const {
+      dataInicio,
+      dataFim,
+      incluirLocalizacoes = 'true',
+      incluirOBD2 = 'true',
+      incluirAlarmes = 'true',
+      corrigido = 'true',
+      estado = '',
+      velMin = '',
+      velMax = '',
+      soExcessos = 'false',
+      tipoAlarme = ''
+    } = req.query;
+
+    // Converter filtros numéricos
+    const velocidadeMin = velMin ? parseFloat(velMin) : null;
+    const velocidadeMax = velMax ? parseFloat(velMax) : null;
+    const filtrarSoExcessos = soExcessos === 'true';
+    const aplicarCorrecao = corrigido === 'true' && gpsFilterService !== null;
+
+    // Buscar dispositivo
+    const dispositivo = await prisma.dispositivo.findUnique({
+      where: { imei }
+    });
+
+    if (!dispositivo) {
+      return res.status(404).json({ sucesso: false, mensagem: 'Dispositivo não encontrado' });
+    }
+
+    // Configurar período
+    const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const fim = dataFim ? new Date(dataFim) : new Date();
+
+    let csvContent = '';
+    let totalRegistros = 0;
+
+    // Função auxiliar para formatar tempo
+    const formatarTempoCSV = (minutos) => {
+      const horas = Math.floor(minutos / 60);
+      const mins = Math.round(minutos % 60);
+      if (horas > 0) return `${horas}h ${mins}min`;
+      return `${mins} min`;
+    };
+
+    // ============ LOCALIZAÇÕES ============
+    if (incluirLocalizacoes === 'true') {
+      let localizacoes = await prisma.localizacao.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        },
+        orderBy: { timestamp: 'asc' }
+      });
+
+      // ✅ Aplicar correção GPS (OSRM) se habilitado
+      if (aplicarCorrecao && localizacoes.length > 1) {
+        console.log(`[CSV] Aplicando correção GPS em ${localizacoes.length} pontos...`);
+        try {
+          const pontosParaCorrigir = localizacoes.map(l => ({
+            latitude: l.latitude,
+            longitude: l.longitude,
+            velocidade: l.velocidade,
+            direcao: l.direcao,
+            ignicao: l.ignicao,
+            timestamp: l.timestamp,
+            precisao: l.precisao
+          }));
+
+          const resultado = await gpsFilterService.processarRotaCompleta(pontosParaCorrigir, {
+            usarKalman: true,
+            usarHampel: true,
+            usarInterpolacao: false, // Não interpolar para CSV (manter pontos reais)
+            usarOSRM: true
+          });
+
+          if (resultado && resultado.pontos) {
+            localizacoes = resultado.pontos;
+            console.log(`[CSV] Correção aplicada: ${pontosParaCorrigir.length} -> ${localizacoes.length} pontos`);
+          }
+        } catch (e) {
+          console.warn('[CSV] Erro ao aplicar correção GPS:', e.message);
+        }
+      }
+
+      if (localizacoes.length > 0) {
+        // Cache persistente: primeira consulta lenta, próximas instantâneas do banco
+        console.log(`[CSV] Consultando limites para ${localizacoes.length} pontos (cache persistente)...`);
+
+        // Consultar limites de velocidade em lote (usa cache do banco)
+        let limitesVia = new Map();
+        try {
+          const pontosParaConsulta = localizacoes.map(l => ({ lat: l.latitude, lng: l.longitude }));
+          limitesVia = await velocidadeViaService.obterLimitesEmLote(pontosParaConsulta);
+        } catch (e) {
+          console.log('[CSV] Erro ao consultar limites:', e.message);
+        }
+
+        // ✅ Aplicar filtros avançados
+        let localizacoesFiltradas = localizacoes.filter(loc => {
+          const velocidade = loc.velocidade || 0;
+
+          // Filtro de velocidade
+          if (velocidadeMin !== null && velocidade < velocidadeMin) return false;
+          if (velocidadeMax !== null && velocidade > velocidadeMax) return false;
+
+          // Determinar estado - usar estado_ignicao se disponível, senão fallback
+          let estadoAtual = 'parado';
+          if (loc.estado_ignicao) {
+            // Mapear estados novos para termos de filtro
+            switch (loc.estado_ignicao) {
+              case 'moving': estadoAtual = 'movimento'; break;
+              case 'idle': estadoAtual = 'ocioso'; break;
+              case 'acc_on': estadoAtual = 'ocioso'; break;  // Meia chave = similar a ocioso para filtro
+              case 'off': estadoAtual = 'parado'; break;
+              default: estadoAtual = 'parado';
+            }
+          } else if (loc.ignicao === true || loc.ignicao === 1) {
+            // Fallback para registros antigos sem estado_ignicao
+            estadoAtual = velocidade > 5 ? 'movimento' : 'ocioso';
+          }
+
+          // Filtro de estado
+          if (estado === 'movimento' && estadoAtual !== 'movimento') return false;
+          if (estado === 'ocioso' && estadoAtual !== 'ocioso') return false;
+          if (estado === 'parado' && estadoAtual !== 'parado') return false;
+          if (estado === 'ligado' && estadoAtual === 'parado') return false;  // ligado = movimento ou ocioso
+
+          // Filtro de excesso de velocidade (usando cache precisso)
+          if (filtrarSoExcessos) {
+            const cacheKey = velocidadeViaService.getCacheKey(loc.latitude, loc.longitude);
+            const infoVia = limitesVia.get(cacheKey);
+            const limite = infoVia?.limite || 60;
+            if (velocidade <= limite) return false;
+          }
+
+          return true;
+        });
+
+        if (localizacoesFiltradas.length > 0) {
+          csvContent += '=== LOCALIZAÇÕES ===\n';
+          csvContent += 'Data/Hora,Estado,Latitude,Longitude,Velocidade (km/h),Limite Via,Nome Via,Excesso (km/h),Dist. Anterior (m),Tempo Anterior,Direção,Corrigido\n';
+
+          // Arrays para coletar dados extras
+          let excessosDetalhados = [];
+          let paradasCSV = [];
+          let paradaAtualCSV = null;
+          const TEMPO_MINIMO_PARADA_CSV = 5; // minutos
+          const DISTANCIA_MESMA_PARADA_CSV = 0.1; // km (100m)
+
+          for (let i = 0; i < localizacoesFiltradas.length; i++) {
+            const loc = localizacoesFiltradas[i];
+            const locAnterior = i > 0 ? localizacoesFiltradas[i - 1] : null;
+
+            // Calcular distância e tempo do ponto anterior
+            let distanciaAnterior = 0;
+            let tempoAnteriorMin = 0;
+            let tempoAnteriorTexto = '-';
+
+            if (locAnterior) {
+              distanciaAnterior = calcularDistancia(
+                locAnterior.latitude, locAnterior.longitude,
+                loc.latitude, loc.longitude
+              ) * 1000; // converter para metros
+
+              tempoAnteriorMin = (new Date(loc.timestamp) - new Date(locAnterior.timestamp)) / (1000 * 60);
+              if (tempoAnteriorMin < 1) {
+                tempoAnteriorTexto = `${Math.round(tempoAnteriorMin * 60)}s`;
+              } else if (tempoAnteriorMin < 60) {
+                tempoAnteriorTexto = `${Math.round(tempoAnteriorMin)}min`;
+              } else {
+                const horas = Math.floor(tempoAnteriorMin / 60);
+                const mins = Math.round(tempoAnteriorMin % 60);
+                tempoAnteriorTexto = `${horas}h${mins}min`;
+              }
+            }
+
+            // Determinar estado
+            let estadoTexto = 'Parado';
+            if (loc.ignicao === true || loc.ignicao === 1) {
+              estadoTexto = (loc.velocidade || 0) > 5 ? 'Em Movimento' : 'Ocioso';
+            }
+
+            // Obter limite de velocidade da via (cache preciso)
+            const velocidade = loc.velocidade || 0;
+            const cacheKey = velocidadeViaService.getCacheKey(loc.latitude, loc.longitude);
+            const infoVia = limitesVia.get(cacheKey);
+            const limiteVia = infoVia?.limite || 60;
+            const nomeVia = (infoVia?.nome || 'N/A').replace(/,/g, ';');
+
+            // Calcular valor do excesso (em vez de SIM/NÃO)
+            const excedeValor = velocidade > limiteVia ? velocidade - limiteVia : 0;
+            const excedeTexto = excedeValor > 0 ? `+${excedeValor}` : '-';
+            const foiCorrigido = loc.matched ? 'SIM' : 'NÃO';
+
+            // Coletar excessos detalhados
+            if (excedeValor > 0) {
+              excessosDetalhados.push({
+                timestamp: loc.timestamp,
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                velocidade: velocidade,
+                limite: limiteVia,
+                excesso: excedeValor,
+                nomeVia: nomeVia
+              });
+            }
+
+            // Detectar paradas significativas
+            if (velocidade === 0) {
+              if (!paradaAtualCSV) {
+                paradaAtualCSV = {
+                  inicio: loc.timestamp,
+                  fim: loc.timestamp,
+                  latitude: loc.latitude,
+                  longitude: loc.longitude,
+                  tempoMinutos: 0
+                };
+              } else {
+                const distParada = calcularDistancia(
+                  paradaAtualCSV.latitude, paradaAtualCSV.longitude,
+                  loc.latitude, loc.longitude
+                );
+                if (distParada < DISTANCIA_MESMA_PARADA_CSV) {
+                  paradaAtualCSV.fim = loc.timestamp;
+                  paradaAtualCSV.tempoMinutos += tempoAnteriorMin;
+                } else {
+                  if (paradaAtualCSV.tempoMinutos >= TEMPO_MINIMO_PARADA_CSV) {
+                    paradasCSV.push({ ...paradaAtualCSV });
+                  }
+                  paradaAtualCSV = {
+                    inicio: loc.timestamp,
+                    fim: loc.timestamp,
+                    latitude: loc.latitude,
+                    longitude: loc.longitude,
+                    tempoMinutos: 0
+                  };
+                }
+              }
+            } else {
+              if (paradaAtualCSV && paradaAtualCSV.tempoMinutos >= TEMPO_MINIMO_PARADA_CSV) {
+                paradasCSV.push({ ...paradaAtualCSV });
+              }
+              paradaAtualCSV = null;
+            }
+
+            csvContent += `${formatDateTime(loc.timestamp)},${estadoTexto},${loc.latitude},${loc.longitude},${velocidade},${limiteVia},${nomeVia},${excedeTexto},${Math.round(distanciaAnterior)},${tempoAnteriorTexto},${loc.direcao || ''},${foiCorrigido}\n`;
+          }
+
+          // Finalizar última parada se existir
+          if (paradaAtualCSV && paradaAtualCSV.tempoMinutos >= TEMPO_MINIMO_PARADA_CSV) {
+            paradasCSV.push({ ...paradaAtualCSV });
+          }
+
+          csvContent += '\n';
+          totalRegistros += localizacoesFiltradas.length;
+
+          // ============ SEÇÃO DE EXCESSOS DE VELOCIDADE ============
+          if (excessosDetalhados.length > 0) {
+            csvContent += '=== EXCESSOS DE VELOCIDADE ===\n';
+            csvContent += `Total de Excessos: ${excessosDetalhados.length}\n`;
+            csvContent += `Maior Excesso: +${Math.max(...excessosDetalhados.map(e => e.excesso))} km/h\n`;
+            csvContent += `Velocidade Máxima Registrada: ${Math.max(...excessosDetalhados.map(e => e.velocidade))} km/h\n\n`;
+            csvContent += 'Data/Hora,Via,Velocidade (km/h),Limite (km/h),Excesso (km/h),Latitude,Longitude\n';
+
+            // Ordenar por excesso (maior primeiro)
+            const excessosOrdenados = [...excessosDetalhados].sort((a, b) => b.excesso - a.excesso);
+            for (const exc of excessosOrdenados) {
+              csvContent += `${formatDateTime(exc.timestamp)},${exc.nomeVia},${exc.velocidade},${exc.limite},+${exc.excesso},${exc.latitude},${exc.longitude}\n`;
+            }
+            csvContent += '\n';
+          }
+
+          // ============ SEÇÃO DE PARADAS SIGNIFICATIVAS ============
+          if (paradasCSV.length > 0) {
+            // Buscar nomes das vias para cada parada
+            for (const parada of paradasCSV) {
+              try {
+                const infoVia = await velocidadeViaService.obterLimiteVelocidade(parada.latitude, parada.longitude);
+                parada.nomeVia = (infoVia.nome || 'Local não identificado').replace(/,/g, ';');
+              } catch (e) {
+                parada.nomeVia = 'Local não identificado';
+              }
+            }
+
+            const tempoTotalParadas = paradasCSV.reduce((sum, p) => sum + p.tempoMinutos, 0);
+            const maiorParada = Math.max(...paradasCSV.map(p => p.tempoMinutos));
+
+            csvContent += '=== PARADAS SIGNIFICATIVAS (> 5 min) ===\n';
+            csvContent += `Total de Paradas: ${paradasCSV.length}\n`;
+            csvContent += `Tempo Total Parado: ${formatarTempoCSV(tempoTotalParadas)}\n`;
+            csvContent += `Maior Parada: ${formatarTempoCSV(maiorParada)}\n\n`;
+            csvContent += '#,Início,Fim,Duração,Local/Via,Latitude,Longitude\n';
+
+            // Ordenar por duração (maior primeiro)
+            const paradasOrdenadas = [...paradasCSV].sort((a, b) => b.tempoMinutos - a.tempoMinutos);
+            for (let i = 0; i < paradasOrdenadas.length; i++) {
+              const parada = paradasOrdenadas[i];
+              csvContent += `${i + 1},${formatDateTime(parada.inicio)},${formatDateTime(parada.fim)},${formatarTempoCSV(parada.tempoMinutos)},${parada.nomeVia},${parada.latitude},${parada.longitude}\n`;
+            }
+            csvContent += '\n';
+          }
+        }
+      }
+    }
+
+    // ============ DADOS OBD2 ============
+    // ✅ Só inclui OBD2 se o dispositivo SUPORTA OBD2 (não inclui para XT40_4F)
+    const dispositivoSuportaOBD2 = supportsOBD2(dispositivo.tipo);
+    if (incluirOBD2 === 'true' && dispositivoSuportaOBD2) {
+      const dadosOBD2 = await prisma.dadosOBD2.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        },
+        orderBy: { timestamp: 'asc' }
+      });
+
+      if (dadosOBD2.length > 0) {
+        // Calcular estatísticas de consumo/combustível
+        const combustivelDados = dadosOBD2.filter(o => o.nivel_combustivel !== null && o.nivel_combustivel !== undefined);
+        const odometroDados = dadosOBD2.filter(o => o.odometro_embarcado !== null && o.odometro_embarcado !== undefined);
+        const rpmDados = dadosOBD2.filter(o => o.rpm !== null && o.rpm !== undefined);
+        const tempDados = dadosOBD2.filter(o => o.temperatura_motor !== null && o.temperatura_motor !== undefined);
+
+        csvContent += '=== DADOS OBD2/TELEMETRIA ===\n';
+
+        // Resumo de consumo se houver dados suficientes
+        if (combustivelDados.length >= 2 || odometroDados.length >= 2) {
+          csvContent += '--- Resumo do Período ---\n';
+
+          if (combustivelDados.length >= 2) {
+            const primeiroNivel = combustivelDados[0].nivel_combustivel;
+            const ultimoNivel = combustivelDados[combustivelDados.length - 1].nivel_combustivel;
+            const consumoPct = primeiroNivel - ultimoNivel;
+            csvContent += `Combustível Inicial: ${primeiroNivel}%\n`;
+            csvContent += `Combustível Final: ${ultimoNivel}%\n`;
+            if (consumoPct > 0) {
+              csvContent += `Consumo no Período: ${consumoPct.toFixed(1)}%\n`;
+            } else if (consumoPct < 0) {
+              csvContent += `Abastecimento Detectado: +${Math.abs(consumoPct).toFixed(1)}%\n`;
+            }
+          }
+
+          if (odometroDados.length >= 2) {
+            const primeiroOdo = odometroDados[0].odometro_embarcado;
+            const ultimoOdo = odometroDados[odometroDados.length - 1].odometro_embarcado;
+            const distanciaOBD2 = ultimoOdo - primeiroOdo;
+            csvContent += `Odômetro Inicial: ${Math.round(primeiroOdo)} km\n`;
+            csvContent += `Odômetro Final: ${Math.round(ultimoOdo)} km\n`;
+            if (distanciaOBD2 > 0) {
+              csvContent += `Distância Percorrida (OBD2): ${distanciaOBD2.toFixed(1)} km\n`;
+
+              // Calcular consumo médio se tiver ambos os dados
+              if (combustivelDados.length >= 2) {
+                const consumoPct = combustivelDados[0].nivel_combustivel - combustivelDados[combustivelDados.length - 1].nivel_combustivel;
+                if (consumoPct > 0 && distanciaOBD2 > 1) {
+                  // Estimativa: assumindo tanque de 50L (pode ser configurável depois)
+                  const litrosConsumidos = (consumoPct / 100) * 50;
+                  const kmPorLitro = distanciaOBD2 / litrosConsumidos;
+                  csvContent += `Consumo Estimado: ${kmPorLitro.toFixed(1)} km/L (tanque ~50L)\n`;
+                }
+              }
+            }
+          }
+
+          if (rpmDados.length > 0) {
+            const rpmMax = Math.max(...rpmDados.map(o => o.rpm));
+            const rpmMedia = Math.round(rpmDados.reduce((sum, o) => sum + o.rpm, 0) / rpmDados.length);
+            csvContent += `RPM Máximo: ${rpmMax}\n`;
+            csvContent += `RPM Médio: ${rpmMedia}\n`;
+          }
+
+          if (tempDados.length > 0) {
+            const tempMax = Math.max(...tempDados.map(o => o.temperatura_motor));
+            const tempMedia = Math.round(tempDados.reduce((sum, o) => sum + o.temperatura_motor, 0) / tempDados.length);
+            csvContent += `Temperatura Máxima Motor: ${tempMax}°C\n`;
+            csvContent += `Temperatura Média Motor: ${tempMedia}°C\n`;
+          }
+
+          csvContent += '\n';
+        }
+
+        csvContent += 'Data/Hora,Ignição,RPM,Temp. Motor (°C),Combustível (%),Odômetro (km),Horímetro (h),Bateria (%),Tensão (V)\n';
+
+        for (const obd of dadosOBD2) {
+          // Determinar estado da ignição
+          let ignicaoTexto = 'N/A';
+          if (obd.ignicao !== null && obd.ignicao !== undefined) {
+            if (!obd.ignicao) {
+              ignicaoTexto = 'Desligado';
+            } else if (obd.velocidade !== null && obd.velocidade > 5) {
+              ignicaoTexto = 'Em Movimento';
+            } else if (obd.velocidade !== null && obd.velocidade <= 5) {
+              ignicaoTexto = 'Ocioso';
+            } else {
+              ignicaoTexto = 'Ligado';
+            }
+          }
+          csvContent += `${formatDateTime(obd.timestamp)},${ignicaoTexto},${obd.rpm || ''},${obd.temperatura_motor || ''},${obd.nivel_combustivel || ''},${obd.odometro_embarcado ? Math.round(obd.odometro_embarcado) : ''},${obd.hora_motor_embarcada ? Math.round(obd.hora_motor_embarcada) : ''},${obd.percentual_bateria || ''},${obd.tensao_bateria ? obd.tensao_bateria.toFixed(2) : ''}\n`;
+        }
+        csvContent += '\n';
+        totalRegistros += dadosOBD2.length;
+      }
+    }
+
+    // ============ ALARMES ============
+    if (incluirAlarmes === 'true') {
+      // Construir filtro de tipo de alarme
+      const whereAlarme = {
+        dispositivo_id: dispositivo.id,
+        timestamp: { gte: inicio, lte: fim }
+      };
+
+      // ✅ Filtrar por tipo de alarme se especificado
+      if (tipoAlarme) {
+        whereAlarme.tipo_alarme = { contains: tipoAlarme, mode: 'insensitive' };
+      }
+
+      const alarmes = await prisma.alarme.findMany({
+        where: whereAlarme,
+        orderBy: { timestamp: 'asc' }
+      });
+
+      if (alarmes.length > 0) {
+        csvContent += '=== ALARMES ===\n';
+        csvContent += 'Data/Hora,Tipo,Severidade,Descrição,Latitude,Longitude,Resolvido\n';
+
+        for (const alarme of alarmes) {
+          csvContent += `${formatDateTime(alarme.timestamp)},${alarme.tipo_alarme},${alarme.severidade},${(alarme.descricao || '').replace(/,/g, ';')},${alarme.latitude || ''},${alarme.longitude || ''},${alarme.resolvido ? 'Sim' : 'Não'}\n`;
+        }
+        csvContent += '\n';
+        totalRegistros += alarmes.length;
+      }
+    }
+
+    if (totalRegistros === 0) {
+      return res.status(404).json({
+        sucesso: false,
+        mensagem: 'Nenhum registro encontrado no período selecionado'
+      });
+    }
+
+    // ✅ Calcular estatísticas para o cabeçalho
+    let distanciaTotal = 0;
+    let distanciaMovimento = 0;
+    let tempoMovimentoTotal = 0;
+    let tempoOciosoTotal = 0;
+    let tempoParadoTotal = 0;
+    let excessosVelocidade = 0;
+    let maxVelocidadeRota = 0;
+
+    // Buscar todas as localizações para cálculo
+    const todasLocalizacoes = await prisma.localizacao.findMany({
+      where: {
+        dispositivo_id: dispositivo.id,
+        timestamp: { gte: inicio, lte: fim }
+      },
+      orderBy: { timestamp: 'asc' }
+    });
+
+    const todosOBD2 = await prisma.dadosOBD2.findMany({
+      where: {
+        dispositivo_id: dispositivo.id,
+        timestamp: { gte: inicio, lte: fim }
+      },
+      orderBy: { timestamp: 'asc' }
+    });
+
+    // Cache persistente: consulta limites com precisão do banco
+    let limitesViaStats = new Map();
+    if (todasLocalizacoes.length > 0) {
+      try {
+        console.log(`[CSV Stats] Consultando limites para ${todasLocalizacoes.length} pontos (cache persistente)...`);
+        const pontosStats = todasLocalizacoes.map(l => ({ lat: l.latitude, lng: l.longitude }));
+        limitesViaStats = await velocidadeViaService.obterLimitesEmLote(pontosStats);
+      } catch (e) {
+        console.log('[CSV Stats] Erro ao consultar limites:', e.message);
+      }
+    }
+
+    if (todasLocalizacoes.length > 1) {
+      for (let i = 1; i < todasLocalizacoes.length; i++) {
+        const loc = todasLocalizacoes[i];
+        const locAnterior = todasLocalizacoes[i - 1];
+
+        const dist = calcularDistancia(
+          locAnterior.latitude, locAnterior.longitude,
+          loc.latitude, loc.longitude
+        );
+        const tempoMinutos = (new Date(loc.timestamp) - new Date(locAnterior.timestamp)) / (1000 * 60);
+
+        distanciaTotal += dist;
+
+        // Buscar OBD2 correspondente
+        const obd2 = todosOBD2.find(o => {
+          const diff = Math.abs(new Date(o.timestamp) - new Date(loc.timestamp));
+          return diff < 60000;
+        });
+
+        // ✅ Lógica diferenciada por tipo de dispositivo
+        let motorLigado = false;
+        let motorDesligado = false;
+
+        if (dispositivo.tipo === 'XT40_4F') {
+          // XT40_4F: Usa ignição virtual (baseada na tensão da bateria)
+          motorLigado = loc.ignicao === true && loc.velocidade === 0;
+          motorDesligado = loc.ignicao === false && loc.velocidade === 0;
+        } else if (dispositivo.tipo === 'XT40_OBD2') {
+          // XT40_OBD2: Primeiro tenta RPM, senão usa estado de ignição
+          const temRPM = obd2 && obd2.rpm !== null && obd2.rpm !== undefined;
+          if (temRPM) {
+            motorLigado = obd2.rpm >= 500 && loc.velocidade === 0;
+            motorDesligado = obd2.rpm < 500 && loc.velocidade === 0;
+          } else {
+            // ✅ FALLBACK: Sem RPM - detectar ocioso se houve movimento recente
+            if (loc.velocidade === 0) {
+              let temMovimentoRecente = false;
+              for (let j = i - 1; j >= 0 && j > i - 30; j--) {
+                const locPassada = todasLocalizacoes[j];
+                const diffTempo = (new Date(loc.timestamp) - new Date(locPassada.timestamp)) / (1000 * 60);
+                if (diffTempo > 10) break;
+                if (locPassada.velocidade > 3) {
+                  temMovimentoRecente = true;
+                  break;
+                }
+              }
+              motorLigado = temMovimentoRecente;
+              motorDesligado = !temMovimentoRecente;
+            }
+          }
+        } else {
+          // Outros dispositivos: usar estado de ignição
+          motorLigado = loc.ignicao === true && loc.velocidade === 0;
+          motorDesligado = loc.ignicao === false && loc.velocidade === 0;
+        }
+
+        if (loc.velocidade > 0) {
+          distanciaMovimento += dist;
+          tempoMovimentoTotal += tempoMinutos;
+
+          // Verificar velocidade máxima
+          if (loc.velocidade > maxVelocidadeRota) {
+            maxVelocidadeRota = loc.velocidade;
+          }
+
+          // ✅ Verificar excesso de velocidade baseado no limite REAL da via
+          const cacheKey = velocidadeViaService.getCacheKey(loc.latitude, loc.longitude);
+          const infoVia = limitesViaStats.get(cacheKey) || { limite: 60 };
+          if (loc.velocidade > infoVia.limite) {
+            excessosVelocidade++;
+          }
+        } else if (motorLigado) {
+          tempoOciosoTotal += tempoMinutos;
+        } else if (motorDesligado) {
+          tempoParadoTotal += tempoMinutos;
+        }
+      }
+    }
+
+    // Montar texto de filtros aplicados
+    let filtrosTexto = [];
+    if (aplicarCorrecao) filtrosTexto.push('GPS Corrigido (OSRM)');
+    if (estado) filtrosTexto.push(`Estado: ${estado}`);
+    if (velocidadeMin !== null) filtrosTexto.push(`Vel. Mín: ${velocidadeMin} km/h`);
+    if (velocidadeMax !== null) filtrosTexto.push(`Vel. Máx: ${velocidadeMax} km/h`);
+    if (filtrarSoExcessos) filtrosTexto.push('Apenas excessos');
+    if (tipoAlarme) filtrosTexto.push(`Alarme: ${tipoAlarme}`);
+
+    // Adicionar cabeçalho do relatório com estatísticas
+    const header = `RELATÓRIO DE HISTÓRICO DO VEÍCULO
+Veículo: ${dispositivo.veiculo || 'N/A'}
+Placa: ${dispositivo.placa || 'N/A'}
+IMEI: ${dispositivo.imei}
+Tipo: ${dispositivo.tipo || 'N/A'}
+Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
+Total de Registros: ${totalRegistros}
+Gerado em: ${formatDateTime(new Date())}
+${filtrosTexto.length > 0 ? `Filtros: ${filtrosTexto.join(' | ')}` : 'Filtros: Nenhum'}
+
+=== RESUMO ESTATÍSTICO ===
+Distância Total: ${distanciaTotal.toFixed(2)} km
+Distância em Movimento: ${distanciaMovimento.toFixed(2)} km
+Tempo em Movimento: ${formatarTempoCSV(tempoMovimentoTotal)}
+Tempo Ocioso: ${formatarTempoCSV(tempoOciosoTotal)}
+Tempo Parado: ${formatarTempoCSV(tempoParadoTotal)}
+Velocidade Máxima: ${maxVelocidadeRota} km/h
+Limite de Velocidade: Dinâmico por via (baseado em OpenStreetMap)
+Excessos de Velocidade: ${excessosVelocidade} ocorrências
+
+`;
+
+    csvContent = header + csvContent;
+
+    // Configurar headers para download
+    const filename = `historico_${dispositivo.placa || imei}_${formatDateForFilename(new Date())}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // Adicionar BOM para Excel reconhecer UTF-8
+    res.send('\ufeff' + csvContent);
+
+  } catch (error) {
+    console.error('[Exportar CSV] Erro:', error);
+    res.status(500).json({ sucesso: false, mensagem: 'Erro ao gerar CSV', erro: error.message });
+  }
+});
+
+// ============ EXPORTAR PDF ============
+
+/**
+ * GET /api/exportar/:imei/pdf
+ * Exporta histórico do veículo em formato PDF
+ *
+ * Query params:
+ * - corrigido: boolean (default: true) - usar dados corrigidos pelo OSRM
+ * - estado: string - filtrar por estado (movimento, ocioso, parado, ligado)
+ * - velMin: number - velocidade mínima
+ * - velMax: number - velocidade máxima
+ * - soExcessos: boolean - apenas excessos de velocidade
+ * - tipoAlarme: string - filtrar por tipo de alarme
+ * ✅ Multi-tenant: Verifica propriedade do dispositivo
+ */
+router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
+  try {
+    const { imei } = req.params;
+    const {
+      dataInicio,
+      dataFim,
+      incluirLocalizacoes = 'true',
+      incluirOBD2 = 'true',
+      incluirAlarmes = 'true',
+      incluirEstatisticas = 'true',
+      corrigido = 'true',
+      estado = '',
+      velMin = '',
+      velMax = '',
+      soExcessos = 'false',
+      tipoAlarme = ''
+    } = req.query;
+
+    // Converter filtros numéricos
+    const velocidadeMin = velMin ? parseFloat(velMin) : null;
+    const velocidadeMax = velMax ? parseFloat(velMax) : null;
+    const filtrarSoExcessos = soExcessos === 'true';
+    const aplicarCorrecao = corrigido === 'true' && gpsFilterService !== null;
+
+    // Buscar dispositivo
+    const dispositivo = await prisma.dispositivo.findUnique({
+      where: { imei }
+    });
+
+    if (!dispositivo) {
+      return res.status(404).json({ sucesso: false, mensagem: 'Dispositivo não encontrado' });
+    }
+
+    // Configurar período
+    const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const fim = dataFim ? new Date(dataFim) : new Date();
+
+    // Criar documento PDF
+    const doc = new PDFDocument({
+      size: 'A4',
+      margin: 50,
+      info: {
+        Title: `Relatório - ${dispositivo.placa || imei}`,
+        Author: 'Sistema de Rastreamento',
+        Subject: 'Histórico do Veículo'
+      }
+    });
+
+    // Configurar headers para download
+    const filename = `relatorio_${dispositivo.placa || imei}_${formatDateForFilename(new Date())}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    doc.pipe(res);
+
+    // ============ CABEÇALHO ============
+    doc.fontSize(20).font('Helvetica-Bold').text('RELATÓRIO DE HISTÓRICO', { align: 'center' });
+    doc.moveDown(0.5);
+
+    // Linha decorativa
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#667eea');
+    doc.moveDown(0.5);
+
+    // Informações do veículo
+    doc.fontSize(12).font('Helvetica-Bold').text('Informações do Veículo');
+    doc.fontSize(10).font('Helvetica');
+    doc.text(`Veículo: ${dispositivo.veiculo || 'N/A'}`);
+    doc.text(`Placa: ${dispositivo.placa || 'N/A'}`);
+    doc.text(`IMEI: ${dispositivo.imei}`);
+    doc.text(`Tipo: ${dispositivo.tipo || 'N/A'}`);
+    doc.text(`Status: ${dispositivo.status === 'online' ? 'Online' : 'Offline'}`);
+    doc.moveDown(0.5);
+
+    doc.fontSize(10).font('Helvetica-Oblique').fillColor('#666');
+    doc.text(`Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`);
+    doc.text(`Gerado em: ${formatDateTime(new Date())}`);
+
+    // ✅ Mostrar filtros aplicados
+    let filtrosTexto = [];
+    if (aplicarCorrecao) filtrosTexto.push('GPS Corrigido (OSRM)');
+    if (estado) filtrosTexto.push(`Estado: ${estado}`);
+    if (velocidadeMin !== null) filtrosTexto.push(`Vel. Mín: ${velocidadeMin} km/h`);
+    if (velocidadeMax !== null) filtrosTexto.push(`Vel. Máx: ${velocidadeMax} km/h`);
+    if (filtrarSoExcessos) filtrosTexto.push('Apenas excessos');
+    if (tipoAlarme) filtrosTexto.push(`Alarme: ${tipoAlarme}`);
+
+    if (filtrosTexto.length > 0) {
+      doc.text(`Filtros: ${filtrosTexto.join(' | ')}`);
+    }
+
+    doc.fillColor('#000');
+    doc.moveDown();
+
+    // ============ ESTATÍSTICAS ============
+    console.log(`[PDF] incluirEstatisticas=${incluirEstatisticas}`);
+    if (incluirEstatisticas === 'true') {
+      console.log('[PDF] Buscando dados para estatísticas...');
+      // Buscar dados para estatísticas
+      let localizacoes = await prisma.localizacao.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        },
+        orderBy: { timestamp: 'asc' }
+      });
+
+      // ✅ Aplicar correção GPS (OSRM) para ter rota realista que segue as ruas
+      let localizacoesCorrigidas = localizacoes;
+      if (aplicarCorrecao && gpsFilterService && localizacoes.length > 1) {
+        console.log(`[PDF] Aplicando correção OSRM em ${localizacoes.length} pontos para rota realista...`);
+        try {
+          const pontosParaCorrigir = localizacoes.map(l => ({
+            latitude: l.latitude,
+            longitude: l.longitude,
+            velocidade: l.velocidade,
+            direcao: l.direcao,
+            ignicao: l.ignicao,
+            timestamp: l.timestamp
+          }));
+
+          const resultado = await gpsFilterService.processarRotaCompleta(pontosParaCorrigir, {
+            usarKalman: true,
+            usarHampel: true,
+            usarInterpolacao: true, // ✅ Interpolar para rota mais suave
+            usarOSRM: true          // ✅ OSRM para seguir ruas reais
+          });
+
+          if (resultado && resultado.pontos && resultado.pontos.length > 0) {
+            localizacoesCorrigidas = resultado.pontos;
+            console.log(`[PDF] Correção OSRM aplicada: ${localizacoes.length} -> ${localizacoesCorrigidas.length} pontos`);
+          }
+        } catch (e) {
+          console.warn('[PDF] Erro ao aplicar correção OSRM:', e.message);
+          // Continuar com dados originais
+        }
+      }
+
+      const dadosOBD2 = await prisma.dadosOBD2.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        }
+      });
+
+      const alarmes = await prisma.alarme.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        }
+      });
+
+      // Calcular estatísticas
+      let distanciaTotal = 0;
+      let distanciaMovimento = 0;
+      let velocidadeMax = 0;
+      let velocidadeMedia = 0;
+      let tempoMovimentoTotal = 0;
+      let tempoOciosoTotal = 0;
+      let tempoParadoTotal = 0;
+      let excessosVelocidade = 0;
+      let detalhesExcessos = []; // Coletar detalhes dos excessos com nome da via
+
+      // Detectar paradas significativas (>5 minutos no mesmo local)
+      let paradasSignificativas = [];
+      let paradaAtual = null;
+      const TEMPO_MINIMO_PARADA = 5; // minutos
+      const DISTANCIA_MESMA_PARADA = 0.1; // km (100m)
+
+      // Cache persistente: consulta limites com precisão do banco
+      let limitesViaPDF = new Map();
+      if (localizacoes.length > 0) {
+        try {
+          console.log(`[PDF Stats] Consultando limites para ${localizacoes.length} pontos (cache persistente)...`);
+          const pontosPDF = localizacoes.map(l => ({ lat: l.latitude, lng: l.longitude }));
+          limitesViaPDF = await velocidadeViaService.obterLimitesEmLote(pontosPDF);
+        } catch (e) {
+          console.log('[PDF Stats] Erro ao consultar limites:', e.message);
+        }
+      }
+
+      if (localizacoes.length > 1) {
+        for (let i = 1; i < localizacoes.length; i++) {
+          const loc = localizacoes[i];
+          const locAnterior = localizacoes[i - 1];
+
+          const dist = calcularDistancia(
+            locAnterior.latitude, locAnterior.longitude,
+            loc.latitude, loc.longitude
+          );
+          const tempoMinutos = (new Date(loc.timestamp) - new Date(locAnterior.timestamp)) / (1000 * 60);
+
+          distanciaTotal += dist;
+
+          // Buscar OBD2 correspondente (se houver)
+          const obd2 = dadosOBD2.find(o => {
+            const diff = Math.abs(new Date(o.timestamp) - new Date(loc.timestamp));
+            return diff < 60000;
+          });
+
+          // ✅ Lógica diferenciada por tipo de dispositivo
+          let motorLigado = false;
+          let motorDesligado = false;
+
+          if (dispositivo.tipo === 'XT40_4F') {
+            // XT40_4F: Usa ignição virtual (baseada na tensão da bateria)
+            motorLigado = loc.ignicao === true && loc.velocidade === 0;
+            motorDesligado = loc.ignicao === false && loc.velocidade === 0;
+          } else if (dispositivo.tipo === 'XT40_OBD2') {
+            // XT40_OBD2: Primeiro tenta RPM, senão usa estado de ignição
+            const temRPM = obd2 && obd2.rpm !== null && obd2.rpm !== undefined;
+            if (temRPM) {
+              motorLigado = obd2.rpm >= 500 && loc.velocidade === 0;
+              motorDesligado = obd2.rpm < 500 && loc.velocidade === 0;
+            } else {
+              // ✅ FALLBACK: Sem RPM - detectar ocioso se houve movimento recente
+              if (loc.velocidade === 0) {
+                let temMovimentoRecente = false;
+                for (let j = i - 1; j >= 0 && j > i - 30; j--) {
+                  const locPassada = localizacoes[j];
+                  const diffTempo = (new Date(loc.timestamp) - new Date(locPassada.timestamp)) / (1000 * 60);
+                  if (diffTempo > 10) break;
+                  if (locPassada.velocidade > 3) {
+                    temMovimentoRecente = true;
+                    break;
+                  }
+                }
+                motorLigado = temMovimentoRecente;
+                motorDesligado = !temMovimentoRecente;
+              }
+            }
+          } else {
+            // Outros dispositivos: usar estado de ignição
+            motorLigado = loc.ignicao === true && loc.velocidade === 0;
+            motorDesligado = loc.ignicao === false && loc.velocidade === 0;
+          }
+
+          // Separar por estado
+          if (loc.velocidade > 0) {
+            // Em movimento
+            distanciaMovimento += dist;
+            tempoMovimentoTotal += tempoMinutos;
+
+            // ✅ Verificar excesso de velocidade baseado no limite REAL da via
+            const cacheKey = velocidadeViaService.getCacheKey(loc.latitude, loc.longitude);
+            const infoVia = limitesViaPDF.get(cacheKey) || { limite: 60, nome: '' };
+            if (loc.velocidade > infoVia.limite) {
+              excessosVelocidade++;
+              // Coletar detalhes do excesso
+              if (!detalhesExcessos) detalhesExcessos = [];
+              detalhesExcessos.push({
+                timestamp: loc.timestamp,
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                velocidade: loc.velocidade,
+                limite: infoVia.limite,
+                excesso: loc.velocidade - infoVia.limite,
+                nomeVia: infoVia.nome || ''
+              });
+            }
+          } else if (motorLigado) {
+            // Ocioso (motor ligado, parado)
+            tempoOciosoTotal += tempoMinutos;
+          } else if (motorDesligado) {
+            // Parado (motor desligado)
+            tempoParadoTotal += tempoMinutos;
+          }
+
+          // Detectar paradas significativas
+          if (loc.velocidade === 0) {
+            if (!paradaAtual) {
+              // Início de uma nova parada
+              paradaAtual = {
+                inicio: loc.timestamp,
+                fim: loc.timestamp,
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                tempoMinutos: 0,
+                motorLigado: motorLigado
+              };
+            } else {
+              // Verificar se ainda é a mesma parada (mesmo local)
+              const distParada = calcularDistancia(
+                paradaAtual.latitude, paradaAtual.longitude,
+                loc.latitude, loc.longitude
+              );
+              if (distParada < DISTANCIA_MESMA_PARADA) {
+                // Mesma parada - atualizar fim
+                paradaAtual.fim = loc.timestamp;
+                paradaAtual.tempoMinutos += tempoMinutos;
+              } else {
+                // Nova localização - finalizar parada anterior se significativa
+                if (paradaAtual.tempoMinutos >= TEMPO_MINIMO_PARADA) {
+                  paradasSignificativas.push({ ...paradaAtual });
+                }
+                // Iniciar nova parada
+                paradaAtual = {
+                  inicio: loc.timestamp,
+                  fim: loc.timestamp,
+                  latitude: loc.latitude,
+                  longitude: loc.longitude,
+                  tempoMinutos: 0,
+                  motorLigado: motorLigado
+                };
+              }
+            }
+          } else {
+            // Em movimento - finalizar parada se existir
+            if (paradaAtual && paradaAtual.tempoMinutos >= TEMPO_MINIMO_PARADA) {
+              paradasSignificativas.push({ ...paradaAtual });
+            }
+            paradaAtual = null;
+          }
+        }
+
+        // Finalizar última parada se existir
+        if (paradaAtual && paradaAtual.tempoMinutos >= TEMPO_MINIMO_PARADA) {
+          paradasSignificativas.push({ ...paradaAtual });
+        }
+
+        console.log(`[PDF] Paradas significativas encontradas: ${paradasSignificativas.length}`);
+
+        const velocidades = localizacoes.filter(l => l.velocidade > 0).map(l => l.velocidade);
+        if (velocidades.length > 0) {
+          velocidadeMax = Math.max(...velocidades);
+          velocidadeMedia = Math.round(velocidades.reduce((a, b) => a + b, 0) / velocidades.length);
+        }
+      }
+
+      // Formatar tempos
+      const formatarTempo = (minutos) => {
+        const horas = Math.floor(minutos / 60);
+        const mins = Math.round(minutos % 60);
+        if (horas > 0) return `${horas}h ${mins}min`;
+        return `${mins} min`;
+      };
+
+      doc.fontSize(12).font('Helvetica-Bold').text('Resumo Estatístico');
+      doc.moveDown(0.3);
+
+      // Box de estatísticas (aumentado para caber mais dados)
+      const statsY = doc.y;
+      doc.rect(50, statsY, 495, 125).fillAndStroke('#f7fafc', '#e2e8f0');
+
+      doc.fillColor('#000').fontSize(10).font('Helvetica');
+      // Coluna 1 - Distâncias e Velocidades
+      doc.text(`Distância Total: ${distanciaTotal.toFixed(2)} km`, 60, statsY + 10);
+      doc.text(`Distância em Movimento: ${distanciaMovimento.toFixed(2)} km`, 60, statsY + 25);
+      doc.text(`Velocidade Máxima: ${velocidadeMax} km/h`, 60, statsY + 40);
+      doc.text(`Velocidade Média: ${velocidadeMedia} km/h`, 60, statsY + 55);
+      doc.text(`Limite de Velocidade: Dinâmico por via`, 60, statsY + 70);
+
+      // Coluna 2 - Tempos e contagens
+      doc.text(`Tempo em Movimento: ${formatarTempo(tempoMovimentoTotal)}`, 300, statsY + 10);
+      doc.text(`Tempo Ocioso: ${formatarTempo(tempoOciosoTotal)}`, 300, statsY + 25);
+      doc.text(`Tempo Parado: ${formatarTempo(tempoParadoTotal)}`, 300, statsY + 40);
+      doc.text(`Posições GPS: ${localizacoes.length}`, 300, statsY + 55);
+      // ✅ Só mostrar Registros OBD2 se o dispositivo suporta OBD2
+      const suportaOBD2PDF = supportsOBD2(dispositivo.tipo);
+      if (suportaOBD2PDF) {
+        doc.text(`Registros OBD2: ${dadosOBD2.length}`, 300, statsY + 70);
+      }
+
+      // Linha de alertas (destaque se houver excessos)
+      if (excessosVelocidade > 0) {
+        doc.fillColor('#c62828').font('Helvetica-Bold');
+        doc.text(`⚠️ Excessos de Velocidade: ${excessosVelocidade} ocorrências`, 60, statsY + 85);
+        doc.fillColor('#000').font('Helvetica');
+      } else {
+        doc.text(`Excessos de Velocidade: 0`, 60, statsY + 85);
+      }
+      doc.text(`Alarmes: ${alarmes.length}`, 300, statsY + 85);
+
+      // Tipo de dispositivo
+      doc.fontSize(8).fillColor('#666');
+      doc.text(`Tipo: ${dispositivo.tipo || 'N/A'}`, 60, statsY + 105);
+
+      doc.y = statsY + 135;
+      doc.moveDown();
+
+      // ============ DETALHAMENTO DOS EXCESSOS DE VELOCIDADE ============
+      console.log(`[PDF Excessos] Total de excessos detectados: ${detalhesExcessos ? detalhesExcessos.length : 0}`);
+      if (detalhesExcessos && detalhesExcessos.length > 0) {
+        console.log(`[PDF Excessos] Amostra: Via="${detalhesExcessos[0].nomeVia}", Vel=${detalhesExcessos[0].velocidade}, Limite=${detalhesExcessos[0].limite}`);
+
+        // Nova página para excessos de velocidade
+        doc.addPage();
+        doc.rect(0, 0, 595, 50).fill('#c62828');
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('#fff')
+          .text('EXCESSOS DE VELOCIDADE', 50, 18, { align: 'center', width: 495 });
+        doc.y = 70;
+
+        // Resumo rápido
+        const resumoY = doc.y;
+        doc.rect(50, resumoY, 160, 50).fillAndStroke('#ffebee', '#c62828');
+        doc.rect(220, resumoY, 160, 50).fillAndStroke('#fff3e0', '#ff9800');
+        doc.rect(390, resumoY, 155, 50).fillAndStroke('#e3f2fd', '#2196f3');
+
+        doc.fillColor('#c62828').fontSize(20).font('Helvetica-Bold')
+          .text(detalhesExcessos.length.toString(), 50, resumoY + 8, { width: 160, align: 'center' });
+        doc.fillColor('#333').fontSize(9).font('Helvetica')
+          .text('Total de Excessos', 50, resumoY + 32, { width: 160, align: 'center' });
+
+        const maxExc = Math.max(...detalhesExcessos.map(e => e.excesso));
+        doc.fillColor('#e65100').fontSize(18).font('Helvetica-Bold')
+          .text(`+${maxExc}`, 220, resumoY + 8, { width: 160, align: 'center' });
+        doc.fillColor('#333').fontSize(9).font('Helvetica')
+          .text('Maior Excesso (km/h)', 220, resumoY + 32, { width: 160, align: 'center' });
+
+        const maxVel = Math.max(...detalhesExcessos.map(e => e.velocidade));
+        doc.fillColor('#1565c0').fontSize(18).font('Helvetica-Bold')
+          .text(`${maxVel}`, 390, resumoY + 8, { width: 155, align: 'center' });
+        doc.fillColor('#333').fontSize(9).font('Helvetica')
+          .text('Velocidade Máxima', 390, resumoY + 32, { width: 155, align: 'center' });
+
+        doc.y = resumoY + 60;
+
+        // Tabela detalhada com TODOS os excessos (com coordenadas)
+        doc.fontSize(11).font('Helvetica-Bold').fillColor('#333').text('Registro Detalhado dos Excessos');
+        doc.fontSize(8).fillColor('#666').font('Helvetica')
+          .text('(Coordenadas incluídas para identificação de radares/multas)');
+        doc.moveDown(0.3);
+
+        const excTableY = doc.y;
+        const excColWidths = [75, 140, 50, 45, 45, 130];
+        const excHeaders = ['Data/Hora', 'Via', 'Vel.', 'Limite', 'Excesso', 'Coordenadas'];
+
+        doc.fontSize(7).font('Helvetica-Bold').fillColor('#fff');
+        doc.rect(50, excTableY, 495, 13).fill('#c62828');
+
+        let xPos = 53;
+        excHeaders.forEach((header, i) => {
+          doc.text(header, xPos, excTableY + 3, { width: excColWidths[i], align: 'left' });
+          xPos += excColWidths[i];
+        });
+
+        doc.fillColor('#333').font('Helvetica').fontSize(6);
+        let yPos = excTableY + 15;
+
+        // Ordenar por data (mais recentes primeiro) e mostrar até 50 registros
+        const excessosOrdenados = [...detalhesExcessos].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        const maxRegistros = 50;
+
+        for (let i = 0; i < Math.min(excessosOrdenados.length, maxRegistros); i++) {
+          const exc = excessosOrdenados[i];
+
+          if (yPos > 760) {
+            doc.addPage();
+            // Repetir cabeçalho
+            doc.rect(0, 0, 595, 30).fill('#c62828');
+            doc.fontSize(12).font('Helvetica-Bold').fillColor('#fff')
+              .text('EXCESSOS DE VELOCIDADE (continuação)', 50, 8, { align: 'center', width: 495 });
+
+            yPos = 45;
+            doc.fontSize(7).font('Helvetica-Bold').fillColor('#fff');
+            doc.rect(50, yPos, 495, 13).fill('#c62828');
+            xPos = 53;
+            excHeaders.forEach((header, idx) => {
+              doc.text(header, xPos, yPos + 3, { width: excColWidths[idx], align: 'left' });
+              xPos += excColWidths[idx];
+            });
+            doc.fillColor('#333').font('Helvetica').fontSize(6);
+            yPos += 15;
+          }
+
+          // Fundo alternado (vermelho claro para excessos graves)
+          if (exc.excesso > 20) {
+            doc.rect(50, yPos - 1, 495, 11).fill('#ffcdd2');
+          } else if (i % 2 === 0) {
+            doc.rect(50, yPos - 1, 495, 11).fill('#fff8e1');
+          }
+          doc.fillColor('#333');
+
+          const nomeVia = exc.nomeVia && exc.nomeVia !== '' && exc.nomeVia !== 'N/A'
+            ? (exc.nomeVia.length > 28 ? exc.nomeVia.substring(0, 25) + '...' : exc.nomeVia)
+            : 'Via não identificada';
+
+          xPos = 53;
+          const excRowData = [
+            formatDateTime(exc.timestamp),
+            nomeVia,
+            `${exc.velocidade}`,
+            `${exc.limite}`,
+            `+${exc.excesso}`,
+            `${exc.latitude.toFixed(6)}, ${exc.longitude.toFixed(6)}`
+          ];
+
+          excRowData.forEach((data, idx) => {
+            // Destacar excesso em vermelho
+            if (idx === 4 && exc.excesso > 20) {
+              doc.fillColor('#c62828').font('Helvetica-Bold');
+            }
+            doc.text(data, xPos, yPos + 1, { width: excColWidths[idx], align: 'left' });
+            if (idx === 4) {
+              doc.fillColor('#333').font('Helvetica');
+            }
+            xPos += excColWidths[idx];
+          });
+
+          yPos += 11;
+        }
+
+        if (excessosOrdenados.length > maxRegistros) {
+          doc.moveDown(0.5);
+          doc.fontSize(8).fillColor('#666');
+          doc.text(`Mostrando ${maxRegistros} de ${excessosOrdenados.length} excessos. Use o CSV para ver todos.`, { align: 'center' });
+        }
+
+        doc.moveDown();
+        doc.fillColor('#000');
+      }
+
+      // ============ PARADAS SIGNIFICATIVAS ============
+      console.log(`[PDF Paradas] Total de paradas: ${paradasSignificativas.length}`);
+      if (paradasSignificativas.length > 0) {
+        // Buscar nomes das vias para cada parada
+        const velocidadeViaService = require('../services/velocidade-via.service');
+        for (const parada of paradasSignificativas) {
+          try {
+            const infoVia = await velocidadeViaService.obterLimiteVelocidade(parada.latitude, parada.longitude);
+            parada.nomeVia = infoVia.nome || 'Local não identificado';
+          } catch (e) {
+            parada.nomeVia = 'Local não identificado';
+          }
+        }
+
+        // Nova página para paradas
+        doc.addPage();
+        doc.rect(0, 0, 595, 50).fill('#1565c0');
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('#fff')
+          .text('PARADAS SIGNIFICATIVAS', 50, 18, { align: 'center', width: 495 });
+        doc.y = 70;
+
+        // Resumo das paradas
+        const resumoParY = doc.y;
+        const tempoTotalParadas = paradasSignificativas.reduce((sum, p) => sum + p.tempoMinutos, 0);
+        const maiorParada = Math.max(...paradasSignificativas.map(p => p.tempoMinutos));
+
+        doc.rect(50, resumoParY, 160, 50).fillAndStroke('#e3f2fd', '#1565c0');
+        doc.rect(220, resumoParY, 160, 50).fillAndStroke('#fff3e0', '#ff9800');
+        doc.rect(390, resumoParY, 155, 50).fillAndStroke('#e8f5e9', '#4caf50');
+
+        doc.fillColor('#1565c0').fontSize(20).font('Helvetica-Bold')
+          .text(paradasSignificativas.length.toString(), 50, resumoParY + 8, { width: 160, align: 'center' });
+        doc.fillColor('#333').fontSize(9).font('Helvetica')
+          .text('Total de Paradas', 50, resumoParY + 32, { width: 160, align: 'center' });
+
+        doc.fillColor('#e65100').fontSize(18).font('Helvetica-Bold')
+          .text(formatarTempo(maiorParada), 220, resumoParY + 8, { width: 160, align: 'center' });
+        doc.fillColor('#333').fontSize(9).font('Helvetica')
+          .text('Maior Parada', 220, resumoParY + 32, { width: 160, align: 'center' });
+
+        doc.fillColor('#2e7d32').fontSize(18).font('Helvetica-Bold')
+          .text(formatarTempo(tempoTotalParadas), 390, resumoParY + 8, { width: 155, align: 'center' });
+        doc.fillColor('#333').fontSize(9).font('Helvetica')
+          .text('Tempo Total Parado', 390, resumoParY + 32, { width: 155, align: 'center' });
+
+        doc.y = resumoParY + 65;
+
+        // Tabela de paradas
+        doc.fontSize(11).font('Helvetica-Bold').fillColor('#333').text('Registro de Paradas (> 5 minutos)');
+        doc.fontSize(8).fillColor('#666').font('Helvetica')
+          .text('(Locais onde o veículo permaneceu parado por tempo significativo)');
+        doc.moveDown(0.3);
+
+        const parTableY = doc.y;
+        const parColWidths = [30, 70, 70, 55, 150, 115];
+        const parHeaders = ['#', 'Início', 'Fim', 'Duração', 'Local/Via', 'Coordenadas'];
+
+        doc.fontSize(7).font('Helvetica-Bold').fillColor('#fff');
+        doc.rect(50, parTableY, 495, 13).fill('#1565c0');
+
+        let xPos = 53;
+        parHeaders.forEach((header, i) => {
+          doc.text(header, xPos, parTableY + 3, { width: parColWidths[i], align: 'left' });
+          xPos += parColWidths[i];
+        });
+
+        doc.fillColor('#333').font('Helvetica').fontSize(6);
+        let yPos = parTableY + 15;
+
+        // Ordenar por duração (maior primeiro)
+        const paradasOrdenadas = [...paradasSignificativas].sort((a, b) => b.tempoMinutos - a.tempoMinutos);
+
+        for (let i = 0; i < paradasOrdenadas.length; i++) {
+          const parada = paradasOrdenadas[i];
+
+          if (yPos > 760) {
+            doc.addPage();
+            // Repetir cabeçalho
+            doc.rect(0, 0, 595, 30).fill('#1565c0');
+            doc.fontSize(12).font('Helvetica-Bold').fillColor('#fff')
+              .text('PARADAS SIGNIFICATIVAS (continuação)', 50, 8, { align: 'center', width: 495 });
+
+            yPos = 45;
+            doc.fontSize(7).font('Helvetica-Bold').fillColor('#fff');
+            doc.rect(50, yPos, 495, 13).fill('#1565c0');
+            xPos = 53;
+            parHeaders.forEach((header, idx) => {
+              doc.text(header, xPos, yPos + 3, { width: parColWidths[idx], align: 'left' });
+              xPos += parColWidths[idx];
+            });
+            doc.fillColor('#333').font('Helvetica').fontSize(6);
+            yPos += 15;
+          }
+
+          // Fundo alternado (azul claro para paradas longas > 30min)
+          if (parada.tempoMinutos > 30) {
+            doc.rect(50, yPos - 1, 495, 11).fill('#bbdefb');
+          } else if (i % 2 === 0) {
+            doc.rect(50, yPos - 1, 495, 11).fill('#f5f5f5');
+          }
+          doc.fillColor('#333');
+
+          const nomeLocal = parada.nomeVia && parada.nomeVia !== 'Local não identificado'
+            ? (parada.nomeVia.length > 35 ? parada.nomeVia.substring(0, 32) + '...' : parada.nomeVia)
+            : 'Local não identificado';
+
+          xPos = 53;
+          const parRowData = [
+            (i + 1).toString(),
+            formatDateTime(parada.inicio),
+            formatDateTime(parada.fim),
+            formatarTempo(parada.tempoMinutos),
+            nomeLocal,
+            `${parada.latitude.toFixed(6)}, ${parada.longitude.toFixed(6)}`
+          ];
+
+          parRowData.forEach((data, idx) => {
+            // Destacar duração longa em azul
+            if (idx === 3 && parada.tempoMinutos > 30) {
+              doc.fillColor('#1565c0').font('Helvetica-Bold');
+            }
+            doc.text(data, xPos, yPos + 1, { width: parColWidths[idx], align: 'left' });
+            if (idx === 3) {
+              doc.fillColor('#333').font('Helvetica');
+            }
+            xPos += parColWidths[idx];
+          });
+
+          yPos += 11;
+        }
+
+        doc.moveDown();
+        doc.fillColor('#000');
+      }
+
+      // ============ MAPA COM TRAJETÓRIA ============
+      // ✅ Usar localizacoesCorrigidas para desenhar rota que segue as ruas
+      console.log(`[PDF] Total de localizacoes: ${localizacoes.length}, corrigidas: ${localizacoesCorrigidas.length}`);
+      if (localizacoes.length > 0) {
+        // Nova página para trajetória
+        doc.addPage();
+        doc.rect(0, 0, 595, 50).fill('#667eea');
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('#fff')
+          .text('TRAJETÓRIA DO VEÍCULO', 50, 18, { align: 'center', width: 495 });
+        doc.y = 70;
+
+        // ✅ Usar dados corrigidos pelo OSRM para o mapa (rota realista nas ruas)
+        const mapInfo = generateMapInfo(localizacoesCorrigidas);
+
+        if (mapInfo && mapInfo.validLocs.length > 0) {
+          const validLocs = mapInfo.validLocs;
+          // ✅ Usar coordenadas corrigidas mas timestamps originais
+          const primeiro = validLocs[0];
+          const ultimo = validLocs[validLocs.length - 1];
+          // Timestamps das localizações originais (início e fim reais da viagem)
+          const primeiroOriginal = localizacoes[0];
+          const ultimoOriginal = localizacoes[localizacoes.length - 1];
+
+          // Box visual da trajetória
+          const routeBoxY = doc.y;
+          doc.rect(50, routeBoxY, 495, 120).fillAndStroke('#f0f7ff', '#667eea');
+
+          // Título do box
+          doc.fontSize(10).font('Helvetica-Bold').fillColor('#667eea');
+          doc.text('RESUMO DA TRAJETÓRIA', 60, routeBoxY + 10);
+
+          // Linha divisória
+          doc.moveTo(60, routeBoxY + 25).lineTo(535, routeBoxY + 25).stroke('#667eea');
+
+          // Ponto de INÍCIO (coordenadas originais, timestamp original)
+          doc.fontSize(9).font('Helvetica-Bold').fillColor('#2e7d32');
+          doc.text('INÍCIO', 60, routeBoxY + 35);
+          doc.fontSize(8).font('Helvetica').fillColor('#333');
+          doc.text(`Coordenadas: ${primeiroOriginal.latitude.toFixed(6)}, ${primeiroOriginal.longitude.toFixed(6)}`, 60, routeBoxY + 48);
+          doc.text(`Data/Hora: ${formatDateTime(primeiroOriginal.timestamp)}`, 60, routeBoxY + 60);
+
+          // Ponto de FIM (coordenadas originais, timestamp original)
+          doc.fontSize(9).font('Helvetica-Bold').fillColor('#c62828');
+          doc.text('FIM', 300, routeBoxY + 35);
+          doc.fontSize(8).font('Helvetica').fillColor('#333');
+          doc.text(`Coordenadas: ${ultimoOriginal.latitude.toFixed(6)}, ${ultimoOriginal.longitude.toFixed(6)}`, 300, routeBoxY + 48);
+          doc.text(`Data/Hora: ${formatDateTime(ultimoOriginal.timestamp)}`, 300, routeBoxY + 60);
+
+          // Informações extras
+          doc.fontSize(8).fillColor('#666');
+          doc.text(`Total de pontos GPS: ${localizacoes.length} (${validLocs.length} na rota corrigida)`, 60, routeBoxY + 80);
+          doc.text(`Área: ${mapInfo.bounds.minLat.toFixed(4)} a ${mapInfo.bounds.maxLat.toFixed(4)} (lat)`, 60, routeBoxY + 92);
+          doc.text(`       ${mapInfo.bounds.minLng.toFixed(4)} a ${mapInfo.bounds.maxLng.toFixed(4)} (lon)`, 60, routeBoxY + 104);
+
+          // Link para ver no mapa (usando coordenadas originais)
+          doc.fillColor('#1976d2').font('Helvetica-Bold');
+          doc.text(`Ver no Google Maps: maps.google.com/?q=${primeiroOriginal.latitude},${primeiroOriginal.longitude}`, 300, routeBoxY + 80, { link: `https://maps.google.com/?q=${primeiroOriginal.latitude},${primeiroOriginal.longitude}`, underline: true });
+
+          doc.y = routeBoxY + 130;
+
+          // Desenhar mapa da rota diretamente no PDF
+          try {
+            console.log('[PDF] Gerando visualização da rota...');
+
+            const mapWidth = 495;
+            const mapHeight = 200; // Aumentado para melhor visualização
+            const mapX = 50;
+            const mapY = doc.y;
+            const margin = 5; // Margem reduzida para maximizar área do mapa
+
+            // ✅ Baixar tiles do OpenStreetMap
+            let mapaFundoCarregado = false;
+            let tileBounds = null;
+            let tileAreaX = mapX, tileAreaY = mapY;
+            let tileAreaWidth = mapWidth, tileAreaHeight = mapHeight;
+
+            try {
+              // Calcular zoom baseado na extensão da rota
+              const latDiff = mapInfo.bounds.maxLat - mapInfo.bounds.minLat;
+              const lngDiff = mapInfo.bounds.maxLng - mapInfo.bounds.minLng;
+              const maxDiff = Math.max(latDiff, lngDiff);
+              let osmZoom = 14;
+              if (maxDiff > 0.5) osmZoom = 10;
+              else if (maxDiff > 0.3) osmZoom = 11;
+              else if (maxDiff > 0.15) osmZoom = 12;
+              else if (maxDiff > 0.08) osmZoom = 13;
+              else if (maxDiff > 0.04) osmZoom = 14;
+              else osmZoom = 15;
+
+              // Adicionar pequena margem aos bounds para pegar tiles ao redor
+              const marginLat = latDiff * 0.1;
+              const marginLng = lngDiff * 0.1;
+              const expandedBounds = {
+                minLat: mapInfo.bounds.minLat - marginLat,
+                maxLat: mapInfo.bounds.maxLat + marginLat,
+                minLng: mapInfo.bounds.minLng - marginLng,
+                maxLng: mapInfo.bounds.maxLng + marginLng
+              };
+
+              console.log(`[PDF] Tentando baixar tiles OSM zoom=${osmZoom}`);
+
+              // Tentar baixar tiles (reduzir zoom se muitos tiles)
+              let tileData = await downloadOSMTiles(expandedBounds, osmZoom, 16);
+              if (!tileData && osmZoom > 10) {
+                console.log('[PDF] Muitos tiles, reduzindo zoom...');
+                tileData = await downloadOSMTiles(expandedBounds, osmZoom - 1, 16);
+              }
+              if (!tileData && osmZoom > 11) {
+                tileData = await downloadOSMTiles(expandedBounds, osmZoom - 2, 16);
+              }
+
+              if (tileData && tileData.tiles.length > 0) {
+                // Calcular proporção dos tiles (cada tile é 256x256)
+                const tilesAspectRatio = tileData.numTilesX / tileData.numTilesY;
+                const mapAspectRatio = mapWidth / mapHeight;
+
+                let finalTileWidth, finalTileHeight, offsetX = 0, offsetY = 0;
+
+                if (tilesAspectRatio > mapAspectRatio) {
+                  // Tiles são mais largos - ajustar pela largura
+                  finalTileWidth = mapWidth / tileData.numTilesX;
+                  finalTileHeight = finalTileWidth; // Manter tiles quadrados
+                  offsetY = (mapHeight - finalTileHeight * tileData.numTilesY) / 2;
+                } else {
+                  // Tiles são mais altos - ajustar pela altura
+                  finalTileHeight = mapHeight / tileData.numTilesY;
+                  finalTileWidth = finalTileHeight; // Manter tiles quadrados
+                  offsetX = (mapWidth - finalTileWidth * tileData.numTilesX) / 2;
+                }
+
+                // Fundo cinza para área não coberta pelos tiles
+                doc.rect(mapX, mapY, mapWidth, mapHeight).fill('#e8e8e8');
+
+                // Desenhar cada tile mantendo proporção quadrada
+                for (const tile of tileData.tiles) {
+                  const tileX = mapX + offsetX + tile.gridX * finalTileWidth;
+                  const tileY = mapY + offsetY + tile.gridY * finalTileHeight;
+                  doc.image(tile.buffer, tileX, tileY, { width: finalTileWidth, height: finalTileHeight });
+                }
+
+                // Salvar informações da área real dos tiles para alinhar a rota
+                tileAreaX = mapX + offsetX;
+                tileAreaY = mapY + offsetY;
+                tileAreaWidth = finalTileWidth * tileData.numTilesX;
+                tileAreaHeight = finalTileHeight * tileData.numTilesY;
+
+                tileBounds = tileData.bounds;
+                mapaFundoCarregado = true;
+                console.log(`[PDF] ${tileData.tiles.length} tiles OSM carregados (${tileData.numTilesX}x${tileData.numTilesY})`);
+              }
+            } catch (osmError) {
+              console.log('[PDF] Não foi possível carregar mapa OSM:', osmError.message);
+            }
+
+            // Fallback: fundo cinza com grid se não conseguiu carregar o mapa
+            if (!mapaFundoCarregado) {
+              doc.rect(mapX, mapY, mapWidth, mapHeight).fill('#f0f0f0').stroke('#e0e0e0');
+              // Grid
+              doc.strokeColor('#d0d0d0').lineWidth(0.3);
+              for (let i = 1; i < 6; i++) {
+                const gridY = mapY + (i * mapHeight / 6);
+                doc.moveTo(mapX, gridY).lineTo(mapX + mapWidth, gridY).stroke();
+                const gridX = mapX + (i * mapWidth / 6);
+                doc.moveTo(gridX, mapY).lineTo(gridX, mapY + mapHeight).stroke();
+              }
+            }
+
+            // Calcular bounds para conversão de coordenadas
+            // Se tiles foram carregados, usar bounds dos tiles para alinhamento correto
+            const useBounds = tileBounds || mapInfo.bounds;
+            const latRange = Math.max(useBounds.maxLat - useBounds.minLat, 0.01);
+            const lngRange = Math.max(useBounds.maxLng - useBounds.minLng, 0.01);
+
+            // Usar área real dos tiles para conversão de coordenadas
+            const toPDF = (lat, lng) => ({
+              x: tileAreaX + ((lng - useBounds.minLng) / lngRange) * tileAreaWidth,
+              y: tileAreaY + ((useBounds.maxLat - lat) / latRange) * tileAreaHeight
+            });
+
+            // Simplificar pontos se houver muitos
+            let pontosRota = validLocs;
+            if (validLocs.length > 150) {
+              const step = Math.ceil(validLocs.length / 150);
+              pontosRota = validLocs.filter((_, i) => i % step === 0 || i === validLocs.length - 1);
+            }
+
+            // ✅ Desenhar contorno branco da rota (para destaque sobre o mapa)
+            doc.strokeColor('#ffffff').lineWidth(5).lineJoin('round').lineCap('round');
+            let firstPoint = toPDF(pontosRota[0].latitude, pontosRota[0].longitude);
+            doc.moveTo(firstPoint.x, firstPoint.y);
+            for (let i = 1; i < pontosRota.length; i++) {
+              const p = toPDF(pontosRota[i].latitude, pontosRota[i].longitude);
+              doc.lineTo(p.x, p.y);
+            }
+            doc.stroke();
+
+            // ✅ Desenhar a rota principal (azul sobre o contorno branco)
+            doc.strokeColor('#1565C0').lineWidth(3).lineJoin('round').lineCap('round');
+            firstPoint = toPDF(pontosRota[0].latitude, pontosRota[0].longitude);
+            doc.moveTo(firstPoint.x, firstPoint.y);
+            for (let i = 1; i < pontosRota.length; i++) {
+              const p = toPDF(pontosRota[i].latitude, pontosRota[i].longitude);
+              doc.lineTo(p.x, p.y);
+            }
+            doc.stroke();
+
+            // Marcador de início (verde) - maior e com borda
+            const inicio = toPDF(validLocs[0].latitude, validLocs[0].longitude);
+            doc.circle(inicio.x, inicio.y, 9).fill('#ffffff');
+            doc.circle(inicio.x, inicio.y, 7).fill('#4CAF50');
+            doc.fillColor('#fff').fontSize(8).font('Helvetica-Bold');
+            doc.text('I', inicio.x - 3, inicio.y - 4);
+
+            // Marcador de fim (vermelho) - maior e com borda
+            const fim = toPDF(validLocs[validLocs.length - 1].latitude, validLocs[validLocs.length - 1].longitude);
+            doc.circle(fim.x, fim.y, 9).fill('#ffffff');
+            doc.circle(fim.x, fim.y, 7).fill('#E53935');
+            doc.fillColor('#fff').fontSize(8).font('Helvetica-Bold');
+            doc.text('F', fim.x - 3, fim.y - 4);
+
+            // ✅ Marcadores de paradas significativas (laranja)
+            if (paradasSignificativas && paradasSignificativas.length > 0) {
+              console.log(`[PDF Map] Desenhando ${paradasSignificativas.length} paradas no mapa`);
+              for (let pIdx = 0; pIdx < paradasSignificativas.length; pIdx++) {
+                const parada = paradasSignificativas[pIdx];
+                const pPos = toPDF(parada.latitude, parada.longitude);
+
+                // Verificar se está dentro da área do mapa
+                if (pPos.x >= tileAreaX && pPos.x <= tileAreaX + tileAreaWidth &&
+                    pPos.y >= tileAreaY && pPos.y <= tileAreaY + tileAreaHeight) {
+                  // Tamanho baseado na duração (maior = mais tempo parado)
+                  const tamanho = parada.tempoMinutos > 30 ? 8 : 6;
+
+                  // Borda branca para destaque
+                  doc.circle(pPos.x, pPos.y, tamanho + 2).fill('#ffffff');
+                  // Cor laranja para paradas
+                  doc.circle(pPos.x, pPos.y, tamanho).fill('#FF9800');
+                  // Número da parada
+                  doc.fillColor('#fff').fontSize(tamanho > 6 ? 7 : 5).font('Helvetica-Bold');
+                  const numText = (pIdx + 1).toString();
+                  doc.text(numText, pPos.x - (numText.length > 1 ? 4 : 2), pPos.y - (tamanho > 6 ? 3 : 2));
+                }
+              }
+            }
+
+            // ✅ Legenda com fundo semi-transparente
+            const legendY = mapY + mapHeight - 18;
+            const temParadas = paradasSignificativas && paradasSignificativas.length > 0;
+            const legendWidth = temParadas ? 260 : 200;
+            doc.rect(mapX + 5, legendY - 5, legendWidth, 18).fill('#ffffffcc');
+            doc.circle(mapX + 15, legendY + 4, 5).fill('#4CAF50');
+            doc.fillColor('#333').fontSize(8).font('Helvetica');
+            doc.text('Início', mapX + 23, legendY);
+            doc.circle(mapX + 65, legendY + 4, 5).fill('#E53935');
+            doc.fillColor('#333');
+            doc.text('Fim', mapX + 73, legendY);
+            // ✅ Adicionar paradas na legenda se existirem
+            if (temParadas) {
+              doc.circle(mapX + 105, legendY + 4, 5).fill('#FF9800');
+              doc.fillColor('#333');
+              doc.text(`Paradas (${paradasSignificativas.length})`, mapX + 113, legendY);
+            }
+            doc.fillColor('#666').fontSize(7);
+            const xPts = temParadas ? 185 : 110;
+            doc.text(`${pontosRota.length} pts`, mapX + xPts, legendY + 1);
+            // ✅ Indicar se mapa OSM foi carregado
+            const mapLabel = mapaFundoCarregado ? '© OpenStreetMap' : 'Mapa indisponível';
+            doc.text(mapLabel, mapX + xPts + 45, legendY + 1);
+
+            doc.y = mapY + mapHeight + 10;
+            doc.fillColor('#999').fontSize(7);
+            // ✅ Indicar que a rota foi corrigida pelo OSRM
+            const textoRota = aplicarCorrecao && localizacoesCorrigidas.length !== localizacoes.length
+              ? 'Rota corrigida pelo OSRM (snap-to-road) - segue vias reais'
+              : 'Visualização da rota (para mapa detalhado, use o link do Google Maps acima)';
+            doc.text(textoRota, mapX, doc.y, { align: 'center', width: mapWidth });
+
+            console.log('[PDF] Visualização da rota incluída com sucesso');
+          } catch (mapError) {
+            console.log('[PDF] Erro ao gerar visualização da rota:', mapError.message);
+          }
+
+          // Lista de pontos intermediários (amostragem)
+          if (validLocs.length > 2) {
+            doc.moveDown();
+            doc.fontSize(9).font('Helvetica-Bold').fillColor('#000');
+            doc.text('Pontos Intermediários (amostragem):');
+            doc.fontSize(7).font('Helvetica').fillColor('#555');
+
+            // Mostrar até 10 pontos intermediários
+            const step = Math.max(1, Math.floor(validLocs.length / 10));
+            let count = 0;
+            for (let i = step; i < validLocs.length - 1 && count < 8; i += step) {
+              const ponto = validLocs[i];
+              doc.text(`  ${count + 1}. ${ponto.latitude.toFixed(5)}, ${ponto.longitude.toFixed(5)} - ${formatDateTime(ponto.timestamp)} - ${ponto.velocidade || 0} km/h`);
+              count++;
+            }
+          }
+        } else {
+          // Sem localizações válidas
+          doc.fontSize(10).fillColor('#999');
+          doc.text('Nenhuma localização GPS válida encontrada no período selecionado.', { align: 'center' });
+          doc.text('(Coordenadas 0,0 ou -90,-180 são consideradas inválidas)', { align: 'center' });
+        }
+
+        doc.moveDown();
+      }
+    }
+
+    // ============ LOCALIZAÇÕES (TODOS os dados do período) ============
+    if (incluirLocalizacoes === 'true') {
+      const localizacoes = await prisma.localizacao.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        },
+        orderBy: { timestamp: 'desc' }
+        // ✅ SEM LIMITE - exportar todos os dados do período
+      });
+
+      if (localizacoes.length > 0) {
+        doc.addPage();
+        doc.fontSize(12).font('Helvetica-Bold').text(`Histórico de Localizações (${localizacoes.length} registros)`);
+        doc.moveDown(0.5);
+
+        // Cache persistente: consulta limites com precisão do banco
+        console.log(`[PDF Table] Consultando limites para ${localizacoes.length} pontos (cache persistente)...`);
+        let limitesViaTabela = new Map();
+        try {
+          const pontosTabela = localizacoes.map(l => ({ lat: l.latitude, lng: l.longitude }));
+          limitesViaTabela = await velocidadeViaService.obterLimitesEmLote(pontosTabela);
+        } catch (e) {
+          console.log('[PDF Table] Erro ao consultar limites:', e.message);
+        }
+
+        // Tabela de localizações (com coluna de excesso)
+        const tableTop = doc.y;
+        const colWidths = [80, 50, 70, 70, 55, 40, 45, 45];
+        const headers = ['Data/Hora', 'Ignição', 'Latitude', 'Longitude', 'Velocidade', 'Limite', 'Excesso', 'Direção'];
+
+        // Cabeçalho da tabela
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#fff');
+        doc.rect(50, tableTop, 495, 15).fill('#667eea');
+
+        let xPos = 55;
+        headers.forEach((header, i) => {
+          doc.text(header, xPos, tableTop + 4, { width: colWidths[i], align: 'left' });
+          xPos += colWidths[i];
+        });
+
+        doc.fillColor('#000').font('Helvetica').fontSize(7);
+        let yPos = tableTop + 18;
+
+        for (const loc of localizacoes) {  // ✅ TODOS os registros
+          if (yPos > 750) {
+            doc.addPage();
+            yPos = 50;
+          }
+
+          // Obter limite de velocidade da via (cache preciso)
+          const velocidade = loc.velocidade || 0;
+          const cacheKey = velocidadeViaService.getCacheKey(loc.latitude, loc.longitude);
+          const infoVia = limitesViaTabela.get(cacheKey);
+          const limiteVia = infoVia?.limite || 60;
+
+          // Verificar excesso de velocidade
+          const excedeVelocidade = velocidade > limiteVia;
+
+          // Alternar cor de fundo (vermelho claro se excedeu)
+          if (excedeVelocidade) {
+            doc.rect(50, yPos - 2, 495, 12).fill('#ffe6e6');
+          } else if (localizacoes.indexOf(loc) % 2 === 0) {
+            doc.rect(50, yPos - 2, 495, 12).fill('#f7fafc');
+          }
+          doc.fillColor('#000');
+
+          // Determinar estado da ignição
+          let ignicaoTexto = 'N/A';
+          if (loc.ignicao !== null && loc.ignicao !== undefined) {
+            if (!loc.ignicao) {
+              ignicaoTexto = 'OFF';
+            } else if (velocidade > 5) {
+              ignicaoTexto = 'MOV';
+            } else {
+              ignicaoTexto = 'OCIOSO';
+            }
+          }
+
+          xPos = 55;
+          const rowData = [
+            formatDateTime(loc.timestamp),
+            ignicaoTexto,
+            loc.latitude?.toFixed(6) || '',
+            loc.longitude?.toFixed(6) || '',
+            `${velocidade} km/h`,
+            `${limiteVia}`,
+            excedeVelocidade ? 'SIM' : '-',
+            `${loc.direcao || '-'}°`
+          ];
+
+          rowData.forEach((data, i) => {
+            // Destacar excesso em vermelho
+            if (i === 6 && excedeVelocidade) {
+              doc.fillColor('#c62828').font('Helvetica-Bold');
+            }
+            doc.text(data, xPos, yPos, { width: colWidths[i], align: 'left' });
+            if (i === 6 && excedeVelocidade) {
+              doc.fillColor('#000').font('Helvetica');
+            }
+            xPos += colWidths[i];
+          });
+
+          yPos += 12;
+        }
+      }
+    }
+
+    // ============ DADOS OBD2 (TODOS os dados do período) ============
+    // ✅ Só inclui OBD2 se o dispositivo SUPORTA OBD2 (não inclui para XT40_4F)
+    const dispositivoSuportaOBD2PDF = supportsOBD2(dispositivo.tipo);
+    if (incluirOBD2 === 'true' && dispositivoSuportaOBD2PDF) {
+      const dadosOBD2 = await prisma.dadosOBD2.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        },
+        orderBy: { timestamp: 'desc' }
+        // ✅ SEM LIMITE - exportar todos os dados do período
+      });
+
+      if (dadosOBD2.length > 0) {
+        doc.addPage();
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#000').text(`Dados de Telemetria/OBD2 (${dadosOBD2.length} registros)`);
+        doc.moveDown(0.5);
+
+        const tableTop = doc.y;
+        const colWidths = [80, 55, 45, 45, 45, 50, 50, 45, 40];
+        const headers = ['Data/Hora', 'Ignição', 'RPM', 'Temp.', 'Comb.', 'Odômetro', 'Horímetro', 'Bateria', 'Tensão'];
+
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#fff');
+        doc.rect(50, tableTop, 495, 15).fill('#667eea');
+
+        let xPos = 55;
+        headers.forEach((header, i) => {
+          doc.text(header, xPos, tableTop + 4, { width: colWidths[i], align: 'left' });
+          xPos += colWidths[i];
+        });
+
+        doc.fillColor('#000').font('Helvetica').fontSize(7);
+        let yPos = tableTop + 18;
+
+        for (const obd of dadosOBD2) {
+          if (yPos > 750) {
+            doc.addPage();
+            yPos = 50;
+          }
+
+          if (dadosOBD2.indexOf(obd) % 2 === 0) {
+            doc.rect(50, yPos - 2, 495, 12).fill('#f7fafc');
+            doc.fillColor('#000');
+          }
+
+          // Determinar estado da ignição
+          let ignicaoTexto = 'N/A';
+          if (obd.ignicao !== null && obd.ignicao !== undefined) {
+            if (!obd.ignicao) {
+              ignicaoTexto = 'OFF';
+            } else if (obd.velocidade !== null && obd.velocidade > 5) {
+              ignicaoTexto = 'MOV';
+            } else if (obd.velocidade !== null && obd.velocidade <= 5) {
+              ignicaoTexto = 'OCIOSO';
+            } else {
+              ignicaoTexto = 'ON';
+            }
+          }
+
+          xPos = 55;
+          const rowData = [
+            formatDateTime(obd.timestamp),
+            ignicaoTexto,
+            obd.rpm || '-',
+            obd.temperatura_motor ? `${obd.temperatura_motor}°C` : '-',
+            obd.nivel_combustivel ? `${obd.nivel_combustivel}%` : '-',
+            obd.odometro_embarcado ? `${Math.round(obd.odometro_embarcado)} km` : '-',
+            obd.hora_motor_embarcada ? `${Math.round(obd.hora_motor_embarcada)} h` : '-',
+            obd.percentual_bateria ? `${obd.percentual_bateria}%` : '-',
+            obd.tensao_bateria ? `${obd.tensao_bateria.toFixed(1)}V` : '-'
+          ];
+
+          rowData.forEach((data, i) => {
+            doc.text(String(data), xPos, yPos, { width: colWidths[i], align: 'left' });
+            xPos += colWidths[i];
+          });
+
+          yPos += 12;
+        }
+      }
+    }
+
+    // ============ ALARMES ============
+    if (incluirAlarmes === 'true') {
+      const alarmes = await prisma.alarme.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        },
+        orderBy: { timestamp: 'desc' }
+      });
+
+      if (alarmes.length > 0) {
+        doc.addPage();
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#000').text(`Registro de Alarmes (${alarmes.length} registros)`);
+        doc.moveDown(0.5);
+
+        for (const alarme of alarmes) {  // ✅ TODOS os alarmes
+          const severidadeCor = alarme.severidade === 'critical' ? '#f56565' :
+                               alarme.severidade === 'high' ? '#ed8936' : '#48bb78';
+
+          doc.rect(50, doc.y, 495, 40).fillAndStroke('#fff', '#e2e8f0');
+          doc.rect(50, doc.y, 5, 40).fill(severidadeCor);
+
+          doc.fillColor('#000').fontSize(9).font('Helvetica-Bold');
+          doc.text(alarme.tipo_alarme, 60, doc.y + 5);
+
+          doc.fontSize(8).font('Helvetica').fillColor('#666');
+          doc.text(formatDateTime(alarme.timestamp), 60, doc.y + 18);
+          doc.text(alarme.descricao || '', 60, doc.y + 28, { width: 400 });
+
+          doc.y += 45;
+
+          if (doc.y > 750) {
+            doc.addPage();
+          }
+        }
+      }
+    }
+
+    // ============ RODAPÉ ============
+    const addFooter = () => {
+      doc.fontSize(8).fillColor('#999');
+      doc.text(
+        'Sistema de Rastreamento Veicular - Documento gerado automaticamente',
+        50, 780, { align: 'center', width: 495 }
+      );
+    };
+
+    // Adicionar rodapé em todas as páginas
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i++) {
+      doc.switchToPage(i);
+      addFooter();
+    }
+
+    doc.end();
+
+  } catch (error) {
+    console.error('[Exportar PDF] Erro:', error);
+    res.status(500).json({ sucesso: false, mensagem: 'Erro ao gerar PDF', erro: error.message });
+  }
+});
+
+// ============ DADOS PARA PDF COM MAPA (JSON) ============
+
+/**
+ * GET /api/exportar/:imei/dados-relatorio
+ * Retorna dados formatados para gerar PDF no cliente (com mapa)
+ * ✅ Multi-tenant: Verifica propriedade do dispositivo
+ */
+router.get('/:imei/dados-relatorio', verificarDispositivoTenant, async (req, res) => {
+  try {
+    const { imei } = req.params;
+    const { dataInicio, dataFim } = req.query;
+
+    const dispositivo = await prisma.dispositivo.findUnique({
+      where: { imei }
+    });
+
+    if (!dispositivo) {
+      return res.status(404).json({ sucesso: false, mensagem: 'Dispositivo não encontrado' });
+    }
+
+    const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const fim = dataFim ? new Date(dataFim) : new Date();
+
+    // Buscar todos os dados
+    const [localizacoes, dadosOBD2, alarmes] = await Promise.all([
+      prisma.localizacao.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        },
+        orderBy: { timestamp: 'asc' }
+      }),
+      prisma.dadosOBD2.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        },
+        orderBy: { timestamp: 'desc' }
+      }),
+      prisma.alarme.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        },
+        orderBy: { timestamp: 'desc' }
+      })
+    ]);
+
+    // Calcular estatísticas
+    let distanciaTotal = 0;
+    let velocidadeMax = 0;
+    let velocidadeMedia = 0;
+
+    if (localizacoes.length > 1) {
+      for (let i = 1; i < localizacoes.length; i++) {
+        const dist = calcularDistancia(
+          localizacoes[i-1].latitude, localizacoes[i-1].longitude,
+          localizacoes[i].latitude, localizacoes[i].longitude
+        );
+        distanciaTotal += dist;
+      }
+
+      const velocidades = localizacoes.filter(l => l.velocidade > 0).map(l => l.velocidade);
+      if (velocidades.length > 0) {
+        velocidadeMax = Math.max(...velocidades);
+        velocidadeMedia = Math.round(velocidades.reduce((a, b) => a + b, 0) / velocidades.length);
+      }
+    }
+
+    res.json({
+      sucesso: true,
+      dados: {
+        dispositivo: {
+          imei: dispositivo.imei,
+          placa: dispositivo.placa,
+          veiculo: dispositivo.veiculo,
+          tipo: dispositivo.tipo,
+          status: dispositivo.status
+        },
+        periodo: {
+          inicio: inicio.toISOString(),
+          fim: fim.toISOString()
+        },
+        estatisticas: {
+          distanciaTotal: distanciaTotal.toFixed(2),
+          velocidadeMax,
+          velocidadeMedia,
+          totalLocalizacoes: localizacoes.length,
+          totalOBD2: dadosOBD2.length,
+          totalAlarmes: alarmes.length
+        },
+        localizacoes: localizacoes.map(l => ({
+          timestamp: l.timestamp,
+          ignicao: l.ignicao,
+          latitude: l.latitude,
+          longitude: l.longitude,
+          velocidade: l.velocidade,
+          direcao: l.direcao
+        })),
+        obd2: dadosOBD2,  // ✅ TODOS os dados OBD2
+        alarmes: alarmes  // ✅ TODOS os alarmes
+      }
+    });
+
+  } catch (error) {
+    console.error('[Dados Relatório] Erro:', error);
+    res.status(500).json({ sucesso: false, mensagem: 'Erro ao buscar dados', erro: error.message });
+  }
+});
+
+// ============ HELPERS ============
+
+function formatDateTime(date) {
+  if (!date) return '';
+  return new Date(date).toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}
+
+function formatDateForFilename(date) {
+  return new Date(date).toISOString().split('T')[0].replace(/-/g, '');
+}
+
+function calcularDistancia(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Raio da Terra em km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function toRad(deg) {
+  return deg * (Math.PI / 180);
+}
+
+// ============ GERAÇÃO DE MAPA ESTÁTICO ============
+
+/**
+ * Codifica polyline no formato do Google Static Maps
+ * Algoritmo: https://developers.google.com/maps/documentation/utilities/polylinealgorithm
+ */
+function encodePolyline(coordinates) {
+  if (!coordinates || coordinates.length === 0) return '';
+
+  let encoded = '';
+  let prevLat = 0;
+  let prevLng = 0;
+
+  for (const [lat, lng] of coordinates) {
+    // Escalar para 5 casas decimais e arredondar
+    const latE5 = Math.round(lat * 1e5);
+    const lngE5 = Math.round(lng * 1e5);
+
+    // Calcular diferenças
+    let dLat = latE5 - prevLat;
+    let dLng = lngE5 - prevLng;
+
+    prevLat = latE5;
+    prevLng = lngE5;
+
+    // Codificar cada diferença
+    encoded += encodeNumber(dLat);
+    encoded += encodeNumber(dLng);
+  }
+
+  return encoded;
+}
+
+function encodeNumber(num) {
+  // Transformar em representação de sinal invertido
+  let sgn_num = num << 1;
+  if (num < 0) {
+    sgn_num = ~sgn_num;
+  }
+
+  let encoded = '';
+  while (sgn_num >= 0x20) {
+    encoded += String.fromCharCode((0x20 | (sgn_num & 0x1f)) + 63);
+    sgn_num >>= 5;
+  }
+  encoded += String.fromCharCode(sgn_num + 63);
+
+  return encoded;
+}
+
+/**
+ * Gera URL do Google Static Maps com a rota
+ */
+function generateStaticMapUrl(localizacoes, width = 640, height = 400) {
+  if (!localizacoes || localizacoes.length === 0) {
+    return null;
+  }
+
+  // Filtrar localizações válidas (não 0,0 e não -90,-180)
+  const validLocs = localizacoes.filter(l =>
+    l.latitude && l.longitude &&
+    !(l.latitude === 0 && l.longitude === 0) &&
+    !(l.latitude === -90 && l.longitude === -180) &&
+    l.latitude >= -90 && l.latitude <= 90 &&
+    l.longitude >= -180 && l.longitude <= 180
+  );
+
+  if (validLocs.length === 0) return null;
+
+  // Amostrar pontos se houver muitos (limite do Google: ~2000 chars na URL)
+  let pontos = validLocs;
+  if (validLocs.length > 100) {
+    const step = Math.ceil(validLocs.length / 100);
+    pontos = validLocs.filter((_, i) => i % step === 0);
+  }
+
+  // Criar array de coordenadas [lat, lng]
+  const coordinates = pontos.map(l => [l.latitude, l.longitude]);
+
+  // Codificar polyline
+  const encodedPath = encodePolyline(coordinates);
+
+  // Marcador de início (verde) e fim (vermelho)
+  const startMarker = `markers=color:green|label:I|${coordinates[0][0]},${coordinates[0][1]}`;
+  const endMarker = `markers=color:red|label:F|${coordinates[coordinates.length-1][0]},${coordinates[coordinates.length-1][1]}`;
+
+  // URL do Google Static Maps (free tier: 25k requests/month)
+  const url = `https://maps.googleapis.com/maps/api/staticmap?` +
+    `size=${width}x${height}&` +
+    `maptype=roadmap&` +
+    `path=color:0x0000ff|weight:3|enc:${encodeURIComponent(encodedPath)}&` +
+    `${startMarker}&${endMarker}&` +
+    `key=`;  // Sem API key (funciona com limitações)
+
+  return url;
+}
+
+/**
+ * Gera informações de mapa estático e coordenadas da rota
+ */
+function generateMapInfo(localizacoes) {
+  if (!localizacoes || localizacoes.length === 0) return null;
+
+  // Filtrar localizações válidas
+  const validLocs = localizacoes.filter(l =>
+    l.latitude && l.longitude &&
+    !(l.latitude === 0 && l.longitude === 0) &&
+    !(l.latitude === -90 && l.longitude === -180) &&
+    Math.abs(l.latitude) <= 90 &&
+    Math.abs(l.longitude) <= 180
+  );
+
+  if (validLocs.length === 0) return null;
+
+  // Calcular bounds do mapa
+  const lats = validLocs.map(l => l.latitude);
+  const lngs = validLocs.map(l => l.longitude);
+
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+
+  const centerLat = (minLat + maxLat) / 2;
+  const centerLng = (minLng + maxLng) / 2;
+
+  // Calcular zoom apropriado
+  const latDiff = maxLat - minLat;
+  const lngDiff = maxLng - minLng;
+  const maxDiff = Math.max(latDiff, lngDiff);
+
+  let zoom = 15;
+  if (maxDiff > 0.5) zoom = 10;
+  else if (maxDiff > 0.2) zoom = 12;
+  else if (maxDiff > 0.1) zoom = 13;
+  else if (maxDiff > 0.05) zoom = 14;
+
+  return {
+    centerLat,
+    centerLng,
+    zoom,
+    bounds: { minLat, maxLat, minLng, maxLng },
+    validLocs,
+    totalPontos: validLocs.length
+  };
+}
+
+/**
+ * Gera URL de mapa estático usando OpenStreetMap (gratuito, sem API key)
+ */
+function generateOSMStaticMapUrl(localizacoes, width = 600, height = 400) {
+  const mapInfo = generateMapInfo(localizacoes);
+  if (!mapInfo) return null;
+
+  // Usar serviço de mapa estático OSM
+  const url = `https://staticmap.openstreetmap.de/staticmap.php?` +
+    `center=${mapInfo.centerLat},${mapInfo.centerLng}&` +
+    `zoom=${mapInfo.zoom}&` +
+    `size=${width}x${height}&` +
+    `maptype=mapnik`;
+
+  return { ...mapInfo, url };
+}
+
+/**
+ * Gera um SVG da rota para embutir no PDF
+ * Não depende de serviços externos
+ */
+function generateRouteSVG(localizacoes, width = 495, height = 200) {
+  const mapInfo = generateMapInfo(localizacoes);
+  if (!mapInfo || !mapInfo.validLocs || mapInfo.validLocs.length < 2) return null;
+
+  const validLocs = mapInfo.validLocs;
+  const { bounds } = mapInfo;
+
+  // Margem para marcadores
+  const margin = 20;
+  const innerWidth = width - 2 * margin;
+  const innerHeight = height - 2 * margin;
+
+  // Converter lat/lng para coordenadas SVG
+  const latRange = bounds.maxLat - bounds.minLat;
+  const lngRange = bounds.maxLng - bounds.minLng;
+
+  // Garantir range mínimo
+  const effectiveLatRange = Math.max(latRange, 0.01);
+  const effectiveLngRange = Math.max(lngRange, 0.01);
+
+  const toSVG = (lat, lng) => {
+    const x = margin + ((lng - bounds.minLng) / effectiveLngRange) * innerWidth;
+    const y = margin + ((bounds.maxLat - lat) / effectiveLatRange) * innerHeight; // Y invertido
+    return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
+  };
+
+  // Simplificar pontos se houver muitos
+  let pontos = validLocs;
+  if (validLocs.length > 100) {
+    const step = Math.ceil(validLocs.length / 100);
+    pontos = validLocs.filter((_, i) => i % step === 0 || i === validLocs.length - 1);
+  }
+
+  // Gerar path da rota
+  const pathPoints = pontos.map(loc => toSVG(loc.latitude, loc.longitude));
+  const pathD = pathPoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+
+  // Pontos de início e fim
+  const inicio = toSVG(validLocs[0].latitude, validLocs[0].longitude);
+  const fim = toSVG(validLocs[validLocs.length - 1].latitude, validLocs[validLocs.length - 1].longitude);
+
+  // Calcular distância total
+  let distanciaTotal = 0;
+  for (let i = 1; i < validLocs.length; i++) {
+    const lat1 = validLocs[i - 1].latitude * Math.PI / 180;
+    const lat2 = validLocs[i].latitude * Math.PI / 180;
+    const dLat = lat2 - lat1;
+    const dLng = (validLocs[i].longitude - validLocs[i - 1].longitude) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    distanciaTotal += 6371 * c; // km
+  }
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="#f5f5f5" rx="5"/>
+
+    <!-- Grid lines -->
+    <g stroke="#e0e0e0" stroke-width="0.5">
+      ${Array.from({ length: 5 }, (_, i) => {
+    const y = margin + (i * innerHeight / 4);
+    return `<line x1="${margin}" y1="${y}" x2="${width - margin}" y2="${y}"/>`;
+  }).join('')}
+      ${Array.from({ length: 5 }, (_, i) => {
+    const x = margin + (i * innerWidth / 4);
+    return `<line x1="${x}" y1="${margin}" x2="${x}" y2="${height - margin}"/>`;
+  }).join('')}
+    </g>
+
+    <!-- Route path -->
+    <path d="${pathD}" fill="none" stroke="#1976d2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Start marker (green) -->
+    <circle cx="${inicio.x}" cy="${inicio.y}" r="8" fill="#4CAF50" stroke="white" stroke-width="2"/>
+    <text x="${inicio.x}" y="${inicio.y + 4}" fill="white" font-size="10" font-weight="bold" text-anchor="middle">I</text>
+
+    <!-- End marker (red) -->
+    <circle cx="${fim.x}" cy="${fim.y}" r="8" fill="#f44336" stroke="white" stroke-width="2"/>
+    <text x="${fim.x}" y="${fim.y + 4}" fill="white" font-size="10" font-weight="bold" text-anchor="middle">F</text>
+
+    <!-- Legend -->
+    <g transform="translate(${margin}, ${height - 15})">
+      <circle cx="5" cy="0" r="5" fill="#4CAF50"/>
+      <text x="15" y="4" font-size="9" fill="#333">Início</text>
+      <circle cx="60" cy="0" r="5" fill="#f44336"/>
+      <text x="70" y="4" font-size="9" fill="#333">Fim</text>
+      <text x="${innerWidth - 50}" y="4" font-size="9" fill="#666">${distanciaTotal.toFixed(1)} km | ${pontos.length} pts</text>
+    </g>
+  </svg>`;
+
+  return svg;
+}
+
+/**
+ * Baixa imagem de uma URL e retorna como Buffer
+ */
+function downloadImage(url, timeout = 10000) {
+  return new Promise((resolve, reject) => {
+    const protocol = url.startsWith('https') ? https : http;
+
+    const req = protocol.get(url, {
+      headers: {
+        'User-Agent': 'RastreadorApp/1.0 (GPS Tracking PDF Export)'
+      }
+    }, (response) => {
+      // Seguir redirects
+      if (response.statusCode === 301 || response.statusCode === 302) {
+        return downloadImage(response.headers.location, timeout).then(resolve).catch(reject);
+      }
+
+      if (response.statusCode !== 200) {
+        reject(new Error(`HTTP ${response.statusCode}`));
+        return;
+      }
+
+      const chunks = [];
+      response.on('data', chunk => chunks.push(chunk));
+      response.on('end', () => resolve(Buffer.concat(chunks)));
+      response.on('error', reject);
+    });
+
+    req.on('error', reject);
+    req.setTimeout(timeout, () => {
+      req.destroy();
+      reject(new Error('Timeout'));
+    });
+  });
+}
+
+/**
+ * Converte coordenadas lat/lon para números de tile OSM
+ */
+function latLonToTile(lat, lon, zoom) {
+  const n = Math.pow(2, zoom);
+  const x = Math.floor((lon + 180) / 360 * n);
+  const latRad = lat * Math.PI / 180;
+  const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+  return { x: Math.max(0, Math.min(n - 1, x)), y: Math.max(0, Math.min(n - 1, y)) };
+}
+
+/**
+ * Converte números de tile OSM para coordenadas lat/lon (canto superior esquerdo do tile)
+ */
+function tileToLatLon(x, y, zoom) {
+  const n = Math.pow(2, zoom);
+  const lon = x / n * 360 - 180;
+  const latRad = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n)));
+  const lat = latRad * 180 / Math.PI;
+  return { lat, lon };
+}
+
+/**
+ * Baixa múltiplos tiles OSM e retorna informações para composição
+ */
+async function downloadOSMTiles(bounds, zoom, maxTiles = 16) {
+  const minTile = latLonToTile(bounds.maxLat, bounds.minLng, zoom); // maxLat para tile menor Y
+  const maxTile = latLonToTile(bounds.minLat, bounds.maxLng, zoom); // minLat para tile maior Y
+
+  // Limitar número de tiles
+  const numTilesX = maxTile.x - minTile.x + 1;
+  const numTilesY = maxTile.y - minTile.y + 1;
+
+  if (numTilesX * numTilesY > maxTiles) {
+    console.log(`[PDF] Muitos tiles (${numTilesX}x${numTilesY}), reduzindo zoom`);
+    return null;
+  }
+
+  const tiles = [];
+  const baseUrl = 'https://tile.openstreetmap.org';
+
+  console.log(`[PDF] Baixando ${numTilesX}x${numTilesY} tiles OSM (zoom ${zoom})`);
+
+  for (let y = minTile.y; y <= maxTile.y; y++) {
+    for (let x = minTile.x; x <= maxTile.x; x++) {
+      const url = `${baseUrl}/${zoom}/${x}/${y}.png`;
+      try {
+        const buffer = await downloadImage(url, 5000);
+        if (buffer && buffer.length > 100) {
+          const tileBounds = {
+            topLeft: tileToLatLon(x, y, zoom),
+            bottomRight: tileToLatLon(x + 1, y + 1, zoom)
+          };
+          tiles.push({
+            x, y, zoom, buffer,
+            bounds: tileBounds,
+            gridX: x - minTile.x,
+            gridY: y - minTile.y
+          });
+        }
+      } catch (e) {
+        console.log(`[PDF] Erro ao baixar tile ${x},${y}: ${e.message}`);
+      }
+    }
+  }
+
+  if (tiles.length === 0) return null;
+
+  // Calcular bounds reais dos tiles baixados
+  const firstTile = tiles[0];
+  const lastTile = tiles[tiles.length - 1];
+  const tileBounds = {
+    minLat: lastTile.bounds.bottomRight.lat,
+    maxLat: firstTile.bounds.topLeft.lat,
+    minLng: firstTile.bounds.topLeft.lon,
+    maxLng: lastTile.bounds.bottomRight.lon
+  };
+
+  return {
+    tiles,
+    numTilesX,
+    numTilesY,
+    bounds: tileBounds,
+    tileSize: 256
+  };
+}
+
+module.exports = router;

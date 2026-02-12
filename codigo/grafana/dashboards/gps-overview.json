@@ -1,0 +1,243 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "expr": "gps_devices_total",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Dispositivos",
+      "type": "stat"
+    },
+    {
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "green", "value": 5 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "gps_devices_online",
+          "refId": "A"
+        }
+      ],
+      "title": "Dispositivos Online",
+      "type": "stat"
+    },
+    {
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "gps_tcp_connections",
+          "refId": "A"
+        }
+      ],
+      "title": "Conexões TCP",
+      "type": "stat"
+    },
+    {
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "gps_locations_rate",
+          "refId": "A"
+        }
+      ],
+      "title": "Localizações/min",
+      "type": "stat"
+    },
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "id": 5,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "rate(gps_locations_total[5m]) * 60",
+          "legendFormat": "Localizações/min",
+          "refId": "A"
+        }
+      ],
+      "title": "Taxa de Localizações",
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "id": 6,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "gps_devices_by_ignition",
+          "legendFormat": "{{ state }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Dispositivos por Estado de Ignição",
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "id": 7,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "gps_queue_size",
+          "legendFormat": "{{ queue }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Tamanho das Filas",
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "id": 8,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "rate(gps_alarms_total[5m]) * 60",
+          "legendFormat": "{{ type }}",
+          "refId": "A"
+        }
+      ],
+      "title": "Alarmes por Tipo",
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 20 },
+      "id": 9,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes / 1024 / 1024",
+          "legendFormat": "Memória (MB)",
+          "refId": "A"
+        }
+      ],
+      "title": "Memória do Processo Node.js",
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 20 },
+      "id": 10,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "rate(process_cpu_seconds_total[1m]) * 100",
+          "legendFormat": "CPU %",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU do Processo Node.js",
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 20 },
+      "id": 11,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(gps_http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p95 Latência",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.50, rate(gps_http_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "p50 Latência",
+          "refId": "B"
+        }
+      ],
+      "title": "Latência da API (segundos)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["gps", "rastreador"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "GPS Tracker - Overview",
+  "uid": "gps-overview",
+  "version": 1,
+  "weekStart": ""
+}

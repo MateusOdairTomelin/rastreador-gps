@@ -1,0 +1,1909 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Unifique Rastreador</title>
+  <link rel="icon" type="image/png" sizes="48x48" href="/FAVICON_48x48.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Cores Unifique */
+      --unifique-cyan: #3FCFD5;
+      --unifique-cyan-dark: #28B8BE;
+      --unifique-blue: #00A2FF;
+      --unifique-deep-blue: #212492;
+      --unifique-violet: #131E7D;
+
+      --primary: #3FCFD5;
+      --primary-light: #00A2FF;
+      --primary-dark: #131E7D;
+      --accent: #3FCFD5;
+      --accent-light: #00A2FF;
+      --success: #10B981;
+      --danger: #EF4444;
+      --text: #ffffff;
+      --text-light: #94a3b8;
+      --bg: #0d1042;
+      --border: rgba(63, 207, 213, 0.2);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #080b2a 0%, #0d1042 25%, #131E7D 50%, #212492 75%, #131E7D 100%);
+      min-height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ========== ANIMATED BACKGROUND ========== */
+    .bg-container {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    /* Gradient Mesh */
+    .gradient-mesh {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 40%, rgba(63, 207, 213, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 60% at 80% 20%, rgba(0, 162, 255, 0.12) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 80% at 50% 80%, rgba(33, 36, 146, 0.15) 0%, transparent 50%),
+        linear-gradient(180deg, #080b2a 0%, #0d1042 50%, #131E7D 100%);
+      animation: meshMove 20s ease-in-out infinite;
+    }
+
+    @keyframes meshMove {
+      0%, 100% { filter: hue-rotate(0deg); }
+      50% { filter: hue-rotate(10deg); }
+    }
+
+    /* Aurora Effect */
+    .aurora {
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background:
+        conic-gradient(from 0deg at 50% 50%,
+          transparent 0deg,
+          rgba(63, 207, 213, 0.04) 60deg,
+          transparent 120deg,
+          rgba(0, 162, 255, 0.04) 180deg,
+          transparent 240deg,
+          rgba(33, 36, 146, 0.03) 300deg,
+          transparent 360deg);
+      animation: auroraRotate 30s linear infinite;
+    }
+
+    @keyframes auroraRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Grid Lines */
+    .grid-lines {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(63, 207, 213, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(63, 207, 213, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, black 20%, transparent 70%);
+      animation: gridPulse 4s ease-in-out infinite;
+    }
+
+    @keyframes gridPulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    /* Floating Particles */
+    .particles {
+      position: absolute;
+      inset: 0;
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(63, 207, 213, 0.6);
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(63, 207, 213, 0.5);
+      animation: particleFloat 15s ease-in-out infinite;
+    }
+
+    @keyframes particleFloat {
+      0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+    }
+
+    /* Light Beams */
+    .light-beam {
+      position: absolute;
+      width: 2px;
+      height: 200px;
+      background: linear-gradient(180deg, transparent, rgba(63, 207, 213, 0.3), transparent);
+      animation: beamMove 8s ease-in-out infinite;
+    }
+
+    @keyframes beamMove {
+      0%, 100% { transform: translateY(-100%) rotate(15deg); opacity: 0; }
+      50% { transform: translateY(100vh) rotate(15deg); opacity: 1; }
+    }
+
+    /* ========== SPLASH SCREEN ========== */
+    .splash-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      transition: opacity 0.8s ease, transform 0.8s ease;
+      overflow: hidden;
+    }
+
+    .splash-screen.hidden {
+      opacity: 0;
+      transform: scale(1.1);
+      pointer-events: none;
+    }
+
+    /* Splash Logo Container */
+    .splash-logo-wrapper {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* LED Circle Ring around logo */
+    .led-ring {
+      position: absolute;
+      width: 160px;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .led-ring svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      transform: rotate(-90deg); /* Start from top */
+    }
+
+    /* Main LED circle path - draws as loading progresses */
+    .led-circle-path {
+      fill: none;
+      stroke: url(#ledGradient);
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-dasharray: 440; /* Circumference of circle r=70: 2*PI*70 ≈ 440 */
+      stroke-dashoffset: 440;
+      filter: drop-shadow(0 0 8px rgba(63, 207, 213, 0.8));
+      transition: stroke-dashoffset 0.1s linear;
+    }
+
+    /* Glow layer behind the main path */
+    .led-circle-glow {
+      fill: none;
+      stroke: #3FCFD5;
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 440;
+      stroke-dashoffset: 440;
+      filter: blur(8px);
+      opacity: 0.5;
+      transition: stroke-dashoffset 0.1s linear;
+    }
+
+    /* Flash effect when circle completes */
+    .led-flash {
+      fill: none;
+      stroke: white;
+      stroke-width: 20;
+      stroke-linecap: round;
+      opacity: 0;
+      filter: blur(15px);
+    }
+
+    .led-flash.active {
+      animation: circleFlash 0.6s ease-out forwards;
+    }
+
+    @keyframes circleFlash {
+      0% { opacity: 0; stroke-width: 20; }
+      30% { opacity: 1; stroke-width: 30; }
+      100% { opacity: 0; stroke-width: 40; }
+    }
+
+    /* Fade out the ring after flash */
+    .led-ring.complete {
+      animation: fadeOutRing 0.5s ease-out 0.4s forwards;
+    }
+
+    @keyframes fadeOutRing {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* The actual logo container */
+    .splash-logo {
+      width: 120px;
+      height: 120px;
+      position: absolute;
+    }
+
+    .splash-logo.flash {
+      animation: logoFlashPulse 0.6s ease-out forwards;
+    }
+
+    @keyframes logoFlashPulse {
+      0% { transform: scale(1); filter: brightness(1); }
+      30% { transform: scale(1.15); filter: brightness(2); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
+
+    /* Logo parts - start hidden */
+    .logo-part {
+      opacity: 0;
+      transform-origin: center bottom;
+      transform: translateY(10px) scale(0.8);
+      transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+    }
+
+    .logo-part.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* Base específica - cresce do centro */
+    .logo-base {
+      transform-origin: center center;
+      transform: scale(0);
+    }
+    .logo-base.visible {
+      transform: scale(1);
+    }
+
+    /* Torres crescem de baixo para cima */
+    .logo-tower-left, .logo-tower-right {
+      transform-origin: center bottom;
+      transform: scaleY(0);
+    }
+    .logo-tower-left.visible, .logo-tower-right.visible {
+      transform: scaleY(1);
+    }
+
+    /* Pin cai de cima */
+    .logo-pin {
+      transform-origin: center top;
+      transform: translateY(-20px) scale(0.5);
+    }
+    .logo-pin.visible {
+      transform: translateY(0) scale(1);
+    }
+
+    /* Pulse effect - ativa no final */
+    .logo-pulse {
+      opacity: 0;
+    }
+    .logo-pulse.active {
+      animation: pulseRing 1.5s ease-out infinite;
+    }
+
+    @keyframes pulseRing {
+      0% { r: 14; opacity: 0.6; }
+      100% { r: 28; opacity: 0; }
+    }
+
+    .logo-container {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #3FCFD5 0%, #00A2FF 50%, #212492 100%);
+      border-radius: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow:
+        0 0 60px rgba(63, 207, 213, 0.5),
+        0 0 100px rgba(0, 162, 255, 0.3),
+        0 20px 60px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    @keyframes logoPulse {
+      0%, 100% {
+        box-shadow: 0 0 60px rgba(63, 207, 213, 0.5), 0 0 100px rgba(0, 162, 255, 0.3), 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+      50% {
+        box-shadow: 0 0 80px rgba(63, 207, 213, 0.7), 0 0 120px rgba(0, 162, 255, 0.4), 0 25px 70px rgba(0, 0, 0, 0.4);
+      }
+    }
+
+    .logo-container::before {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 35px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.3), transparent, rgba(63, 207, 213, 0.5));
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .splash-logo.flash .logo-container::before {
+      opacity: 1;
+      animation: logoRing 3s linear infinite;
+    }
+
+    @keyframes logoRing {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .logo-container svg {
+      width: 60px;
+      height: 60px;
+      fill: white;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    }
+
+    /* Typing Text */
+    .splash-text {
+      margin-top: 40px;
+      text-align: center;
+      animation: textFadeIn 0.5s ease-out 0.3s forwards;
+      opacity: 0;
+    }
+
+    @keyframes textFadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .splash-title {
+      font-size: 42px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -1px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .splash-title .char {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(30px);
+      animation: charReveal 0.4s ease forwards;
+    }
+
+    @keyframes charReveal {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .splash-subtitle {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 12px;
+      animation: subtitleFade 0.6s ease-out 1.5s forwards;
+      opacity: 0;
+    }
+
+    @keyframes subtitleFade {
+      to { opacity: 1; }
+    }
+
+    /* Loading Bar */
+    .splash-loader {
+      margin-top: 50px;
+      width: 200px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .splash-loader-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3FCFD5, #00A2FF, #3FCFD5);
+      background-size: 200% 100%;
+      border-radius: 3px;
+      transition: width 0.1s linear;
+    }
+
+    .splash-loader-bar.shimmer {
+      animation: shimmer 1s linear infinite;
+    }
+
+    @keyframes shimmer {
+      from { background-position: 200% 0; }
+      to { background-position: -200% 0; }
+    }
+
+    /* ========== LOGIN CONTAINER ========== */
+    .login-wrapper {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+      pointer-events: none;
+    }
+
+    .login-wrapper.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+
+    .login-container {
+      background: rgba(19, 30, 125, 0.4);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(63, 207, 213, 0.2);
+      border-radius: 32px;
+      box-shadow:
+        0 25px 80px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(63, 207, 213, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      width: 100%;
+      max-width: 460px;
+      padding: 50px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #3FCFD5, #00A2FF, #3FCFD5, transparent);
+      animation: borderShimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes borderShimmer {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    /* Login Header */
+    .login-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .login-logo-small {
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #3FCFD5 0%, #00A2FF 50%, #212492 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 10px 40px rgba(63, 207, 213, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+      animation: floatSmall 3s ease-in-out infinite;
+    }
+
+    @keyframes floatSmall {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+
+    .login-logo-small svg {
+      width: 36px;
+      height: 36px;
+      fill: white;
+    }
+
+    .login-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 8px;
+    }
+
+    .login-subtitle {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 15px;
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 24px;
+      animation: fieldSlideIn 0.5s ease-out backwards;
+    }
+
+    .form-group:nth-child(1) { animation-delay: 0.1s; }
+    .form-group:nth-child(2) { animation-delay: 0.2s; }
+    .form-group:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes fieldSlideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 18px 20px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      font-size: 15px;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(63, 207, 213, 0.1);
+      box-shadow: 0 0 0 4px rgba(63, 207, 213, 0.15), 0 0 30px rgba(63, 207, 213, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .form-input:hover:not(:focus) {
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .form-input::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Password Toggle */
+    .password-toggle {
+      position: relative;
+    }
+
+    .password-toggle .toggle-btn {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.4);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      transition: color 0.2s;
+    }
+
+    .password-toggle .toggle-btn:hover {
+      color: var(--accent);
+    }
+
+    /* Remember Me & Forgot Password */
+    .remember-forgot-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      animation: fieldSlideIn 0.5s ease-out 0.3s backwards;
+    }
+
+    .remember-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .remember-group input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .remember-group label {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      cursor: pointer;
+    }
+
+    .forgot-password-link {
+      font-size: 14px;
+      color: var(--accent);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .forgot-password-link:hover {
+      color: var(--accent-light);
+      text-decoration: underline;
+    }
+
+    /* Login Button */
+    .btn-login {
+      width: 100%;
+      padding: 20px;
+      background: linear-gradient(135deg, #3FCFD5 0%, #00A2FF 50%, #212492 100%);
+      color: white;
+      border: none;
+      border-radius: 16px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        0 10px 40px rgba(63, 207, 213, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: fieldSlideIn 0.5s ease-out 0.4s backwards;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn-login::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 200%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-4px);
+      box-shadow:
+        0 20px 60px rgba(63, 207, 213, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-login:hover::before {
+      left: 100%;
+    }
+
+    .btn-login:active {
+      transform: translateY(-2px);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-login .spinner {
+      width: 22px;
+      height: 22px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    .btn-login.loading .spinner { display: block; }
+    .btn-login.loading .btn-text { display: none; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Alert */
+    .alert {
+      padding: 16px 18px;
+      border-radius: 14px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      animation: alertShake 0.5s ease;
+    }
+
+    @keyframes alertShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
+    }
+
+    .alert.show { display: flex; }
+    .alert svg { flex-shrink: 0; }
+
+    .alert-error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #F87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    /* Footer */
+    .footer-text {
+      text-align: center;
+      margin-top: 30px;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 13px;
+    }
+
+    .lgpd-footer {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .lgpd-footer a {
+      color: rgba(255, 255, 255, 0.4);
+      text-decoration: none;
+      font-size: 12px;
+      margin: 0 12px;
+      transition: color 0.2s;
+    }
+
+    .lgpd-footer a:hover {
+      color: var(--accent);
+    }
+
+    /* ========== MODALS ========== */
+    .org-modal, .consent-modal, .forgot-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .org-modal.show, .consent-modal.show, .forgot-modal.show { display: flex; }
+
+    /* Forgot Password Modal */
+    .forgot-modal-content {
+      background: linear-gradient(135deg, rgba(19, 30, 125, 0.95), rgba(13, 16, 66, 0.98));
+      border: 1px solid rgba(63, 207, 213, 0.2);
+      border-radius: 24px;
+      padding: 36px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+      animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+      from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .forgot-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .forgot-modal-header h2 {
+      font-size: 22px;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .forgot-modal-header h2 svg {
+      color: var(--accent);
+    }
+
+    .forgot-modal-close {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+
+    .forgot-modal-close:hover {
+      color: white;
+    }
+
+    .forgot-subtitle {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 14px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .forgot-alert {
+      display: none;
+      padding: 14px 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .forgot-alert.show { display: flex; }
+
+    .forgot-alert.success {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .forgot-alert.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #F87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-forgot-submit {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #3FCFD5 0%, #00A2FF 50%, #212492 100%);
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 30px rgba(63, 207, 213, 0.3);
+      transition: all 0.3s;
+    }
+
+    .btn-forgot-submit:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(63, 207, 213, 0.4);
+    }
+
+    .btn-forgot-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-forgot-submit .spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+
+    .btn-forgot-submit.loading .spinner { display: block; }
+    .btn-forgot-submit.loading .btn-text { display: none; }
+
+    .forgot-footer {
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .forgot-footer a {
+      color: rgba(255, 255, 255, 0.5);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .forgot-footer a:hover {
+      color: var(--accent);
+    }
+
+    .org-modal-content, .consent-modal-content {
+      background: linear-gradient(135deg, rgba(19, 30, 125, 0.95), rgba(13, 16, 66, 0.98));
+      border: 1px solid rgba(63, 207, 213, 0.2);
+      border-radius: 24px;
+      padding: 36px;
+      max-width: 450px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+    }
+
+    .org-modal h2, .consent-modal h2 {
+      font-size: 22px;
+      color: white;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .org-modal p, .consent-modal .subtitle {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .org-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .org-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .org-item:hover {
+      border-color: var(--accent);
+      background: rgba(63, 207, 213, 0.1);
+      transform: translateX(5px);
+    }
+
+    .org-item.selected {
+      border-color: var(--accent);
+      background: rgba(63, 207, 213, 0.15);
+    }
+
+    .org-logo {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      font-weight: 700;
+    }
+
+    .org-info { flex: 1; }
+    .org-name { font-weight: 600; color: white; font-size: 16px; }
+    .org-role { font-size: 13px; color: rgba(255, 255, 255, 0.5); margin-top: 2px; }
+
+    .org-badge {
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      background: rgba(63, 207, 213, 0.2);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Consent Modal Specifics */
+    .consent-warning {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #FBBF24;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .consent-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+      transition: border-color 0.3s;
+    }
+
+    .consent-item:has(input:checked) {
+      border-color: rgba(63, 207, 213, 0.5);
+      background: rgba(63, 207, 213, 0.05);
+    }
+
+    .consent-item-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+
+    .consent-item-header input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .consent-item-title { font-weight: 600; color: white; flex: 1; }
+
+    .consent-item-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .consent-item-link:hover { text-decoration: underline; }
+
+    .consent-item-desc {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-left: 36px;
+    }
+
+    .consent-actions {
+      display: flex;
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .consent-actions button {
+      flex: 1;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-consent-accept {
+      background: linear-gradient(135deg, var(--success), #059669);
+      color: white;
+      border: none;
+      box-shadow: 0 8px 30px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-consent-accept:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-consent-accept:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-consent-logout {
+      background: transparent;
+      color: rgba(255, 255, 255, 0.7);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-consent-logout:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Responsive */
+    @media (max-width: 500px) {
+      .login-container { padding: 35px 25px; }
+      .splash-title { font-size: 32px; }
+      .splash-logo { width: 100px; height: 100px; }
+      .logo-container svg { width: 50px; height: 50px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Animated Background -->
+  <div class="bg-container">
+    <div class="gradient-mesh"></div>
+    <div class="aurora"></div>
+    <div class="grid-lines"></div>
+    <div class="particles" id="particles"></div>
+  </div>
+
+  <!-- Splash Screen -->
+  <div class="splash-screen" id="splashScreen">
+    <div class="splash-logo-wrapper">
+      <!-- LED Ring around logo -->
+      <div class="led-ring" id="ledRing">
+        <svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="ledGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#3FCFD5"/>
+              <stop offset="50%" stop-color="#00A2FF"/>
+              <stop offset="100%" stop-color="#3FCFD5"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Glow layer (behind) -->
+          <circle class="led-circle-glow" id="ledGlow" cx="80" cy="80" r="70"/>
+
+          <!-- Main LED circle path -->
+          <circle class="led-circle-path" id="ledPath" cx="80" cy="80" r="70"/>
+
+          <!-- Flash effect on complete -->
+          <circle class="led-flash" id="ledFlash" cx="80" cy="80" r="70"/>
+        </svg>
+      </div>
+
+      <!-- Logo with building animation -->
+      <div class="splash-logo" id="splashLogo">
+        <div class="logo-container">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-animated">
+            <defs>
+              <linearGradient id="unifique-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#3FCFD5"/>
+                <stop offset="50%" stop-color="#00A2FF"/>
+                <stop offset="100%" stop-color="#212492"/>
+              </linearGradient>
+              <linearGradient id="unifique-gradient-tower" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#3FCFD5"/>
+                <stop offset="100%" stop-color="#212492"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Base elíptica - aparece primeiro -->
+            <ellipse class="logo-part logo-base" cx="50" cy="84" rx="16" ry="5" fill="#3FCFD5" opacity="0.7"/>
+
+            <!-- Torre esquerda - aparece segundo -->
+            <g class="logo-part logo-tower-left">
+              <rect x="6" y="12" width="10" height="73" fill="url(#unifique-gradient-tower)"/>
+              <rect x="16" y="12" width="20" height="8" fill="#3FCFD5"/>
+              <circle cx="11" cy="5" r="4" fill="white"/>
+            </g>
+
+            <!-- Torre direita - aparece terceiro -->
+            <g class="logo-part logo-tower-right">
+              <rect x="84" y="12" width="10" height="73" fill="url(#unifique-gradient-tower)"/>
+              <rect x="64" y="12" width="20" height="8" fill="#3FCFD5"/>
+              <circle cx="89" cy="5" r="4" fill="white"/>
+            </g>
+
+            <!-- Pin central - aparece por último -->
+            <g class="logo-part logo-pin">
+              <path d="M50 14 C38 14 28 24 28 36 C28 52 50 74 50 74 C50 74 72 52 72 36 C72 24 62 14 50 14 Z" fill="url(#unifique-gradient)"/>
+              <circle cx="50" cy="36" r="10" fill="white"/>
+            </g>
+
+            <!-- Pulso animado - ativa no final -->
+            <circle class="logo-pulse" cx="50" cy="36" r="14" stroke="#3FCFD5" stroke-width="2" fill="none" opacity="0"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="splash-text">
+      <h1 class="splash-title" id="splashTitle"></h1>
+      <p class="splash-subtitle">Sistema de Rastreamento Veicular</p>
+    </div>
+    <div class="splash-loader">
+      <div class="splash-loader-bar"></div>
+    </div>
+  </div>
+
+  <!-- Login Form -->
+  <div class="login-wrapper" id="loginWrapper">
+    <div class="login-container">
+      <div class="login-header">
+        <div class="login-logo-small">
+          <!-- Logo Unifique Rastreador: Versão compacta com cores Unifique -->
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Gradiente Unifique -->
+            <defs>
+              <linearGradient id="unifique-gradient-small" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style="stop-color:#3FCFD5"/>
+                <stop offset="50%" style="stop-color:#00A2FF"/>
+                <stop offset="100%" style="stop-color:#212492"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Gradiente para torres -->
+            <linearGradient id="unifique-tower-small" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#3FCFD5"/>
+              <stop offset="100%" style="stop-color:#212492"/>
+            </linearGradient>
+
+            <!-- Torre esquerda com gradiente Unifique -->
+            <rect x="6" y="12" width="10" height="73" fill="url(#unifique-tower-small)"/>
+            <rect x="16" y="12" width="20" height="8" fill="#3FCFD5"/>
+            <circle cx="11" cy="5" r="4" fill="white"/>
+
+            <!-- Torre direita com gradiente Unifique -->
+            <rect x="84" y="12" width="10" height="73" fill="url(#unifique-tower-small)"/>
+            <rect x="64" y="12" width="20" height="8" fill="#3FCFD5"/>
+            <circle cx="89" cy="5" r="4" fill="white"/>
+
+            <!-- Pin central PREENCHIDO com gradiente Unifique -->
+            <path d="M50 14 C38 14 28 24 28 36 C28 52 50 74 50 74 C50 74 72 52 72 36 C72 24 62 14 50 14 Z"
+                  fill="url(#unifique-gradient-small)"/>
+            <circle cx="50" cy="36" r="10" fill="white"/>
+
+            <!-- Base elíptica (cyan Unifique) -->
+            <ellipse cx="50" cy="84" rx="16" ry="5" fill="#3FCFD5" opacity="0.7"/>
+          </svg>
+        </div>
+        <h1 class="login-title">Bem-vindo</h1>
+        <p class="login-subtitle">Entre com suas credenciais</p>
+      </div>
+
+      <div id="alert" class="alert">
+        <span id="alert-icon"></span>
+        <span id="alert-message"></span>
+      </div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <input type="email" id="email" class="form-input" placeholder="seu@email.com" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="senha">Senha</label>
+          <div class="password-toggle">
+            <input type="password" id="senha" class="form-input" placeholder="Digite sua senha" required autocomplete="current-password">
+            <button type="button" class="toggle-btn" onclick="togglePassword()" aria-label="Mostrar senha">
+              <svg class="eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg class="eye-closed" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="remember-forgot-row">
+          <div class="remember-group">
+            <input type="checkbox" id="remember" checked>
+            <label for="remember">Manter conectado</label>
+          </div>
+          <a href="#" class="forgot-password-link" onclick="showForgotPasswordModal(); return false;">Esqueci minha senha</a>
+        </div>
+
+        <button type="submit" class="btn-login" id="btnLogin">
+          <span class="spinner"></span>
+          <span class="btn-text">Entrar</span>
+        </button>
+      </form>
+
+      <p class="footer-text">Acesso restrito a usuários autorizados</p>
+
+      <div class="lgpd-footer">
+        <a href="/politica-privacidade.html" target="_blank">Política de Privacidade</a>
+        <span style="color: rgba(255,255,255,0.2);">|</span>
+        <a href="/termos-uso.html" target="_blank">Termos de Uso</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Consent Modal -->
+  <div id="consentModal" class="consent-modal">
+    <div class="consent-modal-content">
+      <h2><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Termos e Privacidade</h2>
+      <p class="subtitle">Para continuar, aceite nossos termos e política de privacidade.</p>
+
+      <div class="consent-warning">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+        <div>Conforme a LGPD, precisamos do seu consentimento para coletar e processar seus dados pessoais.</div>
+      </div>
+
+      <div class="consent-item">
+        <div class="consent-item-header">
+          <input type="checkbox" id="checkPrivacidade">
+          <span class="consent-item-title">Política de Privacidade</span>
+          <a href="/politica-privacidade.html" target="_blank" class="consent-item-link">Ler →</a>
+        </div>
+        <p class="consent-item-desc">Li e concordo com a coleta e uso dos meus dados conforme descrito.</p>
+      </div>
+
+      <div class="consent-item">
+        <div class="consent-item-header">
+          <input type="checkbox" id="checkTermos">
+          <span class="consent-item-title">Termos de Uso</span>
+          <a href="/termos-uso.html" target="_blank" class="consent-item-link">Ler →</a>
+        </div>
+        <p class="consent-item-desc">Li e concordo com os Termos de Uso do sistema Unifique Rastreador.</p>
+      </div>
+
+      <div class="consent-actions">
+        <button class="btn-consent-logout" onclick="logoutConsent()">Sair</button>
+        <button class="btn-consent-accept" id="btnAcceptConsent" onclick="acceptConsent()" disabled>Aceitar e Continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Organization Selector Modal -->
+  <div id="orgModal" class="org-modal">
+    <div class="org-modal-content">
+      <h2><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg> Selecione a Organização</h2>
+      <p>Você tem acesso a múltiplas organizações. Escolha qual deseja acessar:</p>
+      <div id="orgList" class="org-list"></div>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div id="forgotPasswordModal" class="forgot-modal">
+    <div class="forgot-modal-content">
+      <div class="forgot-modal-header">
+        <h2>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/>
+          </svg>
+          Recuperar Senha
+        </h2>
+        <button class="forgot-modal-close" onclick="closeForgotPasswordModal()" aria-label="Fechar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <p class="forgot-subtitle">Digite seu e-mail cadastrado e enviaremos um link para redefinir sua senha.</p>
+
+      <div id="forgotAlert" class="forgot-alert"></div>
+
+      <form id="forgotPasswordForm" onsubmit="submitForgotPassword(event)">
+        <div class="form-group">
+          <label class="form-label" for="forgotEmail">E-mail</label>
+          <input type="email" id="forgotEmail" class="form-input" placeholder="seu@email.com" required autocomplete="email">
+        </div>
+
+        <button type="submit" class="btn-forgot-submit" id="btnForgotSubmit">
+          <span class="spinner"></span>
+          <span class="btn-text">Enviar Link de Recuperação</span>
+        </button>
+      </form>
+
+      <div class="forgot-footer">
+        <a href="#" onclick="closeForgotPasswordModal(); return false;">← Voltar ao login</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== SPLASH SCREEN ANIMATION ==========
+    const splashTitle = document.getElementById('splashTitle');
+    const text = 'Unifique Rastreador';
+    let charIndex = 0;
+
+    // LED Ring elements
+    const ledPath = document.getElementById('ledPath');
+    const ledGlow = document.getElementById('ledGlow');
+    const ledFlash = document.getElementById('ledFlash');
+    const ledRing = document.getElementById('ledRing');
+    const splashLogo = document.getElementById('splashLogo');
+    const loaderBar = document.querySelector('.splash-loader-bar');
+    const splashLoader = document.querySelector('.splash-loader');
+
+    // Circle circumference (2 * PI * 70)
+    const circumference = 440;
+
+    // Create floating particles
+    function createParticles() {
+      const container = document.getElementById('particles');
+      for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 15 + 's';
+        particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+        container.appendChild(particle);
+      }
+    }
+
+    // Typing animation
+    function typeText() {
+      if (charIndex < text.length) {
+        const char = document.createElement('span');
+        char.className = 'char';
+        char.textContent = text[charIndex];
+        char.style.animationDelay = (charIndex * 0.05) + 's';
+        splashTitle.appendChild(char);
+        charIndex++;
+        setTimeout(typeText, 60);
+      }
+    }
+
+    // Logo part elements
+    const logoBase = document.querySelector('.logo-base');
+    const logoTowerLeft = document.querySelector('.logo-tower-left');
+    const logoTowerRight = document.querySelector('.logo-tower-right');
+    const logoPin = document.querySelector('.logo-pin');
+    const logoPulse = document.querySelector('.logo-pulse');
+
+    // Update progress (0-100)
+    function updateProgress(progress) {
+      const offset = circumference - (progress / 100) * circumference;
+      ledPath.style.strokeDashoffset = offset;
+      ledGlow.style.strokeDashoffset = offset;
+      loaderBar.style.width = progress + '%';
+
+      // Reveal logo parts progressively
+      if (progress >= 10 && !logoBase.classList.contains('visible')) {
+        logoBase.classList.add('visible');
+      }
+      if (progress >= 30 && !logoTowerLeft.classList.contains('visible')) {
+        logoTowerLeft.classList.add('visible');
+      }
+      if (progress >= 50 && !logoTowerRight.classList.contains('visible')) {
+        logoTowerRight.classList.add('visible');
+      }
+      if (progress >= 70 && !logoPin.classList.contains('visible')) {
+        logoPin.classList.add('visible');
+      }
+    }
+
+    // Complete animation - flash and transition
+    function completeLoading() {
+      // Flash the LED
+      ledFlash.classList.add('active');
+
+      // Flash pulse the logo
+      splashLogo.classList.add('flash');
+
+      // Activate pulse ring on pin
+      logoPulse.classList.add('active');
+
+      // Mark ring as complete (will fade out)
+      setTimeout(() => {
+        ledRing.classList.add('complete');
+      }, 300);
+
+      // Transition to login
+      setTimeout(() => {
+        document.getElementById('splashScreen').classList.add('hidden');
+        document.getElementById('loginWrapper').classList.add('visible');
+      }, 1200);
+    }
+
+    // Initialize splash
+    createParticles();
+
+    // Show loader bar immediately
+    splashLoader.style.opacity = '1';
+    loaderBar.classList.add('shimmer');
+
+    // Start typing text after a small delay
+    setTimeout(typeText, 500);
+
+    // Animate the loading progress
+    const loadDuration = 3000; // 3 seconds total
+    const startTime = Date.now();
+
+    function animateLoading() {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / loadDuration) * 100, 100);
+
+      updateProgress(progress);
+
+      if (progress < 100) {
+        requestAnimationFrame(animateLoading);
+      } else {
+        // Loading complete - trigger flash and transition
+        completeLoading();
+      }
+    }
+
+    // Start loading animation after a brief delay
+    setTimeout(() => {
+      animateLoading();
+    }, 800);
+
+    // ========== LOGIN LOGIC ==========
+    const API_URL = '/api';
+
+    // Check if already logged in
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      fetch(`${API_URL}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => {
+        if (res.ok) {
+          window.location.href = '/admin-dashboard.html';
+        } else {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('usuario');
+        }
+      })
+      .catch(() => {});
+    }
+
+    function showAlert(message, type = 'error') {
+      const alert = document.getElementById('alert');
+      const alertIcon = document.getElementById('alert-icon');
+      const alertMessage = document.getElementById('alert-message');
+
+      alert.className = `alert alert-${type} show`;
+      alertIcon.innerHTML = type === 'error'
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+      alertMessage.textContent = message;
+    }
+
+    function hideAlert() {
+      document.getElementById('alert').classList.remove('show');
+    }
+
+    function togglePassword() {
+      const input = document.getElementById('senha');
+      const btn = document.querySelector('.toggle-btn');
+      const eyeOpen = btn.querySelector('.eye-open');
+      const eyeClosed = btn.querySelector('.eye-closed');
+      if (input.type === 'password') {
+        input.type = 'text';
+        eyeOpen.style.display = 'none';
+        eyeClosed.style.display = 'block';
+      } else {
+        input.type = 'password';
+        eyeOpen.style.display = 'block';
+        eyeClosed.style.display = 'none';
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlert();
+
+      const btn = document.getElementById('btnLogin');
+      const email = document.getElementById('email').value.trim();
+      const senha = document.getElementById('senha').value;
+      const remember = document.getElementById('remember').checked;
+
+      if (!email || !senha) {
+        showAlert('Preencha email e senha');
+        return;
+      }
+
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, senha })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          const storage = remember ? localStorage : sessionStorage;
+          storage.setItem('accessToken', data.accessToken);
+          storage.setItem('refreshToken', data.refreshToken);
+          storage.setItem('usuario', JSON.stringify(data.usuario));
+          if (data.csrfToken) storage.setItem('csrfToken', data.csrfToken);
+
+          if (remember) {
+            sessionStorage.setItem('accessToken', data.accessToken);
+            sessionStorage.setItem('refreshToken', data.refreshToken);
+            sessionStorage.setItem('usuario', JSON.stringify(data.usuario));
+            if (data.csrfToken) sessionStorage.setItem('csrfToken', data.csrfToken);
+          }
+
+          if (data.organizacoes) {
+            storage.setItem('organizacoes', JSON.stringify(data.organizacoes));
+            if (remember) sessionStorage.setItem('organizacoes', JSON.stringify(data.organizacoes));
+          }
+          if (data.organizacao_atual) {
+            storage.setItem('organizacao_atual', JSON.stringify(data.organizacao_atual));
+            if (remember) sessionStorage.setItem('organizacao_atual', JSON.stringify(data.organizacao_atual));
+          }
+
+          if (data.organizacoes && data.organizacoes.length > 1) {
+            showOrgSelector(data.organizacoes, data.organizacao_atual, storage);
+          } else {
+            await checkAndShowConsent(storage);
+          }
+        } else {
+          showAlert(data.error || 'Credenciais inválidas');
+        }
+      } catch (error) {
+        console.error('Erro no login:', error);
+        showAlert('Erro de conexão. Tente novamente.');
+      } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('senha').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+      }
+    });
+
+    function showOrgSelector(organizacoes, orgAtual, storage) {
+      const modal = document.getElementById('orgModal');
+      const list = document.getElementById('orgList');
+
+      list.innerHTML = organizacoes.map(org => {
+        const roleLabels = { 'proprietario': 'Proprietário', 'admin': 'Administrador', 'operador': 'Operador', 'visualizador': 'Visualizador' };
+        const roleLabel = roleLabels[org.role] || org.role;
+        const isDefault = org.is_default ? '<span class="org-badge">Padrão</span>' : '';
+        const bgColor = org.cor_primaria || '#3FCFD5';
+
+        return `
+          <div class="org-item ${org.id === orgAtual?.id ? 'selected' : ''}" onclick="selectOrg(${org.id}, '${org.slug}', '${org.nome.replace(/'/g, "\\'")}')">
+            <div class="org-logo" style="background: ${bgColor}">
+              ${org.logo_url ? `<img src="${org.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:14px">` : org.nome.charAt(0).toUpperCase()}
+            </div>
+            <div class="org-info">
+              <div class="org-name">${org.nome}</div>
+              <div class="org-role">${roleLabel}</div>
+            </div>
+            ${isDefault}
+          </div>
+        `;
+      }).join('');
+
+      modal.classList.add('show');
+      window._orgStorage = storage;
+    }
+
+    async function selectOrg(orgId, orgSlug, orgNome) {
+      const storage = window._orgStorage || localStorage;
+      const token = storage.getItem('accessToken');
+
+      try {
+        const response = await fetch(`${API_URL}/auth/selecionar-organizacao`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ organizacao_id: orgId })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          storage.setItem('accessToken', data.accessToken);
+          if (data.refreshToken) storage.setItem('refreshToken', data.refreshToken);
+          storage.setItem('organizacao_atual', JSON.stringify(data.organizacao_atual));
+
+          if (storage === localStorage) {
+            sessionStorage.setItem('accessToken', data.accessToken);
+            if (data.refreshToken) sessionStorage.setItem('refreshToken', data.refreshToken);
+            sessionStorage.setItem('organizacao_atual', JSON.stringify(data.organizacao_atual));
+          }
+
+          document.getElementById('orgModal').classList.remove('show');
+          await checkAndShowConsent(storage);
+        } else {
+          toastError(data.error || 'Erro ao selecionar organização');
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        await checkAndShowConsent(storage);
+      }
+    }
+
+    async function checkAndShowConsent(storage) {
+      const token = storage.getItem('accessToken');
+
+      try {
+        const response = await fetch(`${API_URL}/lgpd/verificar`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        if (data.sucesso && !data.consentimentosValidos) {
+          window._consentStorage = storage;
+          showConsentModal();
+        } else {
+          showAlert('Login realizado com sucesso!', 'success');
+          setTimeout(() => { window.location.href = '/admin-dashboard.html'; }, 500);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar consentimentos:', error);
+        window.location.href = '/admin-dashboard.html';
+      }
+    }
+
+    function showConsentModal() {
+      const modal = document.getElementById('consentModal');
+      modal.classList.add('show');
+
+      const checkPriv = document.getElementById('checkPrivacidade');
+      const checkTermos = document.getElementById('checkTermos');
+      const btnAccept = document.getElementById('btnAcceptConsent');
+
+      function updateAcceptButton() {
+        btnAccept.disabled = !(checkPriv.checked && checkTermos.checked);
+      }
+
+      checkPriv.addEventListener('change', updateAcceptButton);
+      checkTermos.addEventListener('change', updateAcceptButton);
+    }
+
+    async function acceptConsent() {
+      const storage = window._consentStorage || localStorage;
+      const token = storage.getItem('accessToken');
+      const btn = document.getElementById('btnAcceptConsent');
+
+      btn.disabled = true;
+      btn.textContent = 'Processando...';
+
+      try {
+        const response = await fetch(`${API_URL}/lgpd/consentimento/inicial`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        if (data.sucesso) {
+          document.getElementById('consentModal').classList.remove('show');
+          showAlert('Consentimentos registrados!', 'success');
+          setTimeout(() => { window.location.href = '/admin-dashboard.html'; }, 500);
+        } else {
+          throw new Error(data.mensagem || 'Erro ao registrar consentimentos');
+        }
+      } catch (error) {
+        console.error('Erro ao aceitar consentimentos:', error);
+        toastError('Erro ao registrar consentimentos. Tente novamente.');
+        btn.disabled = false;
+        btn.textContent = 'Aceitar e Continuar';
+      }
+    }
+
+    function logoutConsent() {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('usuario');
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('usuario');
+      document.getElementById('consentModal').classList.remove('show');
+      showAlert('Você precisa aceitar os termos para usar o sistema.', 'error');
+    }
+
+    // ========== FORGOT PASSWORD ==========
+    function showForgotPasswordModal() {
+      const modal = document.getElementById('forgotPasswordModal');
+      modal.classList.add('show');
+      document.getElementById('forgotEmail').focus();
+      hideForgotAlert();
+    }
+
+    function closeForgotPasswordModal() {
+      const modal = document.getElementById('forgotPasswordModal');
+      modal.classList.remove('show');
+      document.getElementById('forgotPasswordForm').reset();
+      hideForgotAlert();
+    }
+
+    function showForgotAlert(message, type = 'error') {
+      const alert = document.getElementById('forgotAlert');
+      const icon = type === 'success'
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>';
+
+      alert.innerHTML = icon + '<span>' + message + '</span>';
+      alert.className = `forgot-alert ${type} show`;
+    }
+
+    function hideForgotAlert() {
+      const alert = document.getElementById('forgotAlert');
+      alert.classList.remove('show');
+    }
+
+    async function submitForgotPassword(event) {
+      event.preventDefault();
+      hideForgotAlert();
+
+      const btn = document.getElementById('btnForgotSubmit');
+      const email = document.getElementById('forgotEmail').value.trim();
+
+      if (!email) {
+        showForgotAlert('Por favor, digite seu e-mail.');
+        return;
+      }
+
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(`${API_URL}/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          showForgotAlert('Link de recuperação enviado! Verifique seu e-mail.', 'success');
+          document.getElementById('forgotPasswordForm').reset();
+
+          // Fechar modal após 3 segundos em caso de sucesso
+          setTimeout(() => {
+            closeForgotPasswordModal();
+            showAlert('Verifique seu e-mail para redefinir sua senha.', 'success');
+          }, 3000);
+        } else {
+          showForgotAlert(data.error || data.message || 'Erro ao enviar e-mail de recuperação.');
+        }
+      } catch (error) {
+        console.error('Erro ao solicitar recuperação:', error);
+        showForgotAlert('Erro de conexão. Tente novamente.');
+      } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    }
+
+    // Fechar modal ao clicar fora
+    document.getElementById('forgotPasswordModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeForgotPasswordModal();
+      }
+    });
+
+    // Fechar modal com tecla ESC
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const forgotModal = document.getElementById('forgotPasswordModal');
+        if (forgotModal.classList.contains('show')) {
+          closeForgotPasswordModal();
+        }
+      }
+    });
+  </script>
+  <script src="/scripts/toast.js"></script>
+</body>
+</html>

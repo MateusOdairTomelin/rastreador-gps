@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+body { font-family: Arial, sans-serif; margin: 40px; font-size: 14px; line-height: 1.5; }
+h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; font-size: 24px; }
+h2 { color: #34495e; margin-top: 25px; font-size: 18px; border-left: 4px solid #3498db; padding-left: 10px; }
+table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+th { background-color: #3498db; color: white; }
+tr:nth-child(even) { background-color: #f9f9f9; }
+code { background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+pre { background-color: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; overflow-x: auto; }
+strong { color: #2c3e50; }
+hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+.footer { text-align: center; color: #7f8c8d; font-size: 12px; margin-top: 30px; }
+ul { margin: 10px 0; }
+li { margin: 5px 0; }
+</style>
+</head>
+<body>
+
+<h1>Plataforma de Rastreamento GPS - Resumo Tecnico</h1>
+
+<h2>Visao Geral</h2>
+<p><strong>O que e?</strong><br>
+Sistema de rastreamento veicular em tempo real com monitoramento via web e app mobile.</p>
+
+<p><strong>Principais funcionalidades:</strong></p>
+<ul>
+<li>Localizacao em tempo real</li>
+<li>Historico de viagens</li>
+<li>Alertas (velocidade, cerca virtual, ignicao)</li>
+<li>App para motoristas</li>
+<li>Relatorios de uso</li>
+</ul>
+
+<hr>
+
+<h2>Arquitetura</h2>
+<p><strong>Stack tecnologico:</strong></p>
+<table>
+<tr><th>Camada</th><th>Tecnologia</th></tr>
+<tr><td>Frontend Web</td><td>React + TypeScript</td></tr>
+<tr><td>App Mobile</td><td>React Native (Expo)</td></tr>
+<tr><td>Backend/API</td><td>Node.js + Express</td></tr>
+<tr><td>Banco de Dados</td><td>PostgreSQL</td></tr>
+<tr><td>Cache/Filas</td><td>Redis</td></tr>
+<tr><td>Proxy/SSL</td><td>HAProxy</td></tr>
+<tr><td>Containers</td><td>Docker</td></tr>
+</table>
+
+<p><strong>Fluxo de dados:</strong></p>
+<pre>Rastreador GPS → TCP Gateway → Redis → Processadores → Banco → API → Interface</pre>
+
+<hr>
+
+<h2>Perguntas Frequentes</h2>
+
+<p><strong>Quantos rastreadores suporta?</strong><br>
+Arquitetura escalavel horizontalmente. Configuracao atual suporta ~1.000 dispositivos simultaneos.</p>
+
+<p><strong>Qual a latencia dos dados?</strong><br>
+Tempo real (&lt; 3 segundos) do rastreador ate a interface.</p>
+
+<p><strong>Quais protocolos de rastreadores sao suportados?</strong><br>
+X3Tech (XT40, XT40 OBD2), Teltonika e GT06 (compativeis).</p>
+
+<p><strong>Os dados sao seguros?</strong></p>
+<ul>
+<li>HTTPS com certificado SSL</li>
+<li>Autenticacao JWT</li>
+<li>Isolamento por organizacao (multi-tenant)</li>
+<li>Conformidade LGPD</li>
+</ul>
+
+<p><strong>Funciona offline?</strong><br>
+O rastreador armazena dados temporariamente se perder conexao e envia quando reconecta.</p>
+
+<p><strong>Como sao calculadas as viagens?</strong><br>
+Automaticamente por ignicao do veiculo (liga/desliga motor) ou por velocidade para dispositivos OBD2.</p>
+
+<hr>
+
+<h2>Diferenciais Tecnicos</h2>
+<ul>
+<li><strong>Alta disponibilidade:</strong> Load balancer com multiplos gateways</li>
+<li><strong>Processamento distribuido:</strong> Workers paralelos para escala</li>
+<li><strong>Filtro inteligente:</strong> Algoritmo Kalman para precisao GPS</li>
+<li><strong>Notificacoes push:</strong> Alertas em tempo real no app</li>
+<li><strong>API RESTful:</strong> Integracao com sistemas externos</li>
+</ul>
+
+<hr>
+
+<h2>Infraestrutura</h2>
+<p><strong>Requisitos minimos servidor:</strong> 4 vCPUs, 8GB RAM, 100GB SSD</p>
+
+<p><strong>Portas utilizadas:</strong></p>
+<table>
+<tr><th>Porta</th><th>Uso</th></tr>
+<tr><td>443</td><td>HTTPS (Web/API)</td></tr>
+<tr><td>8877</td><td>Rastreadores XT40</td></tr>
+<tr><td>8878</td><td>Rastreadores OBD2</td></tr>
+<tr><td>8879</td><td>Rastreadores Teltonika</td></tr>
+</table>
+
+<hr>
+
+<div class="footer">
+<p><strong>Contato:</strong> suporte@unifique.com.br | <strong>Plataforma:</strong> https://rastreador.unifique.com.br</p>
+<p>Versao 1.0 | Fevereiro/2026</p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,218 @@
+# Alertas para GPS Tracker Platform
+# Regras de alerta para Prometheus
+
+groups:
+  # ============ ALERTAS DE INFRAESTRUTURA ============
+  - name: infrastructure
+    rules:
+      # CPU alta
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU alta em {{ $labels.instance }}"
+          description: "Uso de CPU acima de 80% por mais de 5 minutos (atual: {{ $value }}%)"
+
+      # Memória baixa
+      - alert: LowMemory
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memória baixa em {{ $labels.instance }}"
+          description: "Uso de memória acima de 85% (atual: {{ $value }}%)"
+
+      # Disco cheio
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Espaço em disco baixo em {{ $labels.instance }}"
+          description: "Disco acima de 80% de uso em {{ $labels.mountpoint }} (atual: {{ $value }}%)"
+
+      - alert: DiskSpaceCritical
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Espaço em disco CRÍTICO em {{ $labels.instance }}"
+          description: "Disco acima de 90% de uso em {{ $labels.mountpoint }} (atual: {{ $value }}%)"
+
+  # ============ ALERTAS DA APLICAÇÃO GPS ============
+  - name: gps-application
+    rules:
+      # Nenhum dispositivo online
+      - alert: NoDevicesOnline
+        expr: gps_devices_online == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Nenhum dispositivo online"
+          description: "Não há dispositivos GPS online há mais de 10 minutos"
+
+      # Taxa de localizações muito baixa
+      - alert: LowLocationRate
+        expr: gps_locations_rate < 1
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taxa de localizações muito baixa"
+          description: "Menos de 1 localização por minuto nos últimos 15 minutos"
+
+      # Muitos erros de processamento
+      - alert: HighProcessingErrors
+        expr: rate(gps_queue_processed_total{status="error"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Muitos erros de processamento"
+          description: "Taxa de erros de processamento acima de 10% nos últimos 5 minutos"
+
+      # Fila acumulando
+      - alert: QueueBacklog
+        expr: gps_queue_size > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Fila acumulando em {{ $labels.queue }}"
+          description: "Mais de 1000 itens na fila {{ $labels.queue }} por mais de 5 minutos"
+
+      # API lenta
+      - alert: SlowAPIResponse
+        expr: histogram_quantile(0.95, rate(gps_http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API com resposta lenta"
+          description: "95% das requisições demorando mais de 2 segundos"
+
+  # ============ ALERTAS DE BANCO DE DADOS ============
+  - name: database
+    rules:
+      # Conexões próximas do limite
+      - alert: PostgresConnectionsHigh
+        expr: pg_stat_activity_count / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Conexões PostgreSQL próximas do limite"
+          description: "Mais de 80% das conexões em uso"
+
+      # Queries lentas
+      - alert: PostgresSlowQueries
+        expr: rate(pg_stat_statements_seconds_total[5m]) / rate(pg_stat_statements_calls_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Queries PostgreSQL lentas"
+          description: "Tempo médio de query acima de 1 segundo"
+
+  # ============ ALERTAS DE REDIS ============
+  - name: redis
+    rules:
+      # Memória Redis alta
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memória Redis alta"
+          description: "Redis usando mais de 80% da memória configurada"
+
+      # Redis indisponível
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis indisponível"
+          description: "Redis não está respondendo"
+
+  # ============ ALERTAS DE CONECTIVIDADE ============
+  - name: connectivity
+    rules:
+      # Sem conexões TCP
+      - alert: NoTCPConnections
+        expr: gps_tcp_connections == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sem conexões TCP de rastreadores"
+          description: "Nenhum rastreador conectado há mais de 10 minutos"
+
+      # HAProxy backend down
+      - alert: HAProxyBackendDown
+        expr: haproxy_backend_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend HAProxy indisponível"
+          description: "Backend {{ $labels.backend }} está down"
+
+  # ============ REGRAS DE AUTO-SCALING ============
+  - name: autoscaling
+    rules:
+      # Escalar para CIMA quando CPU > 70%
+      - alert: ScaleUp
+        expr: avg(rate(container_cpu_usage_seconds_total{container_label_com_docker_swarm_service_name="rastreador_app"}[5m])) * 100 > 70
+        for: 2m
+        labels:
+          severity: info
+          action: scale_up
+          service: rastreador_app
+        annotations:
+          summary: "Escalar app para cima"
+          description: "CPU média acima de 70% por 2 minutos"
+
+      # Escalar para CIMA quando muitas conexões
+      - alert: ScaleUpConnections
+        expr: gps_tcp_connections > 100
+        for: 2m
+        labels:
+          severity: info
+          action: scale_up
+          service: rastreador_app
+        annotations:
+          summary: "Escalar app - muitas conexões"
+          description: "Mais de 100 conexões TCP simultâneas"
+
+      # Escalar para BAIXO quando CPU < 20%
+      - alert: ScaleDown
+        expr: avg(rate(container_cpu_usage_seconds_total{container_label_com_docker_swarm_service_name="rastreador_app"}[10m])) * 100 < 20
+        for: 10m
+        labels:
+          severity: info
+          action: scale_down
+          service: rastreador_app
+        annotations:
+          summary: "Escalar app para baixo"
+          description: "CPU média abaixo de 20% por 10 minutos"
+
+      # Escalar para CIMA quando fila grande
+      - alert: ScaleUpQueue
+        expr: gps_queue_size > 500
+        for: 2m
+        labels:
+          severity: info
+          action: scale_up
+          service: rastreador_app
+        annotations:
+          summary: "Escalar app - fila acumulando"
+          description: "Mais de 500 itens na fila por 2 minutos"

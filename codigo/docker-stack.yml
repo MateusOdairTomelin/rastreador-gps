@@ -1,0 +1,229 @@
+version: '3.8'
+
+configs:
+  haproxy_config:
+    file: ./config/haproxy-swarm.cfg
+    name: rastreador_haproxy_config_v2
+
+services:
+  # ============ LOAD BALANCER (HAProxy) ============
+  haproxy:
+    image: haproxy:2.8-alpine
+    ports:
+      - "62000:62000"  # HTTP/WebSocket
+      - "8877:8877"    # TCP Rastreadores
+      - "8404:8404"    # HAProxy Stats
+    configs:
+      - source: haproxy_config
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    networks:
+      - rastreador-network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # ============ APLICAÇÃO (auto-scaling) ============
+  app:
+    image: rastreador-app:latest
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:L5430ZEumKwHIlEeecXX@postgres:5432/rastreador_db?schema=public
+      DATABASE_URL_DIRECT: postgresql://postgres:L5430ZEumKwHIlEeecXX@postgres:5432/rastreador_db?schema=public
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: L5430ZEumKwHIlEeecXX
+      DB_NAME: rastreador_db
+      API_PORT: 62000
+      HTTP_PORT: 62000
+      TCP_PORT: 8877
+      JWT_SECRET: XtG0pyFff/g85H5enWL5o6KSxgQwbSvhgTlZA7/dvKHGVL6I6xM00nIfyU6y72ueupGaVGwcG70KSJakivvYpg==
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+      REDIS_ENABLED: "true"
+      OSRM_HOST: osrm-sul-brasil
+    networks:
+      - rastreador-network
+    deploy:
+      mode: replicated
+      replicas: 2  # Mínimo de 2 réplicas
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:62000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============ BANCO DE DADOS (TimescaleDB) ============
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: L5430ZEumKwHIlEeecXX
+      POSTGRES_DB: rastreador_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/migrate-timescaledb.sql:/docker-entrypoint-initdb.d/99-timescale.sql:ro
+    networks:
+      - rastreador-network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+    command: >
+      postgres
+      -c shared_buffers=1GB
+      -c effective_cache_size=3GB
+      -c maintenance_work_mem=256MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=32MB
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=10MB
+      -c max_connections=200
+
+  # ============ PGBOUNCER ============
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    environment:
+      DATABASE_URL: postgresql://postgres:L5430ZEumKwHIlEeecXX@postgres:5432/rastreador_db
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 50
+      MIN_POOL_SIZE: 10
+      RESERVE_POOL_SIZE: 20
+    networks:
+      - rastreador-network
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+
+  # ============ REDIS ============
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - rastreador-network
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    deploy:
+      mode: replicated
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 300M
+      restart_policy:
+        condition: on-failure
+
+  # ============ PROMETHEUS ============
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus-rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    networks:
+      - rastreador-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ============ GRAFANA ============
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - rastreador-network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  # Auto-scaler roda como serviço no host via systemd
+  # sudo systemctl start rastreador-autoscaler
+
+networks:
+  rastreador-network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

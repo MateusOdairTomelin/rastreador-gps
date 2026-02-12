@@ -1,0 +1,58 @@
+# Dockerfile para API Server
+# Servidor HTTP/WebSocket (sem TCP de rastreadores)
+
+FROM node:18-slim
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    postgresql-client \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copiar arquivos de dependências
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Instalar dependências
+RUN npm ci --only=production
+
+# Gerar cliente Prisma
+RUN npx prisma generate
+
+# Copiar código da aplicação
+COPY server ./server/
+COPY public ./public/
+
+# Criar diretórios e ajustar permissões
+RUN mkdir -p logs data && chown -R node:node /app
+
+# Criar grupo docker com mesmo GID do host (para acesso ao socket)
+# O GID 988 é o padrão do grupo docker em muitas distros
+ARG DOCKER_GID=988
+RUN groupadd -g ${DOCKER_GID} docker || true && \
+    usermod -aG docker node || true
+
+# Usar usuário não-root (segurança)
+USER node
+
+# Expor portas
+# 62000 = HTTP/WebSocket
+EXPOSE 62000
+
+# Variáveis de ambiente padrão
+ENV NODE_ENV=production
+ENV API_PORT=62000
+ENV HTTP_PORT=62000
+ENV ENABLE_TCP=false
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:62000/api/status || exit 1
+
+# Comando para iniciar
+CMD ["node", "server/index.js"]

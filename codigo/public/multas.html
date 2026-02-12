@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multas - Rastreador</title>
+    <link rel="icon" type="image/png" sizes="48x48" href="/FAVICON_48x48.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --unifique-cyan: #3FCFD5;
+            --unifique-cyan-dark: #28B8BE;
+            --unifique-blue: #00A2FF;
+            --unifique-deep-blue: #212492;
+            --unifique-violet: #131E7D;
+            --primary: #3FCFD5;
+            --primary-dark: #0d1042;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #0d1042;
+            --card: rgba(63, 207, 213, 0.06);
+            --text: #E8FCFD;
+            --text-light: #9EEEF2;
+            --border: rgba(63, 207, 213, 0.25);
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #080b2a 0%, #0d1042 25%, #131E7D 50%, #212492 75%, #131E7D 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text);
+            position: relative;
+        }
+
+        .aurora-bg {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .aurora-bg::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg at 50% 50%,
+                transparent 0deg,
+                rgba(63, 207, 213, 0.1) 60deg,
+                transparent 120deg,
+                rgba(0, 162, 255, 0.08) 180deg,
+                transparent 240deg,
+                rgba(33, 36, 146, 0.1) 300deg,
+                transparent 360deg);
+            animation: auroraRotate 45s linear infinite;
+        }
+
+        .aurora-bg::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(63, 207, 213, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(63, 207, 213, 0.04) 1px, transparent 1px);
+            background-size: 80px 80px;
+        }
+
+        @keyframes auroraRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .floating-orb {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(80px);
+        }
+
+        .floating-orb-1 {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(63, 207, 213, 0.25) 0%, rgba(0, 162, 255, 0.1) 50%, transparent 70%);
+            top: -200px;
+            right: -200px;
+            animation: floatOrb1 20s ease-in-out infinite;
+        }
+
+        .floating-orb-2 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(0, 162, 255, 0.2) 0%, rgba(33, 36, 146, 0.15) 50%, transparent 70%);
+            bottom: -150px;
+            left: -150px;
+            animation: floatOrb2 25s ease-in-out infinite;
+        }
+
+        @keyframes floatOrb1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-50px, 60px) scale(1.15); }
+            66% { transform: translate(30px, -30px) scale(0.9); }
+        }
+
+        @keyframes floatOrb2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(60px, -40px) scale(1.2); }
+            66% { transform: translate(-30px, 30px) scale(0.95); }
+        }
+
+        .header {
+            background: rgba(63, 207, 213, 0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(33, 36, 146, 0.3);
+            position: relative;
+            z-index: 10;
+            border-bottom: 1px solid rgba(63, 207, 213, 0.2);
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3FCFD5, #00A2FF, #3FCFD5);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3FCFD5 0%, #00A2FF 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(63, 207, 213, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(63, 207, 213, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(63, 207, 213, 0.15);
+            color: #E8FCFD;
+            border: 1px solid rgba(63, 207, 213, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(63, 207, 213, 0.25);
+            border-color: rgba(63, 207, 213, 0.5);
+        }
+
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-small { padding: 6px 12px; font-size: 0.8rem; }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(63, 207, 213, 0.06);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(33, 36, 146, 0.2);
+            border: 1px solid rgba(63, 207, 213, 0.2);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #3FCFD5;
+        }
+
+        .stat-label {
+            color: #9EEEF2;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .stat-card.warning .stat-value { color: var(--warning); }
+        .stat-card.danger .stat-value { color: var(--danger); }
+        .stat-card.success .stat-value { color: var(--success); }
+
+        .card {
+            background: rgba(63, 207, 213, 0.06);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(33, 36, 146, 0.3);
+            border: 1px solid rgba(63, 207, 213, 0.2);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 10px 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(63, 207, 213, 0.05);
+            color: var(--text);
+            font-size: 0.9rem;
+            min-width: 150px;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(63, 207, 213, 0.2);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            color: var(--text-light);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover {
+            background: rgba(63, 207, 213, 0.05);
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pendente { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .status-paga { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .status-vencida { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .status-recorrida { background: rgba(99, 102, 241, 0.2); color: #6366f1; }
+        .status-cancelada { background: rgba(107, 114, 128, 0.2); color: #6b7280; }
+
+        .gravidade-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .gravidade-leve { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .gravidade-media { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .gravidade-grave { background: rgba(249, 115, 22, 0.2); color: #f97316; }
+        .gravidade-gravissima { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .valor { font-weight: 600; color: var(--primary); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: linear-gradient(135deg, #0d1042 0%, #131E7D 100%);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 700px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h2 {
+            font-size: 1.3rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group.full { grid-column: 1 / -1; }
+
+        .form-group label {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(63, 207, 213, 0.05);
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+
+        .form-group textarea { min-height: 80px; resize: vertical; }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-state h3 { margin-bottom: 10px; }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover,
+        .pagination button.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 15px; text-align: center; }
+            .filters { flex-direction: column; }
+            .form-row { grid-template-columns: 1fr; }
+            table { font-size: 0.85rem; }
+            th, td { padding: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="aurora-bg"></div>
+    <div class="floating-orb floating-orb-1"></div>
+    <div class="floating-orb floating-orb-2"></div>
+
+    <header class="header">
+        <h1>Multas de Transito</h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="window.location.href='/index.html'">Voltar</button>
+            <button class="btn btn-primary" onclick="abrirModalNova()">+ Nova Multa</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Estatisticas -->
+        <div class="stats-row" id="stats-row">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-total">0</div>
+                <div class="stat-label">Total de Multas</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-value" id="stat-pendentes">0</div>
+                <div class="stat-label">Pendentes</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-value" id="stat-vencidas">0</div>
+                <div class="stat-label">Vencidas</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-value" id="stat-pagas">0</div>
+                <div class="stat-label">Pagas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-valor">R$ 0</div>
+                <div class="stat-label">Valor Total Pendente</div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card">
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Buscar</label>
+                    <input type="text" id="filter-busca" placeholder="Placa, auto, local...">
+                </div>
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="filter-status">
+                        <option value="">Todos</option>
+                        <option value="pendente">Pendente</option>
+                        <option value="paga">Paga</option>
+                        <option value="vencida">Vencida</option>
+                        <option value="recorrida">Recorrida</option>
+                        <option value="cancelada">Cancelada</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Gravidade</label>
+                    <select id="filter-gravidade">
+                        <option value="">Todas</option>
+                        <option value="leve">Leve</option>
+                        <option value="media">Media</option>
+                        <option value="grave">Grave</option>
+                        <option value="gravissima">Gravissima</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Data Inicio</label>
+                    <input type="date" id="filter-data-inicio">
+                </div>
+                <div class="filter-group">
+                    <label>Data Fim</label>
+                    <input type="date" id="filter-data-fim">
+                </div>
+                <button class="btn btn-primary" onclick="carregarMultas()">Filtrar</button>
+            </div>
+        </div>
+
+        <!-- Tabela -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Lista de Multas</h2>
+            </div>
+            <div id="multas-container">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+
+    <!-- Modal Nova/Editar Multa -->
+    <div class="modal-overlay" id="modal-multa">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-titulo">Nova Multa</h2>
+                <button class="modal-close" onclick="fecharModal()">&times;</button>
+            </div>
+            <form id="form-multa">
+                <input type="hidden" id="multa-id">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Veiculo *</label>
+                        <select id="multa-veiculo" required>
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Motorista</label>
+                        <select id="multa-motorista">
+                            <option value="">Identificar automaticamente</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>N Auto de Infracao</label>
+                        <input type="text" id="multa-auto">
+                    </div>
+                    <div class="form-group">
+                        <label>Codigo Infracao</label>
+                        <input type="text" id="multa-codigo" placeholder="Ex: 746-1">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Data da Infracao *</label>
+                        <input type="date" id="multa-data" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Hora</label>
+                        <input type="time" id="multa-hora">
+                    </div>
+                </div>
+
+                <div class="form-group full">
+                    <label>Local da Infracao</label>
+                    <input type="text" id="multa-local" placeholder="Endereco ou descricao do local">
+                </div>
+
+                <div class="form-group full">
+                    <label>Descricao da Infracao</label>
+                    <input type="text" id="multa-descricao" placeholder="Ex: Avancar sinal vermelho">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Gravidade</label>
+                        <select id="multa-gravidade">
+                            <option value="">Selecione...</option>
+                            <option value="leve">Leve (3 pontos)</option>
+                            <option value="media">Media (4 pontos)</option>
+                            <option value="grave">Grave (5 pontos)</option>
+                            <option value="gravissima">Gravissima (7 pontos)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Pontos</label>
+                        <input type="number" id="multa-pontos" min="0" max="7">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Valor Original *</label>
+                        <input type="number" id="multa-valor" step="0.01" min="0" required placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Valor com Desconto</label>
+                        <input type="number" id="multa-valor-desconto" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vencimento</label>
+                        <input type="date" id="multa-vencimento">
+                    </div>
+                    <div class="form-group">
+                        <label>Vencimento Desconto</label>
+                        <input type="date" id="multa-vencimento-desconto">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Data Limite NIC</label>
+                        <input type="date" id="multa-nic-limite">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="multa-status">
+                            <option value="pendente">Pendente</option>
+                            <option value="paga">Paga</option>
+                            <option value="vencida">Vencida</option>
+                            <option value="recorrida">Recorrida</option>
+                            <option value="cancelada">Cancelada</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group full">
+                    <label>Observacoes</label>
+                    <textarea id="multa-observacoes" placeholder="Anotacoes adicionais..."></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api';
+        let currentPage = 1;
+        let totalPages = 1;
+        let veiculos = [];
+        let motoristas = [];
+
+        // Inicializacao
+        document.addEventListener('DOMContentLoaded', () => {
+            verificarAutenticacao();
+            carregarDadosIniciais();
+        });
+
+        async function verificarAutenticacao() {
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+        }
+
+        function getHeaders() {
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
+        }
+
+        async function carregarDadosIniciais() {
+            await Promise.all([
+                carregarVeiculos(),
+                carregarMotoristas(),
+                carregarEstatisticas(),
+                carregarMultas()
+            ]);
+        }
+
+        async function carregarVeiculos() {
+            try {
+                const resp = await fetch(`${API_URL}/veiculos`, { headers: getHeaders() });
+                const data = await resp.json();
+                if (data.sucesso) {
+                    veiculos = data.veiculos || [];
+                    const select = document.getElementById('multa-veiculo');
+                    select.innerHTML = '<option value="">Selecione...</option>';
+                    veiculos.forEach(v => {
+                        select.innerHTML += `<option value="${v.id}">${v.placa} - ${v.modelo || 'Sem modelo'}</option>`;
+                    });
+                }
+            } catch (e) {
+                console.error('Erro ao carregar veiculos:', e);
+            }
+        }
+
+        async function carregarMotoristas() {
+            try {
+                const resp = await fetch(`${API_URL}/motoristas`, { headers: getHeaders() });
+                const data = await resp.json();
+                if (data.sucesso) {
+                    motoristas = data.motoristas || [];
+                    const select = document.getElementById('multa-motorista');
+                    select.innerHTML = '<option value="">Identificar automaticamente</option>';
+                    motoristas.forEach(m => {
+                        select.innerHTML += `<option value="${m.id}">${m.nome}</option>`;
+                    });
+                }
+            } catch (e) {
+                console.error('Erro ao carregar motoristas:', e);
+            }
+        }
+
+        async function carregarEstatisticas() {
+            try {
+                const resp = await fetch(`${API_URL}/multas/estatisticas`, { headers: getHeaders() });
+                const data = await resp.json();
+                if (data.sucesso) {
+                    const stats = data.estatisticas;
+                    document.getElementById('stat-total').textContent = stats.total || 0;
+
+                    const porStatus = stats.porStatus || [];
+                    const pendentes = porStatus.find(s => s.status === 'pendente')?.count || 0;
+                    const vencidas = porStatus.find(s => s.status === 'vencida')?.count || 0;
+                    const pagas = porStatus.find(s => s.status === 'paga')?.count || 0;
+
+                    document.getElementById('stat-pendentes').textContent = pendentes;
+                    document.getElementById('stat-vencidas').textContent = vencidas;
+                    document.getElementById('stat-pagas').textContent = pagas;
+
+                    const valorPendente = (stats.valorTotal?.original || 0) - (stats.valorTotal?.pago || 0);
+                    document.getElementById('stat-valor').textContent = `R$ ${valorPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                }
+            } catch (e) {
+                console.error('Erro ao carregar estatisticas:', e);
+            }
+        }
+
+        async function carregarMultas() {
+            const container = document.getElementById('multas-container');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            const params = new URLSearchParams({
+                page: currentPage,
+                limit: 20
+            });
+
+            const busca = document.getElementById('filter-busca').value;
+            const status = document.getElementById('filter-status').value;
+            const gravidade = document.getElementById('filter-gravidade').value;
+            const dataInicio = document.getElementById('filter-data-inicio').value;
+            const dataFim = document.getElementById('filter-data-fim').value;
+
+            if (busca) params.append('busca', busca);
+            if (status) params.append('status', status);
+            if (gravidade) params.append('gravidade', gravidade);
+            if (dataInicio) params.append('data_inicio', dataInicio);
+            if (dataFim) params.append('data_fim', dataFim);
+
+            try {
+                const resp = await fetch(`${API_URL}/multas?${params}`, { headers: getHeaders() });
+                const data = await resp.json();
+
+                if (data.sucesso && data.multas?.length > 0) {
+                    totalPages = data.totalPages || 1;
+                    container.innerHTML = renderTabela(data.multas);
+                    renderPaginacao();
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h3>Nenhuma multa encontrada</h3>
+                            <p>Clique em "Nova Multa" para cadastrar</p>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error('Erro ao carregar multas:', e);
+                container.innerHTML = '<div class="empty-state"><h3>Erro ao carregar multas</h3></div>';
+            }
+        }
+
+        function renderTabela(multas) {
+            return `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Veiculo</th>
+                            <th>Auto</th>
+                            <th>Descricao</th>
+                            <th>Gravidade</th>
+                            <th>Valor</th>
+                            <th>Vencimento</th>
+                            <th>Status</th>
+                            <th>Acoes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${multas.map(m => `
+                            <tr>
+                                <td>${formatarData(m.data_infracao)}${m.hora_infracao ? ' ' + m.hora_infracao : ''}</td>
+                                <td>${m.veiculo?.placa || 'N/A'}</td>
+                                <td>${m.numero_auto || '-'}</td>
+                                <td>${m.descricao_infracao || m.codigo_infracao || '-'}</td>
+                                <td>${renderGravidade(m.gravidade)}</td>
+                                <td class="valor">R$ ${m.valor_original?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}</td>
+                                <td>${m.data_vencimento ? formatarData(m.data_vencimento) : '-'}</td>
+                                <td>${renderStatus(m.status)}</td>
+                                <td class="actions">
+                                    <button class="btn btn-small btn-secondary" onclick="editarMulta(${m.id})">Editar</button>
+                                    ${m.status === 'pendente' ? `<button class="btn btn-small btn-success" onclick="registrarPagamento(${m.id})">Pagar</button>` : ''}
+                                    <button class="btn btn-small btn-danger" onclick="excluirMulta(${m.id})">Excluir</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderStatus(status) {
+            const classes = {
+                pendente: 'status-pendente',
+                paga: 'status-paga',
+                vencida: 'status-vencida',
+                recorrida: 'status-recorrida',
+                cancelada: 'status-cancelada'
+            };
+            return `<span class="status-badge ${classes[status] || ''}">${status || 'N/A'}</span>`;
+        }
+
+        function renderGravidade(gravidade) {
+            if (!gravidade) return '-';
+            const classes = {
+                leve: 'gravidade-leve',
+                media: 'gravidade-media',
+                grave: 'gravidade-grave',
+                gravissima: 'gravidade-gravissima'
+            };
+            return `<span class="gravidade-badge ${classes[gravidade] || ''}">${gravidade}</span>`;
+        }
+
+        function formatarData(dataStr) {
+            if (!dataStr) return '-';
+            const d = new Date(dataStr);
+            return d.toLocaleDateString('pt-BR');
+        }
+
+        function renderPaginacao() {
+            const container = document.getElementById('pagination');
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            html += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="irParaPagina(${currentPage - 1})">Anterior</button>`;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    html += `<button class="${i === currentPage ? 'active' : ''}" onclick="irParaPagina(${i})">${i}</button>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    html += `<button disabled>...</button>`;
+                }
+            }
+
+            html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="irParaPagina(${currentPage + 1})">Proximo</button>`;
+            container.innerHTML = html;
+        }
+
+        function irParaPagina(page) {
+            currentPage = page;
+            carregarMultas();
+        }
+
+        // Modal
+        function abrirModalNova() {
+            document.getElementById('modal-titulo').textContent = 'Nova Multa';
+            document.getElementById('form-multa').reset();
+            document.getElementById('multa-id').value = '';
+            document.getElementById('multa-status').value = 'pendente';
+            document.getElementById('modal-multa').classList.add('active');
+        }
+
+        function fecharModal() {
+            document.getElementById('modal-multa').classList.remove('active');
+        }
+
+        async function editarMulta(id) {
+            try {
+                const resp = await fetch(`${API_URL}/multas/${id}`, { headers: getHeaders() });
+                const data = await resp.json();
+
+                if (data.sucesso && data.multa) {
+                    const m = data.multa;
+                    document.getElementById('modal-titulo').textContent = 'Editar Multa';
+                    document.getElementById('multa-id').value = m.id;
+                    document.getElementById('multa-veiculo').value = m.veiculo_id || '';
+                    document.getElementById('multa-motorista').value = m.motorista_id || '';
+                    document.getElementById('multa-auto').value = m.numero_auto || '';
+                    document.getElementById('multa-codigo').value = m.codigo_infracao || '';
+                    document.getElementById('multa-data').value = m.data_infracao?.split('T')[0] || '';
+                    document.getElementById('multa-hora').value = m.hora_infracao || '';
+                    document.getElementById('multa-local').value = m.local_infracao || '';
+                    document.getElementById('multa-descricao').value = m.descricao_infracao || '';
+                    document.getElementById('multa-gravidade').value = m.gravidade || '';
+                    document.getElementById('multa-pontos').value = m.pontos || '';
+                    document.getElementById('multa-valor').value = m.valor_original || '';
+                    document.getElementById('multa-valor-desconto').value = m.valor_desconto || '';
+                    document.getElementById('multa-vencimento').value = m.data_vencimento?.split('T')[0] || '';
+                    document.getElementById('multa-vencimento-desconto').value = m.data_vencimento_desconto?.split('T')[0] || '';
+                    document.getElementById('multa-nic-limite').value = m.nic_data_limite?.split('T')[0] || '';
+                    document.getElementById('multa-status').value = m.status || 'pendente';
+                    document.getElementById('multa-observacoes').value = m.observacoes || '';
+
+                    document.getElementById('modal-multa').classList.add('active');
+                }
+            } catch (e) {
+                alert('Erro ao carregar multa');
+            }
+        }
+
+        document.getElementById('form-multa').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('multa-id').value;
+            const dados = {
+                veiculo_id: document.getElementById('multa-veiculo').value,
+                motorista_id: document.getElementById('multa-motorista').value || null,
+                numero_auto: document.getElementById('multa-auto').value,
+                codigo_infracao: document.getElementById('multa-codigo').value,
+                data_infracao: document.getElementById('multa-data').value,
+                hora_infracao: document.getElementById('multa-hora').value,
+                local_infracao: document.getElementById('multa-local').value,
+                descricao_infracao: document.getElementById('multa-descricao').value,
+                gravidade: document.getElementById('multa-gravidade').value,
+                pontos: document.getElementById('multa-pontos').value || 0,
+                valor_original: parseFloat(document.getElementById('multa-valor').value),
+                valor_desconto: document.getElementById('multa-valor-desconto').value || null,
+                data_vencimento: document.getElementById('multa-vencimento').value || null,
+                data_vencimento_desconto: document.getElementById('multa-vencimento-desconto').value || null,
+                nic_data_limite: document.getElementById('multa-nic-limite').value || null,
+                status: document.getElementById('multa-status').value,
+                observacoes: document.getElementById('multa-observacoes').value
+            };
+
+            try {
+                const url = id ? `${API_URL}/multas/${id}` : `${API_URL}/multas`;
+                const method = id ? 'PUT' : 'POST';
+
+                const resp = await fetch(url, {
+                    method,
+                    headers: getHeaders(),
+                    body: JSON.stringify(dados)
+                });
+
+                const data = await resp.json();
+
+                if (data.sucesso) {
+                    fecharModal();
+                    carregarMultas();
+                    carregarEstatisticas();
+                    alert(id ? 'Multa atualizada!' : 'Multa cadastrada!');
+                } else {
+                    alert(data.erro || 'Erro ao salvar');
+                }
+            } catch (e) {
+                alert('Erro ao salvar multa');
+            }
+        });
+
+        async function excluirMulta(id) {
+            if (!confirm('Deseja realmente excluir esta multa?')) return;
+
+            try {
+                const resp = await fetch(`${API_URL}/multas/${id}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+
+                const data = await resp.json();
+
+                if (data.sucesso) {
+                    carregarMultas();
+                    carregarEstatisticas();
+                    alert('Multa excluida!');
+                } else {
+                    alert(data.erro || 'Erro ao excluir');
+                }
+            } catch (e) {
+                alert('Erro ao excluir multa');
+            }
+        }
+
+        async function registrarPagamento(id) {
+            const valor = prompt('Valor pago (R$):');
+            if (!valor) return;
+
+            const dataPagamento = prompt('Data do pagamento (AAAA-MM-DD):', new Date().toISOString().split('T')[0]);
+            if (!dataPagamento) return;
+
+            try {
+                const resp = await fetch(`${API_URL}/multas/${id}/pagar`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        valor_pago: parseFloat(valor),
+                        data_pagamento: dataPagamento
+                    })
+                });
+
+                const data = await resp.json();
+
+                if (data.sucesso) {
+                    carregarMultas();
+                    carregarEstatisticas();
+                    alert('Pagamento registrado!');
+                } else {
+                    alert(data.erro || 'Erro ao registrar pagamento');
+                }
+            } catch (e) {
+                alert('Erro ao registrar pagamento');
+            }
+        }
+
+        // Gravidade auto-pontos
+        document.getElementById('multa-gravidade').addEventListener('change', function() {
+            const pontos = { leve: 3, media: 4, grave: 5, gravissima: 7 };
+            document.getElementById('multa-pontos').value = pontos[this.value] || '';
+        });
+    </script>
+</body>
+</html>

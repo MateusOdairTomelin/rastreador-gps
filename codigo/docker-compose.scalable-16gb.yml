@@ -1,0 +1,467 @@
+# ============================================================================
+# ARQUITETURA ESCALÁVEL OTIMIZADA PARA SERVIDOR 16GB/8 CORES
+# ============================================================================
+#
+# Capacidade estimada: 1500-2000 rastreadores simultâneos
+#
+# Recursos totais alocados:
+#   - RAM: ~10GB (deixa 6GB para sistema)
+#   - CPUs: 8 cores (com oversubscription controlado)
+#
+# Para iniciar:
+#   docker compose -f docker-compose.scalable-16gb.yml up -d
+#
+# ============================================================================
+
+services:
+  # =============================================================================
+  # LOAD BALANCER - HAProxy
+  # =============================================================================
+  haproxy:
+    image: haproxy:2.8-alpine
+    container_name: rastreador-haproxy
+    restart: unless-stopped
+    ports:
+      - "80:80"        # HTTP (redirect para HTTPS)
+      - "443:443"      # HTTPS (API/WebSocket)
+      - "8877:8877"    # TCP XT40 (rastreadores)
+      - "8878:8878"    # TCP XT40 OBD2
+      - "8879:8879"    # TCP Teltonika
+      - "62000:62000"  # HTTP/API (mantido para compatibilidade)
+      - "8404:8404"    # Stats (admin:admin)
+    volumes:
+      - ./config/haproxy-16gb.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./config/certs:/etc/haproxy/certs:ro
+    depends_on:
+      - tcp-gateway-1
+      - tcp-gateway-2
+      - api-server-1
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
+
+  # =============================================================================
+  # TCP GATEWAYS (2x) - Recebem conexões dos rastreadores
+  # Cada um suporta ~1000 conexões = 2000 total
+  # =============================================================================
+  tcp-gateway-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.tcp-gateway
+    container_name: rastreador-tcp-gw-1
+    restart: unless-stopped
+    environment:
+      - GATEWAY_ID=gw-1
+      - TCP_PORT=8877
+      - TCP_PORT_OBD2=8878
+      - TELTONIKA_PORT=8879
+      - MAX_CONNECTIONS=1000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
+      - REDIS_ENABLED=true
+      - REDIS_STREAMS_DB=2
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@pgbouncer:6432/rastreador_db?schema=public
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+
+  tcp-gateway-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.tcp-gateway
+    container_name: rastreador-tcp-gw-2
+    restart: unless-stopped
+    environment:
+      - GATEWAY_ID=gw-2
+      - TCP_PORT=8877
+      - TCP_PORT_OBD2=8878
+      - TELTONIKA_PORT=8879
+      - MAX_CONNECTIONS=1000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
+      - REDIS_ENABLED=true
+      - REDIS_STREAMS_DB=2
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@pgbouncer:6432/rastreador_db?schema=public
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+
+  # =============================================================================
+  # PROCESSORS (Workers) - Processam dados em paralelo
+  # =============================================================================
+
+  # Location Processor (2x) - Processa localizações GPS
+  location-processor-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    container_name: rastreador-loc-proc-1
+    restart: unless-stopped
+    command: ["node", "server/workers/location-processor.js"]
+    environment:
+      - WORKER_ID=loc-1
+      - BATCH_SIZE=20
+      - BLOCK_TIME=3000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
+      - REDIS_ENABLED=true
+      - REDIS_STREAMS_DB=2
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+        reservations:
+          memory: 256M
+
+  location-processor-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    container_name: rastreador-loc-proc-2
+    restart: unless-stopped
+    command: ["node", "server/workers/location-processor.js"]
+    environment:
+      - WORKER_ID=loc-2
+      - BATCH_SIZE=20
+      - BLOCK_TIME=3000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
+      - REDIS_ENABLED=true
+      - REDIS_STREAMS_DB=2
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+        reservations:
+          memory: 256M
+
+  # Status Processor - Processa heartbeats
+  status-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    container_name: rastreador-status-proc
+    restart: unless-stopped
+    command: ["node", "server/workers/status-processor.js"]
+    environment:
+      - WORKER_ID=status-1
+      - BATCH_SIZE=20
+      - BLOCK_TIME=2000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
+      - REDIS_ENABLED=true
+      - REDIS_STREAMS_DB=2
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+
+  # Alarm Processor - Processa alarmes (alta prioridade)
+  alarm-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    container_name: rastreador-alarm-proc
+    restart: unless-stopped
+    command: ["node", "server/workers/alarm-processor.js"]
+    environment:
+      - WORKER_ID=alarm-1
+      - BATCH_SIZE=5
+      - BLOCK_TIME=1000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
+      - REDIS_ENABLED=true
+      - REDIS_STREAMS_DB=2
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+
+  # =============================================================================
+  # API SERVER (1x) - HTTP/WebSocket
+  # =============================================================================
+  api-server-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: rastreador-api-1
+    restart: unless-stopped
+    environment:
+      - API_ID=api-1
+      - NODE_ENV=production
+      - API_PORT=62000
+      - HTTP_PORT=62000
+      - ENABLE_TCP=false
+      - IS_MASTER=true
+      - ENABLE_METRICS=true
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
+      - DATABASE_URL_DIRECT=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
+      - REDIS_ENABLED=true
+      - JWT_SECRET=${JWT_SECRET:-XtG0pyFff/g85H5enWL5o6KSxgQwbSvhgTlZA7/dvKHGVL6I6xM00nIfyU6y72ueupGaVGwcG70KSJakivvYpg==}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-4a2af02e2438b08f6fa34a539f0243f63c6b3a088c1c1a5c8f3520a22ec4df1c}
+      # API Brasil - Consulta de Placas
+      - APIBRASIL_TOKEN=${APIBRASIL_TOKEN:-}
+      - APIBRASIL_DEVICE_TOKEN=${APIBRASIL_DEVICE_TOKEN:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # ✅ Acesso ao Docker para monitoramento
+      - ./public:/app/public:ro  # ✅ Frontend em tempo real (sem rebuild)
+    user: root  # ✅ Necessário para acessar Docker socket
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        # Sem limites - usa memória disponível do sistema
+        reservations:
+          memory: 512M
+
+  # =============================================================================
+  # DATABASE - TimescaleDB
+  # =============================================================================
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: rastreador-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}
+      POSTGRES_DB: rastreador_db
+    command: >
+      postgres
+      -c shared_buffers=512MB
+      -c effective_cache_size=1536MB
+      -c maintenance_work_mem=128MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c max_connections=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=8MB
+      -c password_encryption=md5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/migrate-timescaledb.sql:/docker-entrypoint-initdb.d/99-timescale.sql:ro
+    networks:
+      - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rastreador_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
+        reservations:
+          memory: 1G
+
+  # =============================================================================
+  # PGBOUNCER - Connection Pooling
+  # =============================================================================
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: rastreador-pgbouncer
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 500
+      DEFAULT_POOL_SIZE: 30
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 10
+    networks:
+      - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+
+  # =============================================================================
+  # REDIS - Message Queue + Cache
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: rastreador-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
+    volumes:
+      - redis_data:/data
+    networks:
+      - rastreador-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 640M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+
+  # =============================================================================
+  # PROMETHEUS (opcional - métricas)
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: rastreador-prometheus
+    restart: unless-stopped
+    profiles: ["monitoring"]  # Só sobe com: docker compose --profile monitoring up
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+  # =============================================================================
+  # GRAFANA (opcional - dashboards)
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: rastreador-grafana
+    restart: unless-stopped
+    profiles: ["monitoring"]  # Só sobe com: docker compose --profile monitoring up
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - rastreador-network
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  rastreador-network:
+    driver: bridge
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
