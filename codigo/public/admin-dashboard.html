@@ -4574,19 +4574,26 @@
 
             <!-- Comandos de Scaling -->
             <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">
-              <div style="color: var(--text-light); font-size: 12px; margin-bottom: 8px;">COMANDOS RAPIDOS</div>
-              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button onclick="copyScalingCommand('processor')" class="btn-secondary" style="font-size: 12px; padding: 8px 12px;">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="margin-right: 6px;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                  Add Processor
+              <div style="color: var(--text-light); font-size: 12px; margin-bottom: 8px;">SCALING AUTOMATICO</div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <span style="font-size: 11px; color: var(--text-light); margin-right: 4px;">Processors:</span>
+                <button onclick="scaleInfrastructure('processor', 'up')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Adicionar Processor">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
                 </button>
-                <button onclick="copyScalingCommand('gateway')" class="btn-secondary" style="font-size: 12px; padding: 8px 12px;">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="margin-right: 6px;"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                  Add Gateway
+                <button onclick="scaleInfrastructure('processor', 'down')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Remover Processor">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg>
                 </button>
-                <button onclick="refreshInfrastructure()" class="btn-secondary" style="font-size: 12px; padding: 8px 12px;">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="margin-right: 6px;"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-                  Atualizar
+
+                <span style="font-size: 11px; color: var(--text-light); margin-left: 12px; margin-right: 4px;">Gateways:</span>
+                <button onclick="scaleInfrastructure('gateway', 'up')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Adicionar Gateway">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </button>
+                <button onclick="scaleInfrastructure('gateway', 'down')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Remover Gateway">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg>
+                </button>
+
+                <button onclick="refreshInfrastructure()" class="btn-secondary" style="font-size: 12px; padding: 6px 10px; margin-left: 12px;" title="Atualizar Status">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                 </button>
               </div>
             </div>
@@ -7277,21 +7284,44 @@
       }
     }
 
-    function copyScalingCommand(type) {
-      const commands = {
-        processor: 'docker compose -f docker-compose.scalable-16gb.yml up -d location-processor-3 --no-deps',
-        gateway: 'docker compose -f docker-compose.scalable-16gb.yml up -d tcp-gateway-3 --no-deps'
-      };
+    async function scaleInfrastructure(type, action = 'up') {
+      const typeNames = { processor: 'Processor', gateway: 'Gateway' };
+      const actionNames = { up: 'adicionando', down: 'removendo' };
 
-      const cmd = commands[type];
-      if (cmd) {
-        navigator.clipboard.writeText(cmd).then(() => {
-          showNotification('Comando copiado!', 'success');
-        }).catch(() => {
-          prompt('Copie o comando:', cmd);
+      try {
+        toastInfo(`${actionNames[action]} ${typeNames[type]}...`);
+
+        const response = await authFetch(`${API_URL}/infraestrutura/scale`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type, action })
         });
+
+        const result = await response.json();
+
+        if (result.sucesso) {
+          toastSuccess(`${typeNames[type]} escalado: ${result.anterior} → ${result.atual}`);
+          // Atualizar a visualização da infraestrutura
+          setTimeout(() => {
+            loadInfrastructureStatus();
+          }, 2000);
+        } else {
+          toastError(result.mensagem || 'Erro ao escalar');
+        }
+      } catch (error) {
+        console.error('[Scale] Erro:', error);
+        toastError('Erro ao escalar: ' + error.message);
       }
     }
+
+    // Manter função antiga para compatibilidade (apenas copia comando)
+    function copyScalingCommand(type) {
+      scaleInfrastructure(type, 'up');
+    }
+
+    // Expor funções de scaling globalmente
+    window.scaleInfrastructure = scaleInfrastructure;
+    window.refreshInfrastructure = refreshInfrastructure;
 
     function startInfraPolling() {
       if (infraInterval) return;

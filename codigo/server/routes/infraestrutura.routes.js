@@ -251,6 +251,222 @@ router.get('/tcp-security', async (req, res) => {
 });
 
 /**
+ * Helper: Faz requisição HTTP ao Docker Engine API via Unix socket
+ */
+async function dockerApiRequest(method, path, body = null) {
+  const http = require('http');
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      socketPath: '/var/run/docker.sock',
+      path: path,
+      method: method,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    const req = http.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = data ? JSON.parse(data) : {};
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(parsed);
+          } else {
+            reject(new Error(parsed.message || `HTTP ${res.statusCode}`));
+          }
+        } catch (e) {
+          resolve(data); // Retorna string se não for JSON
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(new Error('Timeout'));
+    });
+
+    if (body) {
+      req.write(JSON.stringify(body));
+    }
+    req.end();
+  });
+}
+
+/**
+ * POST /api/infraestrutura/scale
+ * Escala containers Docker (processors ou gateways)
+ *
+ * Body: { type: 'processor' | 'gateway', action: 'up' | 'down' }
+ */
+router.post('/scale', async (req, res) => {
+  try {
+    const { type, action = 'up' } = req.body;
+
+    if (!type || !['processor', 'gateway'].includes(type)) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: 'Tipo inválido. Use: processor ou gateway'
+      });
+    }
+
+    // Padrão de nome dos containers
+    const namePattern = type === 'processor' ? 'loc-proc' : 'tcp-gw';
+
+    // Listar containers atuais via Docker API
+    const containers = await dockerApiRequest('GET', '/containers/json?all=true');
+    const typeContainers = containers.filter(c =>
+      c.Names.some(n => n.includes(`rastreador-${namePattern}`))
+    );
+
+    const runningContainers = typeContainers.filter(c => c.State === 'running');
+    const stoppedContainers = typeContainers.filter(c => c.State !== 'running');
+    const current = runningContainers.length;
+
+    console.log(`[Infraestrutura] ${type}: ${current} rodando, ${stoppedContainers.length} parados`);
+
+    if (action === 'up') {
+      // Verificar limite
+      if (current >= 6) {
+        return res.status(400).json({
+          sucesso: false,
+          mensagem: `Limite máximo de 6 ${type}s atingido`,
+          atual: current
+        });
+      }
+
+      // Tentar iniciar um container parado primeiro
+      if (stoppedContainers.length > 0) {
+        const containerToStart = stoppedContainers[0];
+        const containerId = containerToStart.Id;
+        const containerName = containerToStart.Names[0].replace('/', '');
+
+        console.log(`[Infraestrutura] Iniciando container parado: ${containerName}`);
+        await dockerApiRequest('POST', `/containers/${containerId}/start`);
+
+        // Aguardar container iniciar
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        return res.json({
+          sucesso: true,
+          mensagem: `${type} iniciado: ${containerName}`,
+          anterior: current,
+          atual: current + 1,
+          acao: 'started',
+          container: containerName
+        });
+      }
+
+      // Se não houver container parado para iniciar, informar que precisa usar docker-compose
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: `Não há ${type}s parados para iniciar. Use docker-compose para criar novos containers.`,
+        atual: current,
+        dica: `docker compose -f docker-compose.scalable-16gb.yml up -d --scale location-processor-1=1 --scale location-processor-2=1`
+      });
+
+    } else if (action === 'down') {
+      // Verificar mínimo
+      if (current <= 1) {
+        return res.status(400).json({
+          sucesso: false,
+          mensagem: `Mínimo de 1 ${type} necessário`,
+          atual: current
+        });
+      }
+
+      // Parar o último container rodando (maior número)
+      const sortedContainers = runningContainers.sort((a, b) => {
+        const numA = parseInt(a.Names[0].match(/\d+$/)?.[0] || '0');
+        const numB = parseInt(b.Names[0].match(/\d+$/)?.[0] || '0');
+        return numB - numA; // Maior número primeiro
+      });
+
+      const containerToStop = sortedContainers[0];
+      const containerId = containerToStop.Id;
+      const containerName = containerToStop.Names[0].replace('/', '');
+
+      console.log(`[Infraestrutura] Parando container: ${containerName}`);
+      await dockerApiRequest('POST', `/containers/${containerId}/stop`);
+
+      return res.json({
+        sucesso: true,
+        mensagem: `${type} parado: ${containerName}`,
+        anterior: current,
+        atual: current - 1,
+        acao: 'stopped',
+        container: containerName
+      });
+    }
+
+  } catch (error) {
+    console.error('[Infraestrutura] Erro no endpoint scale:', error);
+    res.status(500).json({
+      sucesso: false,
+      mensagem: 'Erro ao escalar',
+      erro: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/infraestrutura/containers
+ * Lista containers e permite ver quantos de cada tipo estão rodando
+ */
+router.get('/containers', async (req, res) => {
+  try {
+    // Listar todos os containers do projeto rastreador via Docker API
+    const allContainers = await dockerApiRequest('GET', '/containers/json?all=true');
+
+    const rastreadorContainers = allContainers.filter(c =>
+      c.Names.some(n => n.includes('rastreador'))
+    );
+
+    const containers = rastreadorContainers.map(c => ({
+      id: c.Id.substring(0, 12),
+      name: c.Names[0].replace('/', ''),
+      status: c.State === 'running' ? `Up ${formatUptime(c.Status)}` : c.Status,
+      state: c.State,
+      image: c.Image.split(':')[0].split('/').pop()
+    }));
+
+    const runningContainers = containers.filter(c => c.state === 'running');
+
+    const counts = {
+      processors: runningContainers.filter(c => c.name.includes('loc-proc')).length,
+      gateways: runningContainers.filter(c => c.name.includes('tcp-gw')).length,
+      apis: runningContainers.filter(c => c.name.includes('api')).length,
+      total: runningContainers.length,
+      stopped: containers.length - runningContainers.length
+    };
+
+    res.json({
+      sucesso: true,
+      containers,
+      counts,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[Containers] Erro:', error.message);
+    res.status(500).json({
+      sucesso: false,
+      erro: error.message
+    });
+  }
+});
+
+// Helper para formatar uptime do container
+function formatUptime(status) {
+  // Status vem como "Up 2 hours" ou similar
+  const match = status.match(/Up (.+)/);
+  return match ? match[1] : status;
+}
+
+/**
  * GET /api/infraestrutura/apresentacao
  * Retorna página HTML com apresentação da arquitetura
  */

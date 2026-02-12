@@ -278,7 +278,7 @@ services:
       - APIBRASIL_TOKEN=${APIBRASIL_TOKEN:-}
       - APIBRASIL_DEVICE_TOKEN=${APIBRASIL_DEVICE_TOKEN:-}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro  # ✅ Acesso ao Docker para monitoramento
+      - /var/run/docker.sock:/var/run/docker.sock  # ✅ Acesso Docker para monitoramento e scaling
       - ./public:/app/public:ro  # ✅ Frontend em tempo real (sem rebuild)
     user: root  # ✅ Necessário para acessar Docker socket
     depends_on:
