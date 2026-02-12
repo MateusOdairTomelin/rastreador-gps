@@ -4574,26 +4574,61 @@
 
             <!-- Comandos de Scaling -->
             <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">
-              <div style="color: var(--text-light); font-size: 12px; margin-bottom: 8px;">SCALING AUTOMATICO</div>
-              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                <span style="font-size: 11px; color: var(--text-light); margin-right: 4px;">Processors:</span>
+              <div style="color: var(--text-light); font-size: 12px; margin-bottom: 12px;">SCALING AUTOMATICO</div>
+
+              <!-- Processors -->
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 11px; color: var(--text-light); width: 100px;">Processors:</span>
                 <button onclick="scaleInfrastructure('processor', 'up')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Adicionar Processor">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
                 </button>
                 <button onclick="scaleInfrastructure('processor', 'down')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Remover Processor">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg>
                 </button>
+                <span id="count-processors" style="font-size: 11px; color: var(--text-muted); margin-left: 8px;">-</span>
+              </div>
 
-                <span style="font-size: 11px; color: var(--text-light); margin-left: 12px; margin-right: 4px;">Gateways:</span>
-                <button onclick="scaleInfrastructure('gateway', 'up')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Adicionar Gateway">
+              <!-- Gateway XT40 (8877) -->
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 11px; color: var(--text-light); width: 100px;">XT40 (8877):</span>
+                <button onclick="scaleInfrastructure('gateway-xt40', 'up')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Adicionar Gateway XT40">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
                 </button>
-                <button onclick="scaleInfrastructure('gateway', 'down')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Remover Gateway">
+                <button onclick="scaleInfrastructure('gateway-xt40', 'down')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Remover Gateway XT40">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg>
                 </button>
+                <span id="count-gateways-xt40" style="font-size: 11px; color: var(--text-muted); margin-left: 8px;">-</span>
+              </div>
 
-                <button onclick="refreshInfrastructure()" class="btn-secondary" style="font-size: 12px; padding: 6px 10px; margin-left: 12px;" title="Atualizar Status">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+              <!-- Gateway OBD2 (8878) -->
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 11px; color: var(--text-light); width: 100px;">OBD2 (8878):</span>
+                <button onclick="scaleInfrastructure('gateway-obd2', 'up')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Adicionar Gateway OBD2">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </button>
+                <button onclick="scaleInfrastructure('gateway-obd2', 'down')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Remover Gateway OBD2">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg>
+                </button>
+                <span id="count-gateways-obd2" style="font-size: 11px; color: var(--text-muted); margin-left: 8px;">-</span>
+              </div>
+
+              <!-- Gateway Teltonika (8879) -->
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 11px; color: var(--text-light); width: 100px;">Teltonika (8879):</span>
+                <button onclick="scaleInfrastructure('gateway-teltonika', 'up')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Adicionar Gateway Teltonika">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </button>
+                <button onclick="scaleInfrastructure('gateway-teltonika', 'down')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Remover Gateway Teltonika">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg>
+                </button>
+                <span id="count-gateways-teltonika" style="font-size: 11px; color: var(--text-muted); margin-left: 8px;">-</span>
+              </div>
+
+              <!-- Refresh -->
+              <div style="margin-top: 12px;">
+                <button onclick="refreshInfrastructure()" class="btn-secondary" style="font-size: 12px; padding: 6px 12px;" title="Atualizar Status">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="margin-right: 4px;"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                  Atualizar
                 </button>
               </div>
             </div>
@@ -7077,6 +7112,26 @@
         document.getElementById('infra-processors').textContent = `${data.components.processors.running}/${data.components.processors.total}`;
         document.getElementById('infra-apis').textContent = `${data.components.api.running}/${data.components.api.total}`;
 
+        // Buscar contagem detalhada de containers
+        try {
+          const containersResp = await authFetch(`${API_URL}/infraestrutura/containers`);
+          const containersData = await containersResp.json();
+          if (containersData.sucesso && containersData.counts) {
+            const c = containersData.counts;
+            // Atualizar contadores na UI de scaling
+            const updateCount = (id, value) => {
+              const el = document.getElementById(id);
+              if (el) el.textContent = value + ' rodando';
+            };
+            updateCount('count-processors', c.processors || 0);
+            updateCount('count-gateways-xt40', c.gatewaysXt40 || 0);
+            updateCount('count-gateways-obd2', c.gatewaysObd2 || 0);
+            updateCount('count-gateways-teltonika', c.gatewaysTeltonika || 0);
+          }
+        } catch (e) {
+          console.warn('[Containers] Erro ao buscar contagem:', e);
+        }
+
         // Componentes detalhados
         const componentsDiv = document.getElementById('infra-components');
         if (componentsDiv) {
@@ -7285,11 +7340,17 @@
     }
 
     async function scaleInfrastructure(type, action = 'up') {
-      const typeNames = { processor: 'Processor', gateway: 'Gateway' };
-      const actionNames = { up: 'adicionando', down: 'removendo' };
+      const typeNames = {
+        'processor': 'Processor',
+        'gateway-xt40': 'Gateway XT40',
+        'gateway-obd2': 'Gateway OBD2',
+        'gateway-teltonika': 'Gateway Teltonika'
+      };
+      const actionNames = { up: 'Adicionando', down: 'Removendo' };
+      const displayName = typeNames[type] || type;
 
       try {
-        toastInfo(`${actionNames[action]} ${typeNames[type]}...`);
+        toastInfo(`${actionNames[action]} ${displayName}...`);
 
         const response = await authFetch(`${API_URL}/infraestrutura/scale`, {
           method: 'POST',
@@ -7300,7 +7361,7 @@
         const result = await response.json();
 
         if (result.sucesso) {
-          toastSuccess(`${typeNames[type]} escalado: ${result.anterior} → ${result.atual}`);
+          toastSuccess(`${displayName}: ${result.anterior} → ${result.atual}`);
           // Atualizar a visualização da infraestrutura
           setTimeout(() => {
             loadInfrastructureStatus();

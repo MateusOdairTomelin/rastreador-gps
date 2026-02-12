@@ -33,8 +33,10 @@ services:
       - ./config/haproxy-16gb.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
       - ./config/certs:/etc/haproxy/certs:ro
     depends_on:
-      - tcp-gateway-1
-      - tcp-gateway-2
+      - xt40-gateway-1
+      - xt40-gateway-2
+      - obd2-gateway-1
+      - teltonika-gateway-1
       - api-server-1
     networks:
       - rastreador-network
@@ -45,20 +47,97 @@ services:
           cpus: '0.5'
 
   # =============================================================================
-  # TCP GATEWAYS (2x) - Recebem conexões dos rastreadores
-  # Cada um suporta ~1000 conexões = 2000 total
+  # TCP GATEWAYS - Separados por Protocolo
   # =============================================================================
-  tcp-gateway-1:
+
+  # -----------------------------------------------------------------------------
+  # XT40 Gateways (porta 8877) - Rastreadores XT40_4F
+  # Escalável: 2 iniciais, até 8
+  # -----------------------------------------------------------------------------
+  xt40-gateway-1:
     build:
       context: .
       dockerfile: Dockerfile.tcp-gateway
-    container_name: rastreador-tcp-gw-1
+    container_name: rastreador-xt40-gw-1
     restart: unless-stopped
     environment:
-      - GATEWAY_ID=gw-1
+      - GATEWAY_ID=xt40-1
+      - GATEWAY_TYPE=xt40
       - TCP_PORT=8877
-      - TCP_PORT_OBD2=8878
-      - TELTONIKA_PORT=8879
+      - TCP_PORT_OBD2=0
+      - TELTONIKA_PORT=0
+      - MAX_CONNECTIONS=2000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
+      - REDIS_ENABLED=true
+      - REDIS_STREAMS_DB=2
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+        reservations:
+          memory: 256M
+
+  xt40-gateway-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.tcp-gateway
+    container_name: rastreador-xt40-gw-2
+    restart: unless-stopped
+    environment:
+      - GATEWAY_ID=xt40-2
+      - GATEWAY_TYPE=xt40
+      - TCP_PORT=8877
+      - TCP_PORT_OBD2=0
+      - TELTONIKA_PORT=0
+      - MAX_CONNECTIONS=2000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
+      - REDIS_ENABLED=true
+      - REDIS_STREAMS_DB=2
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+        reservations:
+          memory: 256M
+
+  # -----------------------------------------------------------------------------
+  # OBD2 Gateway (porta 8878) - Rastreadores XT40_OBD2
+  # Escalável: 1 inicial, até 4
+  # -----------------------------------------------------------------------------
+  obd2-gateway-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.tcp-gateway
+    container_name: rastreador-obd2-gw-1
+    restart: unless-stopped
+    environment:
+      - GATEWAY_ID=obd2-1
+      - GATEWAY_TYPE=obd2
+      - TCP_PORT=8878
+      - TCP_PORT_OBD2=0
+      - TELTONIKA_PORT=0
       - MAX_CONNECTIONS=1000
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -81,17 +160,22 @@ services:
         reservations:
           memory: 128M
 
-  tcp-gateway-2:
+  # -----------------------------------------------------------------------------
+  # Teltonika Gateway (porta 8879) - Rastreadores Teltonika
+  # Escalável: 1 inicial, até 4
+  # -----------------------------------------------------------------------------
+  teltonika-gateway-1:
     build:
       context: .
       dockerfile: Dockerfile.tcp-gateway
-    container_name: rastreador-tcp-gw-2
+    container_name: rastreador-teltonika-gw-1
     restart: unless-stopped
     environment:
-      - GATEWAY_ID=gw-2
-      - TCP_PORT=8877
-      - TCP_PORT_OBD2=8878
-      - TELTONIKA_PORT=8879
+      - GATEWAY_ID=teltonika-1
+      - GATEWAY_TYPE=teltonika
+      - TCP_PORT=8879
+      - TCP_PORT_OBD2=0
+      - TELTONIKA_PORT=0
       - MAX_CONNECTIONS=1000
       - REDIS_HOST=redis
       - REDIS_PORT=6379

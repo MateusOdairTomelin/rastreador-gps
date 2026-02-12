@@ -298,23 +298,52 @@ async function dockerApiRequest(method, path, body = null) {
 
 /**
  * POST /api/infraestrutura/scale
- * Escala containers Docker (processors ou gateways)
+ * Escala containers Docker (processors ou gateways por protocolo)
  *
- * Body: { type: 'processor' | 'gateway', action: 'up' | 'down' }
+ * Body: { type: 'processor' | 'gateway-xt40' | 'gateway-obd2' | 'gateway-teltonika', action: 'up' | 'down' }
  */
 router.post('/scale', async (req, res) => {
   try {
     const { type, action = 'up' } = req.body;
 
-    if (!type || !['processor', 'gateway'].includes(type)) {
+    // Mapeamento de tipos para configurações
+    const typeConfig = {
+      'processor': {
+        namePattern: 'loc-proc',
+        idPrefix: 'loc',
+        displayName: 'Processor',
+        maxLimit: 8
+      },
+      'gateway-xt40': {
+        namePattern: 'xt40-gw',
+        idPrefix: 'xt40',
+        displayName: 'Gateway XT40 (8877)',
+        maxLimit: 8
+      },
+      'gateway-obd2': {
+        namePattern: 'obd2-gw',
+        idPrefix: 'obd2',
+        displayName: 'Gateway OBD2 (8878)',
+        maxLimit: 4
+      },
+      'gateway-teltonika': {
+        namePattern: 'teltonika-gw',
+        idPrefix: 'teltonika',
+        displayName: 'Gateway Teltonika (8879)',
+        maxLimit: 4
+      }
+    };
+
+    if (!type || !typeConfig[type]) {
       return res.status(400).json({
         sucesso: false,
-        mensagem: 'Tipo inválido. Use: processor ou gateway'
+        mensagem: 'Tipo inválido. Use: processor, gateway-xt40, gateway-obd2 ou gateway-teltonika',
+        tiposValidos: Object.keys(typeConfig)
       });
     }
 
-    // Padrão de nome dos containers
-    const namePattern = type === 'processor' ? 'loc-proc' : 'tcp-gw';
+    const config = typeConfig[type];
+    const { namePattern, idPrefix, displayName, maxLimit } = config;
 
     // Listar containers atuais via Docker API
     const containers = await dockerApiRequest('GET', '/containers/json?all=true');
@@ -327,14 +356,14 @@ router.post('/scale', async (req, res) => {
     const current = runningContainers.length;
     const total = typeContainers.length;
 
-    console.log(`[Infraestrutura] ${type}: ${current} rodando, ${stoppedContainers.length} parados, ${total} total`);
+    console.log(`[Infraestrutura] ${displayName}: ${current} rodando, ${stoppedContainers.length} parados, ${total} total`);
 
     if (action === 'up') {
       // Verificar limite
-      if (current >= 8) {
+      if (current >= maxLimit) {
         return res.status(400).json({
           sucesso: false,
-          mensagem: `Limite máximo de 8 ${type}s atingido`,
+          mensagem: `Limite máximo de ${maxLimit} ${displayName} atingido`,
           atual: current
         });
       }
@@ -353,7 +382,7 @@ router.post('/scale', async (req, res) => {
 
         return res.json({
           sucesso: true,
-          mensagem: `${type} iniciado: ${containerName}`,
+          mensagem: `${displayName} iniciado: ${containerName}`,
           anterior: current,
           atual: current + 1,
           acao: 'started',
@@ -366,7 +395,7 @@ router.post('/scale', async (req, res) => {
       if (!templateContainer) {
         return res.status(400).json({
           sucesso: false,
-          mensagem: `Não há ${type} rodando para usar como template`,
+          mensagem: `Não há ${displayName} rodando para usar como template`,
           atual: current
         });
       }
@@ -383,9 +412,9 @@ router.post('/scale', async (req, res) => {
 
       // Novo nome do container
       const newContainerName = `rastreador-${namePattern}-${nextNumber}`;
-      const workerId = type === 'processor' ? `loc-${nextNumber}` : `gw-${nextNumber}`;
+      const workerId = `${idPrefix}-${nextNumber}`;
 
-      console.log(`[Infraestrutura] Criando novo container: ${newContainerName} (WORKER_ID=${workerId})`);
+      console.log(`[Infraestrutura] Criando novo container: ${newContainerName} (ID=${workerId})`);
 
       // Atualizar variáveis de ambiente
       const newEnv = templateConfig.Config.Env.map(e => {
@@ -445,7 +474,7 @@ router.post('/scale', async (req, res) => {
 
       return res.json({
         sucesso: true,
-        mensagem: `Novo ${type} criado e iniciado: ${newContainerName}`,
+        mensagem: `Novo ${displayName} criado: ${newContainerName}`,
         anterior: current,
         atual: current + 1,
         acao: 'created',
@@ -458,7 +487,7 @@ router.post('/scale', async (req, res) => {
       if (current <= 1) {
         return res.status(400).json({
           sucesso: false,
-          mensagem: `Mínimo de 1 ${type} necessário`,
+          mensagem: `Mínimo de 1 ${displayName} necessário`,
           atual: current
         });
       }
@@ -479,7 +508,7 @@ router.post('/scale', async (req, res) => {
 
       return res.json({
         sucesso: true,
-        mensagem: `${type} parado: ${containerName}`,
+        mensagem: `${displayName} parado: ${containerName}`,
         anterior: current,
         atual: current - 1,
         acao: 'stopped',
@@ -515,14 +544,25 @@ router.get('/containers', async (req, res) => {
       name: c.Names[0].replace('/', ''),
       status: c.State === 'running' ? `Up ${formatUptime(c.Status)}` : c.Status,
       state: c.State,
-      image: c.Image.split(':')[0].split('/').pop()
+      image: c.Image.split(':')[0].split('/').pop(),
+      type: getContainerType(c.Names[0])
     }));
 
     const runningContainers = containers.filter(c => c.state === 'running');
 
     const counts = {
       processors: runningContainers.filter(c => c.name.includes('loc-proc')).length,
-      gateways: runningContainers.filter(c => c.name.includes('tcp-gw')).length,
+      // Gateways separados por protocolo
+      gatewaysXt40: runningContainers.filter(c => c.name.includes('xt40-gw')).length,
+      gatewaysObd2: runningContainers.filter(c => c.name.includes('obd2-gw')).length,
+      gatewaysTeltonika: runningContainers.filter(c => c.name.includes('teltonika-gw')).length,
+      // Legado - total de gateways (compatibilidade)
+      gateways: runningContainers.filter(c =>
+        c.name.includes('xt40-gw') ||
+        c.name.includes('obd2-gw') ||
+        c.name.includes('teltonika-gw') ||
+        c.name.includes('tcp-gw')  // legado
+      ).length,
       apis: runningContainers.filter(c => c.name.includes('api')).length,
       total: runningContainers.length,
       stopped: containers.length - runningContainers.length
@@ -549,6 +589,23 @@ function formatUptime(status) {
   // Status vem como "Up 2 hours" ou similar
   const match = status.match(/Up (.+)/);
   return match ? match[1] : status;
+}
+
+// Helper para identificar tipo do container
+function getContainerType(name) {
+  if (name.includes('loc-proc')) return 'processor';
+  if (name.includes('xt40-gw')) return 'gateway-xt40';
+  if (name.includes('obd2-gw')) return 'gateway-obd2';
+  if (name.includes('teltonika-gw')) return 'gateway-teltonika';
+  if (name.includes('tcp-gw')) return 'gateway'; // legado
+  if (name.includes('api')) return 'api';
+  if (name.includes('status-proc')) return 'status-processor';
+  if (name.includes('alarm-proc')) return 'alarm-processor';
+  if (name.includes('haproxy')) return 'load-balancer';
+  if (name.includes('redis')) return 'cache';
+  if (name.includes('db') || name.includes('postgres')) return 'database';
+  if (name.includes('pgbouncer')) return 'connection-pool';
+  return 'other';
 }
 
 /**
