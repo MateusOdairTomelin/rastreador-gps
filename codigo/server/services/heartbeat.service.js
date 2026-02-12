@@ -98,7 +98,30 @@ class HeartbeatService {
         const redis = this.getRedis();
         redis.client.set(`${REDIS_PREFIX}total`, '0').catch(() => {});
         redis.client.set(`${REDIS_PREFIX}locations`, '0').catch(() => {});
+
+        // Resetar contadores por dispositivo
+        redis.client.keys(`${REDIS_PREFIX}*`).then(keys => {
+          const deviceKeys = keys.filter(k =>
+            k !== `${REDIS_PREFIX}total` &&
+            k !== `${REDIS_PREFIX}locations` &&
+            k.startsWith(REDIS_PREFIX)
+          );
+
+          if (deviceKeys.length > 0) {
+            const pipeline = redis.client.pipeline();
+            deviceKeys.forEach(key => {
+              pipeline.hset(key, 'count', '0');
+            });
+            pipeline.exec().catch(() => {});
+            console.log(`[Heartbeat] Resetados ${deviceKeys.length} contadores de dispositivos`);
+          }
+        }).catch(() => {});
       }
+
+      // Limpar Map local também
+      this.heartbeats.forEach((value, key) => {
+        this.heartbeats.set(key, { ...value, count: 0 });
+      });
     }
   }
 
