@@ -14262,7 +14262,13 @@
           <form id="form-veiculo-secao" style="padding: 20px;">
             <div class="form-group">
               <label>Placa *</label>
-              <input type="text" id="veiculo-placa" value="${veiculo?.placa || ''}" required maxlength="7" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; text-transform: uppercase;" placeholder="ABC1D23">
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="veiculo-placa" value="${veiculo?.placa || ''}" required maxlength="7" style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 6px; text-transform: uppercase;" placeholder="ABC1D23">
+                <button type="button" onclick="buscarDadosPlaca()" class="btn btn-secondary" style="padding: 10px 16px; white-space: nowrap;" title="Buscar dados do veiculo pela placa">
+                  🔍 Buscar
+                </button>
+              </div>
+              <small id="placa-status" style="color: var(--text-light); font-size: 11px; margin-top: 4px; display: block;"></small>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <div class="form-group">
@@ -14324,6 +14330,66 @@
 
     function fecharModalVeiculo() {
       document.getElementById('modal-veiculo')?.remove();
+    }
+
+    async function buscarDadosPlaca() {
+      const placa = document.getElementById('veiculo-placa').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const statusEl = document.getElementById('placa-status');
+
+      if (!placa || placa.length < 7) {
+        toastError('Digite uma placa válida (7 caracteres)');
+        return;
+      }
+
+      statusEl.textContent = 'Buscando dados...';
+      statusEl.style.color = 'var(--primary)';
+
+      try {
+        const response = await authFetch(`${API_URL}/veiculos/consulta-placa/${placa}`);
+        const result = await response.json();
+
+        if (result.sucesso && result.dados) {
+          const dados = result.dados;
+
+          // Preencher campos do formulário
+          if (dados.marca) document.getElementById('veiculo-marca').value = dados.marca;
+          if (dados.modelo) document.getElementById('veiculo-modelo').value = dados.modelo;
+          if (dados.ano) document.getElementById('veiculo-ano').value = dados.ano;
+          if (dados.cor) document.getElementById('veiculo-cor').value = dados.cor;
+          if (dados.chassi) document.getElementById('veiculo-chassi').value = dados.chassi;
+
+          // Mapear tipo de veículo
+          if (dados.tipo) {
+            const tipoMap = {
+              'AUTOMOVEL': 'carro',
+              'MOTOCICLETA': 'moto',
+              'CAMINHAO': 'caminhao',
+              'ONIBUS': 'onibus',
+              'UTILITARIO': 'utilitario'
+            };
+            const tipoNormalizado = tipoMap[dados.tipo.toUpperCase()] || '';
+            if (tipoNormalizado) document.getElementById('veiculo-tipo').value = tipoNormalizado;
+          }
+
+          statusEl.textContent = 'Dados encontrados e preenchidos!';
+          statusEl.style.color = 'var(--success)';
+          toastSuccess('Dados do veículo preenchidos automaticamente');
+        } else {
+          statusEl.textContent = result.mensagem || 'Veículo não encontrado';
+          statusEl.style.color = 'var(--warning)';
+          toastWarning('Veículo não encontrado na base. Preencha manualmente.');
+        }
+      } catch (error) {
+        console.error('Erro ao buscar placa:', error);
+        statusEl.textContent = 'Erro na consulta. Preencha manualmente.';
+        statusEl.style.color = 'var(--danger)';
+        toastError('Erro ao consultar placa');
+      }
+
+      // Limpar status após 5 segundos
+      setTimeout(() => {
+        if (statusEl) statusEl.textContent = '';
+      }, 5000);
     }
 
     async function salvarVeiculoSecao(veiculoId) {
@@ -14485,6 +14551,7 @@
     window.filtrarVeiculosSecao = filtrarVeiculosSecao;
     window.abrirModalVeiculo = abrirModalVeiculo;
     window.fecharModalVeiculo = fecharModalVeiculo;
+    window.buscarDadosPlaca = buscarDadosPlaca;
     window.editarVeiculoSecao = editarVeiculoSecao;
     window.excluirVeiculoSecao = excluirVeiculoSecao;
     window.abrirModalVincularSecao = abrirModalVincularSecao;
