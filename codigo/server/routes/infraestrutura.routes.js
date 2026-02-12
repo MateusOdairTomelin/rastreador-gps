@@ -325,15 +325,16 @@ router.post('/scale', async (req, res) => {
     const runningContainers = typeContainers.filter(c => c.State === 'running');
     const stoppedContainers = typeContainers.filter(c => c.State !== 'running');
     const current = runningContainers.length;
+    const total = typeContainers.length;
 
-    console.log(`[Infraestrutura] ${type}: ${current} rodando, ${stoppedContainers.length} parados`);
+    console.log(`[Infraestrutura] ${type}: ${current} rodando, ${stoppedContainers.length} parados, ${total} total`);
 
     if (action === 'up') {
       // Verificar limite
-      if (current >= 6) {
+      if (current >= 8) {
         return res.status(400).json({
           sucesso: false,
-          mensagem: `Limite máximo de 6 ${type}s atingido`,
+          mensagem: `Limite máximo de 8 ${type}s atingido`,
           atual: current
         });
       }
@@ -360,12 +361,96 @@ router.post('/scale', async (req, res) => {
         });
       }
 
-      // Se não houver container parado para iniciar, informar que precisa usar docker-compose
-      return res.status(400).json({
-        sucesso: false,
-        mensagem: `Não há ${type}s parados para iniciar. Use docker-compose para criar novos containers.`,
-        atual: current,
-        dica: `docker compose -f docker-compose.scalable-16gb.yml up -d --scale location-processor-1=1 --scale location-processor-2=1`
+      // Criar novo container clonando configuração do primeiro
+      const templateContainer = runningContainers[0];
+      if (!templateContainer) {
+        return res.status(400).json({
+          sucesso: false,
+          mensagem: `Não há ${type} rodando para usar como template`,
+          atual: current
+        });
+      }
+
+      // Buscar configuração completa do container template
+      const templateConfig = await dockerApiRequest('GET', `/containers/${templateContainer.Id}/json`);
+
+      // Determinar próximo número
+      const existingNumbers = typeContainers.map(c => {
+        const match = c.Names[0].match(/(\d+)$/);
+        return match ? parseInt(match[1]) : 0;
+      });
+      const nextNumber = Math.max(...existingNumbers, 0) + 1;
+
+      // Novo nome do container
+      const newContainerName = `rastreador-${namePattern}-${nextNumber}`;
+      const workerId = type === 'processor' ? `loc-${nextNumber}` : `gw-${nextNumber}`;
+
+      console.log(`[Infraestrutura] Criando novo container: ${newContainerName} (WORKER_ID=${workerId})`);
+
+      // Atualizar variáveis de ambiente
+      const newEnv = templateConfig.Config.Env.map(e => {
+        if (e.startsWith('WORKER_ID=')) return `WORKER_ID=${workerId}`;
+        if (e.startsWith('GATEWAY_ID=')) return `GATEWAY_ID=${workerId}`;
+        return e;
+      });
+
+      // Configuração para criar o container
+      const createConfig = {
+        Image: templateConfig.Config.Image,
+        Env: newEnv,
+        Cmd: templateConfig.Config.Cmd,
+        ExposedPorts: templateConfig.Config.ExposedPorts,
+        Labels: {
+          ...templateConfig.Config.Labels,
+          'com.docker.compose.container-number': String(nextNumber)
+        },
+        HostConfig: {
+          NetworkMode: templateConfig.HostConfig.NetworkMode,
+          RestartPolicy: templateConfig.HostConfig.RestartPolicy,
+          Memory: templateConfig.HostConfig.Memory,
+          NanoCpus: templateConfig.HostConfig.NanoCpus,
+          MemoryReservation: templateConfig.HostConfig.MemoryReservation
+        },
+        NetworkingConfig: {
+          EndpointsConfig: {}
+        }
+      };
+
+      // Adicionar à mesma rede
+      const networkName = Object.keys(templateConfig.NetworkSettings.Networks)[0];
+      if (networkName) {
+        createConfig.NetworkingConfig.EndpointsConfig[networkName] = {
+          Aliases: [newContainerName.replace('rastreador-', '')]
+        };
+      }
+
+      // Criar container
+      const createResult = await dockerApiRequest(
+        'POST',
+        `/containers/create?name=${newContainerName}`,
+        createConfig
+      );
+
+      if (!createResult.Id) {
+        throw new Error('Falha ao criar container: ' + JSON.stringify(createResult));
+      }
+
+      console.log(`[Infraestrutura] Container criado: ${createResult.Id.substring(0, 12)}`);
+
+      // Iniciar container
+      await dockerApiRequest('POST', `/containers/${createResult.Id}/start`);
+
+      // Aguardar container iniciar
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      return res.json({
+        sucesso: true,
+        mensagem: `Novo ${type} criado e iniciado: ${newContainerName}`,
+        anterior: current,
+        atual: current + 1,
+        acao: 'created',
+        container: newContainerName,
+        containerId: createResult.Id.substring(0, 12)
       });
 
     } else if (action === 'down') {
