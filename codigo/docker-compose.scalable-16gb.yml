@@ -65,7 +65,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
       - REDIS_ENABLED=true
       - REDIS_STREAMS_DB=2
-      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@pgbouncer:6432/rastreador_db?schema=public
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
     depends_on:
       redis:
         condition: service_healthy
@@ -98,7 +98,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
       - REDIS_ENABLED=true
       - REDIS_STREAMS_DB=2
-      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@pgbouncer:6432/rastreador_db?schema=public
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
     depends_on:
       redis:
         condition: service_healthy

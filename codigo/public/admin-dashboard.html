@@ -8919,15 +8919,12 @@
         loadLocations();
         checkServiceStatus();
 
-        // Atualizar mapa se está visível e tempo de última atualização passou
+        // ✅ CORREÇÃO: Sempre atualizar mapa em background (dados em tempo real)
         const now = Date.now();
-        const mapaAtivo = document.getElementById('section-mapa')?.classList.contains('active');
-        if (map && mapaAtivo) {
-          if (now - lastMapUpdate >= MAP_UPDATE_INTERVAL) {
-            console.log('[Mapa] setInterval: atualizando mapa...');
-            updateMapMarkers();
-            lastMapUpdate = now;
-          }
+        if (map && now - lastMapUpdate >= MAP_UPDATE_INTERVAL) {
+          console.log('[Mapa] setInterval: atualizando mapa em background...');
+          updateMapMarkers();
+          lastMapUpdate = now;
         }
       }, 5000);
     });
