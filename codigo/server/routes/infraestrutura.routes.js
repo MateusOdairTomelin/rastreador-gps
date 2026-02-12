@@ -297,6 +297,43 @@ async function dockerApiRequest(method, path, body = null) {
 }
 
 /**
+ * Helper: Reinicia o HAProxy para detectar novos containers
+ * O HAProxy usa DNS do Docker para resolver os nomes dos containers
+ */
+async function reloadHAProxy() {
+  try {
+    console.log('[HAProxy] Reiniciando para detectar alterações...');
+
+    // Enviar SIGHUP para reload graceful (sem perder conexões)
+    const execConfig = {
+      AttachStdout: true,
+      AttachStderr: true,
+      Cmd: ['kill', '-HUP', '1']
+    };
+
+    const execInfo = await dockerApiRequest('POST', '/containers/rastreador-haproxy/exec', execConfig);
+    if (execInfo.Id) {
+      await dockerApiRequest('POST', `/exec/${execInfo.Id}/start`, { Detach: false, Tty: false });
+      console.log('[HAProxy] Reload enviado com sucesso');
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.warn('[HAProxy] Erro ao recarregar:', err.message);
+    return false;
+  }
+}
+
+/**
+ * Helper: Atualiza HAProxy (para compatibilidade - apenas loga)
+ */
+async function updateHAProxyServer(backend, serverName, enable = true) {
+  console.log(`[HAProxy] Server ${serverName} ${enable ? 'habilitado' : 'desabilitado'} em ${backend}`);
+  // O reload do HAProxy já cuida de detectar os containers
+  return true;
+}
+
+/**
  * POST /api/infraestrutura/scale
  * Escala containers Docker (processors ou gateways por protocolo)
  *
@@ -318,19 +355,22 @@ router.post('/scale', async (req, res) => {
         namePattern: 'xt40-gw',
         idPrefix: 'xt40',
         displayName: 'Gateway XT40 (8877)',
-        maxLimit: 8
+        maxLimit: 8,
+        haproxyBackend: 'tcp_gateways_xt40'
       },
       'gateway-obd2': {
         namePattern: 'obd2-gw',
         idPrefix: 'obd2',
         displayName: 'Gateway OBD2 (8878)',
-        maxLimit: 4
+        maxLimit: 4,
+        haproxyBackend: 'tcp_gateways_obd2'
       },
       'gateway-teltonika': {
         namePattern: 'teltonika-gw',
         idPrefix: 'teltonika',
         displayName: 'Gateway Teltonika (8879)',
-        maxLimit: 4
+        maxLimit: 4,
+        haproxyBackend: 'tcp_gateways_teltonika'
       }
     };
 
@@ -343,7 +383,7 @@ router.post('/scale', async (req, res) => {
     }
 
     const config = typeConfig[type];
-    const { namePattern, idPrefix, displayName, maxLimit } = config;
+    const { namePattern, idPrefix, displayName, maxLimit, haproxyBackend } = config;
 
     // Listar containers atuais via Docker API
     const containers = await dockerApiRequest('GET', '/containers/json?all=true');
@@ -379,6 +419,11 @@ router.post('/scale', async (req, res) => {
 
         // Aguardar container iniciar
         await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Recarregar HAProxy para detectar o novo container (se for gateway)
+        if (haproxyBackend) {
+          await reloadHAProxy();
+        }
 
         return res.json({
           sucesso: true,
@@ -472,6 +517,11 @@ router.post('/scale', async (req, res) => {
       // Aguardar container iniciar
       await new Promise(resolve => setTimeout(resolve, 3000));
 
+      // Recarregar HAProxy para detectar o novo container (se for gateway)
+      if (haproxyBackend) {
+        await reloadHAProxy();
+      }
+
       return res.json({
         sucesso: true,
         mensagem: `Novo ${displayName} criado: ${newContainerName}`,
@@ -505,6 +555,11 @@ router.post('/scale', async (req, res) => {
 
       console.log(`[Infraestrutura] Parando container: ${containerName}`);
       await dockerApiRequest('POST', `/containers/${containerId}/stop`);
+
+      // Recarregar HAProxy para remover o container parado (se for gateway)
+      if (haproxyBackend) {
+        await reloadHAProxy();
+      }
 
       return res.json({
         sucesso: true,
