@@ -199,7 +199,7 @@ class LocalizacaoService {
       return null;
     }
 
-    // ✅ NOVA VALIDAÇÃO: Detectar saltos impossíveis de GPS (velocidade implícita)
+    // ✅ VALIDAÇÃO: Detectar saltos impossíveis de GPS
     // Busca última localização válida e calcula se o movimento é fisicamente possível
     const ultimaLocalizacao = await prisma.localizacao.findFirst({
       where: { dispositivo_id: dispositivo.id },
@@ -207,7 +207,7 @@ class LocalizacaoService {
     });
 
     if (ultimaLocalizacao) {
-      // Calcular distância entre pontos (Haversine simplificado)
+      // Calcular distância entre pontos (Haversine)
       const R = 6371; // Raio da Terra em km
       const dLat = (lat - ultimaLocalizacao.latitude) * Math.PI / 180;
       const dLon = (lon - ultimaLocalizacao.longitude) * Math.PI / 180;
@@ -220,6 +220,12 @@ class LocalizacaoService {
       // Calcular tempo entre pontos
       const timestampNovo = locationData.timestamp ? new Date(locationData.timestamp) : new Date();
       const tempoSegundos = Math.abs(timestampNovo - ultimaLocalizacao.timestamp) / 1000;
+      const velocidadeImplicita = tempoSegundos > 0 ? (distanciaKm / tempoSegundos) * 3600 : 999999;
+
+      // Log para distâncias significativas (> 500m)
+      if (distanciaKm > 0.5) {
+        console.log(`[Location] 📏 ${imei}: ${distanciaKm.toFixed(2)}km em ${tempoSegundos.toFixed(0)}s = ${velocidadeImplicita.toFixed(0)}km/h`);
+      }
 
       // ✅ REGRA 1: Salto absoluto - rejeitar distâncias > 10km independente do tempo
       if (distanciaKm > 10) {
