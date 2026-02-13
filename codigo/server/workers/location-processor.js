@@ -22,6 +22,7 @@ const viagemService = require('../services/viagem.service');
 const heartbeatService = require('../services/heartbeat.service');
 const obd2Service = require('../services/obd2.service');
 const { pipeline: gpsPipeline } = require('../services/gps-pipeline.service');
+const redisService = require('../services/redis.service');
 
 // ========== HELPER: Calcular distância entre coordenadas ==========
 function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
@@ -446,6 +447,26 @@ async function processLocationMessage(message) {
       timestamp: locationData.timestamp ? new Date(locationData.timestamp) : new Date()
     });
 
+    // ✅ NOVO: Publicar no Redis Pub/Sub para notificar API Server (WebSocket)
+    try {
+      const pubResult = await redisService.publish('location:update', JSON.stringify({
+        imei,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        velocidade: locationData.velocidade || 0,
+        direcao: locationData.direcao || 0,
+        estado_ignicao: estadoIgnicao,
+        ignicao: locationData.ignicao,
+        timestamp: locationData.timestamp || new Date().toISOString()
+      }));
+      if (!pubResult) {
+        console.warn(`[${WORKER_ID}] Pub/Sub: publish retornou false para ${imei}`);
+      }
+    } catch (pubErr) {
+      // Não falhar se publish falhar
+      console.warn(`[${WORKER_ID}] Pub/Sub error: ${pubErr.message}`);
+    }
+
     // Incrementar contador horário de localizações
     heartbeatService.incrementLocations();
 
@@ -550,11 +571,19 @@ async function start() {
   console.log(`📍 LOCATION PROCESSOR - ${WORKER_ID}`);
   console.log(`${'='.repeat(60)}\n`);
 
-  // Conectar Redis
+  // Conectar Redis Streams (para consumir pacotes)
   const connected = await redisStreams.connect();
   if (!connected) {
     console.error('❌ Falha ao conectar Redis');
     process.exit(1);
+  }
+
+  // Conectar Redis Service (para Pub/Sub de atualizações em tempo real)
+  await redisService.connect();
+  if (redisService.isAvailable()) {
+    console.log('✅ Redis Pub/Sub conectado');
+  } else {
+    console.warn('⚠️ Redis Pub/Sub não disponível - atualizações em tempo real desabilitadas');
   }
 
   // Testar banco
