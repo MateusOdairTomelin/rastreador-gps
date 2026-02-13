@@ -660,7 +660,8 @@
 
     <script>
         const API_URL = '/api';
-        let token = localStorage.getItem('token');
+        // ✅ Corrigido: login salva como 'accessToken', não 'token'
+        let token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
         let currentTenantId = localStorage.getItem('currentTenantId');
 
         // Validar currentTenantId - limpar valores inválidos
