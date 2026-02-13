@@ -493,6 +493,197 @@
             background: rgba(63, 207, 213, 0.05);
         }
 
+        /* Modal grande para usuários */
+        .modal-large {
+            max-width: 700px;
+            width: 95%;
+        }
+
+        .modal-large .modal-body {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        /* Formulário de convite */
+        .invite-form {
+            background: rgba(63, 207, 213, 0.08);
+            border: 1px solid rgba(63, 207, 213, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .invite-form h4 {
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            color: #3FCFD5;
+        }
+
+        .invite-form .form-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .invite-form .form-group {
+            margin-bottom: 0;
+        }
+
+        .invite-form input, .invite-form select {
+            padding: 10px 12px;
+        }
+
+        /* Seção de usuários */
+        .users-section {
+            margin-bottom: 20px;
+        }
+
+        .users-section h4 {
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            color: #9EEEF2;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .users-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(63, 207, 213, 0.06);
+            border: 1px solid rgba(63, 207, 213, 0.15);
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+
+        .user-item:hover {
+            background: rgba(63, 207, 213, 0.1);
+            border-color: rgba(63, 207, 213, 0.3);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3FCFD5 0%, #00A2FF 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: #E8FCFD;
+        }
+
+        .user-email {
+            font-size: 0.85rem;
+            color: #9EEEF2;
+        }
+
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .role-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .role-proprietario { background: rgba(168, 85, 247, 0.2); color: #C4B5FD; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .role-admin { background: rgba(34, 197, 94, 0.2); color: #86EFAC; border: 1px solid rgba(34, 197, 94, 0.3); }
+        .role-operador { background: rgba(59, 130, 246, 0.2); color: #93C5FD; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .role-visualizador { background: rgba(107, 114, 128, 0.2); color: #D1D5DB; border: 1px solid rgba(107, 114, 128, 0.3); }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-icon-edit {
+            background: rgba(59, 130, 246, 0.2);
+            color: #93C5FD;
+        }
+
+        .btn-icon-edit:hover {
+            background: rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-icon-delete {
+            background: rgba(239, 68, 68, 0.2);
+            color: #FCA5A5;
+        }
+
+        .btn-icon-delete:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+
+        /* Convites pendentes */
+        .convite-item {
+            background: rgba(245, 158, 11, 0.08);
+            border-color: rgba(245, 158, 11, 0.2);
+        }
+
+        .convite-item .user-avatar {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        }
+
+        .convite-status {
+            font-size: 0.8rem;
+            color: #FCD34D;
+        }
+
+        /* Ações do card de organização */
+        .org-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(63, 207, 213, 0.15);
+        }
+
+        .org-card-actions .btn {
+            flex: 1;
+            justify-content: center;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -608,6 +799,67 @@
             </div>
             <div id="orgsContainer">
                 <div class="loading">Carregando...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gerenciar Usuários -->
+    <div class="modal-overlay" id="modalUsuarios">
+        <div class="modal modal-large">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Usuários - <span id="modalUsuariosOrgNome"></span>
+                </h3>
+                <button class="modal-close" onclick="fecharModal('modalUsuarios')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulário para convidar -->
+                <div class="invite-form">
+                    <h4>Convidar Novo Usuário</h4>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2">
+                            <input type="email" id="conviteEmail" placeholder="email@exemplo.com" required>
+                        </div>
+                        <div class="form-group" style="flex: 1">
+                            <select id="conviteRole">
+                                <option value="admin">Administrador</option>
+                                <option value="operador" selected>Operador</option>
+                                <option value="visualizador">Visualizador</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="enviarConvite()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                            </svg>
+                            Convidar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista de usuários -->
+                <div class="users-section">
+                    <h4>Usuários Ativos</h4>
+                    <div id="listaUsuarios" class="users-list">
+                        <div class="loading">Carregando...</div>
+                    </div>
+                </div>
+
+                <!-- Lista de convites pendentes -->
+                <div class="users-section">
+                    <h4>Convites Pendentes</h4>
+                    <div id="listaConvites" class="users-list">
+                        <div class="loading">Carregando...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="fecharModal('modalUsuarios')">Fechar</button>
             </div>
         </div>
     </div>
@@ -761,7 +1013,7 @@
             const countData = org._count || {};
 
             return `
-                <div class="org-card ${isParent ? 'is-parent' : ''}" onclick="acessarOrganizacao(${org.id})">
+                <div class="org-card ${isParent ? 'is-parent' : ''}">
                     <div class="org-header">
                         <div class="org-logo" style="background: linear-gradient(135deg, ${org.cor_primaria || '#3FCFD5'} 0%, ${org.cor_secundaria || '#00A2FF'} 100%)">
                             ${org.logo_url ? `<img src="${org.logo_url}" alt="${org.nome}">` : inicial}
@@ -789,6 +1041,23 @@
                     <div class="org-actions">
                         ${isParent ? '<span class="org-badge badge-nivel">Organização Principal</span>' : '<span class="org-badge badge-nivel">Sub-organização</span>'}
                         ${org.plano ? `<span class="org-badge badge-nivel">${org.plano.nome}</span>` : ''}
+                    </div>
+                    <div class="org-card-actions">
+                        <button class="btn btn-primary btn-small" onclick="acessarOrganizacao(${org.id})">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                            </svg>
+                            Acessar
+                        </button>
+                        <button class="btn btn-secondary btn-small" onclick="abrirModalUsuarios(${org.id}, '${org.nome.replace(/'/g, "\\'")}')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            Usuários
+                        </button>
                     </div>
                 </div>
             `;
@@ -848,6 +1117,264 @@
         function fecharModal(modalId) {
             document.getElementById(modalId).classList.remove('active');
         }
+
+        // ============ GERENCIAMENTO DE USUÁRIOS ============
+        let orgSelecionadaId = null;
+        let orgSelecionadaNome = '';
+
+        // Headers para requisições na org selecionada
+        function getHeadersOrg(orgId) {
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-Tenant-Id': orgId.toString()
+            };
+        }
+
+        // Abrir modal de usuários
+        async function abrirModalUsuarios(orgId, orgNome) {
+            orgSelecionadaId = orgId;
+            orgSelecionadaNome = orgNome;
+
+            document.getElementById('modalUsuariosOrgNome').textContent = orgNome;
+            document.getElementById('conviteEmail').value = '';
+            document.getElementById('conviteRole').value = 'operador';
+            document.getElementById('modalUsuarios').classList.add('active');
+
+            await carregarUsuariosOrg();
+            await carregarConvitesOrg();
+        }
+
+        // Carregar usuários da organização
+        async function carregarUsuariosOrg() {
+            const container = document.getElementById('listaUsuarios');
+            container.innerHTML = '<div class="loading">Carregando...</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/minha-organizacao/usuarios`, {
+                    headers: getHeadersOrg(orgSelecionadaId)
+                });
+
+                if (!response.ok) throw new Error('Erro ao carregar usuários');
+
+                const data = await response.json();
+                const usuarios = data.usuarios || [];
+
+                if (!usuarios.length) {
+                    container.innerHTML = '<div class="empty-state" style="padding: 20px">Nenhum usuário encontrado</div>';
+                    return;
+                }
+
+                container.innerHTML = usuarios.map(u => `
+                    <div class="user-item">
+                        <div class="user-info">
+                            <div class="user-avatar">${(u.nome || u.email).charAt(0).toUpperCase()}</div>
+                            <div class="user-details">
+                                <div class="user-name">${u.nome || 'Sem nome'}</div>
+                                <div class="user-email">${u.email}</div>
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            <span class="role-badge role-${u.role}">${traduzirRole(u.role)}</span>
+                            ${u.role !== 'proprietario' ? `
+                                <select class="btn-small" onchange="alterarRoleUsuario(${u.id}, this.value)" style="padding: 4px 8px; background: rgba(63, 207, 213, 0.15); border: 1px solid rgba(63, 207, 213, 0.3); border-radius: 6px; color: #E8FCFD; font-size: 0.75rem;">
+                                    <option value="">Alterar...</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="operador">Operador</option>
+                                    <option value="visualizador">Visualizador</option>
+                                </select>
+                                <button class="btn-icon btn-icon-delete" onclick="removerUsuario(${u.id}, '${u.nome || u.email}')" title="Remover usuário">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                                    </svg>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Erro:', error);
+                container.innerHTML = `<div class="empty-state" style="padding: 20px; color: #FCA5A5;">Erro: ${error.message}</div>`;
+            }
+        }
+
+        // Carregar convites pendentes
+        async function carregarConvitesOrg() {
+            const container = document.getElementById('listaConvites');
+            container.innerHTML = '<div class="loading">Carregando...</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/minha-organizacao/convites`, {
+                    headers: getHeadersOrg(orgSelecionadaId)
+                });
+
+                if (!response.ok) throw new Error('Erro ao carregar convites');
+
+                const data = await response.json();
+                const convites = data.convites || [];
+
+                if (!convites.length) {
+                    container.innerHTML = '<div class="empty-state" style="padding: 20px; font-size: 0.9rem;">Nenhum convite pendente</div>';
+                    return;
+                }
+
+                container.innerHTML = convites.map(c => `
+                    <div class="user-item convite-item">
+                        <div class="user-info">
+                            <div class="user-avatar">✉</div>
+                            <div class="user-details">
+                                <div class="user-name">${c.email}</div>
+                                <div class="convite-status">Convite pendente - expira em ${formatarDataExpiracao(c.expires_at)}</div>
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            <span class="role-badge role-${c.role}">${traduzirRole(c.role)}</span>
+                            <button class="btn-icon btn-icon-delete" onclick="cancelarConvite(${c.id})" title="Cancelar convite">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Erro:', error);
+                container.innerHTML = `<div class="empty-state" style="padding: 20px; color: #FCA5A5;">Erro: ${error.message}</div>`;
+            }
+        }
+
+        // Enviar convite
+        async function enviarConvite() {
+            const email = document.getElementById('conviteEmail').value.trim();
+            const role = document.getElementById('conviteRole').value;
+
+            if (!email) {
+                showAlert('Informe o email do usuário', 'danger');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/minha-organizacao/convites`, {
+                    method: 'POST',
+                    headers: getHeadersOrg(orgSelecionadaId),
+                    body: JSON.stringify({ email, role })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.erro || 'Erro ao enviar convite');
+                }
+
+                showAlert(`Convite enviado para ${email}!`, 'success');
+                document.getElementById('conviteEmail').value = '';
+                await carregarConvitesOrg();
+            } catch (error) {
+                showAlert(error.message, 'danger');
+            }
+        }
+
+        // Alterar role do usuário
+        async function alterarRoleUsuario(usuarioId, novoRole) {
+            if (!novoRole) return;
+
+            try {
+                const response = await fetch(`${API_URL}/minha-organizacao/usuarios/${usuarioId}`, {
+                    method: 'PUT',
+                    headers: getHeadersOrg(orgSelecionadaId),
+                    body: JSON.stringify({ role: novoRole })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.erro || 'Erro ao alterar role');
+                }
+
+                showAlert('Role alterada com sucesso!', 'success');
+                await carregarUsuariosOrg();
+            } catch (error) {
+                showAlert(error.message, 'danger');
+            }
+        }
+
+        // Remover usuário
+        async function removerUsuario(usuarioId, nome) {
+            if (!confirm(`Tem certeza que deseja remover "${nome}" desta organização?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/minha-organizacao/usuarios/${usuarioId}`, {
+                    method: 'DELETE',
+                    headers: getHeadersOrg(orgSelecionadaId)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.erro || 'Erro ao remover usuário');
+                }
+
+                showAlert('Usuário removido com sucesso!', 'success');
+                await carregarUsuariosOrg();
+                carregarOrganizacoes(); // Atualizar contadores
+            } catch (error) {
+                showAlert(error.message, 'danger');
+            }
+        }
+
+        // Cancelar convite
+        async function cancelarConvite(conviteId) {
+            if (!confirm('Cancelar este convite?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/minha-organizacao/convites/${conviteId}`, {
+                    method: 'DELETE',
+                    headers: getHeadersOrg(orgSelecionadaId)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.erro || 'Erro ao cancelar convite');
+                }
+
+                showAlert('Convite cancelado!', 'success');
+                await carregarConvitesOrg();
+            } catch (error) {
+                showAlert(error.message, 'danger');
+            }
+        }
+
+        // Traduzir role para português
+        function traduzirRole(role) {
+            const traducoes = {
+                'proprietario': 'Proprietário',
+                'admin': 'Administrador',
+                'operador': 'Operador',
+                'visualizador': 'Visualizador'
+            };
+            return traducoes[role] || role;
+        }
+
+        // Formatar data de expiração
+        function formatarDataExpiracao(dataStr) {
+            const data = new Date(dataStr);
+            const agora = new Date();
+            const diff = data - agora;
+            const dias = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+            if (dias < 0) return 'expirado';
+            if (dias === 0) return 'hoje';
+            if (dias === 1) return '1 dia';
+            return `${dias} dias`;
+        }
+
+        // ============ FIM GERENCIAMENTO DE USUÁRIOS ============
 
         // Criar subtenant
         async function criarSubtenant(event) {
