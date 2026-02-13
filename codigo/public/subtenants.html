@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sub-Organizações - Rastreador</title>
+    <link rel="icon" type="image/png" sizes="48x48" href="/FAVICON_48x48.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --unifique-cyan: #3FCFD5;
+            --unifique-cyan-dark: #28B8BE;
+            --unifique-blue: #00A2FF;
+            --unifique-deep-blue: #212492;
+            --unifique-violet: #131E7D;
+
+            --primary: #3FCFD5;
+            --primary-dark: #0d1042;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #0d1042;
+            --card: rgba(63, 207, 213, 0.06);
+            --text: #E8FCFD;
+            --text-light: #9EEEF2;
+            --border: rgba(63, 207, 213, 0.25);
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #080b2a 0%, #0d1042 25%, #131E7D 50%, #212492 75%, #131E7D 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text);
+        }
+
+        .aurora-bg {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .aurora-bg::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg at 50% 50%,
+                transparent 0deg,
+                rgba(63, 207, 213, 0.1) 60deg,
+                transparent 120deg,
+                rgba(0, 162, 255, 0.08) 180deg,
+                transparent 240deg,
+                rgba(33, 36, 146, 0.1) 300deg,
+                transparent 360deg);
+            animation: auroraRotate 45s linear infinite;
+        }
+
+        @keyframes auroraRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .floating-orb {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(80px);
+        }
+
+        .floating-orb-1 {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(63, 207, 213, 0.25) 0%, rgba(0, 162, 255, 0.1) 50%, transparent 70%);
+            top: -200px;
+            right: -200px;
+            animation: floatOrb1 20s ease-in-out infinite;
+        }
+
+        .floating-orb-2 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(0, 162, 255, 0.2) 0%, rgba(33, 36, 146, 0.15) 50%, transparent 70%);
+            bottom: -150px;
+            left: -150px;
+            animation: floatOrb2 25s ease-in-out infinite;
+        }
+
+        @keyframes floatOrb1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-50px, 60px) scale(1.15); }
+            66% { transform: translate(30px, -30px) scale(0.9); }
+        }
+
+        @keyframes floatOrb2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(60px, -40px) scale(1.2); }
+            66% { transform: translate(-30px, 30px) scale(0.95); }
+        }
+
+        .header {
+            background: rgba(63, 207, 213, 0.08);
+            backdrop-filter: blur(20px);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(33, 36, 146, 0.3);
+            position: relative;
+            z-index: 10;
+            border-bottom: 1px solid rgba(63, 207, 213, 0.2);
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3FCFD5, #00A2FF, #3FCFD5);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3FCFD5 0%, #00A2FF 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(63, 207, 213, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(63, 207, 213, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(63, 207, 213, 0.15);
+            color: #E8FCFD;
+            border: 1px solid rgba(63, 207, 213, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(63, 207, 213, 0.25);
+            border-color: rgba(63, 207, 213, 0.5);
+        }
+
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-small { padding: 6px 12px; font-size: 0.8rem; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(63, 207, 213, 0.06);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(33, 36, 146, 0.2);
+            border: 1px solid rgba(63, 207, 213, 0.2);
+            backdrop-filter: blur(16px);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #3FCFD5;
+        }
+
+        .stat-label {
+            color: #9EEEF2;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .card {
+            background: rgba(63, 207, 213, 0.06);
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid rgba(63, 207, 213, 0.2);
+            box-shadow: 0 4px 20px rgba(33, 36, 146, 0.2);
+            backdrop-filter: blur(16px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(63, 207, 213, 0.25);
+            border-color: rgba(63, 207, 213, 0.4);
+        }
+
+        .card-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #5ED8DD;
+        }
+
+        /* Org Cards Grid */
+        .orgs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .org-card {
+            background: rgba(63, 207, 213, 0.06);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(63, 207, 213, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .org-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(63, 207, 213, 0.25);
+            border-color: rgba(63, 207, 213, 0.4);
+        }
+
+        .org-card.is-parent {
+            border-left: 4px solid #3FCFD5;
+        }
+
+        .org-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .org-logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #3FCFD5 0%, #00A2FF 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .org-logo img {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        .org-info {
+            flex: 1;
+        }
+
+        .org-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #E8FCFD;
+        }
+
+        .org-slug {
+            font-size: 0.85rem;
+            color: #9EEEF2;
+        }
+
+        .org-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+            padding: 15px 0;
+            border-top: 1px solid rgba(63, 207, 213, 0.15);
+            border-bottom: 1px solid rgba(63, 207, 213, 0.15);
+        }
+
+        .org-stat {
+            text-align: center;
+        }
+
+        .org-stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #3FCFD5;
+        }
+
+        .org-stat-label {
+            font-size: 0.75rem;
+            color: #9EEEF2;
+        }
+
+        .org-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .org-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-ativo {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+
+        .badge-suspenso {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+
+        .badge-nivel {
+            background: rgba(63, 207, 213, 0.2);
+            color: #5ED8DD;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #0d1042 0%, #131E7D 100%);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border: 1px solid rgba(63, 207, 213, 0.2);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(63, 207, 213, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(63, 207, 213, 0.05);
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #5ED8DD;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #9EEEF2;
+        }
+
+        .modal-close:hover {
+            color: #3FCFD5;
+        }
+
+        .modal-body {
+            padding: 24px;
+            color: #E8FCFD;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: #9EEEF2;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid rgba(63, 207, 213, 0.3);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            background: rgba(19, 30, 125, 0.5);
+            color: #E8FCFD;
+        }
+
+        .form-group input::placeholder, .form-group textarea::placeholder {
+            color: rgba(158, 238, 242, 0.5);
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #3FCFD5;
+            box-shadow: 0 0 0 3px rgba(63, 207, 213, 0.2);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid rgba(63, 207, 213, 0.2);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            background: rgba(63, 207, 213, 0.05);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9EEEF2;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            color: #3FCFD5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #9EEEF2;
+        }
+
+        .alert {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #4ade80;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        .alert-info {
+            background: rgba(63, 207, 213, 0.2);
+            border: 1px solid rgba(63, 207, 213, 0.3);
+            color: #5ED8DD;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .orgs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="aurora-bg"></div>
+    <div class="floating-orb floating-orb-1"></div>
+    <div class="floating-orb floating-orb-2"></div>
+
+    <header class="header">
+        <h1>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 21v-4m0 0V9a4 4 0 014-4h10a4 4 0 014 4v8M3 17h18M7 17v4m10-4v4"/>
+            </svg>
+            Sub-Organizações
+        </h1>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="window.location.href='/'">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                Voltar
+            </button>
+            <button class="btn btn-primary" onclick="abrirModalCriar()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Nova Sub-Organização
+            </button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="alertContainer"></div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value" id="statTotal">-</div>
+                <div class="stat-label">Total de Organizações</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statDispositivos">-</div>
+                <div class="stat-label">Dispositivos (todas)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statUsuarios">-</div>
+                <div class="stat-label">Usuários (todas)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statFilhos">-</div>
+                <div class="stat-label">Sub-organizações</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Minhas Organizações</h2>
+            </div>
+            <div id="orgsContainer">
+                <div class="loading">Carregando...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Criar Sub-Organização -->
+    <div class="modal-overlay" id="modalCriar">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Nova Sub-Organização</h3>
+                <button class="modal-close" onclick="fecharModal('modalCriar')">&times;</button>
+            </div>
+            <form id="formCriar" onsubmit="criarSubtenant(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="nome">Nome da Organização *</label>
+                        <input type="text" id="nome" name="nome" required placeholder="Ex: Cliente ABC">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" name="email" required placeholder="contato@empresa.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="telefone">Telefone</label>
+                            <input type="tel" id="telefone" name="telefone" placeholder="(XX) XXXXX-XXXX">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="cnpj">CNPJ</label>
+                        <input type="text" id="cnpj" name="cnpj" placeholder="XX.XXX.XXX/XXXX-XX">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cor_primaria">Cor Primária</label>
+                            <input type="color" id="cor_primaria" name="cor_primaria" value="#3FCFD5">
+                        </div>
+                        <div class="form-group">
+                            <label for="cor_secundaria">Cor Secundária</label>
+                            <input type="color" id="cor_secundaria" name="cor_secundaria" value="#00A2FF">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal('modalCriar')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Organização</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api';
+        let token = localStorage.getItem('token');
+        let currentTenantId = localStorage.getItem('currentTenantId');
+
+        // Validar currentTenantId - limpar valores inválidos
+        if (currentTenantId && (currentTenantId === 'undefined' || currentTenantId === 'null' || currentTenantId === '')) {
+            currentTenantId = null;
+            localStorage.removeItem('currentTenantId');
+        }
+
+        let organizacoes = [];
+
+        // Verificar autenticação
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+
+        // Headers para requisições
+        function getHeaders() {
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            };
+            // Só enviar X-Tenant-Id se for um valor válido
+            if (currentTenantId && currentTenantId !== 'undefined' && currentTenantId !== 'null') {
+                headers['X-Tenant-Id'] = currentTenantId;
+            }
+            return headers;
+        }
+
+        // Mostrar alerta
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        // Carregar organizações
+        async function carregarOrganizacoes() {
+            try {
+                const response = await fetch(`${API_URL}/organizacoes/minhas`, {
+                    headers: getHeaders()
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    throw new Error('Erro ao carregar organizações');
+                }
+
+                const data = await response.json();
+                organizacoes = data.organizacoes || [];
+                renderizarOrganizacoes();
+                atualizarEstatisticas();
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('orgsContainer').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <p>Erro ao carregar organizações</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Renderizar organizações
+        function renderizarOrganizacoes() {
+            const container = document.getElementById('orgsContainer');
+
+            if (!organizacoes.length) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🏢</div>
+                        <p>Nenhuma organização encontrada</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">Crie sua primeira sub-organização</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="orgs-grid">
+                    ${organizacoes.map(org => renderizarOrgCard(org)).join('')}
+                </div>
+            `;
+        }
+
+        // Renderizar card de organização
+        function renderizarOrgCard(org) {
+            const inicial = org.nome.charAt(0).toUpperCase();
+            const statusClass = org.status === 'ativo' ? 'badge-ativo' : 'badge-suspenso';
+            const isParent = org.nivel === 0;
+            const countData = org._count || {};
+
+            return `
+                <div class="org-card ${isParent ? 'is-parent' : ''}" onclick="acessarOrganizacao(${org.id})">
+                    <div class="org-header">
+                        <div class="org-logo" style="background: linear-gradient(135deg, ${org.cor_primaria || '#3FCFD5'} 0%, ${org.cor_secundaria || '#00A2FF'} 100%)">
+                            ${org.logo_url ? `<img src="${org.logo_url}" alt="${org.nome}">` : inicial}
+                        </div>
+                        <div class="org-info">
+                            <div class="org-name">${org.nome}</div>
+                            <div class="org-slug">${org.slug}</div>
+                        </div>
+                        <span class="org-badge ${statusClass}">${org.status}</span>
+                    </div>
+                    <div class="org-stats">
+                        <div class="org-stat">
+                            <div class="org-stat-value">${countData.dispositivos || 0}</div>
+                            <div class="org-stat-label">Dispositivos</div>
+                        </div>
+                        <div class="org-stat">
+                            <div class="org-stat-value">${countData.usuarios || 0}</div>
+                            <div class="org-stat-label">Usuários</div>
+                        </div>
+                        <div class="org-stat">
+                            <div class="org-stat-value">${countData.filhos || 0}</div>
+                            <div class="org-stat-label">Filhos</div>
+                        </div>
+                    </div>
+                    <div class="org-actions">
+                        ${isParent ? '<span class="org-badge badge-nivel">Organização Principal</span>' : '<span class="org-badge badge-nivel">Sub-organização</span>'}
+                        ${org.plano ? `<span class="org-badge badge-nivel">${org.plano.nome}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Atualizar estatísticas
+        function atualizarEstatisticas() {
+            const total = organizacoes.length;
+            const filhos = organizacoes.filter(o => o.nivel > 0).length;
+            const dispositivos = organizacoes.reduce((acc, o) => acc + (o._count?.dispositivos || 0), 0);
+            const usuarios = organizacoes.reduce((acc, o) => acc + (o._count?.usuarios || 0), 0);
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statFilhos').textContent = filhos;
+            document.getElementById('statDispositivos').textContent = dispositivos;
+            document.getElementById('statUsuarios').textContent = usuarios;
+        }
+
+        // Acessar organização (trocar contexto)
+        async function acessarOrganizacao(orgId) {
+            try {
+                const response = await fetch(`${API_URL}/organizacoes/${orgId}/trocar-contexto`, {
+                    method: 'POST',
+                    headers: getHeaders()
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.erro || 'Erro ao trocar contexto');
+                }
+
+                const data = await response.json();
+
+                // Salvar novo contexto
+                localStorage.setItem('currentTenantId', orgId);
+                localStorage.setItem('currentTenantName', data.organizacao.nome);
+                localStorage.setItem('currentTenantSlug', data.organizacao.slug);
+
+                showAlert(`Acessando ${data.organizacao.nome}...`, 'success');
+
+                // Redirecionar para dashboard
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+            } catch (error) {
+                showAlert(error.message, 'danger');
+            }
+        }
+
+        // Abrir modal criar
+        function abrirModalCriar() {
+            document.getElementById('formCriar').reset();
+            document.getElementById('modalCriar').classList.add('active');
+        }
+
+        // Fechar modal
+        function fecharModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Criar subtenant
+        async function criarSubtenant(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const dados = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(`${API_URL}/organizacoes/subtenant`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(dados)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.erro || 'Erro ao criar organização');
+                }
+
+                showAlert(`Organização "${dados.nome}" criada com sucesso!`, 'success');
+                fecharModal('modalCriar');
+                carregarOrganizacoes();
+            } catch (error) {
+                showAlert(error.message, 'danger');
+            }
+        }
+
+        // Fechar modal ao clicar fora
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+
+        // Carregar dados ao iniciar
+        carregarOrganizacoes();
+    </script>
+</body>
+</html>

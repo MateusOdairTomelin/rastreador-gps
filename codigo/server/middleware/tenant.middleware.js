@@ -8,25 +8,120 @@ const prisma = require('../db/prisma');
 /**
  * Middleware principal de contexto de tenant
  * Deve ser usado APÓS o middleware de autenticação
+ *
+ * Suporta troca de contexto via header 'x-tenant-id' para:
+ * - Super admins: qualquer organização
+ * - Usuários com permissão gerenciar_subtenants: orgs que criaram ou são associados
  */
-function tenantContext(req, res, next) {
+async function tenantContext(req, res, next) {
+  // DEBUG: Log para diagnóstico
+  console.log(`[Tenant] ${req.method} ${req.path} - usuario:`, req.usuario ? {
+    id: req.usuario.id,
+    email: req.usuario.email,
+    role: req.usuario.role,
+    organizacao_id: req.usuario.organizacao_id,
+    organizacao_id_type: typeof req.usuario.organizacao_id
+  } : 'null');
+
   // Se não há usuário autenticado, não há tenant
   if (!req.usuario) {
+    console.log(`[Tenant] BYPASS: sem usuário autenticado`);
     req.tenant = null;
     req.tenantFilter = {};
     return next();
   }
 
+  let requestedTenantId = req.headers['x-tenant-id'];
+
+  // ✅ Validar e limpar header x-tenant-id
+  // Ignorar valores inválidos como "undefined", "null", "", NaN
+  if (requestedTenantId) {
+    // Converter para número e verificar se é válido
+    const parsedId = parseInt(requestedTenantId);
+    if (isNaN(parsedId) || parsedId <= 0 || requestedTenantId === 'undefined' || requestedTenantId === 'null') {
+      console.log(`[Tenant] Header x-tenant-id inválido: "${requestedTenantId}" - ignorando`);
+      requestedTenantId = null; // Tratar como se não tivesse sido enviado
+    }
+  }
+
+  console.log(`[Tenant] Header x-tenant-id: "${requestedTenantId}" (validado)`);
+
+  // ✅ Validar organizacao_id do usuário
+  const userOrgId = req.usuario.organizacao_id;
+  if (userOrgId === undefined || userOrgId === null || userOrgId === 'null' || userOrgId === 'undefined') {
+    console.log(`[Tenant] PROBLEMA: organizacao_id do usuário está inválido: ${userOrgId}`);
+    // Para usuários não super_admin sem org, retornar erro amigável
+    if (req.usuario.role !== 'super_admin') {
+      return res.status(403).json({
+        sucesso: false,
+        erro: 'Usuário não está associado a nenhuma organização. Faça login novamente.',
+        detalhes: { organizacao_id: userOrgId, tipo: typeof userOrgId }
+      });
+    }
+  }
+
   // Super admin pode acessar qualquer tenant via header
   if (req.usuario.role === 'super_admin') {
-    const targetTenant = req.headers['x-tenant-id'];
     req.tenant = {
-      id: targetTenant ? parseInt(targetTenant) : req.usuario.organizacao_id,
+      id: requestedTenantId ? parseInt(requestedTenantId) : req.usuario.organizacao_id,
       slug: req.usuario.organizacao_slug,
       isSuperAdmin: true
     };
+  } else if (requestedTenantId) {
+    // Usuário quer trocar de contexto - verificar se tem acesso
+    const targetOrgId = parseInt(requestedTenantId);
+
+    // Verificar se é a organização do próprio usuário
+    if (targetOrgId === req.usuario.organizacao_id) {
+      req.tenant = {
+        id: targetOrgId,
+        slug: req.usuario.organizacao_slug,
+        isSuperAdmin: false
+      };
+    } else {
+      // Verificar se o usuário criou esta organização (revendedor)
+      const orgCriada = await prisma.organizacao.findFirst({
+        where: {
+          id: targetOrgId,
+          criado_por_usuario_id: req.usuario.id
+        }
+      });
+
+      // Ou se está associado a ela
+      const associacao = await prisma.usuarioOrganizacao.findFirst({
+        where: {
+          usuario_id: req.usuario.id,
+          organizacao_id: targetOrgId
+        }
+      });
+
+      if (orgCriada || associacao) {
+        // Buscar dados da org
+        const org = await prisma.organizacao.findUnique({
+          where: { id: targetOrgId },
+          select: { slug: true }
+        });
+
+        req.tenant = {
+          id: targetOrgId,
+          slug: org?.slug,
+          isSuperAdmin: false,
+          isSubtenant: !!orgCriada,  // Flag para indicar que é subtenant
+          role_org: associacao?.role || 'proprietario'
+        };
+
+        // Atualizar role_org do usuário para o contexto
+        req.usuario.role_org = associacao?.role || 'proprietario';
+      } else {
+        return res.status(403).json({
+          sucesso: false,
+          erro: 'Você não tem permissão para acessar esta organização'
+        });
+      }
+    }
   } else {
     // Usuários normais só acessam sua própria organização
+    console.log(`[Tenant] Definindo tenant para usuário normal: org_id=${req.usuario.organizacao_id}`);
     req.tenant = {
       id: req.usuario.organizacao_id,
       slug: req.usuario.organizacao_slug,
@@ -34,8 +129,12 @@ function tenantContext(req, res, next) {
     };
   }
 
+  // Log do tenant definido
+  console.log(`[Tenant] Tenant definido:`, { id: req.tenant?.id, isSuperAdmin: req.tenant?.isSuperAdmin });
+
   // Verificar se há organização selecionada
   if (!req.tenant.id && req.usuario.role !== 'super_admin') {
+    console.log(`[Tenant] ERRO 403: tenant.id está falsy (${req.tenant?.id})`);
     return res.status(403).json({
       sucesso: false,
       erro: 'Nenhuma organização selecionada. Faça login novamente.'

@@ -6534,7 +6534,12 @@
       const needsCsrf = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
 
       // Obter tenant ID para multi-tenant
-      const tenantId = localStorage.getItem('currentTenantId');
+      // Validar para não enviar valores inválidos como "undefined", "null", ""
+      let tenantId = localStorage.getItem('currentTenantId');
+      if (tenantId && (tenantId === 'undefined' || tenantId === 'null' || tenantId === '')) {
+        tenantId = null;
+        localStorage.removeItem('currentTenantId'); // Limpar valor inválido
+      }
 
       const headers = {
         ...options.headers,
