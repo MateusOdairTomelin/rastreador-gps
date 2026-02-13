@@ -1891,6 +1891,35 @@
       color: white;
     }
 
+    /* Botão de expandir dentro do mapa */
+    .map-expand-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: white;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: all 0.2s ease;
+    }
+
+    .map-expand-btn:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .mapa-fullscreen .map-expand-btn {
+      top: 15px;
+      right: 15px;
+      padding: 10px 15px;
+      font-size: 18px;
+    }
+
     .log-output {
       background-color: var(--dark);
       color: var(--accent-light);
@@ -4309,11 +4338,8 @@
                 <button class="btn btn-primary" onclick="centerAllVehicles()" style="padding: 10px 15px;">
                   📍 Ver Todos
                 </button>
-                <button class="btn" onclick="toggleFollowMode()" id="btn-follow" style="padding: 10px 15px; background: var(--bg); border: 1px solid var(--border);">
+                <button class="btn" onclick="toggleFollowMode()" id="btn-follow" style="padding: 10px 15px; background: var(--bg); border: 1px solid var(--border); color: var(--text);">
                   🎯 Seguir
-                </button>
-                <button class="btn" onclick="toggleMapFullscreen()" id="btn-fullscreen" style="padding: 10px 15px; background: var(--bg); border: 1px solid var(--border);">
-                  🔲 Expandir
                 </button>
               </div>
             </div>
@@ -4347,8 +4373,11 @@
             </div>
           </div>
 
-          <div class="card">
+          <div class="card" style="position: relative;">
             <div id="map" class="mapa-container"></div>
+            <button class="map-expand-btn" id="btn-map-expand" onclick="toggleMapFullscreen()" title="Expandir mapa">
+              ⛶
+            </button>
           </div>
         </section>
 
@@ -10082,44 +10111,45 @@
 
     // Variável para controlar estado do fullscreen
     let mapFullscreen = false;
-    let fullscreenControlsDiv = null;
 
     function toggleMapFullscreen() {
       const mapContainer = document.getElementById('map');
-      const btn = document.getElementById('btn-fullscreen');
+      const btn = document.getElementById('btn-map-expand');
+      const mapCard = mapContainer.parentElement;
 
       if (!mapFullscreen) {
         // Entrar em fullscreen
-        mapContainer.classList.add('mapa-fullscreen');
-        btn.innerHTML = '🔳 Reduzir';
-        btn.style.background = 'var(--primary)';
-        btn.style.color = 'white';
+        mapCard.style.position = 'fixed';
+        mapCard.style.top = '0';
+        mapCard.style.left = '0';
+        mapCard.style.width = '100vw';
+        mapCard.style.height = '100vh';
+        mapCard.style.zIndex = '9999';
+        mapCard.style.borderRadius = '0';
+        mapCard.style.margin = '0';
+        mapContainer.style.height = '100vh';
+        mapContainer.style.borderRadius = '0';
+        btn.innerHTML = '✕';
+        btn.title = 'Fechar tela cheia';
         mapFullscreen = true;
 
-        // Criar controles flutuantes no fullscreen
-        fullscreenControlsDiv = document.createElement('div');
-        fullscreenControlsDiv.className = 'mapa-fullscreen-controls';
-        fullscreenControlsDiv.innerHTML = `
-          <button onclick="centerAllVehicles()">📍 Ver Todos</button>
-          <button onclick="toggleMapFullscreen()">✕ Fechar</button>
-        `;
-        document.body.appendChild(fullscreenControlsDiv);
-
-        // Também permitir ESC para sair
+        // Permitir ESC para sair
         document.addEventListener('keydown', handleEscFullscreen);
       } else {
         // Sair do fullscreen
-        mapContainer.classList.remove('mapa-fullscreen');
-        btn.innerHTML = '🔲 Expandir';
-        btn.style.background = 'var(--bg)';
-        btn.style.color = 'var(--text)';
+        mapCard.style.position = 'relative';
+        mapCard.style.top = '';
+        mapCard.style.left = '';
+        mapCard.style.width = '';
+        mapCard.style.height = '';
+        mapCard.style.zIndex = '';
+        mapCard.style.borderRadius = '';
+        mapCard.style.margin = '';
+        mapContainer.style.height = '';
+        mapContainer.style.borderRadius = '';
+        btn.innerHTML = '⛶';
+        btn.title = 'Expandir mapa';
         mapFullscreen = false;
-
-        // Remover controles flutuantes
-        if (fullscreenControlsDiv) {
-          fullscreenControlsDiv.remove();
-          fullscreenControlsDiv = null;
-        }
 
         document.removeEventListener('keydown', handleEscFullscreen);
       }
