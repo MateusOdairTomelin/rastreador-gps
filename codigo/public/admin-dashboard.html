@@ -2178,6 +2178,53 @@
       gap: 16px;
     }
 
+    /* Seletor de Organização (Multi-tenant) */
+    .org-selector-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .org-selector {
+      background: rgba(63, 207, 213, 0.1);
+      border: 1px solid rgba(63, 207, 213, 0.3);
+      color: var(--text);
+      padding: 8px 35px 8px 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      min-width: 180px;
+      max-width: 250px;
+      transition: all 0.2s ease;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%233FCFD5' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    .org-selector:hover {
+      border-color: rgba(63, 207, 213, 0.5);
+      background-color: rgba(63, 207, 213, 0.15);
+    }
+
+    .org-selector:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(63, 207, 213, 0.2);
+    }
+
+    .org-selector option {
+      background: #1a237e;
+      color: #E8FCFD;
+      padding: 10px;
+    }
+
+    .org-selector option:checked {
+      background: #3f51b5;
+    }
+
     .notification-bell {
       position: relative;
       cursor: pointer;
@@ -4007,7 +4054,7 @@
         <!-- Menu Admin (controlado por permissões) -->
         <div id="adminMenu" style="display:none; flex-direction: column; gap: 6px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(6, 182, 212, 0.2);">
           <div style="font-size: 10px; color: rgba(255,255,255,0.6); padding: 8px 16px; text-transform: uppercase; letter-spacing: 1px;">Administração</div>
-          <button class="nav-item" id="nav-organizacoes" onclick="switchSection('organizacoes')">
+          <button class="nav-item" id="nav-organizacoes" onclick="navegarOrganizacoes()">
             <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
             <span>Organizações</span>
           </button>
@@ -6486,11 +6533,15 @@
       const method = (options.method || 'GET').toUpperCase();
       const needsCsrf = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
 
+      // Obter tenant ID para multi-tenant
+      const tenantId = localStorage.getItem('currentTenantId');
+
       const headers = {
         ...options.headers,
         'Authorization': `Bearer ${token}`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache'
+        'Pragma': 'no-cache',
+        ...(tenantId && { 'X-Tenant-Id': tenantId })
       };
 
       // Adicionar CSRF token apenas para métodos que modificam dados
@@ -6592,6 +6643,104 @@
       if (!permissoesUsuario) return false;
       if (!permissoesUsuario[modulo]) return false;
       return permissoesUsuario[modulo].includes(acao);
+    }
+
+    // ============ SELETOR DE ORGANIZAÇÕES (Multi-tenant) ============
+    let minhasOrganizacoes = [];
+    let currentTenantId = localStorage.getItem('currentTenantId');
+
+    // Função para navegar para Organizações - redireciona revendedores para subtenants.html
+    function navegarOrganizacoes() {
+      const usuarioStr = localStorage.getItem('usuario') || sessionStorage.getItem('usuario');
+      let isSuperAdmin = false;
+      try {
+        const usuario = JSON.parse(usuarioStr);
+        isSuperAdmin = usuario.role === 'super_admin';
+        console.log('[DEBUG] navegarOrganizacoes - usuario:', usuario.nome, 'role:', usuario.role, 'isSuperAdmin:', isSuperAdmin);
+      } catch (e) {
+        console.error('[DEBUG] Erro ao parsear usuario:', e);
+      }
+
+      if (!isSuperAdmin) {
+        console.log('[DEBUG] Redirecionando para /subtenants.html');
+        window.location.href = '/subtenants.html';
+        return;
+      }
+
+      // Super admin: carregar seção de organizações normalmente
+      console.log('[DEBUG] Super admin - carregando seção organizacoes');
+      switchSection('organizacoes');
+    }
+
+    // Carregar organizações do usuário
+    async function carregarMinhasOrganizacoes() {
+      try {
+        const response = await authFetch(`${API_URL}/organizacoes/minhas`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        minhasOrganizacoes = data.organizacoes || [];
+
+        // Se tem mais de uma organização, mostrar seletor
+        if (minhasOrganizacoes.length > 1) {
+          renderizarSeletorOrganizacoes();
+          document.getElementById('org-selector-container').style.display = 'flex';
+        }
+      } catch (error) {
+        console.error('[Orgs] Erro ao carregar organizações:', error);
+      }
+    }
+
+    // Renderizar opções do seletor
+    function renderizarSeletorOrganizacoes() {
+      const selector = document.getElementById('org-selector');
+      if (!selector) return;
+
+      // Determinar organização atual
+      const orgAtualId = currentTenantId || (minhasOrganizacoes[0]?.id);
+
+      selector.innerHTML = minhasOrganizacoes.map(org => {
+        const nivel = org.nivel === 0 ? '' : '└ ';
+        const selected = org.id == orgAtualId ? 'selected' : '';
+        return `<option value="${org.id}" ${selected}>${nivel}${org.nome}</option>`;
+      }).join('');
+    }
+
+    // Trocar de organização
+    async function trocarOrganizacao(orgId) {
+      if (!orgId) return;
+
+      try {
+        const response = await authFetch(`${API_URL}/organizacoes/${orgId}/trocar-contexto`, {
+          method: 'POST'
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          toastError(data.erro || 'Erro ao trocar organização');
+          return;
+        }
+
+        const data = await response.json();
+
+        // Salvar novo contexto
+        localStorage.setItem('currentTenantId', orgId);
+        localStorage.setItem('currentTenantName', data.organizacao.nome);
+
+        toastSuccess(`Contexto alterado para: ${data.organizacao.nome}`);
+
+        // Recarregar página para atualizar dados
+        setTimeout(() => window.location.reload(), 1000);
+      } catch (error) {
+        console.error('[Orgs] Erro ao trocar organização:', error);
+        toastError('Erro ao trocar organização');
+      }
+    }
+
+    // Obter header X-Tenant-Id para requisições
+    function getTenantHeader() {
+      const tenantId = localStorage.getItem('currentTenantId');
+      return tenantId ? { 'X-Tenant-Id': tenantId } : {};
     }
 
     // Aplicar permissões na interface (mostrar/ocultar elementos)
@@ -7601,13 +7750,22 @@
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('[WS] Dados recebidos:', data);
+          // Log apenas para debug (tipos importantes)
+          if (data.tipo !== 'system_metrics') {
+            console.log('[WS] Dados recebidos:', data.tipo, data.imei || '');
+          }
 
           // Atualizar telas com base no tipo de dados
-          if (data.tipo === 'update') {
-            // Usar WebSocket para atualizar APENAS o dashboard
-            // Não atualizar mapa aqui - deixar para o setInterval de 5s
+          if (data.tipo === 'update' || data.tipo === 'device_status') {
+            // ✅ CORREÇÃO: Atualizar TUDO via WebSocket (não depende de setInterval)
+            // WebSocket NÃO é pausado pelo browser quando aba perde foco
             loadDashboard();
+
+            // Atualizar mapa em tempo real (se existir)
+            if (map) {
+              updateMapMarkers();
+            }
+
             // Atualizar heartbeat
             if (autoRefreshHeartbeat) {
               loadHeartbeat();
@@ -8333,6 +8491,9 @@
 
       // Carregar permissões do usuário
       await carregarPermissoes();
+
+      // Carregar organizações do usuário (multi-tenant/revendedor)
+      await carregarMinhasOrganizacoes();
 
       // Verificar consentimentos LGPD
       await verificarConsentimentosLGPD();
@@ -9102,6 +9263,7 @@
 
       // Carregar dados das seções administrativas
       if (name === 'organizacoes') {
+        // Se chegou aqui, é super_admin (verificado em navegarOrganizacoes)
         if (typeof carregarOrganizacoes === 'function') carregarOrganizacoes();
         if (typeof carregarPlanos === 'function') carregarPlanos();
       } else if (name === 'usuarios') {
