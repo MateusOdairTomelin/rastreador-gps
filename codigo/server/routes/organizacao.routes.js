@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const organizacaoService = require('../services/organizacao.service');
 const authService = require('../services/auth.service');
+const perfilPermissaoService = require('../services/perfil-permissao.service');
 const { autenticar, apenasSuperAdmin, apenasAdmin } = require('../middleware/auth.middleware');
 const { tenantContext, verificarRoleOrg } = require('../middleware/tenant.middleware');
 
@@ -333,6 +334,169 @@ router.delete('/minha-organizacao/convites/:id', autenticar, tenantContext, veri
   } catch (error) {
     console.error('Erro ao cancelar convite:', error);
     res.status(400).json({
+      sucesso: false,
+      erro: error.message
+    });
+  }
+});
+
+// ==================== SUBTENANTS (Modelo Revenda) ====================
+
+/**
+ * GET /api/organizacoes/minhas
+ * Listar organizações que o usuário criou ou tem acesso
+ */
+router.get('/organizacoes/minhas', autenticar, tenantContext, async (req, res) => {
+  try {
+    const organizacoes = await organizacaoService.listarMinhasOrganizacoes(req.usuario);
+
+    res.json({
+      sucesso: true,
+      organizacoes
+    });
+  } catch (error) {
+    console.error('Erro ao listar minhas organizações:', error);
+    res.status(500).json({
+      sucesso: false,
+      erro: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/organizacoes/subtenant
+ * Criar sub-organização
+ */
+router.post('/organizacoes/subtenant', autenticar, tenantContext, async (req, res) => {
+  try {
+    const { nome, slug, cnpj, email, telefone, plano_id, cor_primaria, cor_secundaria, logo_url } = req.body;
+
+    if (!nome || !email) {
+      return res.status(400).json({
+        sucesso: false,
+        erro: 'Nome e email são obrigatórios'
+      });
+    }
+
+    const novaOrg = await organizacaoService.criarSubtenant(
+      { nome, slug, cnpj, email, telefone, plano_id, cor_primaria, cor_secundaria, logo_url },
+      req.usuario
+    );
+
+    res.status(201).json({
+      sucesso: true,
+      organizacao: novaOrg,
+      mensagem: `Sub-organização "${nome}" criada com sucesso`
+    });
+  } catch (error) {
+    console.error('Erro ao criar subtenant:', error);
+    res.status(400).json({
+      sucesso: false,
+      erro: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/organizacoes/:id/filhos
+ * Listar filhos de uma organização
+ */
+router.get('/organizacoes/:id/filhos', autenticar, tenantContext, async (req, res) => {
+  try {
+    const organizacaoId = parseInt(req.params.id);
+    const subtenants = await organizacaoService.listarSubtenants(organizacaoId, req.usuario);
+
+    res.json({
+      sucesso: true,
+      subtenants
+    });
+  } catch (error) {
+    console.error('Erro ao listar subtenants:', error);
+    res.status(400).json({
+      sucesso: false,
+      erro: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/organizacoes/:id/trocar-contexto
+ * Trocar contexto para outra organização
+ */
+router.post('/organizacoes/:id/trocar-contexto', autenticar, async (req, res) => {
+  try {
+    const organizacaoId = parseInt(req.params.id);
+
+    // Verificar se usuário pode acessar esta organização
+    const podeAcessar = await organizacaoService.verificarAcessoOrganizacao(
+      req.usuario.id,
+      organizacaoId
+    );
+
+    if (!podeAcessar) {
+      return res.status(403).json({
+        sucesso: false,
+        erro: 'Você não tem permissão para acessar esta organização'
+      });
+    }
+
+    // Buscar dados da organização
+    const organizacao = await organizacaoService.buscarPorId(organizacaoId);
+
+    if (!organizacao) {
+      return res.status(404).json({
+        sucesso: false,
+        erro: 'Organização não encontrada'
+      });
+    }
+
+    // Buscar role do usuário nesta organização
+    const prisma = require('../db/prisma');
+    const associacao = await prisma.usuarioOrganizacao.findFirst({
+      where: {
+        usuario_id: req.usuario.id,
+        organizacao_id: organizacaoId
+      }
+    });
+
+    res.json({
+      sucesso: true,
+      organizacao: {
+        id: organizacao.id,
+        nome: organizacao.nome,
+        slug: organizacao.slug,
+        logo_url: organizacao.logo_url,
+        cor_primaria: organizacao.cor_primaria,
+        cor_secundaria: organizacao.cor_secundaria
+      },
+      role_org: associacao?.role || 'visualizador',
+      mensagem: `Contexto alterado para ${organizacao.nome}`
+    });
+  } catch (error) {
+    console.error('Erro ao trocar contexto:', error);
+    res.status(400).json({
+      sucesso: false,
+      erro: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/organizacoes/:id/acessiveis
+ * Listar IDs de organizações que o usuário pode acessar
+ */
+router.get('/organizacoes/acessiveis', autenticar, async (req, res) => {
+  try {
+    const ids = await organizacaoService.obterOrganizacoesAcessiveis(req.usuario.id);
+
+    res.json({
+      sucesso: true,
+      organizacoes_ids: ids,
+      acesso_total: ids === null  // null = super_admin com acesso total
+    });
+  } catch (error) {
+    console.error('Erro ao obter organizações acessíveis:', error);
+    res.status(500).json({
       sucesso: false,
       erro: error.message
     });

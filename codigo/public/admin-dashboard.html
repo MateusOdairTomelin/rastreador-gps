@@ -10874,18 +10874,33 @@
     let planosCache = [];
 
     // Carregar lista de organizações
+    // Super admin usa /organizacoes, revendedor usa /organizacoes/minhas
     async function carregarOrganizacoes() {
       try {
-        const response = await authFetch(`${API_URL}/organizacoes`);
+        const usuarioStr = localStorage.getItem('usuario') || sessionStorage.getItem('usuario');
+        const usuario = usuarioStr ? JSON.parse(usuarioStr) : null;
+        const isSuperAdmin = usuario?.role === 'super_admin';
+
+        // Usar rota apropriada para o tipo de usuário
+        const endpoint = isSuperAdmin ? `${API_URL}/organizacoes` : `${API_URL}/organizacoes/minhas`;
+        const response = await authFetch(endpoint);
+
         if (!response.ok) throw new Error('Erro ao carregar organizações');
         const data = await response.json();
         organizacoesCache = data.organizacoes || data;
-        renderizarTabelaOrgs();
+
+        // Só renderiza tabela se for super_admin na seção de organizações
+        if (isSuperAdmin && document.getElementById('orgs-table-body')) {
+          renderizarTabelaOrgs();
+        }
       } catch (error) {
         console.error('Erro ao carregar organizações:', error);
-        document.getElementById('orgs-table-body').innerHTML = `
-          <tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--danger);">Erro ao carregar organizações</td></tr>
-        `;
+        const tbody = document.getElementById('orgs-table-body');
+        if (tbody) {
+          tbody.innerHTML = `
+            <tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--danger);">Erro ao carregar organizações</td></tr>
+          `;
+        }
       }
     }
 
