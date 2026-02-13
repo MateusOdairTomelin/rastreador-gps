@@ -270,11 +270,8 @@ const tcpServer = net.createServer((socket) => {
           continue;
         }
 
-        // Extrair IMEI
-        let imei = extractIMEI(data);
-        if (!imei && sessionImei) {
-          imei = sessionImei;
-        }
+        // Extrair IMEI (prioridade: parsedData > extractIMEI > sessionImei)
+        let imei = parsedData.imei || extractIMEI(data) || sessionImei;
 
         if (!imei) {
           console.warn(`[Gateway:${GATEWAY_ID}] Pacote sem IMEI`);
