@@ -221,12 +221,27 @@ class LocalizacaoService {
       const timestampNovo = locationData.timestamp ? new Date(locationData.timestamp) : new Date();
       const tempoSegundos = Math.abs(timestampNovo - ultimaLocalizacao.timestamp) / 1000;
 
-      // Calcular velocidade implícita (km/h)
-      const velocidadeImplicita = tempoSegundos > 0 ? (distanciaKm / tempoSegundos) * 3600 : 0;
+      // ✅ REGRA 1: Salto absoluto - rejeitar distâncias > 10km independente do tempo
+      if (distanciaKm > 10) {
+        console.warn(`[Location] Rejeitado: salto absoluto para ${imei} - ${distanciaKm.toFixed(1)}km (máx 10km)`);
+        console.warn(`[Location]   De: (${ultimaLocalizacao.latitude.toFixed(6)}, ${ultimaLocalizacao.longitude.toFixed(6)})`);
+        console.warn(`[Location]   Para: (${lat.toFixed(6)}, ${lon.toFixed(6)})`);
+        return null;
+      }
 
-      // Rejeitar se velocidade implícita > 200 km/h (impossível para veículo terrestre)
+      // ✅ REGRA 2: Salto com tempo muito curto - rejeitar > 500m em menos de 2 segundos
+      if (tempoSegundos < 2 && distanciaKm > 0.5) {
+        console.warn(`[Location] Rejeitado: salto rápido para ${imei} - ${(distanciaKm * 1000).toFixed(0)}m em ${tempoSegundos.toFixed(1)}s`);
+        console.warn(`[Location]   De: (${ultimaLocalizacao.latitude.toFixed(6)}, ${ultimaLocalizacao.longitude.toFixed(6)})`);
+        console.warn(`[Location]   Para: (${lat.toFixed(6)}, ${lon.toFixed(6)})`);
+        return null;
+      }
+
+      // ✅ REGRA 3: Velocidade implícita impossível (> 200 km/h)
+      const velocidadeImplicita = tempoSegundos > 0 ? (distanciaKm / tempoSegundos) * 3600 : 999999;
+
       if (velocidadeImplicita > 200) {
-        console.warn(`[Location] Rejeitado: salto impossível para ${imei} - ${distanciaKm.toFixed(1)}km em ${tempoSegundos}s = ${velocidadeImplicita.toFixed(0)}km/h implícito`);
+        console.warn(`[Location] Rejeitado: velocidade impossível para ${imei} - ${distanciaKm.toFixed(1)}km em ${tempoSegundos}s = ${velocidadeImplicita.toFixed(0)}km/h`);
         console.warn(`[Location]   De: (${ultimaLocalizacao.latitude.toFixed(6)}, ${ultimaLocalizacao.longitude.toFixed(6)})`);
         console.warn(`[Location]   Para: (${lat.toFixed(6)}, ${lon.toFixed(6)})`);
         return null;
