@@ -7830,20 +7830,45 @@
         updateStatusBox('ws', true, 'Online');
         // Enviar identificação
         ws.send(JSON.stringify({ tipo: 'subscribe', canal: 'updates' }));
+
+        // ✅ KEEPALIVE: Enviar ping a cada 30 segundos para manter conexão viva
+        if (window.wsPingInterval) clearInterval(window.wsPingInterval);
+        window.wsPingInterval = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ tipo: 'ping' }));
+          }
+        }, 30000);
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           // Log apenas para debug (tipos importantes)
-          if (data.tipo !== 'system_metrics') {
+          if (data.tipo !== 'system_metrics' && data.tipo !== 'pong') {
             console.log('[WS] Dados recebidos:', data.tipo, data.imei || '');
+          }
+
+          // ✅ CORREÇÃO: Processar location_update em TEMPO REAL
+          if (data.tipo === 'location_update') {
+            console.log(`[WS] 📍 Localização: ${data.imei} (${data.latitude?.toFixed(4)}, ${data.longitude?.toFixed(4)}) @ ${data.velocidade}km/h`);
+            // Atualizar mapa imediatamente
+            if (map) {
+              updateMapMarkers();
+            }
+            // Atualizar dashboard (debounced para não sobrecarregar)
+            if (!window.dashboardUpdatePending) {
+              window.dashboardUpdatePending = true;
+              setTimeout(() => {
+                loadDashboard();
+                window.dashboardUpdatePending = false;
+              }, 1000);
+            }
+            return;
           }
 
           // Atualizar telas com base no tipo de dados
           if (data.tipo === 'update' || data.tipo === 'device_status') {
-            // ✅ CORREÇÃO: Atualizar TUDO via WebSocket (não depende de setInterval)
-            // WebSocket NÃO é pausado pelo browser quando aba perde foco
+            // Atualizar TUDO via WebSocket
             loadDashboard();
 
             // Atualizar mapa em tempo real (se existir)
@@ -7874,6 +7899,11 @@
       ws.onclose = () => {
         console.log('[WS] Conexão fechada, reconectando em 3s...');
         updateStatusBox('ws', false, 'Reconectando');
+        // Limpar ping interval
+        if (window.wsPingInterval) {
+          clearInterval(window.wsPingInterval);
+          window.wsPingInterval = null;
+        }
         wsReconnectTimeout = setTimeout(connectWebSocket, 3000);
       };
 
