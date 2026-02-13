@@ -1504,14 +1504,8 @@ if (ENABLE_TCP) {
             data: parsedData.data
           });
 
-          // ✅ CORREÇÃO #1: Tentar extrair IMEI do pacote
-          let imei = extractIMEI(data);
-
-          // ✅ CORREÇÃO #1: Se não tem IMEI no pacote, usar IMEI da sessão
-          if (!imei && sessionImei) {
-            imei = sessionImei;
-            console.log(`[TCP] Usando IMEI da sessão: ${imei}`);
-          }
+          // ✅ CORREÇÃO: Extrair IMEI (prioridade: parsedData > extractIMEI > sessionImei)
+          let imei = parsedData.imei || extractIMEI(data) || sessionImei;
 
           // Se ainda não tem IMEI, não processar
           if (!imei) {
