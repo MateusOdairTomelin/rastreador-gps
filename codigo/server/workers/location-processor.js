@@ -428,6 +428,21 @@ async function processLocationMessage(message) {
       console.log(`[${WORKER_ID}] ${imei}: Pacote Static (veículo parado)`);
     }
 
+    // ✅ CORREÇÃO DE TIMESTAMP: Detectar e corrigir timestamps atrasados ANTES de publicar
+    let timestampCorrigido = locationData.timestamp ? new Date(locationData.timestamp) : new Date();
+    const agora = new Date();
+    const diffMinutos = (agora.getTime() - timestampCorrigido.getTime()) / (1000 * 60);
+
+    if (diffMinutos > 5) {
+      // Timestamp do GPS está mais de 5 minutos no passado - usar hora do servidor
+      console.log(`[${WORKER_ID}] ⚠️ ${imei}: Timestamp GPS atrasado ${diffMinutos.toFixed(1)}min - corrigindo para hora do servidor`);
+      timestampCorrigido = agora;
+    } else if (diffMinutos < -5) {
+      // Timestamp do GPS está no futuro - usar hora do servidor
+      console.log(`[${WORKER_ID}] ⚠️ ${imei}: Timestamp GPS no futuro ${Math.abs(diffMinutos).toFixed(1)}min - corrigindo para hora do servidor`);
+      timestampCorrigido = agora;
+    }
+
     // Atualizar dispositivo
     const updateData = {
       status: 'online',
@@ -441,13 +456,14 @@ async function processLocationMessage(message) {
     }
     await dispositivoService.upsert(imei, updateData);
 
-    // Salvar localização
+    // Salvar localização com timestamp corrigido
     await localizacaoService.create(imei, {
       ...locationData,
-      timestamp: locationData.timestamp ? new Date(locationData.timestamp) : new Date()
+      timestamp: timestampCorrigido
     });
 
-    // ✅ NOVO: Publicar no Redis Pub/Sub para notificar API Server (WebSocket)
+    // ✅ Publicar no Redis Pub/Sub para notificar API Server (WebSocket)
+    // IMPORTANTE: Usar timestamp CORRIGIDO para o frontend mostrar hora correta
     try {
       const pubResult = await redisService.publish('location:update', JSON.stringify({
         imei,
@@ -457,7 +473,7 @@ async function processLocationMessage(message) {
         direcao: locationData.direcao || 0,
         estado_ignicao: estadoIgnicao,
         ignicao: locationData.ignicao,
-        timestamp: locationData.timestamp || new Date().toISOString()
+        timestamp: timestampCorrigido.toISOString()
       }));
       if (!pubResult) {
         console.warn(`[${WORKER_ID}] Pub/Sub: publish retornou false para ${imei}`);
@@ -470,7 +486,7 @@ async function processLocationMessage(message) {
     // Incrementar contador horário de localizações
     heartbeatService.incrementLocations();
 
-    // Processar viagem
+    // Processar viagem com timestamp corrigido
     if (locationData.ignicao !== undefined || locationData.tensao_principal !== undefined) {
       const resultadoViagem = await viagemService.processarLocalizacao(
         imei,
@@ -478,7 +494,7 @@ async function processLocationMessage(message) {
         locationData.latitude,
         locationData.longitude,
         locationData.velocidade || 0,
-        locationData.timestamp ? new Date(locationData.timestamp) : new Date(),
+        timestampCorrigido,
         locationData.tensao_principal
       );
 
