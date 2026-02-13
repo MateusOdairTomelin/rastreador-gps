@@ -475,7 +475,9 @@ async function processLocationMessage(message) {
         ignicao: locationData.ignicao,
         timestamp: timestampCorrigido.toISOString()
       }));
-      if (!pubResult) {
+      if (pubResult) {
+        console.log(`[${WORKER_ID}] 📡 PubSub: ${imei} @ ${locationData.velocidade || 0}km/h`);
+      } else {
         console.warn(`[${WORKER_ID}] Pub/Sub: publish retornou false para ${imei}`);
       }
     } catch (pubErr) {

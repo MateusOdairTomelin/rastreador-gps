@@ -305,6 +305,7 @@ async function setupLocationSubscription() {
       try {
         // locationData já vem parseado do redis.service.js
         const imei = locationData.imei;
+        console.log(`[API] 📡 PubSub recebido: ${imei} @ ${locationData.velocidade}km/h`);
 
         // Buscar organizacao_id do dispositivo
         const dispositivo = await dispositivoService.getByImei(imei);
@@ -326,14 +327,19 @@ async function setupLocationSubscription() {
           status: 'online'
         });
 
+        let clienteCount = 0;
         wss.clients.forEach((client) => {
           if (client.readyState === WebSocket.OPEN) {
             const clientInfo = authenticatedClients.get(client);
             if (clientInfo && (clientInfo.organizacaoId === dispositivo.organizacao_id || clientInfo.role === 'super_admin')) {
               client.send(updateMessage);
+              clienteCount++;
             }
           }
         });
+        if (clienteCount > 0) {
+          console.log(`[API] 📤 WebSocket: ${imei} enviado para ${clienteCount} cliente(s)`);
+        }
       } catch (err) {
         logger.warn('Redis', `Erro ao processar location update: ${err.message}`);
       }
