@@ -199,8 +199,10 @@ class LocalizacaoService {
       return null;
     }
 
-    // ✅ VALIDAÇÃO: Detectar saltos impossíveis de GPS
-    // Busca última localização válida e calcula se o movimento é fisicamente possível
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ✅ FILTROS GPS PADRÃO - Aplicados a TODOS os dispositivos automaticamente
+    // ═══════════════════════════════════════════════════════════════════════════
+
     const ultimaLocalizacao = await prisma.localizacao.findFirst({
       where: { dispositivo_id: dispositivo.id },
       orderBy: { timestamp: 'desc' },
@@ -217,39 +219,56 @@ class LocalizacaoService {
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       const distanciaKm = R * c;
 
-      // Calcular tempo entre pontos
+      // Calcular tempo e velocidade implícita
       const timestampNovo = locationData.timestamp ? new Date(locationData.timestamp) : new Date();
       const tempoSegundos = Math.abs(timestampNovo - ultimaLocalizacao.timestamp) / 1000;
       const velocidadeImplicita = tempoSegundos > 0 ? (distanciaKm / tempoSegundos) * 3600 : 999999;
+      const velocidadeReportada = locationData.velocidade || 0;
 
-      // Log para distâncias significativas (> 500m)
+      // Log para distâncias > 500m (monitoramento)
       if (distanciaKm > 0.5) {
-        console.log(`[Location] 📏 ${imei}: ${distanciaKm.toFixed(2)}km em ${tempoSegundos.toFixed(0)}s = ${velocidadeImplicita.toFixed(0)}km/h`);
+        console.log(`[GPS Filter] 📏 ${imei}: ${distanciaKm.toFixed(2)}km em ${tempoSegundos.toFixed(0)}s = ${velocidadeImplicita.toFixed(0)}km/h (reportada: ${velocidadeReportada}km/h)`);
       }
 
-      // ✅ REGRA 1: Salto absoluto - rejeitar distâncias > 10km independente do tempo
+      // ══════════════════════════════════════════════════════════════════════
+      // REGRA 1: SALTO ABSOLUTO - Rejeitar > 10km (impossível em qualquer caso)
+      // ══════════════════════════════════════════════════════════════════════
       if (distanciaKm > 10) {
-        console.warn(`[Location] Rejeitado: salto absoluto para ${imei} - ${distanciaKm.toFixed(1)}km (máx 10km)`);
-        console.warn(`[Location]   De: (${ultimaLocalizacao.latitude.toFixed(6)}, ${ultimaLocalizacao.longitude.toFixed(6)})`);
-        console.warn(`[Location]   Para: (${lat.toFixed(6)}, ${lon.toFixed(6)})`);
+        console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto absoluto ${distanciaKm.toFixed(1)}km (máx 10km)`);
         return null;
       }
 
-      // ✅ REGRA 2: Salto com tempo muito curto - rejeitar > 500m em menos de 2 segundos
+      // ══════════════════════════════════════════════════════════════════════
+      // REGRA 2: SALTO INSTANTÂNEO - Rejeitar > 500m em < 2 segundos
+      // ══════════════════════════════════════════════════════════════════════
       if (tempoSegundos < 2 && distanciaKm > 0.5) {
-        console.warn(`[Location] Rejeitado: salto rápido para ${imei} - ${(distanciaKm * 1000).toFixed(0)}m em ${tempoSegundos.toFixed(1)}s`);
-        console.warn(`[Location]   De: (${ultimaLocalizacao.latitude.toFixed(6)}, ${ultimaLocalizacao.longitude.toFixed(6)})`);
-        console.warn(`[Location]   Para: (${lat.toFixed(6)}, ${lon.toFixed(6)})`);
+        console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto instantâneo ${(distanciaKm * 1000).toFixed(0)}m em ${tempoSegundos.toFixed(1)}s`);
         return null;
       }
 
-      // ✅ REGRA 3: Velocidade implícita impossível (> 200 km/h)
-      const velocidadeImplicita = tempoSegundos > 0 ? (distanciaKm / tempoSegundos) * 3600 : 999999;
-
+      // ══════════════════════════════════════════════════════════════════════
+      // REGRA 3: VELOCIDADE IMPOSSÍVEL - Rejeitar se velocidade implícita > 200 km/h
+      // ══════════════════════════════════════════════════════════════════════
       if (velocidadeImplicita > 200) {
-        console.warn(`[Location] Rejeitado: velocidade impossível para ${imei} - ${distanciaKm.toFixed(1)}km em ${tempoSegundos}s = ${velocidadeImplicita.toFixed(0)}km/h`);
-        console.warn(`[Location]   De: (${ultimaLocalizacao.latitude.toFixed(6)}, ${ultimaLocalizacao.longitude.toFixed(6)})`);
-        console.warn(`[Location]   Para: (${lat.toFixed(6)}, ${lon.toFixed(6)})`);
+        console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Velocidade impossível ${velocidadeImplicita.toFixed(0)}km/h (${distanciaKm.toFixed(2)}km em ${tempoSegundos.toFixed(0)}s)`);
+        return null;
+      }
+
+      // ══════════════════════════════════════════════════════════════════════
+      // REGRA 4: DRIFT PARADO - Rejeitar > 200m quando velocidade = 0
+      // (GPS cold start ou multipath - comum em OBD2 e 4F)
+      // ══════════════════════════════════════════════════════════════════════
+      if (velocidadeReportada === 0 && distanciaKm > 0.2) {
+        console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Drift parado ${(distanciaKm * 1000).toFixed(0)}m com velocidade 0`);
+        return null;
+      }
+
+      // ══════════════════════════════════════════════════════════════════════
+      // REGRA 5: SALTO MÉDIO SEM MOVIMENTO - Rejeitar > 1km quando vel < 5 km/h
+      // (Evita aceitar pontos de GPS convergindo após cold start)
+      // ══════════════════════════════════════════════════════════════════════
+      if (velocidadeReportada < 5 && distanciaKm > 1) {
+        console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto ${distanciaKm.toFixed(2)}km com velocidade baixa (${velocidadeReportada}km/h)`);
         return null;
       }
     }
