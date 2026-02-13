@@ -24,6 +24,7 @@ model Plano {
   max_dispositivos    Int       @default(10)
   max_usuarios        Int       @default(5)
   max_historico_dias  Int       @default(30)  // Retenção de dados GPS
+  max_subtenants      Int       @default(0)   // Limite de sub-organizações (0=não pode criar, -1=ilimitado)
 
   // Funcionalidades (JSON array)
   funcionalidades     String?   @db.Text  // ["relatorios", "api", "whitelabel", "suporte_prioritario"]
@@ -67,6 +68,19 @@ model Organizacao {
   // Status
   status          String    @default("ativo") @db.VarChar(20)  // ativo, suspenso, cancelado
 
+  // ========== HIERARQUIA MULTI-TENANT (Modelo Revenda) ==========
+  // Permite que uma organização crie sub-organizações (subtenants)
+  parent_organizacao_id  Int?
+  parent                 Organizacao?  @relation("OrgHierarquia", fields: [parent_organizacao_id], references: [id], onDelete: SetNull)
+  filhos                 Organizacao[] @relation("OrgHierarquia")
+
+  // Quem criou esta organização (para controle de acesso do revendedor)
+  criado_por_usuario_id  Int?
+  criado_por             Usuario? @relation("OrgCriador", fields: [criado_por_usuario_id], references: [id], onDelete: SetNull)
+
+  // Nível na hierarquia (0=raiz, 1=filho, 2=neto, etc.)
+  nivel                  Int @default(0)
+
   // Timestamps
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
@@ -88,6 +102,8 @@ model Organizacao {
   @@index([slug])
   @@index([status])
   @@index([plano_id])
+  @@index([parent_organizacao_id])
+  @@index([criado_por_usuario_id])
   @@map("organizacoes")
 }
 
@@ -167,6 +183,7 @@ model Usuario {
   organizacoes    UsuarioOrganizacao[]
   consentimentos  Consentimento[]
   perfis          UsuarioPerfilPermissao[]
+  organizacoes_criadas Organizacao[] @relation("OrgCriador")  // Orgs criadas por este usuário (revendedor)
 
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt

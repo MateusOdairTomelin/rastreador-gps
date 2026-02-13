@@ -235,6 +235,23 @@ class LocalizacaoService {
 
     // ✅ Filtrar apenas campos válidos do schema Prisma
     // Remove campos extras como 'satellites' que não existem na tabela
+    let timestampFinal = locationData.timestamp ? new Date(locationData.timestamp) : new Date();
+
+    // ✅ AUTO-CORREÇÃO DE TIMESTAMP: Se GPS está muito atrasado, usar hora do servidor
+    // Alguns rastreadores XT40 enviam timestamps com relógio desincronizado
+    const agora = new Date();
+    const diffMinutos = (agora.getTime() - timestampFinal.getTime()) / (1000 * 60);
+
+    if (diffMinutos > 5) {
+      // Timestamp do GPS está mais de 5 minutos no passado - usar hora do servidor
+      console.log(`[Location] ⚠️ ${imei}: Timestamp GPS atrasado ${diffMinutos.toFixed(1)}min - usando hora do servidor`);
+      timestampFinal = agora;
+    } else if (diffMinutos < -5) {
+      // Timestamp do GPS está no futuro - usar hora do servidor
+      console.log(`[Location] ⚠️ ${imei}: Timestamp GPS no futuro ${Math.abs(diffMinutos).toFixed(1)}min - usando hora do servidor`);
+      timestampFinal = agora;
+    }
+
     let validFields = {
       latitude: locationData.latitude,
       longitude: locationData.longitude,
@@ -244,7 +261,7 @@ class LocalizacaoService {
       precisao: locationData.precisao || null,
       ignicao: locationData.ignicao ?? null,           // Boolean: true/false
       estado_ignicao: locationData.estado_ignicao || null, // String: 'off', 'acc_on', 'idle', 'moving'
-      timestamp: locationData.timestamp || new Date(),
+      timestamp: timestampFinal,
     };
 
     // ✅ PRIORIDADE 1: Verificar aprendizado (correções aprovadas anteriormente)

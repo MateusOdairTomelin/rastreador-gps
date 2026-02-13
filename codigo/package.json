@@ -3,6 +3,9 @@
     "start": "node server/index.js",
     "dev": "node server/index.js"
   },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "bcrypt": "^6.0.0",

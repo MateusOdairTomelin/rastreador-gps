@@ -7,6 +7,7 @@ const prisma = require('../db/prisma');
 const crypto = require('crypto');
 const auditoriaService = require('./auditoria.service');
 const { ACOES } = require('./auditoria.service');
+const perfilPermissaoService = require('./perfil-permissao.service');
 
 class OrganizacaoService {
 
@@ -840,6 +841,375 @@ class OrganizacaoService {
     return prisma.usuario.delete({
       where: { id: usuarioId }
     });
+  }
+
+  // ==================== SUBTENANTS (Modelo Revenda) ====================
+
+  /**
+   * Criar sub-organização (subtenant)
+   * @param {Object} dados - Dados da nova organização
+   * @param {Object} usuarioCriador - Usuário que está criando (revendedor)
+   */
+  async criarSubtenant(dados, usuarioCriador) {
+    const { nome, slug, cnpj, email, telefone, plano_id, cor_primaria, cor_secundaria, logo_url } = dados;
+
+    // 1. Verificar se usuário tem permissão 'criar_subtenant'
+    const temPermissao = await perfilPermissaoService.verificarPermissao(
+      usuarioCriador.id,
+      'organizacoes',
+      'criar_subtenant',
+      usuarioCriador.organizacao_id
+    );
+
+    if (!temPermissao && usuarioCriador.role !== 'super_admin') {
+      throw new Error('Você não tem permissão para criar sub-organizações');
+    }
+
+    // 2. Buscar organização pai do usuário
+    const orgPai = await prisma.organizacao.findUnique({
+      where: { id: usuarioCriador.organizacao_id },
+      include: { plano: true }
+    });
+
+    if (!orgPai) {
+      throw new Error('Organização pai não encontrada');
+    }
+
+    // 3. Verificar limite de subtenants do plano
+    if (orgPai.plano) {
+      const maxSubtenants = orgPai.plano.max_subtenants || 0;
+
+      if (maxSubtenants === 0) {
+        throw new Error('Seu plano não permite criar sub-organizações');
+      }
+
+      if (maxSubtenants > 0) { // -1 = ilimitado
+        const subtenantsAtuais = await prisma.organizacao.count({
+          where: { parent_organizacao_id: orgPai.id }
+        });
+
+        if (subtenantsAtuais >= maxSubtenants) {
+          throw new Error(`Limite de sub-organizações atingido (${subtenantsAtuais}/${maxSubtenants})`);
+        }
+      }
+    }
+
+    // 4. Validar e sanitizar dados
+    const nomeSanitizado = (nome || '').trim().substring(0, 100);
+    const emailSanitizado = (email || '').trim().substring(0, 255);
+    const telefoneSanitizado = telefone ? telefone.trim().substring(0, 20) : null;
+    const cnpjSanitizado = cnpj ? cnpj.trim().substring(0, 18) : null;
+
+    if (!nomeSanitizado) throw new Error('Nome é obrigatório');
+    if (!emailSanitizado) throw new Error('Email é obrigatório');
+
+    // 5. Gerar slug
+    const slugFinal = this.gerarSlug(slug || nomeSanitizado);
+    const slugExistente = await prisma.organizacao.findUnique({
+      where: { slug: slugFinal }
+    });
+
+    if (slugExistente) {
+      throw new Error('Slug já está em uso');
+    }
+
+    // 6. Verificar CNPJ se fornecido
+    if (cnpjSanitizado) {
+      const cnpjExistente = await prisma.organizacao.findUnique({
+        where: { cnpj: cnpjSanitizado }
+      });
+      if (cnpjExistente) {
+        throw new Error('CNPJ já cadastrado');
+      }
+    }
+
+    // 7. Criar organização filha
+    const novaOrg = await prisma.organizacao.create({
+      data: {
+        nome: nomeSanitizado,
+        slug: slugFinal,
+        cnpj: cnpjSanitizado,
+        email: emailSanitizado,
+        telefone: telefoneSanitizado,
+        plano_id: plano_id || orgPai.plano_id,  // Herda plano do pai se não especificado
+        parent_organizacao_id: orgPai.id,
+        criado_por_usuario_id: usuarioCriador.id,
+        nivel: orgPai.nivel + 1,
+        ...(cor_primaria && { cor_primaria }),
+        ...(cor_secundaria && { cor_secundaria }),
+        ...(logo_url && { logo_url })
+      },
+      include: {
+        plano: true,
+        parent: {
+          select: { id: true, nome: true, slug: true }
+        }
+      }
+    });
+
+    // 8. Vincular usuário criador como 'proprietario' da nova org
+    await prisma.usuarioOrganizacao.create({
+      data: {
+        usuario_id: usuarioCriador.id,
+        organizacao_id: novaOrg.id,
+        role: 'proprietario',
+        is_default: false  // Não é a organização padrão
+      }
+    });
+
+    // 9. Registrar auditoria
+    await auditoriaService.registrar({
+      usuarioId: usuarioCriador.id,
+      organizacaoId: novaOrg.id,
+      acao: ACOES.CRIAR_ORGANIZACAO,
+      recurso: 'organizacao',
+      recursoId: novaOrg.id,
+      detalhes: `Sub-organização "${nomeSanitizado}" criada (pai: ${orgPai.nome})`,
+      dadosNovos: { nome: nomeSanitizado, slug: slugFinal, parent_id: orgPai.id }
+    });
+
+    console.log(`[Subtenant] Criado: "${nomeSanitizado}" (pai: ${orgPai.nome}) por usuário ${usuarioCriador.id}`);
+
+    return novaOrg;
+  }
+
+  /**
+   * Listar organizações que o usuário criou ou tem acesso
+   * @param {Object} usuario - Usuário logado
+   */
+  async listarMinhasOrganizacoes(usuario) {
+    // Super admin vê todas
+    if (usuario.role === 'super_admin') {
+      return this.listarTodas({});
+    }
+
+    // Verificar se tem permissão gerenciar_subtenants
+    const temPermissaoSubtenant = await perfilPermissaoService.verificarPermissao(
+      usuario.id,
+      'organizacoes',
+      'gerenciar_subtenants',
+      usuario.organizacao_id
+    );
+
+    if (temPermissaoSubtenant) {
+      // Retorna: sua org + orgs que criou
+      const organizacoes = await prisma.organizacao.findMany({
+        where: {
+          OR: [
+            { id: usuario.organizacao_id },  // Sua própria org
+            { criado_por_usuario_id: usuario.id }  // Orgs que criou
+          ]
+        },
+        include: {
+          plano: true,
+          parent: {
+            select: { id: true, nome: true, slug: true }
+          },
+          _count: {
+            select: {
+              usuarios: true,
+              dispositivos: true,
+              filhos: true
+            }
+          }
+        },
+        orderBy: [
+          { nivel: 'asc' },
+          { created_at: 'desc' }
+        ]
+      });
+
+      return organizacoes;
+    }
+
+    // Usuário sem permissão vê apenas sua org
+    const minhaOrg = await prisma.organizacao.findUnique({
+      where: { id: usuario.organizacao_id },
+      include: {
+        plano: true,
+        _count: {
+          select: {
+            usuarios: true,
+            dispositivos: true
+          }
+        }
+      }
+    });
+
+    return minhaOrg ? [minhaOrg] : [];
+  }
+
+  /**
+   * Listar filhos diretos de uma organização
+   * @param {number} organizacaoId - ID da organização pai
+   * @param {Object} usuario - Usuário logado
+   */
+  async listarSubtenants(organizacaoId, usuario) {
+    // Verificar permissão
+    if (usuario.role !== 'super_admin') {
+      // Verificar se o usuário criou esta org ou é a org dele
+      const orgPai = await prisma.organizacao.findUnique({
+        where: { id: organizacaoId }
+      });
+
+      if (!orgPai) {
+        throw new Error('Organização não encontrada');
+      }
+
+      const ehProprietario = orgPai.criado_por_usuario_id === usuario.id ||
+                            organizacaoId === usuario.organizacao_id;
+
+      if (!ehProprietario) {
+        throw new Error('Você não tem permissão para ver os subtenants desta organização');
+      }
+    }
+
+    return prisma.organizacao.findMany({
+      where: { parent_organizacao_id: organizacaoId },
+      include: {
+        plano: true,
+        _count: {
+          select: {
+            usuarios: true,
+            dispositivos: true,
+            filhos: true
+          }
+        }
+      },
+      orderBy: { created_at: 'desc' }
+    });
+  }
+
+  /**
+   * Verificar se usuário pode acessar uma organização
+   * @param {number} usuarioId - ID do usuário
+   * @param {number} organizacaoId - ID da organização alvo
+   */
+  async verificarAcessoOrganizacao(usuarioId, organizacaoId) {
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: usuarioId }
+    });
+
+    if (!usuario) return false;
+
+    // Super admin tem acesso total
+    if (usuario.role === 'super_admin') return true;
+
+    // Verificar se é a organização padrão do usuário
+    const associacao = await prisma.usuarioOrganizacao.findFirst({
+      where: {
+        usuario_id: usuarioId,
+        organizacao_id: organizacaoId
+      }
+    });
+
+    if (associacao) return true;
+
+    // Verificar se o usuário criou esta organização
+    const orgCriada = await prisma.organizacao.findFirst({
+      where: {
+        id: organizacaoId,
+        criado_por_usuario_id: usuarioId
+      }
+    });
+
+    return !!orgCriada;
+  }
+
+  /**
+   * Obter IDs de todas organizações que o usuário pode acessar
+   * @param {number} usuarioId - ID do usuário
+   */
+  async obterOrganizacoesAcessiveis(usuarioId) {
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: usuarioId }
+    });
+
+    if (!usuario) return [];
+
+    // Super admin: retorna null (sem filtro)
+    if (usuario.role === 'super_admin') return null;
+
+    // Buscar orgs onde tem associação
+    const associacoes = await prisma.usuarioOrganizacao.findMany({
+      where: { usuario_id: usuarioId },
+      select: { organizacao_id: true }
+    });
+
+    // Buscar orgs que criou
+    const orgsCriadas = await prisma.organizacao.findMany({
+      where: { criado_por_usuario_id: usuarioId },
+      select: { id: true }
+    });
+
+    const ids = new Set([
+      ...associacoes.map(a => a.organizacao_id),
+      ...orgsCriadas.map(o => o.id)
+    ]);
+
+    return Array.from(ids);
+  }
+
+  /**
+   * Suspender organização e todos os filhos (cascata)
+   * @param {number} organizacaoId - ID da organização
+   * @param {number} usuarioId - Usuário que está suspendendo
+   */
+  async suspenderComFilhos(organizacaoId, usuarioId) {
+    // Buscar todos os filhos recursivamente
+    const buscarFilhosRecursivo = async (parentId) => {
+      const filhos = await prisma.organizacao.findMany({
+        where: { parent_organizacao_id: parentId },
+        select: { id: true }
+      });
+
+      let todosIds = filhos.map(f => f.id);
+
+      for (const filho of filhos) {
+        const netos = await buscarFilhosRecursivo(filho.id);
+        todosIds = [...todosIds, ...netos];
+      }
+
+      return todosIds;
+    };
+
+    const idsFilhos = await buscarFilhosRecursivo(organizacaoId);
+    const todosIds = [organizacaoId, ...idsFilhos];
+
+    // Suspender todos
+    await prisma.organizacao.updateMany({
+      where: { id: { in: todosIds } },
+      data: { status: 'suspenso' }
+    });
+
+    // Registrar auditoria
+    await auditoriaService.registrar({
+      usuarioId,
+      organizacaoId,
+      acao: ACOES.SUSPENDER_ORGANIZACAO,
+      recurso: 'organizacao',
+      recursoId: organizacaoId,
+      detalhes: `Organização suspensa com ${idsFilhos.length} sub-organizações`
+    });
+
+    console.log(`[Organização] Suspensas: ${todosIds.length} organizações`);
+
+    return { organizacoes_afetadas: todosIds.length };
+  }
+
+  /**
+   * Verificar se pode deletar organização (não pode ter filhos)
+   */
+  async verificarPodeDeletar(organizacaoId) {
+    const filhos = await prisma.organizacao.count({
+      where: { parent_organizacao_id: organizacaoId }
+    });
+
+    if (filhos > 0) {
+      throw new Error(`Não é possível excluir: organização possui ${filhos} sub-organização(ões). Delete os filhos primeiro.`);
+    }
+
+    return true;
   }
 }
 

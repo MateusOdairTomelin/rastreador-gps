@@ -298,6 +298,55 @@ function broadcastToOrganization(organizacaoId, data) {
   });
 }
 
+// ✅ NOVO: Subscribe no Redis Pub/Sub para receber atualizações de localização dos processors
+async function setupLocationSubscription() {
+  try {
+    await redisService.subscribe('location:update', async (locationData) => {
+      try {
+        // locationData já vem parseado do redis.service.js
+        const imei = locationData.imei;
+
+        // Buscar organizacao_id do dispositivo
+        const dispositivo = await dispositivoService.getByImei(imei);
+        if (!dispositivo) return;
+
+        // Broadcast para clientes da mesma organização
+        const updateMessage = JSON.stringify({
+          tipo: 'location_update',
+          imei,
+          data: {
+            latitude: locationData.latitude,
+            longitude: locationData.longitude,
+            velocidade: locationData.velocidade,
+            direcao: locationData.direcao,
+            estado_ignicao: locationData.estado_ignicao,
+            ignicao: locationData.ignicao
+          },
+          timestamp: locationData.timestamp,
+          status: 'online'
+        });
+
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            const clientInfo = authenticatedClients.get(client);
+            if (clientInfo && (clientInfo.organizacaoId === dispositivo.organizacao_id || clientInfo.role === 'super_admin')) {
+              client.send(updateMessage);
+            }
+          }
+        });
+      } catch (err) {
+        logger.warn('Redis', `Erro ao processar location update: ${err.message}`);
+      }
+    });
+    logger.info('Redis', '✅ Subscribed to location:update channel');
+  } catch (error) {
+    logger.warn('Redis', `Falha ao subscrever location:update: ${error.message}`);
+  }
+}
+
+// Iniciar subscrição após Redis estar pronto
+setTimeout(setupLocationSubscription, 5000);
+
 // ✅ Timer para coletar e broadcast métricas a cada 5 segundos
 let metricsInterval = null;
 let metricsSaveCounter = 0;

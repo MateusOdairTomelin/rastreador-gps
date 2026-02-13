@@ -47,7 +47,7 @@ const MODULOS = {
   },
   organizacoes: {
     nome: 'Organizações',
-    acoes: ['listar', 'criar', 'editar', 'excluir', 'configurar']
+    acoes: ['listar', 'criar', 'editar', 'excluir', 'configurar', 'criar_subtenant', 'gerenciar_subtenants']
   },
   auditoria: {
     nome: 'Auditoria',

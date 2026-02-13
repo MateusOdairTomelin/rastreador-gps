@@ -567,6 +567,25 @@ class HeartbeatService {
                 dispositivo.viagem_ultima_lng,
                 now
               );
+
+              // ✅ Criar localização final com estado OFF para histórico
+              if (dispositivo.viagem_ultima_lat && dispositivo.viagem_ultima_lng) {
+                await prisma.localizacao.create({
+                  data: {
+                    dispositivo_id: dispositivo.id,
+                    timestamp: now,
+                    latitude: dispositivo.viagem_ultima_lat,
+                    longitude: dispositivo.viagem_ultima_lng,
+                    velocidade: 0,
+                    direcao: 0,
+                    altitude: 0,
+                    precisao: 0,
+                    ignicao: false,
+                    estado_ignicao: 'off'
+                  }
+                });
+                console.log(`[Heartbeat] ✅ ${dispositivo.imei}: Localização OFF criada para histórico`);
+              }
             } catch (viagemError) {
               console.error(`[Heartbeat] Erro ao encerrar viagem para ${dispositivo.imei}: ${viagemError.message}`);
             }
@@ -606,6 +625,25 @@ class HeartbeatService {
             dispositivo.viagem_ultima_lng,
             now
           );
+
+          // ✅ Criar localização final com estado OFF para histórico
+          if (dispositivo.viagem_ultima_lat && dispositivo.viagem_ultima_lng) {
+            await prisma.localizacao.create({
+              data: {
+                dispositivo_id: dispositivo.id,
+                timestamp: now,
+                latitude: dispositivo.viagem_ultima_lat,
+                longitude: dispositivo.viagem_ultima_lng,
+                velocidade: 0,
+                direcao: 0,
+                altitude: 0,
+                precisao: 0,
+                ignicao: false,
+                estado_ignicao: 'off'
+              }
+            });
+            console.log(`[Heartbeat] ✅ ${dispositivo.imei}: Localização OFF criada para histórico`);
+          }
         } catch (viagemError) {
           await prisma.dispositivo.update({
             where: { id: dispositivo.id },
@@ -671,6 +709,25 @@ class HeartbeatService {
               dispositivo.viagem_ultima_lng,
               ultimaLocalizacao.timestamp
             );
+
+            // ✅ Criar localização final com estado OFF para histórico
+            if (dispositivo.viagem_ultima_lat && dispositivo.viagem_ultima_lng) {
+              await prisma.localizacao.create({
+                data: {
+                  dispositivo_id: dispositivo.id,
+                  timestamp: now,
+                  latitude: dispositivo.viagem_ultima_lat,
+                  longitude: dispositivo.viagem_ultima_lng,
+                  velocidade: 0,
+                  direcao: 0,
+                  altitude: 0,
+                  precisao: 0,
+                  ignicao: false,
+                  estado_ignicao: 'off'
+                }
+              });
+              console.log(`[Heartbeat] ✅ ${dispositivo.imei}: Localização OFF criada para histórico`);
+            }
 
             await prisma.dispositivo.update({
               where: { id: dispositivo.id },

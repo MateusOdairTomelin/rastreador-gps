@@ -138,7 +138,9 @@ class DockerMonitorService {
     containers.forEach(c => {
       const name = c.name.toLowerCase();
 
-      if (name.includes('tcp-gw') || name.includes('gateway')) {
+      // Detecta gateways: padrão antigo (tcp-gw) e novos (xt40-gw, obd2-gw, teltonika-gw)
+      if (name.includes('tcp-gw') || name.includes('gateway') ||
+          name.includes('xt40-gw') || name.includes('obd2-gw') || name.includes('teltonika-gw')) {
         types.gateways.push(c);
       } else if (name.includes('proc') || name.includes('processor') || name.includes('worker')) {
         types.processors.push(c);
@@ -265,7 +267,10 @@ class DockerMonitorService {
         c.name.includes('rastreador') ||
         c.name.includes('codigo-') ||
         c.name.includes('loc-proc') ||
-        c.name.includes('tcp-gw')
+        c.name.includes('tcp-gw') ||
+        c.name.includes('xt40-gw') ||
+        c.name.includes('obd2-gw') ||
+        c.name.includes('teltonika-gw')
       );
 
       // Obter stats dos containers em paralelo (apenas running)
