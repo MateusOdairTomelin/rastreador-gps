@@ -616,6 +616,55 @@ class HeartbeatService {
         }
       });
 
+      // ✅ NOVO: Encerrar viagens de dispositivos ONLINE mas parados há mais de 5 minutos
+      // Isso resolve o problema de viagens que ficam abertas quando ACC=OFF mas dispositivo online
+      const timeoutMinutos = 5;
+      const timeoutMs = timeoutMinutos * 60 * 1000;
+      const cutoffTime = new Date(now.getTime() - timeoutMs);
+
+      const dispositivosParados = await prisma.dispositivo.findMany({
+        where: {
+          status: 'online',
+          viagem_inicio: { not: null },
+          updated_at: { lt: cutoffTime }  // Não atualizado há mais de 5 min
+        },
+        select: {
+          id: true,
+          imei: true,
+          viagem_inicio: true,
+          viagem_ultima_lat: true,
+          viagem_ultima_lng: true,
+          updated_at: true
+        }
+      });
+
+      for (const dispositivo of dispositivosParados) {
+        const tempoParado = Math.round((now.getTime() - dispositivo.updated_at.getTime()) / 60000);
+        console.log(`[Heartbeat] ⏱️ ${dispositivo.imei}: Online mas sem atualização há ${tempoParado}min - encerrando viagem`);
+        try {
+          await viagemService.finalizarViagem(
+            dispositivo.id,
+            dispositivo.viagem_ultima_lat,
+            dispositivo.viagem_ultima_lng,
+            now
+          );
+          console.log(`[Heartbeat] ✅ ${dispositivo.imei}: Viagem encerrada por timeout`);
+        } catch (err) {
+          console.error(`[Heartbeat] Erro ao encerrar viagem ${dispositivo.imei}: ${err.message}`);
+          // Forçar limpeza do estado
+          await prisma.dispositivo.update({
+            where: { id: dispositivo.id },
+            data: {
+              viagem_inicio: null,
+              viagem_odometro: 0,
+              viagem_vel_max: 0,
+              viagem_vel_soma: 0,
+              viagem_vel_count: 0
+            }
+          }).catch(() => {});
+        }
+      }
+
       for (const dispositivo of dispositivosInconsistentes) {
         console.log(`[Heartbeat] ⚠️ Corrigindo inconsistência: ${dispositivo.imei} está OFFLINE mas tem viagem aberta`);
         try {
