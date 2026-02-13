@@ -6562,10 +6562,12 @@
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('usuario');
         localStorage.removeItem('csrfToken');
+        localStorage.removeItem('currentTenantId');  // ✅ Limpar tenant
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('refreshToken');
         sessionStorage.removeItem('usuario');
         sessionStorage.removeItem('csrfToken');
+        sessionStorage.removeItem('currentTenantId');  // ✅ Limpar tenant
         window.location.href = '/login.html';
         throw new Error('Sessão expirada');
       }
@@ -8520,6 +8522,24 @@
 
       // Carregar perfis de veículo
       loadVehicleProfiles();
+
+      // ========== LOGOUT ==========
+      document.querySelector('[data-logout]')?.addEventListener('click', () => {
+        // Limpar todos os dados de sessão
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('usuario');
+        localStorage.removeItem('csrfToken');
+        localStorage.removeItem('currentTenantId');
+        localStorage.removeItem('organizacao_atual');
+        sessionStorage.removeItem('accessToken');
+        sessionStorage.removeItem('refreshToken');
+        sessionStorage.removeItem('usuario');
+        sessionStorage.removeItem('csrfToken');
+        sessionStorage.removeItem('currentTenantId');
+        sessionStorage.removeItem('organizacao_atual');
+        window.location.href = '/login.html';
+      });
 
       // ========== CERCAS VIRTUAIS - Event Listeners ==========
       // Formulário de criação/edição de geofence

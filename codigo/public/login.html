@@ -1645,6 +1645,14 @@
             if (remember) sessionStorage.setItem('organizacao_atual', JSON.stringify(data.organizacao_atual));
           }
 
+          // ✅ Definir currentTenantId para multi-tenant
+          // Limpar valor antigo e definir org do usuário logado
+          localStorage.removeItem('currentTenantId');
+          sessionStorage.removeItem('currentTenantId');
+          if (data.usuario && data.usuario.organizacao_id) {
+            localStorage.setItem('currentTenantId', data.usuario.organizacao_id.toString());
+          }
+
           if (data.organizacoes && data.organizacoes.length > 1) {
             showOrgSelector(data.organizacoes, data.organizacao_atual, storage);
           } else {
@@ -1805,9 +1813,11 @@
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('usuario');
+      localStorage.removeItem('currentTenantId');  // ✅ Limpar tenant
       sessionStorage.removeItem('accessToken');
       sessionStorage.removeItem('refreshToken');
       sessionStorage.removeItem('usuario');
+      sessionStorage.removeItem('currentTenantId');  // ✅ Limpar tenant
       document.getElementById('consentModal').classList.remove('show');
       showAlert('Você precisa aceitar os termos para usar o sistema.', 'error');
     }
