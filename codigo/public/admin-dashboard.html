@@ -1847,10 +1847,48 @@
     }
 
     .mapa-container {
-      height: 500px;
+      height: 70vh;
+      min-height: 500px;
       border-radius: 12px;
       overflow: hidden;
       border: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+
+    /* Modo Fullscreen do Mapa */
+    .mapa-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 9999 !important;
+      border-radius: 0 !important;
+      border: none !important;
+    }
+
+    .mapa-fullscreen-controls {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      z-index: 10000;
+      display: flex;
+      gap: 10px;
+    }
+
+    .mapa-fullscreen-controls button {
+      background: white;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 15px;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .mapa-fullscreen-controls button:hover {
+      background: var(--primary);
+      color: white;
     }
 
     .log-output {
@@ -4273,6 +4311,9 @@
                 </button>
                 <button class="btn" onclick="toggleFollowMode()" id="btn-follow" style="padding: 10px 15px; background: var(--bg); border: 1px solid var(--border);">
                   🎯 Seguir
+                </button>
+                <button class="btn" onclick="toggleMapFullscreen()" id="btn-fullscreen" style="padding: 10px 15px; background: var(--bg); border: 1px solid var(--border);">
+                  🔲 Expandir
                 </button>
               </div>
             </div>
@@ -10036,6 +10077,64 @@
         } else {
           map.fitBounds(bounds, { padding: [50, 50] });
         }
+      }
+    }
+
+    // Variável para controlar estado do fullscreen
+    let mapFullscreen = false;
+    let fullscreenControlsDiv = null;
+
+    function toggleMapFullscreen() {
+      const mapContainer = document.getElementById('map');
+      const btn = document.getElementById('btn-fullscreen');
+
+      if (!mapFullscreen) {
+        // Entrar em fullscreen
+        mapContainer.classList.add('mapa-fullscreen');
+        btn.innerHTML = '🔳 Reduzir';
+        btn.style.background = 'var(--primary)';
+        btn.style.color = 'white';
+        mapFullscreen = true;
+
+        // Criar controles flutuantes no fullscreen
+        fullscreenControlsDiv = document.createElement('div');
+        fullscreenControlsDiv.className = 'mapa-fullscreen-controls';
+        fullscreenControlsDiv.innerHTML = `
+          <button onclick="centerAllVehicles()">📍 Ver Todos</button>
+          <button onclick="toggleMapFullscreen()">✕ Fechar</button>
+        `;
+        document.body.appendChild(fullscreenControlsDiv);
+
+        // Também permitir ESC para sair
+        document.addEventListener('keydown', handleEscFullscreen);
+      } else {
+        // Sair do fullscreen
+        mapContainer.classList.remove('mapa-fullscreen');
+        btn.innerHTML = '🔲 Expandir';
+        btn.style.background = 'var(--bg)';
+        btn.style.color = 'var(--text)';
+        mapFullscreen = false;
+
+        // Remover controles flutuantes
+        if (fullscreenControlsDiv) {
+          fullscreenControlsDiv.remove();
+          fullscreenControlsDiv = null;
+        }
+
+        document.removeEventListener('keydown', handleEscFullscreen);
+      }
+
+      // Importante: atualizar tamanho do mapa após mudança
+      setTimeout(() => {
+        if (map) {
+          map.invalidateSize();
+        }
+      }, 100);
+    }
+
+    function handleEscFullscreen(e) {
+      if (e.key === 'Escape' && mapFullscreen) {
+        toggleMapFullscreen();
       }
     }
 
