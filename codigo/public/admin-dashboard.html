@@ -11762,7 +11762,7 @@
       viagens: { nome: 'Viagens', acoes: ['listar', 'visualizar', 'exportar', 'analise'] },
       alertas: { nome: 'Alertas/Notificações', acoes: ['listar', 'criar', 'editar', 'excluir', 'configurar'] },
       usuarios: { nome: 'Usuários', acoes: ['listar', 'criar', 'editar', 'excluir', 'perfis'] },
-      organizacoes: { nome: 'Organizações', acoes: ['listar', 'criar', 'editar', 'excluir', 'configurar'] },
+      organizacoes: { nome: 'Organizações', acoes: ['listar', 'criar', 'editar', 'excluir', 'configurar', 'criar_subtenant', 'gerenciar_subtenants'] },
       auditoria: { nome: 'Auditoria', acoes: ['visualizar', 'exportar', 'filtrar_todas_orgs'] },
       configuracoes: { nome: 'Configurações', acoes: ['visualizar', 'editar', 'avancadas'] },
       dispositivos: { nome: 'Dispositivos/Rastreadores', acoes: ['listar', 'criar', 'editar', 'excluir', 'comandos', 'diagnostico'] },
@@ -11838,7 +11838,12 @@
     // Carregar organizações para o modal de perfil
     async function carregarOrganizacoesParaPerfil() {
       try {
-        const response = await authFetch(`${API_URL}/organizacoes`);
+        // Usar rota apropriada para o tipo de usuário
+        const usuarioStr = localStorage.getItem('usuario') || sessionStorage.getItem('usuario');
+        const usuario = usuarioStr ? JSON.parse(usuarioStr) : null;
+        const endpoint = usuario?.role === 'super_admin' ? `${API_URL}/organizacoes` : `${API_URL}/organizacoes/minhas`;
+
+        const response = await authFetch(endpoint);
         if (response.ok) {
           const data = await response.json();
           organizacoesPerfilCache = data.organizacoes || [];
