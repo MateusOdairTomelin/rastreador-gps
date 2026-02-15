@@ -231,11 +231,18 @@ class LocalizacaoService {
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // REGRA 1: SALTO ABSOLUTO - Rejeitar > 10km (impossível em qualquer caso)
+      // REGRA 1: SALTO ABSOLUTO - Rejeitar > 10km EXCETO após longo período offline
+      // Se ficou offline mais de 1 hora, aceitar o novo ponto (veículo foi transportado/viajou offline)
       // ══════════════════════════════════════════════════════════════════════
+      const tempoOfflineMinutos = tempoSegundos / 60;
       if (distanciaKm > 10) {
-        console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto absoluto ${distanciaKm.toFixed(1)}km (máx 10km)`);
-        return null;
+        if (tempoOfflineMinutos > 60) {
+          // Veículo offline por mais de 1 hora - aceitar novo ponto (reset de posição)
+          console.log(`[GPS Filter] 🔄 RESET ${imei}: Aceito salto ${distanciaKm.toFixed(1)}km após ${tempoOfflineMinutos.toFixed(0)}min offline`);
+        } else {
+          console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto absoluto ${distanciaKm.toFixed(1)}km (máx 10km) - offline apenas ${tempoOfflineMinutos.toFixed(0)}min`);
+          return null;
+        }
       }
 
       // ══════════════════════════════════════════════════════════════════════
@@ -257,8 +264,9 @@ class LocalizacaoService {
       // ══════════════════════════════════════════════════════════════════════
       // REGRA 4: DRIFT PARADO - Rejeitar > 200m quando velocidade = 0
       // (GPS cold start ou multipath - comum em OBD2 e 4F)
+      // EXCEÇÃO: Não aplicar se offline > 1 hora (veículo foi movido/transportado)
       // ══════════════════════════════════════════════════════════════════════
-      if (velocidadeReportada === 0 && distanciaKm > 0.2) {
+      if (velocidadeReportada === 0 && distanciaKm > 0.2 && tempoOfflineMinutos < 60) {
         console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Drift parado ${(distanciaKm * 1000).toFixed(0)}m com velocidade 0`);
         return null;
       }
@@ -266,8 +274,9 @@ class LocalizacaoService {
       // ══════════════════════════════════════════════════════════════════════
       // REGRA 5: SALTO MÉDIO SEM MOVIMENTO - Rejeitar > 1km quando vel < 5 km/h
       // (Evita aceitar pontos de GPS convergindo após cold start)
+      // EXCEÇÃO: Não aplicar se offline > 1 hora
       // ══════════════════════════════════════════════════════════════════════
-      if (velocidadeReportada < 5 && distanciaKm > 1) {
+      if (velocidadeReportada < 5 && distanciaKm > 1 && tempoOfflineMinutos < 60) {
         console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto ${distanciaKm.toFixed(2)}km com velocidade baixa (${velocidadeReportada}km/h)`);
         return null;
       }

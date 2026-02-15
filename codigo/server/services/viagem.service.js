@@ -374,12 +374,12 @@ class ViagemService {
     const origemLng = dispositivo.viagem_origem_lng || dispositivo.viagem_ultima_lng || longitude || 0;
 
     // ✅ CORRIGIDO: Só salvar viagem se teve movimento REAL
-    // Critérios: (duração > 1 min E distância > 50m) OU (distância > 500m) OU (velocidade_max > 5km/h)
-    // Isso evita salvar viagens onde o veículo só ligou/desligou sem se mover
+    // Thresholds aumentados para evitar viagens micro causadas por ACC oscilante
+    // Critérios: (duração > 2 min E distância > 100m) OU (distância > 300m) OU (velocidade alta E distância mínima)
     const teveMovimentoReal = (
-      (duracaoMinutos > 1 && distanciaFinal > 0.05) ||  // Viagem normal: > 1min E > 50m
-      distanciaFinal > 0.5 ||                            // Distância significativa: > 500m
-      (dispositivo.viagem_vel_max || 0) > 5              // Velocidade significativa: > 5km/h
+      (duracaoMinutos > 2 && distanciaFinal > 0.1) ||    // Viagem normal: > 2min E > 100m
+      distanciaFinal > 0.3 ||                             // Distância significativa: > 300m
+      ((dispositivo.viagem_vel_max || 0) > 20 && distanciaFinal > 0.05)  // Alta velocidade: > 20km/h E > 50m
     );
 
     if (teveMovimentoReal) {
