@@ -203,10 +203,35 @@ class LocalizacaoService {
     // ✅ FILTROS GPS PADRÃO - Aplicados a TODOS os dispositivos automaticamente
     // ═══════════════════════════════════════════════════════════════════════════
 
-    const ultimaLocalizacao = await prisma.localizacao.findFirst({
+    const timestampNovo = locationData.timestamp ? new Date(locationData.timestamp) : new Date();
+
+    // ✅ CORREÇÃO: Para pontos de buffer (timestamp antigo), comparar com ponto ANTERIOR no tempo
+    // Isso evita rejeitar pontos válidos que chegaram fora de ordem
+    const ultimoSalvo = await prisma.localizacao.findFirst({
       where: { dispositivo_id: dispositivo.id },
       orderBy: { timestamp: 'desc' },
     });
+
+    // Se o ponto novo tem timestamp ANTERIOR ao último salvo, é um ponto de buffer
+    // Buscar o ponto anterior no TEMPO para comparação correta
+    const isPontoBuffer = ultimoSalvo && timestampNovo < ultimoSalvo.timestamp;
+
+    let ultimaLocalizacao;
+    if (isPontoBuffer) {
+      // Ponto de buffer: buscar o ponto imediatamente ANTERIOR no tempo
+      ultimaLocalizacao = await prisma.localizacao.findFirst({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { lt: timestampNovo }
+        },
+        orderBy: { timestamp: 'desc' },
+      });
+      if (ultimaLocalizacao) {
+        console.log(`[GPS Filter] 📦 ${imei}: Ponto de buffer (${Math.round((ultimoSalvo.timestamp - timestampNovo) / 1000)}s atrás) - comparando com ponto anterior no tempo`);
+      }
+    } else {
+      ultimaLocalizacao = ultimoSalvo;
+    }
 
     if (ultimaLocalizacao) {
       // Calcular distância entre pontos (Haversine)
@@ -220,7 +245,6 @@ class LocalizacaoService {
       const distanciaKm = R * c;
 
       // Calcular tempo e velocidade implícita
-      const timestampNovo = locationData.timestamp ? new Date(locationData.timestamp) : new Date();
       const tempoSegundos = Math.abs(timestampNovo - ultimaLocalizacao.timestamp) / 1000;
       const velocidadeImplicita = tempoSegundos > 0 ? (distanciaKm / tempoSegundos) * 3600 : 999999;
       const velocidadeReportada = locationData.velocidade || 0;
