@@ -255,16 +255,23 @@ class LocalizacaoService {
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // REGRA 1: SALTO ABSOLUTO - Rejeitar > 10km EXCETO após longo período offline
-      // Se ficou offline mais de 1 hora, aceitar o novo ponto (veículo foi transportado/viajou offline)
+      // REGRA 1: SALTO ABSOLUTO - Verificar se a velocidade implícita é razoável
+      // ✅ CORREÇÃO: Não rejeitar por distância absoluta, usar velocidade implícita
+      // Ex: 15km em 23min = 39km/h (aceitável), 15km em 2min = 450km/h (impossível)
       // ══════════════════════════════════════════════════════════════════════
       const tempoOfflineMinutos = tempoSegundos / 60;
       if (distanciaKm > 10) {
-        if (tempoOfflineMinutos > 60) {
-          // Veículo offline por mais de 1 hora - aceitar novo ponto (reset de posição)
+        // Calcular velocidade necessária para fazer o salto
+        const velocidadeNecessaria = (distanciaKm / tempoSegundos) * 3600;
+
+        if (velocidadeNecessaria <= 120) {
+          // Velocidade razoável (até 120km/h de média) - aceitar
+          console.log(`[GPS Filter] ✅ ${imei}: Salto ${distanciaKm.toFixed(1)}km aceito - velocidade média ${velocidadeNecessaria.toFixed(0)}km/h (razoável)`);
+        } else if (tempoOfflineMinutos > 60) {
+          // Veículo offline por mais de 1 hora - aceitar (pode ter sido transportado)
           console.log(`[GPS Filter] 🔄 RESET ${imei}: Aceito salto ${distanciaKm.toFixed(1)}km após ${tempoOfflineMinutos.toFixed(0)}min offline`);
         } else {
-          console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto absoluto ${distanciaKm.toFixed(1)}km (máx 10km) - offline apenas ${tempoOfflineMinutos.toFixed(0)}min`);
+          console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto ${distanciaKm.toFixed(1)}km requer ${velocidadeNecessaria.toFixed(0)}km/h média (máx 120km/h)`);
           return null;
         }
       }
