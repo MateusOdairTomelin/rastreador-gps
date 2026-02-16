@@ -153,7 +153,9 @@ class GPSParser {
       const imeiBytes = buffer.slice(offset, offset + 8);
       console.log(`[GPS Parser]   IMEI bytes (raw hex): ${imeiBytes.toString('hex').toUpperCase()}`);
 
-      const imei = this.bcdToString(imeiBytes);
+      // ✅ CORREÇÃO: Usar formato padrão BCD (high nibble first) e remover zeros à esquerda
+      // Formato GT06 invertido causava IMEI errado (ex: 3065538... em vez de 3563548...)
+      const imei = this.bcdToStringStandard(imeiBytes).replace(/^0+/, '');
       console.log(`[GPS Parser]   IMEI (decoded from BCD): ${imei}`);
       console.log(`[GPS Parser]   IMEI length: ${imei.length} (expected: 15)`);
 

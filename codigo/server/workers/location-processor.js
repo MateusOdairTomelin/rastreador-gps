@@ -306,7 +306,8 @@ async function processLocationMessage(message) {
     // ========== FILTRO DE SALTOS GPS (Outlier Detection) ==========
     // Rejeita pontos que pulam distâncias impossíveis (LBS errado, GPS bugado)
     try {
-      const ultimaLoc = await localizacaoService.getLastLocation(imei);
+      // ✅ CORREÇÃO: Usar getCurrent em vez de getLastLocation (que não existia!)
+      const ultimaLoc = await localizacaoService.getCurrent(imei);
       if (ultimaLoc) {
         const distanciaKm = calcularDistanciaKm(
           ultimaLoc.latitude, ultimaLoc.longitude,
@@ -314,6 +315,8 @@ async function processLocationMessage(message) {
         );
 
         const tempoSegundos = (new Date(locationData.timestamp) - new Date(ultimaLoc.timestamp)) / 1000;
+        // ✅ CORREÇÃO: Usar valor absoluto do tempo para pontos de buffer (timestamp antigo)
+        const tempoAbsoluto = Math.abs(tempoSegundos);
         const velocidadeAtual = locationData.velocidade || 0;
         const velocidadeAnterior = ultimaLoc.velocidade || 0;
 
@@ -331,7 +334,8 @@ async function processLocationMessage(message) {
         } else {
           // Em movimento: baseado na velocidade real
           const velocidadeMaxKmh = Math.min(velocidadeReferencia * 1.5, 200);
-          const distanciaMaxKm = (velocidadeMaxKmh / 3600) * Math.max(tempoSegundos, 1);
+          // ✅ CORREÇÃO: Usar tempoAbsoluto para evitar limites negativos/errados
+          const distanciaMaxKm = (velocidadeMaxKmh / 3600) * Math.max(tempoAbsoluto, 1);
           // Mínimo de 300m em movimento (para GPS drift durante frenagem)
           limiteKm = Math.max(distanciaMaxKm, 0.3);
         }
@@ -345,7 +349,7 @@ async function processLocationMessage(message) {
             // Kalman foi resetado, aceitar este ponto
             console.log(`[${WORKER_ID}] ✅ ${imei}: Ponto aceito após reset do Kalman (${distanciaKm.toFixed(1)}km, sat=${satellites})`);
           } else {
-            console.warn(`[${WORKER_ID}] ⚠️ ${imei}: SALTO GPS REJEITADO - ${distanciaKm.toFixed(1)}km em ${tempoSegundos.toFixed(0)}s @ ${velocidadeAtual}km/h (velRef=${velocidadeReferencia}, max: ${limiteKm.toFixed(2)}km)`);
+            console.warn(`[${WORKER_ID}] ⚠️ ${imei}: SALTO GPS REJEITADO - ${distanciaKm.toFixed(1)}km em ${tempoAbsoluto.toFixed(0)}s @ ${velocidadeAtual}km/h (velRef=${velocidadeReferencia}, max: ${limiteKm.toFixed(2)}km)`);
             await dispositivoService.upsert(imei, {
               status: 'online',
               gps_status: 'GPS_JUMP_REJECTED'
@@ -358,7 +362,8 @@ async function processLocationMessage(message) {
         }
       }
     } catch (e) {
-      // Continuar se não conseguir verificar
+      // ✅ CORREÇÃO: Logar erros do filtro - não silenciar
+      console.warn(`[${WORKER_ID}] ⚠️ ${imei}: Erro no filtro de saltos: ${e.message}`);
     }
 
     // Pipeline GPS (Kalman, Map-Matching)
@@ -457,10 +462,17 @@ async function processLocationMessage(message) {
     await dispositivoService.upsert(imei, updateData);
 
     // Salvar localização com timestamp corrigido
-    await localizacaoService.create(imei, {
+    // ✅ CORREÇÃO: Verificar se create() retornou null (ponto rejeitado pelo filtro)
+    const localizacaoSalva = await localizacaoService.create(imei, {
       ...locationData,
       timestamp: timestampCorrigido
     });
+
+    // Se o ponto foi rejeitado pelo filtro interno, não continuar processamento
+    if (!localizacaoSalva) {
+      console.log(`[${WORKER_ID}] ⏭️ ${imei}: Ponto rejeitado pelo filtro do localizacaoService`);
+      return;
+    }
 
     // ✅ Publicar no Redis Pub/Sub para notificar API Server (WebSocket)
     // IMPORTANTE: Usar timestamp CORRIGIDO para o frontend mostrar hora correta
