@@ -7848,20 +7848,87 @@
             console.log('[WS] Dados recebidos:', data.tipo, data.imei || '');
           }
 
-          // ✅ CORREÇÃO: Processar location_update em TEMPO REAL
+          // ✅ CORREÇÃO: Processar location_update em TEMPO REAL (sem fetch!)
           if (data.tipo === 'location_update') {
-            console.log(`[WS] 📍 Localização: ${data.imei} (${data.latitude?.toFixed(4)}, ${data.longitude?.toFixed(4)}) @ ${data.velocidade}km/h`);
-            // Atualizar mapa imediatamente
-            if (map) {
+            const locData = data.data || data; // Suporta ambos os formatos
+            const lat = locData.latitude;
+            const lng = locData.longitude;
+            const vel = locData.velocidade || 0;
+            const estado = locData.estado_ignicao || 'off';
+
+            console.log(`[WS] 📍 TEMPO REAL: ${data.imei} (${lat?.toFixed(5)}, ${lng?.toFixed(5)}) @ ${vel}km/h [${estado}]`);
+
+            // ✅ Atualizar marcador DIRETAMENTE com dados do WebSocket (sem fetch!)
+            if (map && mapMarkers[data.imei] && lat && lng) {
+              const marker = mapMarkers[data.imei];
+              const speedLimit = parseInt(document.getElementById('speed-limit')?.value) || 80;
+              const isOverSpeed = vel > speedLimit;
+              const isMoving = vel > 0;
+
+              // Atualizar posição imediatamente
+              marker.setLatLng([lat, lng]);
+
+              // Atualizar ícone baseado no estado
+              let markerClass, statusColor, statusGlow;
+              if (isOverSpeed) {
+                markerClass = 'car-marker-overspeed';
+                statusColor = '#EF4444';
+                statusGlow = 'rgba(239, 68, 68, 0.6)';
+              } else if (isMoving) {
+                markerClass = 'car-marker-moving';
+                statusColor = '#3B82F6';
+                statusGlow = 'rgba(59, 130, 246, 0.5)';
+              } else {
+                markerClass = 'car-marker-online';
+                statusColor = '#10B981';
+                statusGlow = 'rgba(16, 185, 129, 0.5)';
+              }
+
+              // Atualizar ícone
+              const placaDisplay = marker._placaCache || 'S/P';
+              const carIcon = L.divIcon({
+                className: `car-marker ${markerClass}`,
+                html: `
+                  <div class="car-icon-container">
+                    <div class="car-label">
+                      <span class="car-label-placa">${placaDisplay}</span>
+                    </div>
+                    <div class="car-icon-ring" style="--status-color: ${statusColor}; --status-glow: ${statusGlow};">
+                      <div class="car-icon-bg">
+                        <svg class="car-icon-svg" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5z"/>
+                          <circle cx="7.5" cy="14.5" r="1.5"/>
+                          <circle cx="16.5" cy="14.5" r="1.5"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                `,
+                iconSize: [60, 70],
+                iconAnchor: [30, 70],
+                popupAnchor: [0, -70]
+              });
+              marker.setIcon(carIcon);
+
+              // Se seguindo este veículo, centralizar mapa
+              if (window.followingVehicle === data.imei) {
+                map.setView([lat, lng], map.getZoom());
+              }
+
+              console.log(`[WS] ✅ Marcador ${data.imei} atualizado em TEMPO REAL`);
+            } else if (map && !mapMarkers[data.imei] && lat && lng) {
+              // Novo dispositivo - fazer fetch apenas para este caso
+              console.log(`[WS] 🆕 Novo dispositivo ${data.imei} - carregando marcadores`);
               updateMapMarkers();
             }
+
             // Atualizar dashboard (debounced para não sobrecarregar)
             if (!window.dashboardUpdatePending) {
               window.dashboardUpdatePending = true;
               setTimeout(() => {
                 loadDashboard();
                 window.dashboardUpdatePending = false;
-              }, 1000);
+              }, 2000); // Aumentado para 2s para reduzir carga
             }
             return;
           }
@@ -9816,6 +9883,8 @@
             if (mapMarkers[d.imei]) {
               mapMarkers[d.imei].setLatLng([lat, lng]);
               mapMarkers[d.imei].setIcon(carIcon);
+              // ✅ Cache da placa para atualizações via WebSocket
+              mapMarkers[d.imei]._placaCache = placaDisplay;
               // Atualizar popup
               mapMarkers[d.imei].setPopupContent(`
                 <div style="min-width: 180px;">
@@ -9854,6 +9923,8 @@
               }
 
               mapMarkers[d.imei] = marker;
+              // ✅ Cache da placa para atualizações via WebSocket
+              marker._placaCache = placaDisplay;
             }
 
             bounds.push([lat, lng]);
