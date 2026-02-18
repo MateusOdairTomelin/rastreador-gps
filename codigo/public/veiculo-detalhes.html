@@ -1513,6 +1513,9 @@
         <div>
             <h1 id="veiculo-nome">Carregando...</h1>
             <div class="subtitle" id="veiculo-info">IMEI: ---</div>
+            <div id="motorista-info" style="display: none; margin-top: 6px; font-size: 0.9em; color: var(--text-light);">
+                👤 <span id="motorista-nome">--</span>
+            </div>
         </div>
         <div>
             <button onclick="mostrarQRCode()" class="qrcode-btn" title="QR Code para vincular motorista" style="background: #10B981; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-right: 10px;">
@@ -3066,6 +3069,15 @@
                     const statusEl = document.getElementById('device-status');
                     statusEl.className = 'status-badge ' + (device.status === 'online' ? 'status-online' : 'status-offline');
                     statusEl.textContent = device.status === 'online' ? '🟢 Online' : '🔴 Offline';
+
+                    // Mostrar motorista vinculado
+                    const motoristaEl = document.getElementById('motorista-info');
+                    if (device.motorista && device.motorista.nome) {
+                        document.getElementById('motorista-nome').textContent = device.motorista.nome;
+                        motoristaEl.style.display = 'block';
+                    } else {
+                        motoristaEl.style.display = 'none';
+                    }
 
                     // Adaptar card de telemetria baseado no tipo do dispositivo
                     adaptTelemetryCard(device.tipo);

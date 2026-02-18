@@ -40,6 +40,17 @@ class DispositivoService {
           orderBy: { timestamp: 'desc' },
           take: 2,  // ✅ Buscar 2 para validar se dados estão variando
         },
+        motorista: {
+          select: {
+            id: true,
+            nome: true,
+            foto_url: true,
+            telefone: true,
+            cnh_categoria: true,
+            cnh_validade: true,
+            ativo: true
+          }
+        }
       },
       orderBy: { updated_at: 'desc' },
     });
@@ -58,6 +69,17 @@ class DispositivoService {
           orderBy: { timestamp: 'desc' },
           take: 1,
         },
+        motorista: {
+          select: {
+            id: true,
+            nome: true,
+            foto_url: true,
+            telefone: true,
+            cnh_categoria: true,
+            cnh_validade: true,
+            ativo: true
+          }
+        }
       },
     });
   }

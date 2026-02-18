@@ -661,6 +661,13 @@ router.get('/', asyncHandler(async (req, res) => {
       ultima_atualizacao: localizacaoRecente?.timestamp || d.updated_at,
       ultima_conexao: actualUltimaConexao,
       configurado: configurado,  // true se tem veiculo E placa
+      motorista: d.motorista ? {
+        id: d.motorista.id,
+        nome: d.motorista.nome,
+        foto_url: d.motorista.foto_url,
+        cnh_categoria: d.motorista.cnh_categoria,
+        ativo: d.motorista.ativo
+      } : null
     };
   });
 
