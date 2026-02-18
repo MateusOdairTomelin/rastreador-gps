@@ -154,7 +154,7 @@ router.get('/haproxy', async (req, res) => {
       { key: 'tcp_xt40', frontendName: 'tcp_xt40_frontend', backendName: 'tcp_gateways_xt40', displayName: 'TCP XT40 (8877)' },
       { key: 'tcp_obd2', frontendName: 'tcp_obd2_frontend', backendName: 'tcp_gateways_obd2', displayName: 'TCP OBD2 (8878)' },
       { key: 'tcp_teltonika', frontendName: 'tcp_teltonika_frontend', backendName: 'tcp_gateways_teltonika', displayName: 'TCP Teltonika (8879)' },
-      { key: 'http', frontendName: 'http_frontend', backendName: 'api_servers', displayName: 'HTTP/API (62000)' }
+      { key: 'http', frontendName: 'https_frontend', backendName: 'api_servers', displayName: 'HTTPS/API (443)' }
     ];
 
     serviceConfig.forEach(svc => {
@@ -1179,7 +1179,7 @@ router.get('/apresentacao', (req, res) => {
                 +-----------------------------------------------+
                 |                   HAPROXY                     |
                 |              (Load Balancer)                  |
-                |      TCP: 8877 | HTTP: 62000 | Stats: 8404   |
+                |     TCP: 8877-8879 | HTTPS: 443 | Stats: 8404  |
                 +-----------------------------------------------+
                        /           |           \\            \\
                       v            v            v            v
