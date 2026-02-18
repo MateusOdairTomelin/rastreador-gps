@@ -582,10 +582,16 @@
             bottom: 0 !important;
             width: 100vw !important;
             height: 100vh !important;
-            z-index: 9999 !important;
+            z-index: 99999 !important;
             border-radius: 0 !important;
             margin: 0 !important;
             background: #fff;
+        }
+
+        .map-container.expanded .map-expand-btn {
+            z-index: 100000 !important;
+            bottom: 20px;
+            left: 20px;
         }
 
         .map-container.expanded #map {
@@ -2427,31 +2433,56 @@
         }
 
         // Função para expandir/recolher o mapa
+        // Nota: backdrop-filter no .card pai impede position:fixed de funcionar
+        // Solução: mover o container para o body quando expandido
+        let mapOriginalParent = null;
+        let mapOriginalNextSibling = null;
+
         function toggleMapExpand() {
             const container = document.getElementById('map-container');
             const mapEl = document.getElementById('map');
             const icon = document.getElementById('expand-icon');
             const text = document.getElementById('expand-text');
 
-            container.classList.toggle('expanded');
+            const isExpanding = !container.classList.contains('expanded');
 
-            if (container.classList.contains('expanded')) {
+            if (isExpanding) {
+                // Salvar posição original antes de mover
+                mapOriginalParent = container.parentElement;
+                mapOriginalNextSibling = container.nextElementSibling;
+
+                // Mover para o body (escapa do backdrop-filter do .card)
+                document.body.appendChild(container);
+
+                container.classList.add('expanded');
                 icon.textContent = '✕';
                 text.textContent = 'Fechar';
                 document.body.style.overflow = 'hidden';
+
                 // Forçar altura do mapa
                 if (mapEl) {
                     mapEl.style.height = '100vh';
                     mapEl.style.width = '100vw';
                 }
             } else {
+                container.classList.remove('expanded');
                 icon.textContent = '⛶';
                 text.textContent = 'Expandir';
                 document.body.style.overflow = '';
+
                 // Restaurar altura original
                 if (mapEl) {
                     mapEl.style.height = '100%';
                     mapEl.style.width = '100%';
+                }
+
+                // Mover de volta para posição original
+                if (mapOriginalParent) {
+                    if (mapOriginalNextSibling) {
+                        mapOriginalParent.insertBefore(container, mapOriginalNextSibling);
+                    } else {
+                        mapOriginalParent.appendChild(container);
+                    }
                 }
             }
 
@@ -2459,10 +2490,6 @@
             setTimeout(() => {
                 if (map) {
                     map.invalidateSize();
-                    // Se expandido, ajustar bounds para ocupar tela toda
-                    if (container.classList.contains('expanded')) {
-                        map.invalidateSize({ animate: false });
-                    }
                 }
             }, 100);
 
