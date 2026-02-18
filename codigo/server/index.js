@@ -242,29 +242,9 @@ const WS_HEARTBEAT_TIMEOUT = 35000; // 5s de tolerância
 // Mapa de clientes autenticados para broadcasts filtrados por organização
 const authenticatedClients = new Map(); // ws -> { userId, organizacaoId, role, isAlive, lastPing }
 
-// ✅ Heartbeat do servidor para detectar conexões mortas
-const wsHeartbeatInterval = setInterval(() => {
-  const now = Date.now();
-  wss.clients.forEach((ws) => {
-    const clientInfo = authenticatedClients.get(ws);
-    if (!clientInfo) return;
-
-    // Se não recebeu pong no timeout, terminar conexão
-    if (!clientInfo.isAlive) {
-      logger.warn('WebSocket', `Conexão morta detectada: ${clientInfo.email} - terminando`);
-      authenticatedClients.delete(ws);
-      return ws.terminate();
-    }
-
-    // Marcar como morto até receber pong
-    clientInfo.isAlive = false;
-    ws.ping(); // Servidor envia ping nativo do WebSocket
-  });
-}, WS_HEARTBEAT_INTERVAL);
-
-wss.on('close', () => {
-  clearInterval(wsHeartbeatInterval);
-});
+// ✅ Heartbeat DESABILITADO temporariamente - causava desconexões
+// O cliente já envia ping a cada 30s via mensagem JSON
+// const wsHeartbeatInterval = setInterval(() => { ... }, WS_HEARTBEAT_INTERVAL);
 
 // ✅ Função para validar token JWT no WebSocket
 function validateWebSocketToken(token) {
@@ -473,7 +453,21 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
-  // ✅ Registrar cliente autenticado com heartbeat
+  // ✅ CORREÇÃO: Fechar conexões antigas do mesmo usuário (permite apenas 1 conexão por usuário)
+  let closedCount = 0;
+  authenticatedClients.forEach((clientInfo, existingWs) => {
+    if (clientInfo.userId === userInfo.userId && existingWs !== ws) {
+      logger.info('WebSocket', `Fechando conexão antiga de ${userInfo.email}`);
+      existingWs.close(4000, 'Nova conexão do mesmo usuário');
+      authenticatedClients.delete(existingWs);
+      closedCount++;
+    }
+  });
+  if (closedCount > 0) {
+    logger.info('WebSocket', `Fechadas ${closedCount} conexões antigas de ${userInfo.email}`);
+  }
+
+  // ✅ Registrar cliente autenticado
   authenticatedClients.set(ws, { ...userInfo, isAlive: true });
   logger.info('WebSocket', `Cliente autenticado: ${userInfo.email} (org: ${userInfo.organizacaoId})`);
 

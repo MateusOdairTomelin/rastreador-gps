@@ -7870,15 +7870,13 @@
 
     // Conexão WebSocket para atualizações em tempo real
     function connectWebSocket() {
-      // ✅ CORREÇÃO: Verificar todos os estados que indicam conexão ativa/em andamento
+      // Verificar conexão ativa
       if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-        console.log('[WS] Conexão já ativa/em andamento, ignorando');
         return;
       }
 
-      // ✅ CORREÇÃO: Evitar múltiplas tentativas simultâneas
+      // Evitar múltiplas tentativas simultâneas
       if (wsConnecting) {
-        console.log('[WS] Já está tentando conectar, ignorando');
         return;
       }
       wsConnecting = true;
