@@ -33,13 +33,23 @@ services:
       - ./config/haproxy-16gb.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
       - ./config/certs:/etc/haproxy/certs:ro
     depends_on:
-      - xt40-gateway-1
-      - xt40-gateway-2
-      - obd2-gateway-1
-      - teltonika-gateway-1
-      - api-server-1
+      xt40-gateway-1:
+        condition: service_healthy
+      xt40-gateway-2:
+        condition: service_healthy
+      obd2-gateway-1:
+        condition: service_healthy
+      teltonika-gateway-1:
+        condition: service_healthy
+      api-server-1:
+        condition: service_healthy
     networks:
       - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8404/stats || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     deploy:
       resources:
         limits:
@@ -79,8 +89,16 @@ services:
         condition: service_healthy
       pgbouncer:
         condition: service_healthy
+      api-server-1:
+        condition: service_healthy
     networks:
       - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "netstat -an | grep ':8877.*LISTEN' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -114,8 +132,16 @@ services:
         condition: service_healthy
       pgbouncer:
         condition: service_healthy
+      api-server-1:
+        condition: service_healthy
     networks:
       - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "netstat -an | grep ':8877.*LISTEN' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -153,8 +179,16 @@ services:
         condition: service_healthy
       pgbouncer:
         condition: service_healthy
+      api-server-1:
+        condition: service_healthy
     networks:
       - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "netstat -an | grep ':8878.*LISTEN' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -192,8 +226,16 @@ services:
         condition: service_healthy
       pgbouncer:
         condition: service_healthy
+      api-server-1:
+        condition: service_healthy
     networks:
       - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "netstat -an | grep ':8879.*LISTEN' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -237,6 +279,12 @@ services:
         condition: service_healthy
     networks:
       - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'location-processor' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -272,6 +320,12 @@ services:
         condition: service_healthy
     networks:
       - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'location-processor' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -307,6 +361,12 @@ services:
         condition: service_healthy
     networks:
       - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'location-processor' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -342,6 +402,12 @@ services:
         condition: service_healthy
     networks:
       - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'location-processor' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -375,6 +441,12 @@ services:
         condition: service_healthy
     networks:
       - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'status-processor' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -408,6 +480,12 @@ services:
         condition: service_healthy
     networks:
       - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'alarm-processor' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -455,6 +533,12 @@ services:
         condition: service_healthy
     networks:
       - rastreador-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:62000/api/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     deploy:
       resources:
         # Sem limites - usa memória disponível do sistema
