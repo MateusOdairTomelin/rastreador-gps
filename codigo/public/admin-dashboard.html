@@ -4438,9 +4438,9 @@
               <button onclick="abrirViagensVeiculo()" class="btn" style="flex: 1; min-width: 100px; padding: 10px; background: var(--accent);">
                 📊 Viagens
               </button>
-              <a id="btn-detalhes-completos" href="#" class="btn" style="flex: 1; min-width: 100px; padding: 10px; background: var(--bg-light); border: 1px solid var(--border); text-decoration: none; text-align: center;">
+              <button id="btn-detalhes-completos" onclick="abrirInfoVeiculo(selectedVehicleImei)" class="btn" style="flex: 1; min-width: 100px; padding: 10px; background: var(--bg-light); border: 1px solid var(--border);">
                 📋 Detalhes
-              </a>
+              </button>
             </div>
           </div>
 
@@ -8916,6 +8916,18 @@
       // Conectar WebSocket
       connectWebSocket();
 
+      // Verificar se deve abrir detalhes de veículo automaticamente (redirecionado do veiculo-detalhes.html)
+      const urlParams = new URLSearchParams(window.location.search);
+      const openVehicleImei = urlParams.get('openVehicle');
+      if (openVehicleImei) {
+        // Aguardar um pouco para os dados carregarem, depois abrir
+        setTimeout(() => {
+          abrirInfoVeiculo(openVehicleImei);
+          // Limpar o parâmetro da URL
+          window.history.replaceState({}, document.title, '/admin-dashboard.html');
+        }, 1500);
+      }
+
       // Carregar tipos de dispositivos
       console.log('[Init] Chamando loadDeviceTypes...');
       loadDeviceTypes();
@@ -9223,9 +9235,9 @@
         }).join('');
       }
 
-      // Função para ver detalhes do veículo (redirecionar)
+      // Função para ver detalhes do veículo (abre seção integrada)
       function verDetalhesVeiculo(imei) {
-        window.location.href = `/veiculo-detalhes.html?imei=${imei}`;
+        abrirInfoVeiculo(imei);
       }
 
       // Expor funções globalmente
@@ -9804,7 +9816,7 @@
             <td>${placaSegura}</td>
             <td><span class="badge ${d.status === 'online' ? 'badge-success' : 'badge-danger'}">${statusSeguro}</span></td>
             <td>${d.ultima_conexao ? new Date(d.ultima_conexao).toLocaleString('pt-BR') : '—'}</td>
-            <td><a href="/veiculo-detalhes.html?imei=${encodeURIComponent(d.imei)}" class="btn btn-primary" style="padding: 6px 12px; font-size: 11px; text-decoration: none;">📊 Ver Detalhes</a></td>
+            <td><button onclick="abrirInfoVeiculo('${d.imei.replace(/'/g, "\\'")}')" class="btn btn-primary" style="padding: 6px 12px; font-size: 11px;">📊 Ver Detalhes</button></td>
           </tr>
         `}).join('');
 
@@ -10122,7 +10134,7 @@
                   <b>Velocidade:</b> <span style="color: ${isOverSpeed ? '#EF4444' : '#10B981'}; font-weight: bold;">${speed} km/h</span>
                   ${isOverSpeed ? '<br><span style="color: #EF4444; font-size: 11px;">⚠️ Acima do limite!</span>' : ''}
                   <hr style="margin: 8px 0; border: none; border-top: 1px solid #eee;">
-                  <a href="/veiculo-detalhes.html?imei=${d.imei}" style="color: #4361ee; text-decoration: none;">📊 Ver Detalhes</a>
+                  <a href="#" onclick="abrirInfoVeiculo('${d.imei}'); return false;" style="color: #4361ee; text-decoration: none;">📊 Ver Detalhes</a>
                 </div>
               `);
             } else {
@@ -10137,7 +10149,7 @@
                   <b>Velocidade:</b> <span style="color: ${isOverSpeed ? '#EF4444' : '#10B981'}; font-weight: bold;">${speed} km/h</span>
                   ${isOverSpeed ? '<br><span style="color: #EF4444; font-size: 11px;">⚠️ Acima do limite!</span>' : ''}
                   <hr style="margin: 8px 0; border: none; border-top: 1px solid #eee;">
-                  <a href="/veiculo-detalhes.html?imei=${d.imei}" style="color: #4361ee; text-decoration: none;">📊 Ver Detalhes</a>
+                  <a href="#" onclick="abrirInfoVeiculo('${d.imei}'); return false;" style="color: #4361ee; text-decoration: none;">📊 Ver Detalhes</a>
                 </div>
               `);
 
@@ -10306,7 +10318,7 @@
           ${isAboveRoadLimit ? `<br><span style="color: #F59E0B; font-size: 11px; font-weight: bold;">⚠️ Acima do limite da via! (+${speed - roadLimit.limite} km/h)</span>` : ''}
           ${isAboveUserLimit && !isAboveRoadLimit ? `<br><span style="color: #EF4444; font-size: 11px;">⚠️ Acima do limite configurado!</span>` : ''}
           <hr style="margin: 8px 0; border: none; border-top: 1px solid #eee;">
-          <a href="/veiculo-detalhes.html?imei=${device.imei}" style="color: #4361ee; text-decoration: none;">📊 Ver Detalhes</a>
+          <a href="#" onclick="abrirInfoVeiculo('${device.imei}'); return false;" style="color: #4361ee; text-decoration: none;">📊 Ver Detalhes</a>
         </div>
       `);
     }
@@ -10433,9 +10445,6 @@
         document.getElementById('selected-coords').textContent = '---, ---';
         document.getElementById('selected-address').textContent = 'Localização não disponível';
       }
-
-      // Link para detalhes completos
-      document.getElementById('btn-detalhes-completos').href = `/veiculo-detalhes.html?imei=${encodeURIComponent(imei)}`;
 
       // Centralizar no veículo
       if (mapMarkers[imei]) {

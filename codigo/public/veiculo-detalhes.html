@@ -2151,6 +2151,12 @@
         IMEI = urlParams.get('imei');
         const isEmbedMode = urlParams.get('embed') === '1';
 
+        // Redirecionar para dashboard se acessado diretamente (sem embed)
+        if (!isEmbedMode && IMEI) {
+            window.location.href = `/admin-dashboard.html?openVehicle=${encodeURIComponent(IMEI)}`;
+            throw new Error('Redirecionando para dashboard...');
+        }
+
         // Modo embed: esconder header, aurora e orbs para integração no dashboard
         if (isEmbedMode) {
             document.body.classList.add('embed-mode');
