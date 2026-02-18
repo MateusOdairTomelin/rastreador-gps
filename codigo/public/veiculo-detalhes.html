@@ -3811,6 +3811,8 @@
                 let distanciaTotal = 0;
                 let tempoMovimento = 0;
                 let ultimoPonto = null;
+                let excessosDetalhados = []; // Guardar detalhes dos excessos
+                let ultimoExcessoKey = null; // Evitar marcadores duplicados próximos
 
                 // Desenhar rota com cores baseadas em excesso de velocidade
                 // Criar segmentos de cor diferente
@@ -3840,7 +3842,23 @@
                     }
                     ultimoPonto = ponto;
 
-                    if (emExcesso) totalExcessos++;
+                    if (emExcesso) {
+                        totalExcessos++;
+                        // Guardar excesso se não for muito próximo do último (evitar spam de marcadores)
+                        if (ultimoExcessoKey !== key) {
+                            excessosDetalhados.push({
+                                lat: ponto.latitude,
+                                lng: ponto.longitude,
+                                velocidade: velocidade,
+                                limite: limiteVia,
+                                excesso: velocidade - limiteVia,
+                                horario: ponto.timestamp
+                            });
+                            ultimoExcessoKey = key;
+                        }
+                    } else {
+                        ultimoExcessoKey = null; // Reset quando não está em excesso
+                    }
 
                     // Verificar se mudou o estado de excesso
                     if (emExcesso !== excessoAtual && segmentoAtual.length > 0) {
@@ -3899,6 +3917,69 @@
                 }).addTo(map);
                 endMarker.bindPopup(`<b>🔴 Fim</b><br>${formatTime(ultimo.timestamp)}`);
                 routeMarkers.push(endMarker);
+
+                // Adicionar marcadores de EXCESSO DE VELOCIDADE
+                if (mostrarExcessos && excessosDetalhados.length > 0) {
+                    // Limitar a 20 marcadores para não poluir o mapa
+                    const excessosParaMostrar = excessosDetalhados.slice(0, 20);
+
+                    excessosParaMostrar.forEach((exc, idx) => {
+                        const excMarker = L.marker([exc.lat, exc.lng], {
+                            icon: L.divIcon({
+                                className: 'excesso-marker',
+                                html: `<div style="
+                                    background: #ef4444;
+                                    color: white;
+                                    border-radius: 50%;
+                                    width: 28px;
+                                    height: 28px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    font-size: 14px;
+                                    font-weight: bold;
+                                    border: 2px solid white;
+                                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                                ">⚡</div>`,
+                                iconSize: [28, 28],
+                                iconAnchor: [14, 14]
+                            })
+                        }).addTo(map);
+
+                        const horaExcesso = new Date(exc.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        excMarker.bindPopup(`
+                            <div style="min-width: 180px; font-family: system-ui, sans-serif;">
+                                <div style="background: #ef4444; color: white; padding: 8px 12px; margin: -13px -20px 10px; border-radius: 4px 4px 0 0; font-weight: 600;">
+                                    ⚠️ Excesso de Velocidade
+                                </div>
+                                <div style="padding: 0 4px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                        <span style="color: #666;">Horário:</span>
+                                        <strong>${horaExcesso}</strong>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                        <span style="color: #666;">Velocidade:</span>
+                                        <strong style="color: #ef4444;">${exc.velocidade.toFixed(0)} km/h</strong>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                        <span style="color: #666;">Limite da via:</span>
+                                        <strong>${exc.limite} km/h</strong>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; padding-top: 6px; border-top: 1px solid #eee;">
+                                        <span style="color: #666;">Excesso:</span>
+                                        <strong style="color: #ef4444; font-size: 1.1em;">+${exc.excesso.toFixed(0)} km/h</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        `, { maxWidth: 250 });
+
+                        routeMarkers.push(excMarker);
+                    });
+
+                    if (excessosDetalhados.length > 20) {
+                        console.log(`[Trajetória] ${excessosDetalhados.length - 20} excessos adicionais não mostrados no mapa`);
+                    }
+                }
 
                 // Ajustar zoom
                 const allCoords = pontos.map(p => [p.latitude, p.longitude]);
