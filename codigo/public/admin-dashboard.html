@@ -11276,37 +11276,35 @@
     }
 
     async function checkServiceStatus() {
-      // HTTP Server
+      // ✅ OTIMIZADO: Uma única chamada para verificar HTTP, API e DB
       try {
-        await authFetch(`${API_URL}/dispositivos`);
-        updateStatusBox('http', true, 'Online');
+        const startTime = Date.now();
+        const res = await authFetch(`${API_URL}/status`);
+        const responseTime = Date.now() - startTime;
+
+        if (res.ok) {
+          updateStatusBox('http', true, 'Online');
+          updateStatusBox('api', true, 'Online');
+          // DB OK se resposta < 500ms
+          updateStatusBox('db', responseTime < 500, responseTime < 500 ? 'Online' : 'Lento');
+        } else {
+          updateStatusBox('http', false, 'Offline');
+          updateStatusBox('api', false, 'Offline');
+          updateStatusBox('db', false, 'Offline');
+        }
       } catch (e) {
         updateStatusBox('http', false, 'Offline');
-      }
-
-      // API REST
-      try {
-        const res = await authFetch(`${API_URL}/dispositivos`);
-        if (res.ok) updateStatusBox('api', true, 'Online');
-      } catch (e) {
         updateStatusBox('api', false, 'Offline');
+        updateStatusBox('db', false, 'Offline');
       }
 
-      // WebSocket - usar conexão existente em vez de criar nova
+      // WebSocket - usar conexão existente
       if (ws && ws.readyState === WebSocket.OPEN) {
         updateStatusBox('ws', true, 'Online');
       } else if (ws && ws.readyState === WebSocket.CONNECTING) {
         updateStatusBox('ws', true, 'Conectando');
       } else {
         updateStatusBox('ws', false, 'Offline');
-      }
-
-      // Database (simulating via API response time)
-      try {
-        const res = await authFetch(`${API_URL}/dispositivos`);
-        if (res.ok) updateStatusBox('db', true, 'Online');
-      } catch (e) {
-        updateStatusBox('db', false, 'Offline');
       }
     }
 

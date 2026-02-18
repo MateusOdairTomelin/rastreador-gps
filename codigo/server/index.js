@@ -242,36 +242,8 @@ const WS_HEARTBEAT_TIMEOUT = 35000; // 5s de tolerância
 // Mapa de clientes autenticados para broadcasts filtrados por organização
 const authenticatedClients = new Map(); // ws -> { userId, organizacaoId, role, isAlive, lastPing }
 
-// ✅ Heartbeat para limpar conexões mortas (a cada 60s)
-// Verifica se o cliente ainda está vivo via ping/pong nativo do WebSocket
-const wsHeartbeatInterval = setInterval(() => {
-  const deadClients = [];
-  authenticatedClients.forEach((clientInfo, ws) => {
-    if (clientInfo.isAlive === false) {
-      // Conexão não respondeu ao último ping - fechar
-      deadClients.push({ ws, email: clientInfo.email });
-      return;
-    }
-    // Marcar como morto até receber pong
-    clientInfo.isAlive = false;
-    try {
-      ws.ping(); // ping nativo do WebSocket
-    } catch (e) {
-      deadClients.push({ ws, email: clientInfo.email });
-    }
-  });
-
-  // Limpar conexões mortas
-  deadClients.forEach(({ ws, email }) => {
-    logger.info('WebSocket', `Limpando conexão morta de ${email}`);
-    authenticatedClients.delete(ws);
-    try { ws.terminate(); } catch (e) {}
-  });
-
-  if (deadClients.length > 0) {
-    logger.info('WebSocket', `Limpadas ${deadClients.length} conexões mortas`);
-  }
-}, 60000); // A cada 60s (menos agressivo)
+// ✅ Heartbeat DESABILITADO - causava problemas de CPU
+// O cliente já envia ping a cada 30s via mensagem JSON
 
 // ✅ Função para validar token JWT no WebSocket
 function validateWebSocketToken(token) {
