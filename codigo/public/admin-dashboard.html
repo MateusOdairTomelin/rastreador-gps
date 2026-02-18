@@ -9734,6 +9734,9 @@
       }
 
       if (name === 'mapa') {
+        // ✅ CORREÇÃO: Invalidar cache ao abrir mapa (evita dados stale)
+        deviceCache.invalidate();
+
         if (!map) {
           setTimeout(initMap, 100);
         } else {
@@ -9976,11 +9979,19 @@
 
       // Se já existe, apenas atualizar marcadores
       if (map) {
+        map.invalidateSize(); // ✅ CORREÇÃO: Sempre recalcular dimensões
         updateMapMarkers();
         return;
       }
 
       map = L.map('map').setView([-26.9, -49.0], 10); // Centro em SC
+
+      // ✅ CORREÇÃO: Recalcular tamanho após tiles carregarem (evita bug de dimensões)
+      map.whenReady(() => {
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 100);
+      });
 
       // Google Maps Tiles (Gratuito)
       const googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
