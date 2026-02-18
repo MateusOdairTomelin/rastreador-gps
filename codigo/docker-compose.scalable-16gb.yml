@@ -433,7 +433,7 @@ services:
       - ENABLE_TCP=false
       - IS_MASTER=true
       - ENABLE_METRICS=true
-      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@pgbouncer:6432/rastreador_db?schema=public&connection_limit=50&pool_timeout=30
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public&connection_limit=50&pool_timeout=30
       - DATABASE_URL_DIRECT=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
       - REDIS_HOST=redis
       - REDIS_PORT=6379
