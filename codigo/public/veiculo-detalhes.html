@@ -497,6 +497,62 @@
             letter-spacing: 0.5px;
         }
 
+        /* Info grid compacto (4 colunas) */
+        .info-grid-compact {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .info-grid-compact .info-item {
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .info-grid-compact .info-value {
+            font-size: 1.1em;
+        }
+
+        .info-grid-compact .info-label {
+            font-size: 0.65em;
+            margin-top: 2px;
+        }
+
+        /* Cards colapsáveis */
+        .card-collapsible .card-title {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-collapsible .card-title::after {
+            content: '▼';
+            font-size: 0.7em;
+            transition: transform 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .card-collapsible.collapsed .card-title::after {
+            transform: rotate(-90deg);
+        }
+
+        .card-collapsible .card-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+            max-height: 2000px;
+            opacity: 1;
+        }
+
+        .card-collapsible.collapsed .card-content {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+
         .status-badge {
             display: inline-block;
             padding: 6px 12px;
@@ -1438,10 +1494,10 @@
             <div class="card full-width">
                 <div class="card-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Localização GPS
                     <div style="float: right; font-size: 0.8em;" id="period-buttons">
-                        <button class="period-btn" data-hours="1" onclick="selectPeriod(1)">1h</button>
+                        <button class="period-btn active" data-hours="1" onclick="selectPeriod(1)">1h</button>
                         <button class="period-btn" data-hours="6" onclick="selectPeriod(6)">6h</button>
                         <button class="period-btn" data-hours="12" onclick="selectPeriod(12)">12h</button>
-                        <button class="period-btn active" data-hours="24" onclick="selectPeriod(24)">24h</button>
+                        <button class="period-btn" data-hours="24" onclick="selectPeriod(24)">24h</button>
                         <button class="period-btn" data-hours="48" onclick="selectPeriod(48)">48h</button>
                     </div>
                 </div>
@@ -1459,22 +1515,22 @@
                     </div>
                     <span id="route-status" style="font-size: 0.7em; color: var(--text-light);"></span>
                 </div>
-                <div class="info-grid">
+                <div class="info-grid-compact">
                     <div class="info-item">
                         <div class="info-value" id="gps-lat">--</div>
-                        <div class="info-label">Latitude</div>
+                        <div class="info-label">Lat</div>
                     </div>
                     <div class="info-item">
                         <div class="info-value" id="gps-lon">--</div>
-                        <div class="info-label">Longitude</div>
+                        <div class="info-label">Lon</div>
                     </div>
                     <div class="info-item">
                         <div class="info-value" id="gps-speed">0</div>
-                        <div class="info-label">Velocidade (km/h)</div>
+                        <div class="info-label">Vel (km/h)</div>
                     </div>
                     <div class="info-item">
                         <div class="info-value" id="gps-direction">--</div>
-                        <div class="info-label">Direção (°)</div>
+                        <div class="info-label">Dir (°)</div>
                     </div>
                 </div>
                 <!-- Endereço (Geocoding Reverso) -->
@@ -1554,8 +1610,9 @@
             </div>
 
             <!-- Card Telemetria/OBD2 (adapta ao tipo de dispositivo) -->
-            <div class="card" id="telemetry-card">
-                <div class="card-title" id="telemetry-card-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg> Dados OBD2 (0x94)</div>
+            <div class="card card-collapsible collapsed" id="telemetry-card">
+                <div class="card-title" id="telemetry-card-title" onclick="toggleCard(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg> Dados OBD2</div>
+                <div class="card-content">
                 <div class="info-grid" id="telemetry-grid">
                     <!-- Campos OBD2 (ocultos para modelo cabo) -->
                     <div class="info-item obd2-only" id="field-rpm">
@@ -1599,11 +1656,13 @@
                     </div>
                 </div>
                 <div class="refresh-info">Última leitura: <span id="obd-time">--</span></div>
+                </div>
             </div>
 
             <!-- Card Alarmes -->
-            <div class="card">
-                <div class="card-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Alarmes (0x16)</div>
+            <div class="card card-collapsible collapsed">
+                <div class="card-title" onclick="toggleCard(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Alarmes</div>
+                <div class="card-content">
                 <div class="info-grid" style="grid-template-columns: repeat(3, 1fr);">
                     <div class="info-item">
                         <div class="info-value" id="alarm-total">0</div>
@@ -1620,6 +1679,7 @@
                 </div>
                 <div id="alarm-list" style="margin-top: 15px; max-height: 250px; overflow-y: auto;">
                     <div class="loading">Carregando alarmes...</div>
+                </div>
                 </div>
             </div>
 
@@ -1683,8 +1743,9 @@
             </div>
 
             <!-- Card Estatísticas de Rota (full width) -->
-            <div class="card full-width">
-                <div class="card-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg> Estatísticas de Rota (24h)</div>
+            <div class="card full-width card-collapsible collapsed">
+                <div class="card-title" onclick="toggleCard(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg> Estatísticas de Rota</div>
+                <div class="card-content">
                 <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
                     <div class="info-item">
                         <div class="info-value" id="rota-distancia">--</div>
@@ -1711,11 +1772,13 @@
                         <div class="info-label">Gaps de Sinal</div>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- Card Histórico (full width) -->
-            <div class="card full-width">
-                <div class="card-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg> Histórico</div>
+            <div class="card full-width card-collapsible collapsed">
+                <div class="card-title" onclick="toggleCard(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg> Histórico</div>
+                <div class="card-content">
                 <div class="tab-container">
                     <button class="tab-btn active" onclick="showTab('locations')">Localizações</button>
                     <button class="tab-btn" onclick="showTab('viagens')">Viagens</button>
@@ -1874,6 +1937,7 @@
                         </thead>
                         <tbody id="history-alarms"></tbody>
                     </table>
+                </div>
                 </div>
             </div>
         </div>
@@ -2069,7 +2133,7 @@
         let routePolylines = []; // Armazenar TODOS os polylines da rota
         let routeMarkers = []; // Armazenar marcadores da rota
         let gpsPointMarkers = []; // Marcadores dos pontos GPS
-        let currentPeriod = 24; // Período atualmente selecionado
+        let currentPeriod = 1; // Período atualmente selecionado (default 1h)
         let showGpsPoints = false; // Mostrar pontos GPS (desativado por padrão)
         let usarOSRM = true; // Usar OSRM map-matching (ativado por padrão - cola nas ruas)
         let lastRouteTimestamp = null; // Último timestamp da rota carregada
@@ -2110,6 +2174,14 @@
             routeRefreshInterval = setInterval(() => {
                 loadAndDrawRoute(currentPeriod);
             }, 60000);
+        }
+
+        // Função para expandir/recolher cards colapsáveis
+        function toggleCard(titleElement) {
+            const card = titleElement.closest('.card-collapsible');
+            if (card) {
+                card.classList.toggle('collapsed');
+            }
         }
 
         // Função para expandir/recolher o mapa
@@ -2242,15 +2314,15 @@
                 'Google Híbrido': googleHybrid
             }).addTo(map);
 
-            // ✅ Carregar rota histórica automaticamente (últimas 24h)
-            loadAndDrawRoute(24);
+            // ✅ Carregar rota histórica automaticamente (última 1h por default)
+            loadAndDrawRoute(1);
         }
 
         // ✅ Função para carregar e desenhar rota usando pontos GPS
         // Cache para evitar redesenhar rota quando dados não mudaram
         let lastRouteDataHash = null;
 
-        async function loadAndDrawRoute(hours = 24) {
+        async function loadAndDrawRoute(hours = 1) {
             try {
                 const statusEl = document.getElementById('route-status');
 
