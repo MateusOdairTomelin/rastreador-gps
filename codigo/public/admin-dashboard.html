@@ -7528,25 +7528,31 @@
         servicesDiv.innerHTML = Object.entries(services).map(([key, svc]) => {
           if (!svc) return '';
 
-          const hasActivity = svc.frontend?.totalConn > 0;
           const currentConn = svc.frontend?.currentConn || 0;
           const totalConn = svc.frontend?.totalConn || 0;
           const rate = svc.frontend?.rate || 0;
+          const bytesIn = svc.frontend?.bytesIn || '0 B';
+          const bytesOut = svc.frontend?.bytesOut || '0 B';
 
           // Determinar cor baseada em conexões ativas
           const getConnColor = (curr) => curr === 0 ? '#6B7280' : curr < 10 ? '#10B981' : curr < 50 ? '#F59E0B' : '#EF4444';
           const connColor = getConnColor(currentConn);
 
+          // Contar backends ativos
+          const backendsUp = svc.servers?.filter(s => s.status === 'UP').length || 0;
+          const backendsTotal = svc.servers?.length || 0;
+
           // Servers status
           const serversHtml = svc.servers?.map(s => {
             const statusColor = s.status === 'UP' ? '#10B981' : s.status === 'DOWN' ? '#EF4444' : '#F59E0B';
+            const connInfo = s.currentConn > 0 ? `${s.currentConn} ativo` : 'ocioso';
             return `
               <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 10px;">
                 <span style="display: flex; align-items: center; gap: 4px;">
                   <span style="width: 6px; height: 6px; border-radius: 50%; background: ${statusColor};"></span>
                   ${s.name}
                 </span>
-                <span style="color: var(--text-muted);">${s.currentConn} conn | ${s.uptime}</span>
+                <span style="color: var(--text-muted);">${connInfo} | up ${s.uptime}</span>
               </div>
             `;
           }).join('') || '';
@@ -7556,30 +7562,35 @@
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <div style="font-weight: 700; font-size: 12px; color: var(--accent);">${svc.name}</div>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                  <span style="font-size: 10px; color: var(--text-muted);">rate: ${rate}/s</span>
+                  <span style="font-size: 10px; padding: 2px 6px; background: rgba(16, 185, 129, 0.2); color: #10B981; border-radius: 4px;">${backendsUp}/${backendsTotal} backends</span>
+                  <span style="font-size: 10px; color: var(--text-muted);">${rate}/s</span>
                 </div>
               </div>
 
-              <!-- Connection Stats -->
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px;">
-                <div style="text-align: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;">
-                  <div style="font-size: 18px; font-weight: 700; color: ${connColor};">${currentConn}</div>
-                  <div style="font-size: 9px; color: var(--text-muted);">ATIVAS</div>
+              <!-- Connection Stats - 4 colunas -->
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px;">
+                <div style="text-align: center; padding: 8px 4px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                  <div style="font-size: 16px; font-weight: 700; color: ${connColor};">${currentConn}</div>
+                  <div style="font-size: 8px; color: var(--text-muted); line-height: 1.2;">CONECTADOS<br/>agora</div>
                 </div>
-                <div style="text-align: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;">
-                  <div style="font-size: 18px; font-weight: 700; color: var(--text);">${totalConn}</div>
-                  <div style="font-size: 9px; color: var(--text-muted);">TOTAL</div>
+                <div style="text-align: center; padding: 8px 4px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                  <div style="font-size: 16px; font-weight: 700; color: var(--text);">${totalConn}</div>
+                  <div style="font-size: 8px; color: var(--text-muted); line-height: 1.2;">SESSOES<br/>total</div>
                 </div>
-                <div style="text-align: center; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px;">
-                  <div style="font-size: 11px; font-weight: 600; color: var(--text);">${svc.frontend?.bytesIn || '0 B'}</div>
-                  <div style="font-size: 9px; color: var(--text-muted);">IN</div>
+                <div style="text-align: center; padding: 8px 4px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                  <div style="font-size: 11px; font-weight: 600; color: #10B981;">${bytesIn}</div>
+                  <div style="font-size: 8px; color: var(--text-muted); line-height: 1.2;">RECEBIDO<br/>dos devices</div>
+                </div>
+                <div style="text-align: center; padding: 8px 4px; background: rgba(0,0,0,0.2); border-radius: 6px;">
+                  <div style="font-size: 11px; font-weight: 600; color: #3B82F6;">${bytesOut}</div>
+                  <div style="font-size: 8px; color: var(--text-muted); line-height: 1.2;">ENVIADO<br/>p/ devices</div>
                 </div>
               </div>
 
               <!-- Servers -->
               ${serversHtml ? `
                 <div style="border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px;">
-                  <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">BACKENDS</div>
+                  <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">GATEWAYS BACKEND</div>
                   ${serversHtml}
                 </div>
               ` : ''}
