@@ -303,6 +303,29 @@ async function processLocationMessage(message) {
     // Buscar dispositivo
     const dispositivo = await dispositivoService.getByImei(imei);
 
+    // ========== LOCK POR IMEI (Evita race condition entre processadores) ==========
+    // ✅ CORREÇÃO SCALING: Adquirir lock ANTES do filtro para garantir consistência
+    // Sem lock, dois processadores podem ler a mesma "última posição" e ambos passar no filtro
+    const filterLockKey = `lock:filter:${imei}`;
+    const filterLockTTL = 10; // 10 segundos
+    let filterLockAcquired = false;
+
+    try {
+      filterLockAcquired = await redisService.acquireLock(filterLockKey, filterLockTTL);
+      if (!filterLockAcquired) {
+        // Outro processador está processando este IMEI - aguardar
+        await new Promise(resolve => setTimeout(resolve, 100));
+        filterLockAcquired = await redisService.acquireLock(filterLockKey, filterLockTTL);
+        if (!filterLockAcquired) {
+          console.log(`[${WORKER_ID}] ⏳ ${imei}: Lock não adquirido, descartando pacote`);
+          return;
+        }
+      }
+    } catch (lockErr) {
+      console.warn(`[${WORKER_ID}] ⚠️ ${imei}: Erro ao adquirir lock: ${lockErr.message}`);
+      // Continuar sem lock (fail open)
+    }
+
     // ========== FILTRO DE SALTOS GPS (Outlier Detection) ==========
     // Rejeita pontos que pulam distâncias impossíveis (LBS errado, GPS bugado)
     try {
@@ -562,6 +585,11 @@ async function processLocationMessage(message) {
     stats.errors++;
     console.error(`[${WORKER_ID}] ❌ ${imei}: ${error.message}`);
     throw error;
+  } finally {
+    // ✅ SEMPRE liberar o lock do filtro, mesmo em caso de erro
+    if (filterLockAcquired) {
+      await redisService.releaseLock(filterLockKey).catch(() => {});
+    }
   }
 }
 
