@@ -4311,12 +4311,17 @@
           <div class="card" style="margin-bottom: 15px; padding: 15px;">
             <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
               <!-- Seletor de Veículo com busca -->
-              <div style="flex: 1; min-width: 250px;">
+              <div style="flex: 1; min-width: 250px; position: relative;">
                 <label style="font-size: 12px; color: var(--text-light); display: block; margin-bottom: 5px;">Veículo</label>
-                <select id="select-vehicle" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;"
-                        onchange="focusOnVehicle(this.value)">
-                  <option value="">Todos os veículos</option>
-                </select>
+                <input type="text" id="search-vehicle" placeholder="Digite para buscar ou clique..."
+                       style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; cursor: pointer;"
+                       oninput="filterVehicleList(this.value)"
+                       onfocus="showVehicleDropdown()"
+                       autocomplete="off">
+                <div id="vehicle-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 8px; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                </div>
+                <!-- Mantém select oculto para compatibilidade -->
+                <select id="select-vehicle" style="display: none;"></select>
               </div>
 
               <!-- Limite de Velocidade -->
@@ -10400,34 +10405,95 @@
       }
     }
 
-    function filterVehicles(searchTerm) {
+    // Dropdown de veículos com busca
+    let vehicleDropdownVisible = false;
+
+    function showVehicleDropdown() {
+      const dropdown = document.getElementById('vehicle-dropdown');
+      dropdown.style.display = 'block';
+      vehicleDropdownVisible = true;
+      renderVehicleDropdown('');
+    }
+
+    function hideVehicleDropdown() {
+      setTimeout(() => {
+        const dropdown = document.getElementById('vehicle-dropdown');
+        dropdown.style.display = 'none';
+        vehicleDropdownVisible = false;
+      }, 150);
+    }
+
+    function renderVehicleDropdown(searchTerm) {
+      const dropdown = document.getElementById('vehicle-dropdown');
       const term = searchTerm.toLowerCase().trim();
-      const select = document.getElementById('select-vehicle');
 
-      // Limpar opções
-      while (select.options.length > 1) {
-        select.remove(1);
-      }
+      let html = `<div class="vehicle-option" onclick="selectVehicleFromDropdown('')" style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #eee; color: #666;">
+        Todos os veículos
+      </div>`;
 
-      // Filtrar e adicionar
-      allDevices.forEach(d => {
-        const match = (d.veiculo || '').toLowerCase().includes(term) ||
-                      (d.placa || '').toLowerCase().includes(term) ||
-                      (d.imei || '').includes(term);
-        if (match || !term) {
-          const option = document.createElement('option');
-          option.value = d.imei;
-          option.textContent = `${d.veiculo || 'Sem nome'} - ${d.placa || 'Sem placa'}`;
-          select.appendChild(option);
-        }
+      const filtered = allDevices.filter(d => {
+        if (!term) return true;
+        return (d.veiculo || '').toLowerCase().includes(term) ||
+               (d.placa || '').toLowerCase().includes(term) ||
+               (d.imei || '').includes(term);
       });
 
-      // Se só tem um resultado, focar nele
-      if (select.options.length === 2 && term) {
-        select.selectedIndex = 1;
-        focusOnVehicle(select.value);
+      filtered.forEach(d => {
+        const statusColor = d.status === 'online' ? '#10B981' : '#EF4444';
+        const speed = d.velocidade || 0;
+        html += `<div class="vehicle-option" onclick="selectVehicleFromDropdown('${d.imei}')"
+                     style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;"
+                     onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='white'">
+          <div>
+            <div style="font-weight: 500; color: #333;">${d.veiculo || 'Sem nome'}</div>
+            <div style="font-size: 12px; color: #888;">${d.placa || 'Sem placa'}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor}; display: inline-block;"></div>
+            <span style="font-size: 12px; color: #666; margin-left: 4px;">${speed} km/h</span>
+          </div>
+        </div>`;
+      });
+
+      if (filtered.length === 0 && term) {
+        html += `<div style="padding: 15px; text-align: center; color: #999;">Nenhum veículo encontrado</div>`;
       }
+
+      dropdown.innerHTML = html;
     }
+
+    function filterVehicleList(searchTerm) {
+      if (!vehicleDropdownVisible) {
+        showVehicleDropdown();
+      }
+      renderVehicleDropdown(searchTerm);
+    }
+
+    function selectVehicleFromDropdown(imei) {
+      const input = document.getElementById('search-vehicle');
+      const dropdown = document.getElementById('vehicle-dropdown');
+
+      if (imei) {
+        const device = allDevices.find(d => d.imei === imei);
+        input.value = device ? `${device.veiculo || 'Sem nome'} - ${device.placa || ''}` : '';
+      } else {
+        input.value = '';
+      }
+
+      dropdown.style.display = 'none';
+      vehicleDropdownVisible = false;
+      focusOnVehicle(imei);
+    }
+
+    // Fechar dropdown ao clicar fora
+    document.addEventListener('click', (e) => {
+      const container = document.getElementById('search-vehicle')?.parentElement;
+      if (container && !container.contains(e.target)) {
+        const dropdown = document.getElementById('vehicle-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+        vehicleDropdownVisible = false;
+      }
+    });
 
     // Veículo atualmente selecionado no painel
     let selectedVehicleImei = null;
