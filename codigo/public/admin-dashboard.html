@@ -11292,17 +11292,12 @@
         updateStatusBox('api', false, 'Offline');
       }
 
-      // WebSocket (com autenticação)
-      try {
-        const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsTest = new WebSocket(`${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token || '')}`);
-        wsTest.onopen = () => {
-          updateStatusBox('ws', true, 'Online');
-          wsTest.close();
-        };
-        wsTest.onerror = () => updateStatusBox('ws', false, 'Offline');
-      } catch (e) {
+      // WebSocket - usar conexão existente em vez de criar nova
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        updateStatusBox('ws', true, 'Online');
+      } else if (ws && ws.readyState === WebSocket.CONNECTING) {
+        updateStatusBox('ws', true, 'Conectando');
+      } else {
         updateStatusBox('ws', false, 'Offline');
       }
 
