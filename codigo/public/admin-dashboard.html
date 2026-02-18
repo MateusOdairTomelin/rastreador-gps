@@ -10533,12 +10533,12 @@
 
     function abrirRotaVeiculo() {
       if (!selectedVehicleImei) return;
-      window.open(`/veiculo-detalhes.html?imei=${encodeURIComponent(selectedVehicleImei)}#rota`, '_blank');
+      abrirInfoVeiculo(selectedVehicleImei);
     }
 
     function abrirViagensVeiculo() {
       if (!selectedVehicleImei) return;
-      window.open(`/veiculo-detalhes.html?imei=${encodeURIComponent(selectedVehicleImei)}#viagens`, '_blank');
+      abrirInfoVeiculo(selectedVehicleImei);
     }
 
     // ============ INFO VEÍCULO - Carrega página de detalhes via iframe ============
