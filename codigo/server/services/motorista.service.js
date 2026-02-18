@@ -476,6 +476,56 @@ class MotoristaService {
 
     return this._decryptMotoristas(motoristas);
   }
+
+  /**
+   * Buscar motorista que estava vinculado ao dispositivo em um momento específico
+   * Usa a tabela historico_motoristas para encontrar quem estava dirigindo
+   */
+  async buscarMotoristaPorPeriodo(dispositivo_id, timestamp) {
+    const data = new Date(timestamp);
+
+    // Buscar no histórico quem estava vinculado nesse momento
+    const historico = await prisma.historicoMotorista.findFirst({
+      where: {
+        dispositivo_id: parseInt(dispositivo_id),
+        inicio: { lte: data },
+        OR: [
+          { fim: null },  // Ainda ativo
+          { fim: { gte: data } }  // Fim após o timestamp
+        ]
+      },
+      include: {
+        motorista: {
+          select: {
+            id: true,
+            nome: true,
+            foto_url: true
+          }
+        }
+      },
+      orderBy: { inicio: 'desc' }
+    });
+
+    if (historico?.motorista) {
+      return this._decryptMotorista(historico.motorista);
+    }
+
+    // Fallback: buscar motorista atualmente vinculado ao dispositivo
+    const dispositivo = await prisma.dispositivo.findUnique({
+      where: { id: parseInt(dispositivo_id) },
+      include: {
+        motorista: {
+          select: {
+            id: true,
+            nome: true,
+            foto_url: true
+          }
+        }
+      }
+    });
+
+    return dispositivo?.motorista ? this._decryptMotorista(dispositivo.motorista) : null;
+  }
 }
 
 module.exports = new MotoristaService();

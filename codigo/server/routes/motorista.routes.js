@@ -238,4 +238,33 @@ router.get('/veiculo/:dispositivo_id/historico', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/motoristas/veiculo/:dispositivo_id/periodo
+ * Buscar motorista que estava vinculado ao veículo em um momento específico
+ * Query params: timestamp (ISO string)
+ */
+router.get('/veiculo/:dispositivo_id/periodo', async (req, res) => {
+  try {
+    const { timestamp } = req.query;
+
+    if (!timestamp) {
+      return res.status(400).json({ sucesso: false, erro: 'Timestamp é obrigatório' });
+    }
+
+    const motorista = await motoristaService.buscarMotoristaPorPeriodo(
+      parseInt(req.params.dispositivo_id),
+      timestamp
+    );
+
+    res.json({
+      sucesso: true,
+      motorista: motorista || null,
+      timestamp
+    });
+  } catch (error) {
+    console.error('[Motoristas] Erro ao buscar por período:', error.message);
+    res.status(400).json({ sucesso: false, erro: error.message });
+  }
+});
+
 module.exports = router;

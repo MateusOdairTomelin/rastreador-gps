@@ -3858,6 +3858,20 @@
                 // Ordenar por timestamp
                 pontos.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
+                // Buscar motorista que estava vinculado neste período
+                let motoristaPeriodo = null;
+                if (currentDevice?.id) {
+                    try {
+                        const motRes = await authFetch(`${API_BASE}/motoristas/veiculo/${currentDevice.id}/periodo?timestamp=${pontos[0].timestamp}`);
+                        const motData = await motRes.json();
+                        if (motData.sucesso && motData.motorista) {
+                            motoristaPeriodo = motData.motorista.nome;
+                        }
+                    } catch (e) {
+                        console.warn('Erro ao buscar motorista do período:', e);
+                    }
+                }
+
                 // Buscar limites de velocidade para cada ponto (em batch)
                 let limitesVelocidade = {};
                 if (mostrarExcessos) {
@@ -4059,7 +4073,7 @@
                         }).addTo(map);
 
                         const horaExcesso = new Date(exc.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                        const motoristaExcesso = currentDevice?.motorista?.nome || null;
+                        const motoristaExcesso = motoristaPeriodo || currentDevice?.motorista?.nome || null;
                         excMarker.bindPopup(`
                             <div style="min-width: 230px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 0;">
                                 <div style="background: linear-gradient(135deg, #ff6b6b 0%, #dc2626 100%); color: white; padding: 14px 16px; margin: -13px -20px 0; border-radius: 8px 8px 0 0;">
@@ -4210,7 +4224,7 @@
                             })
                         }).addTo(map);
 
-                        const motoristaParada = currentDevice?.motorista?.nome || null;
+                        const motoristaParada = motoristaPeriodo || currentDevice?.motorista?.nome || null;
                         paradaMarker.bindPopup(`
                             <div style="min-width: 230px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 0;">
                                 <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 14px 16px; margin: -13px -20px 0; border-radius: 8px 8px 0 0;">
