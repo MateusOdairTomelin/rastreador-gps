@@ -8188,12 +8188,22 @@
       ws.onclose = (event) => {
         wsConnecting = false; // ✅ Permitir nova tentativa
         console.log(`[WS] Conexão fechada (code: ${event.code}, reason: ${event.reason || 'nenhum'})`);
-        updateStatusBox('ws', false, 'Reconectando');
+
         // Limpar ping interval
         if (window.wsPingInterval) {
           clearInterval(window.wsPingInterval);
           window.wsPingInterval = null;
         }
+
+        // ✅ NÃO reconectar se limite de conexões foi atingido (código 4000)
+        // Isso evita loops de reconexão quando usuário tem muitas abas
+        if (event.code === 4000) {
+          console.warn('[WS] Limite de conexões atingido - não reconectando automaticamente');
+          updateStatusBox('ws', false, 'Limite abas');
+          return;
+        }
+
+        updateStatusBox('ws', false, 'Reconectando');
         // ✅ Reconectar com backoff progressivo para evitar flood
         const delay = Math.min(3000 + Math.random() * 2000, 10000); // 3-5s, max 10s
         wsReconnectTimeout = setTimeout(connectWebSocket, delay);

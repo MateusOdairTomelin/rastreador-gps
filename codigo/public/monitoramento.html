@@ -789,9 +789,14 @@
         }
       };
 
-      ws.onclose = () => {
-        console.log('[WS] Desconectado');
+      ws.onclose = (event) => {
+        console.log(`[WS] Desconectado (code: ${event.code})`);
         updateConnectionStatus(false);
+        // Não reconectar se limite de conexões foi atingido
+        if (event.code === 4000) {
+          console.warn('[WS] Limite de conexões atingido');
+          return;
+        }
         reconnectTimeout = setTimeout(connectWebSocket, 3000);
       };
 

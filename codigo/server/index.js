@@ -242,9 +242,36 @@ const WS_HEARTBEAT_TIMEOUT = 35000; // 5s de tolerância
 // Mapa de clientes autenticados para broadcasts filtrados por organização
 const authenticatedClients = new Map(); // ws -> { userId, organizacaoId, role, isAlive, lastPing }
 
-// ✅ Heartbeat DESABILITADO temporariamente - causava desconexões
-// O cliente já envia ping a cada 30s via mensagem JSON
-// const wsHeartbeatInterval = setInterval(() => { ... }, WS_HEARTBEAT_INTERVAL);
+// ✅ Heartbeat para limpar conexões mortas (a cada 60s)
+// Verifica se o cliente ainda está vivo via ping/pong nativo do WebSocket
+const wsHeartbeatInterval = setInterval(() => {
+  const deadClients = [];
+  authenticatedClients.forEach((clientInfo, ws) => {
+    if (clientInfo.isAlive === false) {
+      // Conexão não respondeu ao último ping - fechar
+      deadClients.push({ ws, email: clientInfo.email });
+      return;
+    }
+    // Marcar como morto até receber pong
+    clientInfo.isAlive = false;
+    try {
+      ws.ping(); // ping nativo do WebSocket
+    } catch (e) {
+      deadClients.push({ ws, email: clientInfo.email });
+    }
+  });
+
+  // Limpar conexões mortas
+  deadClients.forEach(({ ws, email }) => {
+    logger.info('WebSocket', `Limpando conexão morta de ${email}`);
+    authenticatedClients.delete(ws);
+    try { ws.terminate(); } catch (e) {}
+  });
+
+  if (deadClients.length > 0) {
+    logger.info('WebSocket', `Limpadas ${deadClients.length} conexões mortas`);
+  }
+}, 60000); // A cada 60s (menos agressivo)
 
 // ✅ Função para validar token JWT no WebSocket
 function validateWebSocketToken(token) {
@@ -453,22 +480,17 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
-  // ✅ CORREÇÃO: Fechar conexões antigas do mesmo usuário (permite apenas 1 conexão por usuário)
-  let closedCount = 0;
-  authenticatedClients.forEach((clientInfo, existingWs) => {
-    if (clientInfo.userId === userInfo.userId && existingWs !== ws) {
-      logger.info('WebSocket', `Fechando conexão antiga de ${userInfo.email}`);
-      existingWs.close(4000, 'Nova conexão do mesmo usuário');
-      authenticatedClients.delete(existingWs);
-      closedCount++;
-    }
-  });
-  if (closedCount > 0) {
-    logger.info('WebSocket', `Fechadas ${closedCount} conexões antigas de ${userInfo.email}`);
+  // ✅ Permitir múltiplas conexões por usuário (múltiplas abas)
+  // Não fechar conexões antigas - deixar o sistema de heartbeat limpar conexões mortas
+  const userConnectionCount = Array.from(authenticatedClients.values())
+    .filter(c => c.userId === userInfo.userId).length;
+
+  if (userConnectionCount > 0) {
+    logger.debug('WebSocket', `${userInfo.email} tem ${userConnectionCount + 1} conexões ativas`);
   }
 
-  // ✅ Registrar cliente autenticado
-  authenticatedClients.set(ws, { ...userInfo, isAlive: true });
+  // ✅ Registrar cliente autenticado com timestamp de conexão
+  authenticatedClients.set(ws, { ...userInfo, isAlive: true, connectedAt: Date.now() });
   logger.info('WebSocket', `Cliente autenticado: ${userInfo.email} (org: ${userInfo.organizacaoId})`);
 
   // ✅ Handler para pong do heartbeat nativo
