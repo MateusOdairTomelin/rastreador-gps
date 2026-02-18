@@ -7281,6 +7281,56 @@
     let deviceTypes = [];
     let systemMetricsInterval = null;
 
+    // ============ CACHE DE DISPOSITIVOS (evita chamadas repetidas) ============
+    const deviceCache = {
+      data: null,
+      timestamp: 0,
+      ttl: 5000, // 5 segundos de cache
+      pending: null, // Promise pendente para evitar chamadas simultâneas
+
+      isValid() {
+        return this.data && (Date.now() - this.timestamp) < this.ttl;
+      },
+
+      set(data) {
+        this.data = data;
+        this.timestamp = Date.now();
+      },
+
+      invalidate() {
+        this.data = null;
+        this.timestamp = 0;
+      }
+    };
+
+    // Função centralizada para buscar dispositivos (com cache)
+    async function fetchDevices(forceRefresh = false) {
+      // Se tem cache válido e não é forçado, retorna cache
+      if (!forceRefresh && deviceCache.isValid()) {
+        return deviceCache.data;
+      }
+
+      // Se já tem uma requisição pendente, espera ela
+      if (deviceCache.pending) {
+        return deviceCache.pending;
+      }
+
+      // Faz nova requisição
+      deviceCache.pending = (async () => {
+        try {
+          const res = await authFetch(`${API_URL}/dispositivos`);
+          const response = await res.json();
+          const devices = response.dados || response.dispositivos || response || [];
+          deviceCache.set(devices);
+          return devices;
+        } finally {
+          deviceCache.pending = null;
+        }
+      })();
+
+      return deviceCache.pending;
+    }
+
     // ============ SYSTEM METRICS FUNCTIONS (deve estar antes de switchSection) ============
     async function loadSystemMetrics() {
       try {
@@ -9133,13 +9183,9 @@
       // Atualizar lista de veículos ociosos
       async function atualizarListaOciosos() {
         try {
-          // Buscar dados dos dispositivos
-          const response = await authFetch('/api/dispositivos');
-          const data = await response.json();
-
-          if (!data.sucesso || !data.dados) return;
-
-          const dispositivos = data.dados;
+          // ✅ OTIMIZADO: Usar cache de dispositivos
+          const dispositivos = await fetchDevices();
+          if (!dispositivos || dispositivos.length === 0) return;
           const agora = new Date();
 
           // Filtrar veículos OCIOSOS (motor ligado, parado, velocidade < 5 km/h)
@@ -9301,13 +9347,12 @@
       // Carregar veículos no seletor de relatórios
       async function carregarVeiculosRelatorio() {
         try {
-          const response = await authFetch('/api/dispositivos');
-          const data = await response.json();
-
-          if (!data.sucesso || !data.dados) return;
+          // ✅ OTIMIZADO: Usar cache de dispositivos
+          const allDevices = await fetchDevices();
+          if (!allDevices || allDevices.length === 0) return;
 
           const select = document.getElementById('report-vehicle');
-          const dispositivos = data.dados.filter(d => d.configurado);
+          const dispositivos = allDevices.filter(d => d.configurado);
 
           // Manter opções padrão
           select.innerHTML = '<option value="">Selecione um veículo...</option><option value="__todos__">📋 Todos os veículos</option>';
@@ -9790,11 +9835,8 @@
 
     async function _loadDashboardInternal() {
       try {
-        const res = await authFetch(`${API_URL}/dispositivos`);
-        const response = await res.json();
-
-        // Extract devices from the API response
-        const devices = response.dados || [];
+        // ✅ OTIMIZADO: Usar cache de dispositivos
+        const devices = await fetchDevices();
 
         if (!Array.isArray(devices)) return;
 
@@ -9882,10 +9924,8 @@
     // ✅ Carregar estatísticas de OBD2
     async function loadOBD2Stats() {
       try {
-        // Buscar dispositivos para pegar o primeiro IMEI online
-        const devRes = await authFetch(`${API_URL}/dispositivos`);
-        const devData = await devRes.json();
-        const devices = devData.dados || [];
+        // ✅ OTIMIZADO: Usar cache de dispositivos
+        const devices = await fetchDevices();
 
         if (devices.length === 0) return;
 
@@ -10046,10 +10086,10 @@
     async function _updateMapMarkersInternal() {
       try {
         console.log('[Mapa] Atualizando marcadores...');
-        const response = await authFetch(`${API_URL}/dispositivos`);
-        const result = await response.json();
+        // ✅ OTIMIZADO: Usar cache de dispositivos
+        const allDevices = await fetchDevices();
         // Usar apenas dispositivos CONFIGURADOS no mapa
-        const devices = result.configurados || (result.dados || []).filter(d => d.configurado);
+        const devices = allDevices.filter(d => d.configurado);
         console.log('[Mapa] Dispositivos recebidos:', devices.length, 'com localização:', devices.filter(d => d.latitude).length);
 
         // ✅ API já retorna latitude/longitude - não fazer chamadas extras
@@ -11231,12 +11271,11 @@
         const tbody = document.querySelector('#heartbeat-table tbody');
         const devices = data.devices || [];
 
-        // Buscar nomes dos veículos dos dispositivos cadastrados
+        // ✅ OTIMIZADO: Usar cache de dispositivos
         let dispositivosMap = {};
         try {
-          const devRes = await authFetch(`${API_URL}/dispositivos`);
-          const devResponse = await devRes.json();
-          (devResponse.dados || []).forEach(d => {
+          const devicesData = await fetchDevices();
+          devicesData.forEach(d => {
             dispositivosMap[d.imei] = d.veiculo || d.placa || d.imei;
           });
         } catch (e) { }
@@ -11481,10 +11520,9 @@
     // Carregar confiança por dispositivo (simplificado)
     async function carregarConfiancaDispositivos() {
       try {
-        const devResponse = await authFetch(`${API_URL}/dispositivos`);
-        const devData = await devResponse.json();
-
-        if (!devData.sucesso || !devData.dados) return;
+        // ✅ OTIMIZADO: Usar cache de dispositivos
+        const devices = await fetchDevices();
+        if (!devices || devices.length === 0) return;
 
         const container = document.getElementById('ia-dispositivos-confianca');
 
@@ -11493,7 +11531,7 @@
         grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(250px, 1fr))';
         grid.style.gap = '15px';
 
-        for (const device of devData.dados) {
+        for (const device of devices) {
           try {
             const analiseResponse = await authFetch(`${API_URL}/gps-ai/${device.imei}/analisar?horas=24`);
             const analiseData = await analiseResponse.json();
