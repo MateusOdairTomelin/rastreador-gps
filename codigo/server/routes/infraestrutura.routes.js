@@ -250,6 +250,241 @@ router.get('/tcp-security', async (req, res) => {
   }
 });
 
+// ============================================================================
+// PARTICIONAMENTO - Helpers para scaling de processors
+// ============================================================================
+
+/**
+ * Obtém o número atual de partições dos gateways
+ */
+async function getCurrentPartitions() {
+  try {
+    const containers = await dockerApiRequest('GET', '/containers/json?all=true');
+    const gateways = containers.filter(c =>
+      c.Names.some(n => n.includes('rastreador-xt40-gw') || n.includes('rastreador-obd2-gw'))
+    );
+
+    if (gateways.length === 0) return 4; // Default
+
+    // Buscar LOCATION_PARTITIONS do primeiro gateway
+    const gwConfig = await dockerApiRequest('GET', `/containers/${gateways[0].Id}/json`);
+    const partitionsEnv = gwConfig.Config.Env.find(e => e.startsWith('LOCATION_PARTITIONS='));
+
+    if (partitionsEnv) {
+      return parseInt(partitionsEnv.split('=')[1]) || 4;
+    }
+    return 4;
+  } catch (err) {
+    console.warn('[Partitions] Erro ao obter partições:', err.message);
+    return 4;
+  }
+}
+
+/**
+ * Obtém quais partições têm processors rodando
+ */
+async function getOccupiedPartitions() {
+  try {
+    const containers = await dockerApiRequest('GET', '/containers/json');
+    const processors = containers.filter(c =>
+      c.Names.some(n => n.includes('rastreador-loc-proc'))
+    );
+
+    const occupied = [];
+    for (const proc of processors) {
+      const config = await dockerApiRequest('GET', `/containers/${proc.Id}/json`);
+      const partitionEnv = config.Config.Env.find(e => e.startsWith('PARTITION_ID='));
+      if (partitionEnv) {
+        occupied.push(parseInt(partitionEnv.split('=')[1]));
+      }
+    }
+
+    return occupied.sort((a, b) => a - b);
+  } catch (err) {
+    console.warn('[Partitions] Erro ao obter partições ocupadas:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Encontra a próxima partição livre
+ */
+function findNextFreePartition(occupied, totalPartitions) {
+  for (let i = 0; i < totalPartitions; i++) {
+    if (!occupied.includes(i)) {
+      return i;
+    }
+  }
+  return null; // Todas ocupadas
+}
+
+/**
+ * Atualiza LOCATION_PARTITIONS em todos os gateways e reinicia-os
+ */
+async function updateGatewayPartitions(newPartitions) {
+  console.log(`[Partitions] Atualizando gateways para ${newPartitions} partições...`);
+
+  const containers = await dockerApiRequest('GET', '/containers/json?all=true');
+  const gateways = containers.filter(c =>
+    c.Names.some(n =>
+      n.includes('rastreador-xt40-gw') ||
+      n.includes('rastreador-obd2-gw') ||
+      n.includes('rastreador-teltonika-gw')
+    )
+  );
+
+  const restartedGateways = [];
+
+  for (const gw of gateways) {
+    const gwName = gw.Names[0].replace('/', '');
+    const gwConfig = await dockerApiRequest('GET', `/containers/${gw.Id}/json`);
+
+    // Atualizar variáveis de ambiente
+    const newEnv = gwConfig.Config.Env.map(e => {
+      if (e.startsWith('LOCATION_PARTITIONS=')) {
+        return `LOCATION_PARTITIONS=${newPartitions}`;
+      }
+      return e;
+    });
+
+    // Se não tinha LOCATION_PARTITIONS, adicionar
+    if (!newEnv.some(e => e.startsWith('LOCATION_PARTITIONS='))) {
+      newEnv.push(`LOCATION_PARTITIONS=${newPartitions}`);
+    }
+
+    console.log(`[Partitions] Recriando gateway: ${gwName}`);
+
+    // Parar e remover container antigo
+    if (gw.State === 'running') {
+      await dockerApiRequest('POST', `/containers/${gw.Id}/stop`);
+    }
+    await dockerApiRequest('DELETE', `/containers/${gw.Id}`);
+
+    // Criar novo container com partições atualizadas
+    const createConfig = {
+      Image: gwConfig.Config.Image,
+      Env: newEnv,
+      Cmd: gwConfig.Config.Cmd,
+      ExposedPorts: gwConfig.Config.ExposedPorts,
+      Labels: gwConfig.Config.Labels,
+      HostConfig: {
+        NetworkMode: gwConfig.HostConfig.NetworkMode,
+        RestartPolicy: gwConfig.HostConfig.RestartPolicy,
+        Memory: gwConfig.HostConfig.Memory,
+        NanoCpus: gwConfig.HostConfig.NanoCpus,
+        MemoryReservation: gwConfig.HostConfig.MemoryReservation
+      },
+      NetworkingConfig: {
+        EndpointsConfig: {}
+      }
+    };
+
+    // Adicionar à mesma rede
+    const networkName = Object.keys(gwConfig.NetworkSettings.Networks)[0];
+    if (networkName) {
+      createConfig.NetworkingConfig.EndpointsConfig[networkName] = {
+        Aliases: gwConfig.NetworkSettings.Networks[networkName].Aliases || []
+      };
+    }
+
+    const createResult = await dockerApiRequest('POST', `/containers/create?name=${gwName}`, createConfig);
+    await dockerApiRequest('POST', `/containers/${createResult.Id}/start`);
+
+    restartedGateways.push(gwName);
+  }
+
+  console.log(`[Partitions] ${restartedGateways.length} gateways atualizados`);
+  return restartedGateways;
+}
+
+/**
+ * Cria um novo processor para uma partição específica
+ */
+async function createProcessorForPartition(partitionId, totalPartitions, templateContainer) {
+  const templateConfig = await dockerApiRequest('GET', `/containers/${templateContainer.Id}/json`);
+
+  const newContainerName = `rastreador-loc-proc-${partitionId}`;
+  const workerId = `loc-${partitionId}`;
+
+  console.log(`[Partitions] Criando processor ${workerId} para partição ${partitionId}/${totalPartitions}`);
+
+  // Atualizar variáveis de ambiente
+  const newEnv = templateConfig.Config.Env.map(e => {
+    if (e.startsWith('WORKER_ID=')) return `WORKER_ID=${workerId}`;
+    if (e.startsWith('PARTITION_ID=')) return `PARTITION_ID=${partitionId}`;
+    if (e.startsWith('LOCATION_PARTITIONS=')) return `LOCATION_PARTITIONS=${totalPartitions}`;
+    return e;
+  });
+
+  // Garantir que as variáveis existem
+  if (!newEnv.some(e => e.startsWith('PARTITION_ID='))) {
+    newEnv.push(`PARTITION_ID=${partitionId}`);
+  }
+  if (!newEnv.some(e => e.startsWith('LOCATION_PARTITIONS='))) {
+    newEnv.push(`LOCATION_PARTITIONS=${totalPartitions}`);
+  }
+
+  // Configuração para criar o container
+  const createConfig = {
+    Image: templateConfig.Config.Image,
+    Env: newEnv,
+    Cmd: templateConfig.Config.Cmd,
+    ExposedPorts: templateConfig.Config.ExposedPorts,
+    Labels: {
+      ...templateConfig.Config.Labels,
+      'com.docker.compose.container-number': String(partitionId)
+    },
+    HostConfig: {
+      NetworkMode: templateConfig.HostConfig.NetworkMode,
+      RestartPolicy: templateConfig.HostConfig.RestartPolicy,
+      Memory: templateConfig.HostConfig.Memory,
+      NanoCpus: templateConfig.HostConfig.NanoCpus,
+      MemoryReservation: templateConfig.HostConfig.MemoryReservation
+    },
+    NetworkingConfig: {
+      EndpointsConfig: {}
+    }
+  };
+
+  // Adicionar à mesma rede
+  const networkName = Object.keys(templateConfig.NetworkSettings.Networks)[0];
+  if (networkName) {
+    createConfig.NetworkingConfig.EndpointsConfig[networkName] = {
+      Aliases: [`loc-proc-${partitionId}`]
+    };
+  }
+
+  // Verificar se já existe container com esse nome e remover
+  try {
+    const existing = await dockerApiRequest('GET', `/containers/${newContainerName}/json`);
+    if (existing.Id) {
+      console.log(`[Partitions] Removendo container existente: ${newContainerName}`);
+      if (existing.State.Running) {
+        await dockerApiRequest('POST', `/containers/${existing.Id}/stop`);
+      }
+      await dockerApiRequest('DELETE', `/containers/${existing.Id}`);
+    }
+  } catch (e) {
+    // Container não existe, ok
+  }
+
+  // Criar container
+  const createResult = await dockerApiRequest('POST', `/containers/create?name=${newContainerName}`, createConfig);
+
+  if (!createResult.Id) {
+    throw new Error('Falha ao criar container: ' + JSON.stringify(createResult));
+  }
+
+  // Iniciar container
+  await dockerApiRequest('POST', `/containers/${createResult.Id}/start`);
+
+  return {
+    name: newContainerName,
+    id: createResult.Id.substring(0, 12),
+    partition: partitionId
+  };
+}
+
 /**
  * Helper: Faz requisição HTTP ao Docker Engine API via Unix socket
  */
@@ -337,20 +572,29 @@ async function updateHAProxyServer(backend, serverName, enable = true) {
  * POST /api/infraestrutura/scale
  * Escala containers Docker (processors ou gateways por protocolo)
  *
+ * Para PROCESSORS: Usa sistema de particionamento por IMEI
+ * - Cada processor consome UMA partição específica
+ * - Se todas partições ocupadas, DOBRA o número de partições e reinicia gateways
+ *
  * Body: { type: 'processor' | 'gateway-xt40' | 'gateway-obd2' | 'gateway-teltonika', action: 'up' | 'down' }
  */
 router.post('/scale', async (req, res) => {
   try {
     const { type, action = 'up' } = req.body;
 
+    // ========================================================================
+    // SCALING DE PROCESSORS - Lógica especial com particionamento
+    // ========================================================================
+    if (type === 'processor') {
+      return await scaleProcessorWithPartitioning(action, res);
+    }
+
+    // ========================================================================
+    // SCALING DE GATEWAYS - Lógica simples (sem particionamento)
+    // ========================================================================
+
     // Mapeamento de tipos para configurações
     const typeConfig = {
-      'processor': {
-        namePattern: 'loc-proc',
-        idPrefix: 'loc',
-        displayName: 'Processor',
-        maxLimit: 8
-      },
       'gateway-xt40': {
         namePattern: 'xt40-gw',
         idPrefix: 'xt40',
@@ -378,7 +622,7 @@ router.post('/scale', async (req, res) => {
       return res.status(400).json({
         sucesso: false,
         mensagem: 'Tipo inválido. Use: processor, gateway-xt40, gateway-obd2 ou gateway-teltonika',
-        tiposValidos: Object.keys(typeConfig)
+        tiposValidos: ['processor', ...Object.keys(typeConfig)]
       });
     }
 
@@ -394,9 +638,8 @@ router.post('/scale', async (req, res) => {
     const runningContainers = typeContainers.filter(c => c.State === 'running');
     const stoppedContainers = typeContainers.filter(c => c.State !== 'running');
     const current = runningContainers.length;
-    const total = typeContainers.length;
 
-    console.log(`[Infraestrutura] ${displayName}: ${current} rodando, ${stoppedContainers.length} parados, ${total} total`);
+    console.log(`[Infraestrutura] ${displayName}: ${current} rodando, ${stoppedContainers.length} parados`);
 
     if (action === 'up') {
       // Verificar limite
@@ -417,13 +660,8 @@ router.post('/scale', async (req, res) => {
         console.log(`[Infraestrutura] Iniciando container parado: ${containerName}`);
         await dockerApiRequest('POST', `/containers/${containerId}/start`);
 
-        // Aguardar container iniciar
         await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Recarregar HAProxy para detectar o novo container (se for gateway)
-        if (haproxyBackend) {
-          await reloadHAProxy();
-        }
+        await reloadHAProxy();
 
         return res.json({
           sucesso: true,
@@ -445,7 +683,6 @@ router.post('/scale', async (req, res) => {
         });
       }
 
-      // Buscar configuração completa do container template
       const templateConfig = await dockerApiRequest('GET', `/containers/${templateContainer.Id}/json`);
 
       // Determinar próximo número
@@ -455,20 +692,17 @@ router.post('/scale', async (req, res) => {
       });
       const nextNumber = Math.max(...existingNumbers, 0) + 1;
 
-      // Novo nome do container
       const newContainerName = `rastreador-${namePattern}-${nextNumber}`;
       const workerId = `${idPrefix}-${nextNumber}`;
 
-      console.log(`[Infraestrutura] Criando novo container: ${newContainerName} (ID=${workerId})`);
+      console.log(`[Infraestrutura] Criando novo gateway: ${newContainerName}`);
 
       // Atualizar variáveis de ambiente
       const newEnv = templateConfig.Config.Env.map(e => {
-        if (e.startsWith('WORKER_ID=')) return `WORKER_ID=${workerId}`;
         if (e.startsWith('GATEWAY_ID=')) return `GATEWAY_ID=${workerId}`;
         return e;
       });
 
-      // Configuração para criar o container
       const createConfig = {
         Image: templateConfig.Config.Image,
         Env: newEnv,
@@ -490,7 +724,6 @@ router.post('/scale', async (req, res) => {
         }
       };
 
-      // Adicionar à mesma rede
       const networkName = Object.keys(templateConfig.NetworkSettings.Networks)[0];
       if (networkName) {
         createConfig.NetworkingConfig.EndpointsConfig[networkName] = {
@@ -498,29 +731,15 @@ router.post('/scale', async (req, res) => {
         };
       }
 
-      // Criar container
-      const createResult = await dockerApiRequest(
-        'POST',
-        `/containers/create?name=${newContainerName}`,
-        createConfig
-      );
+      const createResult = await dockerApiRequest('POST', `/containers/create?name=${newContainerName}`, createConfig);
 
       if (!createResult.Id) {
         throw new Error('Falha ao criar container: ' + JSON.stringify(createResult));
       }
 
-      console.log(`[Infraestrutura] Container criado: ${createResult.Id.substring(0, 12)}`);
-
-      // Iniciar container
       await dockerApiRequest('POST', `/containers/${createResult.Id}/start`);
-
-      // Aguardar container iniciar
       await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Recarregar HAProxy para detectar o novo container (se for gateway)
-      if (haproxyBackend) {
-        await reloadHAProxy();
-      }
+      await reloadHAProxy();
 
       return res.json({
         sucesso: true,
@@ -533,7 +752,6 @@ router.post('/scale', async (req, res) => {
       });
 
     } else if (action === 'down') {
-      // Verificar mínimo
       if (current <= 1) {
         return res.status(400).json({
           sucesso: false,
@@ -542,24 +760,19 @@ router.post('/scale', async (req, res) => {
         });
       }
 
-      // Parar o último container rodando (maior número)
       const sortedContainers = runningContainers.sort((a, b) => {
         const numA = parseInt(a.Names[0].match(/\d+$/)?.[0] || '0');
         const numB = parseInt(b.Names[0].match(/\d+$/)?.[0] || '0');
-        return numB - numA; // Maior número primeiro
+        return numB - numA;
       });
 
       const containerToStop = sortedContainers[0];
       const containerId = containerToStop.Id;
       const containerName = containerToStop.Names[0].replace('/', '');
 
-      console.log(`[Infraestrutura] Parando container: ${containerName}`);
+      console.log(`[Infraestrutura] Parando gateway: ${containerName}`);
       await dockerApiRequest('POST', `/containers/${containerId}/stop`);
-
-      // Recarregar HAProxy para remover o container parado (se for gateway)
-      if (haproxyBackend) {
-        await reloadHAProxy();
-      }
+      await reloadHAProxy();
 
       return res.json({
         sucesso: true,
@@ -576,6 +789,239 @@ router.post('/scale', async (req, res) => {
     res.status(500).json({
       sucesso: false,
       mensagem: 'Erro ao escalar',
+      erro: error.message
+    });
+  }
+});
+
+/**
+ * Escala processors com sistema de particionamento
+ * - Cada processor consome UMA partição específica
+ * - Se todas partições ocupadas, DOBRA as partições e reinicia gateways
+ */
+async function scaleProcessorWithPartitioning(action, res) {
+  const MAX_PARTITIONS = 16; // Limite máximo de partições
+
+  // Obter estado atual
+  const currentPartitions = await getCurrentPartitions();
+  const occupiedPartitions = await getOccupiedPartitions();
+  const currentProcessors = occupiedPartitions.length;
+
+  console.log(`[Scale Processor] Partições: ${currentPartitions}, Ocupadas: [${occupiedPartitions.join(', ')}], Processors: ${currentProcessors}`);
+
+  // Buscar containers de processors
+  const containers = await dockerApiRequest('GET', '/containers/json?all=true');
+  const processorContainers = containers.filter(c =>
+    c.Names.some(n => n.includes('rastreador-loc-proc'))
+  );
+  const runningProcessors = processorContainers.filter(c => c.State === 'running');
+
+  if (action === 'up') {
+    // Verificar limite
+    if (currentPartitions >= MAX_PARTITIONS && occupiedPartitions.length >= currentPartitions) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: `Limite máximo de ${MAX_PARTITIONS} partições atingido`,
+        atual: currentProcessors,
+        particoes: currentPartitions
+      });
+    }
+
+    // Encontrar partição livre
+    let targetPartition = findNextFreePartition(occupiedPartitions, currentPartitions);
+    let newPartitions = currentPartitions;
+    let gatewaysRestarted = [];
+
+    // Se todas partições ocupadas, dobrar partições
+    if (targetPartition === null) {
+      newPartitions = currentPartitions * 2;
+
+      if (newPartitions > MAX_PARTITIONS) {
+        return res.status(400).json({
+          sucesso: false,
+          mensagem: `Não é possível expandir além de ${MAX_PARTITIONS} partições`,
+          atual: currentProcessors,
+          particoes: currentPartitions
+        });
+      }
+
+      console.log(`[Scale Processor] Todas partições ocupadas. Expandindo de ${currentPartitions} para ${newPartitions} partições...`);
+
+      // Atualizar gateways com novo número de partições (isso reinicia os gateways)
+      gatewaysRestarted = await updateGatewayPartitions(newPartitions);
+
+      // Também atualizar processors existentes com novo LOCATION_PARTITIONS
+      for (const proc of runningProcessors) {
+        const procConfig = await dockerApiRequest('GET', `/containers/${proc.Id}/json`);
+        const procName = proc.Names[0].replace('/', '');
+
+        // Atualizar LOCATION_PARTITIONS
+        const newEnv = procConfig.Config.Env.map(e => {
+          if (e.startsWith('LOCATION_PARTITIONS=')) {
+            return `LOCATION_PARTITIONS=${newPartitions}`;
+          }
+          return e;
+        });
+
+        console.log(`[Scale Processor] Recriando processor: ${procName} com ${newPartitions} partições`);
+
+        // Parar e remover container antigo
+        await dockerApiRequest('POST', `/containers/${proc.Id}/stop`);
+        await dockerApiRequest('DELETE', `/containers/${proc.Id}`);
+
+        // Criar novo container
+        const createConfig = {
+          Image: procConfig.Config.Image,
+          Env: newEnv,
+          Cmd: procConfig.Config.Cmd,
+          ExposedPorts: procConfig.Config.ExposedPorts,
+          Labels: procConfig.Config.Labels,
+          HostConfig: {
+            NetworkMode: procConfig.HostConfig.NetworkMode,
+            RestartPolicy: procConfig.HostConfig.RestartPolicy,
+            Memory: procConfig.HostConfig.Memory,
+            NanoCpus: procConfig.HostConfig.NanoCpus,
+            MemoryReservation: procConfig.HostConfig.MemoryReservation
+          },
+          NetworkingConfig: { EndpointsConfig: {} }
+        };
+
+        const networkName = Object.keys(procConfig.NetworkSettings.Networks)[0];
+        if (networkName) {
+          createConfig.NetworkingConfig.EndpointsConfig[networkName] = {
+            Aliases: procConfig.NetworkSettings.Networks[networkName].Aliases || []
+          };
+        }
+
+        const createResult = await dockerApiRequest('POST', `/containers/create?name=${procName}`, createConfig);
+        await dockerApiRequest('POST', `/containers/${createResult.Id}/start`);
+      }
+
+      // Primeira partição livre após expansão
+      targetPartition = currentPartitions; // Era a primeira nova partição
+    }
+
+    // Buscar template (primeiro processor rodando)
+    const templateContainer = runningProcessors[0];
+    if (!templateContainer) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: 'Não há processor rodando para usar como template',
+        atual: currentProcessors
+      });
+    }
+
+    // Criar novo processor para a partição alvo
+    const newProcessor = await createProcessorForPartition(targetPartition, newPartitions, templateContainer);
+
+    // Aguardar processor iniciar
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    const responseData = {
+      sucesso: true,
+      mensagem: `Processor criado: ${newProcessor.name} (partição ${targetPartition})`,
+      anterior: currentProcessors,
+      atual: currentProcessors + 1,
+      acao: 'created',
+      container: newProcessor.name,
+      containerId: newProcessor.id,
+      particao: targetPartition,
+      totalParticoes: newPartitions
+    };
+
+    if (gatewaysRestarted.length > 0) {
+      responseData.mensagem = `Partições expandidas de ${currentPartitions} para ${newPartitions}. ${newProcessor.name} criado (partição ${targetPartition})`;
+      responseData.gatewaysReiniciados = gatewaysRestarted;
+      responseData.particoesExpandidas = true;
+    }
+
+    return res.json(responseData);
+
+  } else if (action === 'down') {
+    if (currentProcessors <= 1) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: 'Mínimo de 1 processor necessário',
+        atual: currentProcessors
+      });
+    }
+
+    // Parar o processor da MAIOR partição
+    const maxPartition = Math.max(...occupiedPartitions);
+    const containerToStop = runningProcessors.find(c => {
+      const name = c.Names[0];
+      return name.includes(`loc-proc-${maxPartition}`);
+    });
+
+    if (!containerToStop) {
+      // Fallback: parar o último por número
+      const sorted = runningProcessors.sort((a, b) => {
+        const numA = parseInt(a.Names[0].match(/\d+$/)?.[0] || '0');
+        const numB = parseInt(b.Names[0].match(/\d+$/)?.[0] || '0');
+        return numB - numA;
+      });
+      const toStop = sorted[0];
+
+      await dockerApiRequest('POST', `/containers/${toStop.Id}/stop`);
+      const containerName = toStop.Names[0].replace('/', '');
+
+      return res.json({
+        sucesso: true,
+        mensagem: `Processor parado: ${containerName}`,
+        anterior: currentProcessors,
+        atual: currentProcessors - 1,
+        acao: 'stopped',
+        container: containerName,
+        aviso: 'Mensagens da partição órfã acumularão até um novo processor ser criado'
+      });
+    }
+
+    await dockerApiRequest('POST', `/containers/${containerToStop.Id}/stop`);
+    const containerName = containerToStop.Names[0].replace('/', '');
+
+    return res.json({
+      sucesso: true,
+      mensagem: `Processor parado: ${containerName} (partição ${maxPartition})`,
+      anterior: currentProcessors,
+      atual: currentProcessors - 1,
+      acao: 'stopped',
+      container: containerName,
+      particaoLiberada: maxPartition,
+      aviso: `Mensagens da partição ${maxPartition} acumularão até um novo processor ser criado`
+    });
+  }
+}
+
+/**
+ * GET /api/infraestrutura/partitions
+ * Retorna informações sobre o sistema de particionamento
+ */
+router.get('/partitions', async (req, res) => {
+  try {
+    const currentPartitions = await getCurrentPartitions();
+    const occupiedPartitions = await getOccupiedPartitions();
+    const freePartitions = [];
+
+    for (let i = 0; i < currentPartitions; i++) {
+      if (!occupiedPartitions.includes(i)) {
+        freePartitions.push(i);
+      }
+    }
+
+    res.json({
+      sucesso: true,
+      total: currentPartitions,
+      ocupadas: occupiedPartitions,
+      livres: freePartitions,
+      processorsAtivos: occupiedPartitions.length,
+      podeExpandir: currentPartitions < 16,
+      proximaExpansao: currentPartitions * 2,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Partitions] Erro:', error);
+    res.status(500).json({
+      sucesso: false,
       erro: error.message
     });
   }

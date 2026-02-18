@@ -4701,16 +4701,17 @@
             <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);">
               <div style="color: var(--text-light); font-size: 12px; margin-bottom: 12px;">SCALING AUTOMATICO</div>
 
-              <!-- Processors -->
+              <!-- Processors (com particionamento) -->
               <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;">
                 <span style="font-size: 11px; color: var(--text-light); width: 100px;">Processors:</span>
-                <button onclick="scaleInfrastructure('processor', 'up')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Adicionar Processor">
+                <button onclick="scaleInfrastructure('processor', 'up')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Adicionar Processor (expande particoes se necessario)">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
                 </button>
                 <button onclick="scaleInfrastructure('processor', 'down')" class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" title="Remover Processor">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg>
                 </button>
                 <span id="count-processors" style="font-size: 11px; color: var(--text-muted); margin-left: 8px;">-</span>
+                <span id="partitions-info" style="font-size: 10px; color: var(--info); margin-left: 4px; padding: 2px 6px; background: rgba(59, 130, 246, 0.15); border-radius: 4px;"></span>
               </div>
 
               <!-- Gateway XT40 (8877) -->
@@ -7366,6 +7367,24 @@
           console.warn('[Containers] Erro ao buscar contagem:', e);
         }
 
+        // Buscar informacoes de particoes
+        try {
+          const partitionsResp = await authFetch(`${API_URL}/infraestrutura/partitions`);
+          const partitionsData = await partitionsResp.json();
+          if (partitionsData.sucesso) {
+            const partitionsInfo = document.getElementById('partitions-info');
+            if (partitionsInfo) {
+              const livres = partitionsData.livres.length;
+              const total = partitionsData.total;
+              const cor = livres > 0 ? 'var(--success)' : 'var(--warning)';
+              partitionsInfo.innerHTML = `<span style="color: ${cor};">${partitionsData.ocupadas.length}/${total} particoes</span>`;
+              partitionsInfo.title = `Particoes ocupadas: [${partitionsData.ocupadas.join(', ')}]\nParticoes livres: [${partitionsData.livres.join(', ')}]\nProxima expansao: ${total} → ${partitionsData.proximaExpansao}`;
+            }
+          }
+        } catch (e) {
+          console.warn('[Partitions] Erro ao buscar particoes:', e);
+        }
+
         // Componentes detalhados
         const componentsDiv = document.getElementById('infra-components');
         if (componentsDiv) {
@@ -7584,7 +7603,12 @@
       const displayName = typeNames[type] || type;
 
       try {
-        toastInfo(`${actionNames[action]} ${displayName}...`);
+        // Mostrar loading com aviso especial para processors
+        if (type === 'processor' && action === 'up') {
+          toastInfo(`${actionNames[action]} ${displayName}... (pode expandir particoes e reiniciar gateways)`);
+        } else {
+          toastInfo(`${actionNames[action]} ${displayName}...`);
+        }
 
         const response = await authFetch(`${API_URL}/infraestrutura/scale`, {
           method: 'POST',
@@ -7595,7 +7619,27 @@
         const result = await response.json();
 
         if (result.sucesso) {
-          toastSuccess(`${displayName}: ${result.anterior} → ${result.atual}`);
+          // Mensagem especial para expansao de particoes
+          if (result.particoesExpandidas) {
+            toastSuccess(`Particoes expandidas! ${result.anterior} → ${result.atual} processors (${result.totalParticoes} particoes)`);
+            if (result.gatewaysReiniciados && result.gatewaysReiniciados.length > 0) {
+              setTimeout(() => {
+                toastInfo(`${result.gatewaysReiniciados.length} gateways reiniciados para usar novas particoes`);
+              }, 1000);
+            }
+          } else if (result.particao !== undefined) {
+            toastSuccess(`${displayName}: ${result.anterior} → ${result.atual} (particao ${result.particao})`);
+          } else {
+            toastSuccess(`${displayName}: ${result.anterior} → ${result.atual}`);
+          }
+
+          // Mostrar aviso se parou processor
+          if (result.aviso) {
+            setTimeout(() => {
+              toastInfo(result.aviso);
+            }, 1500);
+          }
+
           // Atualizar a visualização da infraestrutura
           setTimeout(() => {
             loadInfrastructureStatus();
