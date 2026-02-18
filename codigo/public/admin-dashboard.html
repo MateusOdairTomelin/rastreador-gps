@@ -4106,6 +4106,10 @@
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg></span>
           <span>Veiculos</span>
         </button>
+        <button class="nav-item" id="nav-info-veiculo" onclick="switchSection('info-veiculo')" style="display: none;">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+          <span id="nav-info-veiculo-label">Info Veículo</span>
+        </button>
         <button class="nav-item" id="nav-multas" onclick="switchSection('multas')">
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></span>
           <span>Multas</span>
@@ -5580,6 +5584,148 @@
               </table>
             </div>
             <div id="multas-pagination" style="display: flex; justify-content: center; gap: 5px; padding: 20px;"></div>
+          </div>
+        </section>
+
+        <!-- INFO VEÍCULO SECTION - Detalhes completos do veículo selecionado -->
+        <section class="section" id="section-info-veiculo">
+          <!-- Mensagem quando nenhum veículo selecionado -->
+          <div id="info-veiculo-vazio" style="text-align: center; padding: 60px 20px;">
+            <div style="font-size: 80px; margin-bottom: 20px;">🚗</div>
+            <h2 style="color: var(--text); margin-bottom: 10px;">Nenhum veículo selecionado</h2>
+            <p style="color: var(--text-light); margin-bottom: 20px;">Selecione um veículo na lista de dispositivos ou no mapa para ver os detalhes.</p>
+            <button onclick="switchSection('dispositivos')" class="btn btn-primary" style="padding: 12px 24px;">
+              📋 Ver Dispositivos
+            </button>
+          </div>
+
+          <!-- Conteúdo do veículo (escondido até selecionar) -->
+          <div id="info-veiculo-conteudo" style="display: none;">
+            <!-- Cabeçalho do Veículo -->
+            <div class="card" style="margin-bottom: 20px; overflow: hidden;">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                  <div id="info-ignition-icon" style="width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 28px;">🚗</div>
+                  <div>
+                    <h2 id="info-vehicle-name" style="margin: 0; font-size: 24px;">Veículo</h2>
+                    <p style="margin: 5px 0 0; opacity: 0.9;">
+                      <span id="info-vehicle-placa">Placa: ---</span> |
+                      <span id="info-vehicle-imei">IMEI: ---</span>
+                    </p>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 20px; align-items: center;">
+                  <div style="text-align: center;">
+                    <div id="info-speed" style="font-size: 42px; font-weight: bold;">0</div>
+                    <div style="font-size: 12px; opacity: 0.8;">km/h</div>
+                  </div>
+                  <div id="info-status-badge" style="padding: 8px 16px; border-radius: 20px; background: rgba(255,255,255,0.2); font-weight: 600;">Online</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grid de Info Rápida -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+              <div class="card" style="padding: 20px; text-align: center;">
+                <div id="info-ignition-status" style="font-size: 32px; margin-bottom: 5px;">⚫</div>
+                <div id="info-ignition-text" style="font-size: 12px; color: var(--text-light); text-transform: uppercase;">Desligado</div>
+              </div>
+              <div class="card" style="padding: 20px; text-align: center;">
+                <div id="info-voltage" style="font-size: 24px; font-weight: bold; color: var(--success);">--</div>
+                <div style="font-size: 12px; color: var(--text-light);">Bateria (V)</div>
+              </div>
+              <div class="card" style="padding: 20px; text-align: center;">
+                <div id="info-direction" style="font-size: 24px; font-weight: bold; color: var(--accent);">--°</div>
+                <div style="font-size: 12px; color: var(--text-light);">Direção</div>
+              </div>
+              <div class="card" style="padding: 20px; text-align: center;">
+                <div id="info-odometer" style="font-size: 18px; font-weight: bold; color: var(--text);">-- km</div>
+                <div style="font-size: 12px; color: var(--text-light);">Odômetro</div>
+              </div>
+              <div class="card" style="padding: 20px; text-align: center;">
+                <div id="info-engine-hours" style="font-size: 18px; font-weight: bold; color: var(--text);">-- h</div>
+                <div style="font-size: 12px; color: var(--text-light);">Horas Motor</div>
+              </div>
+              <div class="card" style="padding: 20px; text-align: center;">
+                <div id="info-lastupdate" style="font-size: 18px; font-weight: bold; color: var(--text);">--:--</div>
+                <div style="font-size: 12px; color: var(--text-light);">Última Atualização</div>
+              </div>
+            </div>
+
+            <!-- Endereço Atual -->
+            <div class="card" style="margin-bottom: 20px; padding: 20px;">
+              <div style="display: flex; align-items: flex-start; gap: 15px;">
+                <span style="font-size: 28px;">📍</span>
+                <div style="flex: 1;">
+                  <div style="font-size: 11px; color: var(--text-light); text-transform: uppercase; margin-bottom: 5px;">Localização Atual</div>
+                  <div id="info-address" style="font-size: 15px; color: var(--text); line-height: 1.4;">Carregando endereço...</div>
+                  <div id="info-coords" style="font-size: 12px; color: var(--text-light); margin-top: 5px;">---, ---</div>
+                </div>
+                <button onclick="abrirGoogleMapsVeiculo()" class="btn" style="padding: 8px 15px; background: var(--bg-card); border: 1px solid var(--border);">
+                  🗺️ Abrir no Maps
+                </button>
+              </div>
+            </div>
+
+            <!-- Mapa do Veículo -->
+            <div class="card" style="margin-bottom: 20px; overflow: hidden;">
+              <div style="padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: var(--primary);">📍 Localização e Rota</h3>
+                <div style="display: flex; gap: 10px;">
+                  <select id="info-periodo-rota" onchange="carregarRotaInfoVeiculo()" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card);">
+                    <option value="1">Última 1 hora</option>
+                    <option value="3">Últimas 3 horas</option>
+                    <option value="6">Últimas 6 horas</option>
+                    <option value="12">Últimas 12 horas</option>
+                    <option value="24" selected>Últimas 24 horas</option>
+                  </select>
+                  <button onclick="carregarRotaInfoVeiculo()" class="btn btn-primary" style="padding: 8px 15px;">Atualizar Rota</button>
+                </div>
+              </div>
+              <div id="info-map" style="height: 400px; width: 100%;"></div>
+            </div>
+
+            <!-- Viagens Recentes -->
+            <div class="card" style="margin-bottom: 20px;">
+              <div style="padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: var(--primary);">🚗 Viagens Recentes</h3>
+                <button onclick="carregarViagensInfoVeiculo()" class="btn" style="padding: 8px 15px; background: var(--bg-card); border: 1px solid var(--border);">🔄 Atualizar</button>
+              </div>
+              <div id="info-viagens-lista" style="max-height: 300px; overflow-y: auto;">
+                <div style="padding: 40px; text-align: center; color: var(--text-light);">
+                  Carregando viagens...
+                </div>
+              </div>
+            </div>
+
+            <!-- Estatísticas -->
+            <div class="card">
+              <div style="padding: 15px; border-bottom: 1px solid var(--border);">
+                <h3 style="margin: 0; color: var(--primary);">📊 Estatísticas (Últimas 24h)</h3>
+              </div>
+              <div style="padding: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
+                <div style="text-align: center;">
+                  <div id="info-stat-distancia" style="font-size: 24px; font-weight: bold; color: var(--primary);">-- km</div>
+                  <div style="font-size: 12px; color: var(--text-light);">Distância</div>
+                </div>
+                <div style="text-align: center;">
+                  <div id="info-stat-tempo-movimento" style="font-size: 24px; font-weight: bold; color: var(--accent);">--</div>
+                  <div style="font-size: 12px; color: var(--text-light);">Tempo em Movimento</div>
+                </div>
+                <div style="text-align: center;">
+                  <div id="info-stat-vel-media" style="font-size: 24px; font-weight: bold; color: var(--success);">-- km/h</div>
+                  <div style="font-size: 12px; color: var(--text-light);">Vel. Média</div>
+                </div>
+                <div style="text-align: center;">
+                  <div id="info-stat-vel-max" style="font-size: 24px; font-weight: bold; color: var(--warning);">-- km/h</div>
+                  <div style="font-size: 12px; color: var(--text-light);">Vel. Máxima</div>
+                </div>
+                <div style="text-align: center;">
+                  <div id="info-stat-viagens" style="font-size: 24px; font-weight: bold; color: var(--text);">--</div>
+                  <div style="font-size: 12px; color: var(--text-light);">Viagens</div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -8095,6 +8241,18 @@
                   document.getElementById('selected-direction').textContent = `${locData.direcao}°`;
                 }
               }
+
+              // ✅ ATUALIZAR SEÇÃO INFO-VEICULO se este veículo está aberto
+              if (typeof atualizarInfoVeiculoWS === 'function') {
+                atualizarInfoVeiculoWS(data.imei, {
+                  velocidade: vel,
+                  estado_ignicao: estado,
+                  latitude: lat,
+                  longitude: lng,
+                  tensao_principal: locData.tensao_principal,
+                  direcao: locData.direcao
+                });
+              }
             } else if (map && !mapMarkers[data.imei] && lat && lng) {
               // Novo dispositivo - fazer fetch apenas para este caso
               console.log(`[WS] 🆕 Novo dispositivo ${data.imei} - carregando marcadores`);
@@ -9795,7 +9953,7 @@
             <td><span class="badge ${statusUsoBadge}">${statusUsoLabel}</span></td>
             <td>
               <button class="btn btn-primary" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); verNoMapa('${imeiSeguro.replace(/'/g, "\\'")}')">📍 Mapa</button>
-              <a href="/veiculo-detalhes.html?imei=${imeiEncoded}" class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; text-decoration: none;" onclick="event.stopPropagation();">📊 Detalhes</a>
+              <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); abrirInfoVeiculo('${imeiSeguro.replace(/'/g, "\\'")}')">📊 Detalhes</button>
               <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #f59e0b;" onclick="event.stopPropagation(); openEditModal('${imeiSeguro.replace(/'/g, "\\'")}')">✏️ Editar</button>
               ${statusUso !== 'inativo' ? `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #6b7280;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'inativo')" title="Desativar rastreador">🚫</button>` : `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #10b981;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'disponivel')" title="Reativar como disponível">✅</button>`}
               <button class="btn btn-danger" style="padding: 6px 12px; font-size: 11px;" onclick="event.stopPropagation(); deleteDevice('${imeiSeguro.replace(/'/g, "\\'")}')">🗑️</button>
@@ -10498,6 +10656,345 @@
       window.open(`/veiculo-detalhes.html?imei=${encodeURIComponent(selectedVehicleImei)}#viagens`, '_blank');
     }
 
+    // ============ INFO VEÍCULO - Seção de Detalhes Integrada ============
+    let infoVeiculoImei = null;
+    let infoVeiculoMap = null;
+    let infoVeiculoMarker = null;
+    let infoVeiculoRoute = null;
+
+    // Abrir seção de info do veículo
+    function abrirInfoVeiculo(imei) {
+      infoVeiculoImei = imei;
+      selectedVehicleImei = imei;
+
+      // Mostrar botão na sidebar
+      const navBtn = document.getElementById('nav-info-veiculo');
+      navBtn.style.display = 'flex';
+
+      // Atualizar label com placa do veículo
+      const device = allDevices.find(d => d.imei === imei);
+      if (device) {
+        document.getElementById('nav-info-veiculo-label').textContent = device.placa || device.veiculo || 'Info Veículo';
+      }
+
+      // Mudar para seção
+      switchSection('info-veiculo');
+
+      // Carregar dados do veículo
+      carregarInfoVeiculo(imei);
+    }
+
+    async function carregarInfoVeiculo(imei) {
+      const device = allDevices.find(d => d.imei === imei);
+      if (!device) {
+        document.getElementById('info-veiculo-vazio').style.display = 'block';
+        document.getElementById('info-veiculo-conteudo').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('info-veiculo-vazio').style.display = 'none';
+      document.getElementById('info-veiculo-conteudo').style.display = 'block';
+
+      // Preencher dados básicos
+      document.getElementById('info-vehicle-name').textContent = device.veiculo || 'Sem nome';
+      document.getElementById('info-vehicle-placa').textContent = `Placa: ${device.placa || '---'}`;
+      document.getElementById('info-vehicle-imei').textContent = `IMEI: ${device.imei}`;
+      document.getElementById('info-speed').textContent = device.velocidade || '0';
+
+      // Status
+      const statusBadge = document.getElementById('info-status-badge');
+      if (device.status === 'online') {
+        statusBadge.style.background = 'rgba(16, 185, 129, 0.8)';
+        statusBadge.textContent = 'Online';
+      } else {
+        statusBadge.style.background = 'rgba(239, 68, 68, 0.8)';
+        statusBadge.textContent = 'Offline';
+      }
+
+      // Ignição
+      atualizarIgnicaoInfo(device.estado_ignicao, device.velocidade);
+
+      // Tensão
+      const tensao = device.tensao_principal || device.tensao_bateria;
+      document.getElementById('info-voltage').textContent = tensao ? tensao.toFixed(1) : '--';
+      document.getElementById('info-voltage').style.color = tensao >= 12.5 ? 'var(--success)' : 'var(--danger)';
+
+      // Direção
+      document.getElementById('info-direction').textContent = device.direcao ? `${device.direcao}°` : '--°';
+
+      // Odômetro e horas
+      document.getElementById('info-odometer').textContent = device.odometro ? `${Math.round(device.odometro)} km` : '-- km';
+      document.getElementById('info-engine-hours').textContent = device.horas_motor ? `${device.horas_motor.toFixed(1)} h` : '-- h';
+
+      // Última atualização
+      if (device.updated_at) {
+        const dt = new Date(device.updated_at);
+        document.getElementById('info-lastupdate').textContent = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+
+      // Coordenadas e endereço
+      if (device.latitude && device.longitude) {
+        document.getElementById('info-coords').textContent = `${device.latitude.toFixed(6)}, ${device.longitude.toFixed(6)}`;
+        buscarEnderecoInfo(device.latitude, device.longitude);
+
+        // Inicializar mapa
+        setTimeout(() => {
+          inicializarMapaInfo(device.latitude, device.longitude);
+        }, 100);
+      }
+
+      // Buscar dados OBD2
+      buscarDadosOBD2Info(imei);
+
+      // Carregar estatísticas
+      carregarEstatisticasInfo(imei);
+
+      // Carregar viagens
+      carregarViagensInfoVeiculo();
+
+      // Carregar rota
+      carregarRotaInfoVeiculo();
+    }
+
+    function atualizarIgnicaoInfo(estado, velocidade) {
+      const iconEl = document.getElementById('info-ignition-status');
+      const textEl = document.getElementById('info-ignition-text');
+      const headerIcon = document.getElementById('info-ignition-icon');
+
+      if (velocidade > 5 || estado === 'moving') {
+        iconEl.textContent = '🔵';
+        textEl.textContent = 'Em Movimento';
+        headerIcon.style.background = 'rgba(59, 130, 246, 0.5)';
+        headerIcon.textContent = '🚗';
+      } else if (estado === 'idle' || estado === 'acc_on') {
+        iconEl.textContent = '🟡';
+        textEl.textContent = 'Ligado/Ocioso';
+        headerIcon.style.background = 'rgba(245, 158, 11, 0.5)';
+        headerIcon.textContent = '🔑';
+      } else {
+        iconEl.textContent = '🔴';
+        textEl.textContent = 'Desligado';
+        headerIcon.style.background = 'rgba(239, 68, 68, 0.3)';
+        headerIcon.textContent = '🅿️';
+      }
+    }
+
+    async function buscarEnderecoInfo(lat, lon) {
+      const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+      if (addressCache[cacheKey]) {
+        document.getElementById('info-address').textContent = addressCache[cacheKey];
+        return;
+      }
+
+      document.getElementById('info-address').textContent = 'Buscando endereço...';
+
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {
+          headers: { 'Accept-Language': 'pt-BR' }
+        });
+        const data = await res.json();
+        const addr = data.display_name || 'Endereço não encontrado';
+        addressCache[cacheKey] = addr;
+        document.getElementById('info-address').textContent = addr;
+      } catch (e) {
+        document.getElementById('info-address').textContent = 'Erro ao buscar endereço';
+      }
+    }
+
+    async function buscarDadosOBD2Info(imei) {
+      try {
+        const res = await authFetch(`${API_BASE}/dispositivos/${imei}/obd2-atual`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.odometro) {
+            document.getElementById('info-odometer').textContent = `${Math.round(data.odometro)} km`;
+          }
+          if (data.horas_motor) {
+            document.getElementById('info-engine-hours').textContent = `${data.horas_motor.toFixed(1)} h`;
+          }
+          if (data.tensao_principal) {
+            document.getElementById('info-voltage').textContent = data.tensao_principal.toFixed(1);
+          }
+        }
+      } catch (e) { }
+    }
+
+    async function carregarEstatisticasInfo(imei) {
+      try {
+        const res = await authFetch(`${API_BASE}/dispositivos/${imei}/estatisticas?horas=24`);
+        if (res.ok) {
+          const stats = await res.json();
+          document.getElementById('info-stat-distancia').textContent = stats.distancia_total ? `${stats.distancia_total.toFixed(1)} km` : '0 km';
+          document.getElementById('info-stat-vel-media').textContent = stats.velocidade_media ? `${Math.round(stats.velocidade_media)} km/h` : '0 km/h';
+          document.getElementById('info-stat-vel-max').textContent = stats.velocidade_maxima ? `${Math.round(stats.velocidade_maxima)} km/h` : '0 km/h';
+          document.getElementById('info-stat-viagens').textContent = stats.total_viagens || '0';
+
+          if (stats.tempo_movimento) {
+            const horas = Math.floor(stats.tempo_movimento / 60);
+            const mins = Math.round(stats.tempo_movimento % 60);
+            document.getElementById('info-stat-tempo-movimento').textContent = `${horas}h ${mins}m`;
+          } else {
+            document.getElementById('info-stat-tempo-movimento').textContent = '0h';
+          }
+        }
+      } catch (e) {
+        console.warn('Erro ao carregar estatísticas:', e);
+      }
+    }
+
+    function inicializarMapaInfo(lat, lon) {
+      const mapContainer = document.getElementById('info-map');
+      if (!mapContainer) return;
+
+      // Destruir mapa anterior se existir
+      if (infoVeiculoMap) {
+        infoVeiculoMap.remove();
+        infoVeiculoMap = null;
+      }
+
+      // Criar novo mapa
+      infoVeiculoMap = L.map('info-map').setView([lat, lon], 15);
+
+      L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '&copy; Google Maps'
+      }).addTo(infoVeiculoMap);
+
+      // Marcador do veículo
+      infoVeiculoMarker = L.marker([lat, lon]).addTo(infoVeiculoMap);
+
+      const device = allDevices.find(d => d.imei === infoVeiculoImei);
+      if (device) {
+        infoVeiculoMarker.bindPopup(`<b>${device.veiculo || 'Veículo'}</b><br>${device.placa || ''}`).openPopup();
+      }
+    }
+
+    async function carregarRotaInfoVeiculo() {
+      if (!infoVeiculoImei || !infoVeiculoMap) return;
+
+      const horas = document.getElementById('info-periodo-rota').value;
+
+      try {
+        const res = await authFetch(`${API_BASE}/dispositivos/${infoVeiculoImei}/historico?horas=${horas}`);
+        if (res.ok) {
+          const data = await res.json();
+          const pontos = data.localizacoes || data;
+
+          // Remover rota anterior
+          if (infoVeiculoRoute) {
+            infoVeiculoMap.removeLayer(infoVeiculoRoute);
+          }
+
+          if (pontos.length > 1) {
+            const coords = pontos.map(p => [p.latitude, p.longitude]);
+            infoVeiculoRoute = L.polyline(coords, { color: 'var(--primary)', weight: 4, opacity: 0.8 }).addTo(infoVeiculoMap);
+            infoVeiculoMap.fitBounds(infoVeiculoRoute.getBounds(), { padding: [30, 30] });
+          }
+
+          // Atualizar posição do marcador
+          if (pontos.length > 0) {
+            const ultimo = pontos[0];
+            infoVeiculoMarker.setLatLng([ultimo.latitude, ultimo.longitude]);
+          }
+        }
+      } catch (e) {
+        console.warn('Erro ao carregar rota:', e);
+      }
+    }
+
+    async function carregarViagensInfoVeiculo() {
+      if (!infoVeiculoImei) return;
+
+      const container = document.getElementById('info-viagens-lista');
+      container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-light);">Carregando...</div>';
+
+      try {
+        const res = await authFetch(`${API_BASE}/viagens?imei=${infoVeiculoImei}&limit=10`);
+        if (res.ok) {
+          const data = await res.json();
+          const viagens = data.viagens || data || [];
+
+          if (viagens.length === 0) {
+            container.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-light);">Nenhuma viagem registrada</div>';
+            return;
+          }
+
+          container.innerHTML = viagens.map(v => {
+            const inicio = new Date(v.inicio);
+            const fim = v.fim ? new Date(v.fim) : null;
+            const duracao = fim ? Math.round((fim - inicio) / 60000) : '...';
+
+            return `
+              <div style="padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-weight: 600; color: var(--text);">${inicio.toLocaleDateString('pt-BR')} ${inicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+                  <div style="font-size: 12px; color: var(--text-light);">Duração: ${duracao} min | Dist: ${v.distancia_km ? v.distancia_km.toFixed(1) : '--'} km</div>
+                </div>
+                <span class="badge" style="background: ${v.status === 'em_andamento' ? 'var(--accent)' : 'var(--success)'};">${v.status === 'em_andamento' ? 'Em andamento' : 'Finalizada'}</span>
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (e) {
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--danger);">Erro ao carregar viagens</div>';
+      }
+    }
+
+    function abrirGoogleMapsVeiculo() {
+      const device = allDevices.find(d => d.imei === infoVeiculoImei);
+      if (device && device.latitude && device.longitude) {
+        window.open(`https://www.google.com/maps?q=${device.latitude},${device.longitude}`, '_blank');
+      }
+    }
+
+    // Atualizar info do veículo via WebSocket
+    function atualizarInfoVeiculoWS(imei, data) {
+      if (infoVeiculoImei !== imei) return;
+
+      // Atualizar velocidade
+      if (data.velocidade !== undefined) {
+        document.getElementById('info-speed').textContent = data.velocidade;
+      }
+
+      // Atualizar ignição
+      if (data.estado_ignicao || data.velocidade !== undefined) {
+        atualizarIgnicaoInfo(data.estado_ignicao, data.velocidade || 0);
+      }
+
+      // Atualizar hora
+      document.getElementById('info-lastupdate').textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      // Atualizar coordenadas
+      if (data.latitude && data.longitude) {
+        document.getElementById('info-coords').textContent = `${data.latitude.toFixed(6)}, ${data.longitude.toFixed(6)}`;
+
+        // Atualizar marcador no mapa
+        if (infoVeiculoMarker) {
+          infoVeiculoMarker.setLatLng([data.latitude, data.longitude]);
+        }
+
+        // Atualizar endereço (com debounce)
+        if (!window.infoAddressUpdatePending) {
+          window.infoAddressUpdatePending = true;
+          setTimeout(() => {
+            buscarEnderecoInfo(data.latitude, data.longitude);
+            window.infoAddressUpdatePending = false;
+          }, 5000);
+        }
+      }
+
+      // Atualizar tensão
+      if (data.tensao_principal) {
+        document.getElementById('info-voltage').textContent = data.tensao_principal.toFixed(1);
+      }
+
+      // Atualizar direção
+      if (data.direcao !== undefined) {
+        document.getElementById('info-direction').textContent = `${data.direcao}°`;
+      }
+    }
+
     function toggleFollowMode() {
       const btn = document.getElementById('btn-follow');
       const select = document.getElementById('select-vehicle');
@@ -11067,7 +11564,7 @@
             <td><span class="badge ${statusUsoBadge}">${statusUsoLabel}</span></td>
             <td>
               <button class="btn btn-primary" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); verNoMapa('${imeiSeguro.replace(/'/g, "\\'")}')">📍 Mapa</button>
-              <a href="/veiculo-detalhes.html?imei=${imeiEncoded}" class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; text-decoration: none;" onclick="event.stopPropagation();">📊 Detalhes</a>
+              <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); abrirInfoVeiculo('${imeiSeguro.replace(/'/g, "\\'")}')">📊 Detalhes</button>
               <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #f59e0b;" onclick="event.stopPropagation(); openEditModal('${imeiSeguro.replace(/'/g, "\\'")}')">✏️ Editar</button>
               ${statusUso !== 'inativo' ? `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #6b7280;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'inativo')" title="Desativar rastreador">🚫</button>` : `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #10b981;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'disponivel')" title="Reativar como disponível">✅</button>`}
               <button class="btn btn-danger" style="padding: 6px 12px; font-size: 11px;" onclick="event.stopPropagation(); deleteDevice('${imeiSeguro.replace(/'/g, "\\'")}')">🗑️</button>
