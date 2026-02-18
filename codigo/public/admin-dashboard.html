@@ -4311,15 +4311,13 @@
           <div class="card" style="margin-bottom: 15px; padding: 15px;">
             <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
               <!-- Seletor de Veículo com busca -->
-              <div id="vehicle-search-container" style="flex: 1; min-width: 250px; position: relative;">
+              <div id="vehicle-search-container" style="flex: 1; min-width: 250px;">
                 <label style="font-size: 12px; color: var(--text-light); display: block; margin-bottom: 5px;">Veículo</label>
                 <input type="text" id="search-vehicle" placeholder="Buscar veículo..."
                        style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;"
                        oninput="filterVehicleList(this.value)"
                        onclick="showVehicleDropdown()"
                        autocomplete="off">
-                <div id="vehicle-dropdown" style="display: none; position: fixed; background: white; border: 1px solid #ddd; border-radius: 8px; max-height: 300px; overflow-y: auto; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.2); min-width: 280px;">
-                </div>
                 <!-- Mantém select oculto para compatibilidade -->
                 <select id="select-vehicle" style="display: none;"></select>
               </div>
@@ -15673,5 +15671,8 @@
 
   <!-- Container para Toasts de Download (não-bloqueante) -->
   <div id="download-toast-container" class="download-toast-container"></div>
+
+  <!-- Dropdown de veículos (fora de qualquer container para z-index funcionar) -->
+  <div id="vehicle-dropdown" style="display: none; position: fixed; background: white; border: 1px solid #ccc; border-radius: 8px; max-height: 350px; overflow-y: auto; z-index: 999999; box-shadow: 0 10px 40px rgba(0,0,0,0.25);"></div>
 </body>
 </html>
