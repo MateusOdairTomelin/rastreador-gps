@@ -575,17 +575,22 @@
         }
 
         .map-container.expanded {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 9999;
-            border-radius: 0;
-            margin: 0;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
             background: #fff;
+        }
+
+        .map-container.expanded #map {
+            height: 100vh !important;
+            width: 100vw !important;
         }
 
         .map-expand-btn {
@@ -2424,6 +2429,7 @@
         // Função para expandir/recolher o mapa
         function toggleMapExpand() {
             const container = document.getElementById('map-container');
+            const mapEl = document.getElementById('map');
             const icon = document.getElementById('expand-icon');
             const text = document.getElementById('expand-text');
 
@@ -2433,16 +2439,37 @@
                 icon.textContent = '✕';
                 text.textContent = 'Fechar';
                 document.body.style.overflow = 'hidden';
+                // Forçar altura do mapa
+                if (mapEl) {
+                    mapEl.style.height = '100vh';
+                    mapEl.style.width = '100vw';
+                }
             } else {
                 icon.textContent = '⛶';
                 text.textContent = 'Expandir';
                 document.body.style.overflow = '';
+                // Restaurar altura original
+                if (mapEl) {
+                    mapEl.style.height = '100%';
+                    mapEl.style.width = '100%';
+                }
             }
 
             // Atualizar tamanho do mapa após transição
             setTimeout(() => {
+                if (map) {
+                    map.invalidateSize();
+                    // Se expandido, ajustar bounds para ocupar tela toda
+                    if (container.classList.contains('expanded')) {
+                        map.invalidateSize({ animate: false });
+                    }
+                }
+            }, 100);
+
+            // Segunda atualização após animação completa
+            setTimeout(() => {
                 if (map) map.invalidateSize();
-            }, 350);
+            }, 400);
         }
 
         // Fechar mapa expandido com ESC
