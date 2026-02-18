@@ -297,10 +297,16 @@ class LocalizacaoService {
     const agora = new Date();
     const diffMinutos = (agora.getTime() - timestampFinal.getTime()) / (1000 * 60);
 
-    if (diffMinutos > 5) {
-      // Timestamp do GPS está mais de 5 minutos no passado - usar hora do servidor
-      console.log(`[Location] ⚠️ ${imei}: Timestamp GPS atrasado ${diffMinutos.toFixed(1)}min - usando hora do servidor`);
+    // ✅ CORREÇÃO: Só corrigir timestamp se > 24 horas atrasado
+    // Preserva dados de buffer do rastreador (manutenção, queda de sistema)
+    if (diffMinutos > 1440) { // 24 horas
+      // Timestamp muito antigo (GPS com data errada) - usar hora do servidor
+      console.log(`[Location] ⚠️ ${imei}: Timestamp GPS muito atrasado ${(diffMinutos/60).toFixed(1)}h - usando hora do servidor`);
       timestampFinal = agora;
+    } else if (diffMinutos > 60) {
+      // Timestamp atrasado 1-24h - dados de buffer, manter original
+      console.log(`[Location] 📦 ${imei}: Dados de BUFFER - timestamp ${(diffMinutos/60).toFixed(1)}h atrás (mantendo original)`);
+      // NÃO corrigir - manter timestamp original do GPS
     } else if (diffMinutos < -5) {
       // Timestamp do GPS está no futuro - usar hora do servidor
       console.log(`[Location] ⚠️ ${imei}: Timestamp GPS no futuro ${Math.abs(diffMinutos).toFixed(1)}min - usando hora do servidor`);

@@ -441,10 +441,18 @@ async function processLocationMessage(message) {
     const agora = new Date();
     const diffMinutos = (agora.getTime() - timestampCorrigido.getTime()) / (1000 * 60);
 
-    if (diffMinutos > 5) {
-      // Timestamp do GPS está mais de 5 minutos no passado - usar hora do servidor
-      console.log(`[${WORKER_ID}] ⚠️ ${imei}: Timestamp GPS atrasado ${diffMinutos.toFixed(1)}min - corrigindo para hora do servidor`);
+    // ✅ CORREÇÃO: Só corrigir timestamp se > 24 horas atrasado
+    // Isso preserva dados de buffer do rastreador (manutenção, queda de sistema)
+    // Antes: 5 minutos → causava linhas retas quando dados de buffer chegavam
+    // Agora: 24 horas → mantém sequência correta dos pontos do buffer
+    if (diffMinutos > 1440) { // 24 horas
+      // Timestamp muito antigo (provavelmente GPS com data errada) - usar hora do servidor
+      console.log(`[${WORKER_ID}] ⚠️ ${imei}: Timestamp GPS muito atrasado ${(diffMinutos/60).toFixed(1)}h - corrigindo para hora do servidor`);
       timestampCorrigido = agora;
+    } else if (diffMinutos > 60) {
+      // Timestamp atrasado 1-24h - dados de buffer, manter original mas logar
+      console.log(`[${WORKER_ID}] 📦 ${imei}: Dados de BUFFER - timestamp ${(diffMinutos/60).toFixed(1)}h atrás (mantendo original)`);
+      // NÃO corrigir - manter timestamp original do GPS
     } else if (diffMinutos < -5) {
       // Timestamp do GPS está no futuro - usar hora do servidor
       console.log(`[${WORKER_ID}] ⚠️ ${imei}: Timestamp GPS no futuro ${Math.abs(diffMinutos).toFixed(1)}min - corrigindo para hora do servidor`);
