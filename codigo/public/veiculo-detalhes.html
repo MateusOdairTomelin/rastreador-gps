@@ -1513,9 +1513,6 @@
         <div>
             <h1 id="veiculo-nome">Carregando...</h1>
             <div class="subtitle" id="veiculo-info">IMEI: ---</div>
-            <div id="motorista-info" style="display: none; margin-top: 6px; font-size: 0.9em; color: var(--text-light);">
-                👤 <span id="motorista-nome">--</span>
-            </div>
         </div>
         <div>
             <button onclick="mostrarQRCode()" class="qrcode-btn" title="QR Code para vincular motorista" style="background: #10B981; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9em; margin-right: 10px;">
@@ -2079,9 +2076,6 @@
                                 <input type="checkbox" id="mostrar-paradas" checked>
                                 🅿️ Mostrar paradas
                             </label>
-                            <span id="motorista-traj-info" style="display: none; margin-left: 12px; padding: 4px 10px; background: rgba(99,102,241,0.15); border-radius: 6px; font-size: 0.85em; color: #a5b4fc;">
-                                👤 <span id="motorista-traj-nome">--</span>
-                            </span>
                         </div>
 
                         <div class="filtro-slider-box">
@@ -3072,19 +3066,6 @@
                     const statusEl = document.getElementById('device-status');
                     statusEl.className = 'status-badge ' + (device.status === 'online' ? 'status-online' : 'status-offline');
                     statusEl.textContent = device.status === 'online' ? '🟢 Online' : '🔴 Offline';
-
-                    // Mostrar motorista vinculado (header e filtro de trajetória)
-                    const motoristaHeaderEl = document.getElementById('motorista-info');
-                    const motoristaTrajEl = document.getElementById('motorista-traj-info');
-                    if (device.motorista && device.motorista.nome) {
-                        document.getElementById('motorista-nome').textContent = device.motorista.nome;
-                        document.getElementById('motorista-traj-nome').textContent = device.motorista.nome;
-                        motoristaHeaderEl.style.display = 'block';
-                        motoristaTrajEl.style.display = 'inline-block';
-                    } else {
-                        motoristaHeaderEl.style.display = 'none';
-                        motoristaTrajEl.style.display = 'none';
-                    }
 
                     // Adaptar card de telemetria baseado no tipo do dispositivo
                     adaptTelemetryCard(device.tipo);
@@ -4078,6 +4059,7 @@
                         }).addTo(map);
 
                         const horaExcesso = new Date(exc.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        const motoristaExcesso = currentDevice?.motorista?.nome || null;
                         excMarker.bindPopup(`
                             <div style="min-width: 230px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 0;">
                                 <div style="background: linear-gradient(135deg, #ff6b6b 0%, #dc2626 100%); color: white; padding: 14px 16px; margin: -13px -20px 0; border-radius: 8px 8px 0 0;">
@@ -4089,6 +4071,10 @@
                                     </div>
                                 </div>
                                 <div style="padding: 16px 16px; margin: 0 -20px -13px; background: #fafafa;">
+                                    ${motoristaExcesso ? `<div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                                        <span style="font-size: 14px;">👤</span>
+                                        <span style="font-size: 13px; color: #0369a1; font-weight: 500;">${motoristaExcesso}</span>
+                                    </div>` : ''}
                                     <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 14px; background: white; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb;">
                                         <div>
                                             <div style="font-size: 28px; font-weight: 800; color: #ef4444;">${exc.velocidade.toFixed(0)}</div>
@@ -4224,6 +4210,7 @@
                             })
                         }).addTo(map);
 
+                        const motoristaParada = currentDevice?.motorista?.nome || null;
                         paradaMarker.bindPopup(`
                             <div style="min-width: 230px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 0;">
                                 <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 14px 16px; margin: -13px -20px 0; border-radius: 8px 8px 0 0;">
@@ -4235,6 +4222,10 @@
                                     </div>
                                 </div>
                                 <div style="padding: 16px 16px; margin: 0 -20px -13px; background: #fafafa;">
+                                    ${motoristaParada ? `<div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                                        <span style="font-size: 14px;">👤</span>
+                                        <span style="font-size: 13px; color: #0369a1; font-weight: 500;">${motoristaParada}</span>
+                                    </div>` : ''}
                                     <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 14px; background: white; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb;">
                                         <div>
                                             <div style="font-size: 20px; font-weight: 700; color: #22c55e;">${horaInicio}</div>
