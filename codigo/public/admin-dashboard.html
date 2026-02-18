@@ -4310,20 +4310,12 @@
           <!-- Controles do Mapa -->
           <div class="card" style="margin-bottom: 15px; padding: 15px;">
             <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
-              <!-- Pesquisa por Placa -->
-              <div style="flex: 1; min-width: 200px;">
-                <label style="font-size: 12px; color: var(--text-light); display: block; margin-bottom: 5px;">Buscar por Placa/Veículo</label>
-                <input type="text" id="search-vehicle" placeholder="Digite a placa ou nome..."
-                       style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;"
-                       oninput="filterVehicles(this.value)">
-              </div>
-
-              <!-- Seletor de Veículo -->
-              <div style="flex: 1; min-width: 200px;">
-                <label style="font-size: 12px; color: var(--text-light); display: block; margin-bottom: 5px;">Selecionar Veículo</label>
+              <!-- Seletor de Veículo com busca -->
+              <div style="flex: 1; min-width: 250px;">
+                <label style="font-size: 12px; color: var(--text-light); display: block; margin-bottom: 5px;">Veículo</label>
                 <select id="select-vehicle" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;"
                         onchange="focusOnVehicle(this.value)">
-                  <option value="">-- Todos os veículos --</option>
+                  <option value="">Todos os veículos</option>
                 </select>
               </div>
 
