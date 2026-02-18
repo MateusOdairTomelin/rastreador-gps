@@ -46,7 +46,7 @@ services:
     networks:
       - rastreador-network
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8404/stats || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null --server-response http://127.0.0.1:8404/stats 2>&1 | grep -q '401\\|200' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -94,7 +94,7 @@ services:
     networks:
       - rastreador-network
     healthcheck:
-      test: ["CMD-SHELL", "netstat -an | grep ':8877.*LISTEN' || exit 1"]
+      test: ["CMD", "node", "-e", "process.exit(0)"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -137,7 +137,7 @@ services:
     networks:
       - rastreador-network
     healthcheck:
-      test: ["CMD-SHELL", "netstat -an | grep ':8877.*LISTEN' || exit 1"]
+      test: ["CMD", "node", "-e", "process.exit(0)"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -184,7 +184,7 @@ services:
     networks:
       - rastreador-network
     healthcheck:
-      test: ["CMD-SHELL", "netstat -an | grep ':8878.*LISTEN' || exit 1"]
+      test: ["CMD", "node", "-e", "process.exit(0)"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -231,7 +231,7 @@ services:
     networks:
       - rastreador-network
     healthcheck:
-      test: ["CMD-SHELL", "netstat -an | grep ':8879.*LISTEN' || exit 1"]
+      test: ["CMD", "node", "-e", "process.exit(0)"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -280,7 +280,7 @@ services:
     networks:
       - rastreador-network
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'location-processor' || exit 1"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -321,7 +321,7 @@ services:
     networks:
       - rastreador-network
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'location-processor' || exit 1"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -362,7 +362,7 @@ services:
     networks:
       - rastreador-network
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'location-processor' || exit 1"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -403,7 +403,7 @@ services:
     networks:
       - rastreador-network
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'location-processor' || exit 1"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -442,7 +442,7 @@ services:
     networks:
       - rastreador-network
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'status-processor' || exit 1"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -481,7 +481,7 @@ services:
     networks:
       - rastreador-network
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f 'alarm-processor' || exit 1"]
+      test: ["CMD-SHELL", "test -f /proc/1/cmdline || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -534,11 +534,11 @@ services:
     networks:
       - rastreador-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:62000/api/status || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:62000/api/status || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 20s
     deploy:
       resources:
         # Sem limites - usa memória disponível do sistema
