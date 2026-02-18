@@ -1819,324 +1819,228 @@
                         <button class="period-btn" data-days="90" onclick="selectViagensPeriod(90)">90 dias</button>
                     </div>
 
-                    <!-- Filtro Futurista de Trajetória -->
+                    <!-- Filtro de Trajetória - Clean -->
                     <style>
-                        .filtro-futurista {
-                            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
-                            border: 1px solid rgba(99, 102, 241, 0.3);
-                            border-radius: 16px;
-                            padding: 20px;
+                        .filtro-trajetoria-box {
+                            background: var(--bg);
+                            border: 1px solid var(--border-light);
+                            border-radius: 12px;
+                            padding: 16px;
                             margin-bottom: 15px;
-                            position: relative;
-                            overflow: hidden;
-                            box-shadow: 0 4px 24px rgba(99, 102, 241, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
                         }
-                        .filtro-futurista::before {
-                            content: '';
-                            position: absolute;
-                            top: 0; left: 0; right: 0;
-                            height: 1px;
-                            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent);
-                        }
-                        .filtro-header {
+                        .filtro-traj-header {
                             display: flex;
                             align-items: center;
                             gap: 10px;
-                            margin-bottom: 16px;
+                            margin-bottom: 14px;
+                            padding-bottom: 10px;
+                            border-bottom: 1px solid var(--border-light);
                         }
-                        .filtro-icon {
-                            width: 36px; height: 36px;
-                            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-                            border-radius: 10px;
-                            display: flex; align-items: center; justify-content: center;
-                            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+                        .filtro-traj-header svg {
+                            color: #60a5fa;
                         }
-                        .filtro-title {
-                            font-size: 1.1em;
+                        .filtro-traj-header span {
                             font-weight: 600;
-                            color: #e2e8f0;
-                            letter-spacing: 0.5px;
+                            color: var(--text);
                         }
-                        .filtro-controls {
+                        .filtro-traj-controls {
                             display: flex;
-                            gap: 12px;
+                            gap: 10px;
                             flex-wrap: wrap;
                             align-items: center;
-                            margin-bottom: 20px;
+                            margin-bottom: 14px;
                         }
-                        .filtro-input-group {
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            background: rgba(255,255,255,0.05);
-                            padding: 8px 14px;
-                            border-radius: 10px;
-                            border: 1px solid rgba(255,255,255,0.1);
-                        }
-                        .filtro-input-group label {
-                            color: #94a3b8;
-                            font-size: 0.85em;
-                            font-weight: 500;
-                        }
-                        .filtro-input-group input[type="date"] {
-                            background: transparent;
-                            border: none;
-                            color: #e2e8f0;
-                            font-size: 0.95em;
-                            font-weight: 600;
-                            outline: none;
-                        }
-                        .filtro-input-group input[type="date"]::-webkit-calendar-picker-indicator {
-                            filter: invert(0.8);
-                            cursor: pointer;
-                        }
-                        .filtro-btn {
-                            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-                            color: white;
-                            border: none;
-                            padding: 10px 20px;
-                            border-radius: 10px;
-                            font-weight: 600;
-                            font-size: 0.9em;
-                            cursor: pointer;
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            transition: all 0.3s ease;
-                            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-                        }
-                        .filtro-btn:hover {
-                            transform: translateY(-2px);
-                            box-shadow: 0 6px 25px rgba(99, 102, 241, 0.5);
-                        }
-                        .filtro-checkbox {
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                            color: #94a3b8;
-                            font-size: 0.85em;
-                            cursor: pointer;
+                        .filtro-traj-input {
                             padding: 8px 12px;
-                            background: rgba(239, 68, 68, 0.1);
+                            border: 1px solid var(--border-light);
                             border-radius: 8px;
-                            border: 1px solid rgba(239, 68, 68, 0.2);
+                            background: var(--bg-card);
+                            color: var(--text);
+                            font-size: 0.9em;
+                        }
+                        .filtro-traj-btn {
+                            padding: 8px 16px;
+                            border: none;
+                            border-radius: 8px;
+                            font-weight: 500;
+                            font-size: 0.85em;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
                             transition: all 0.2s;
                         }
-                        .filtro-checkbox:hover {
-                            background: rgba(239, 68, 68, 0.15);
+                        .filtro-traj-btn.primary {
+                            background: #3b82f6;
+                            color: white;
                         }
-                        .filtro-checkbox input {
-                            accent-color: #ef4444;
-                            width: 16px; height: 16px;
+                        .filtro-traj-btn.primary:hover {
+                            background: #2563eb;
                         }
-                        .slider-container {
-                            background: rgba(0,0,0,0.2);
-                            border-radius: 12px;
-                            padding: 16px 20px;
-                            border: 1px solid rgba(255,255,255,0.05);
+                        .filtro-traj-btn.secondary {
+                            background: var(--bg-card);
+                            color: var(--text);
+                            border: 1px solid var(--border-light);
                         }
-                        .slider-labels {
+                        .filtro-traj-btn.secondary:hover {
+                            background: var(--border-light);
+                        }
+                        .filtro-traj-check {
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                            font-size: 0.85em;
+                            color: var(--text-light);
+                            cursor: pointer;
+                        }
+                        .filtro-traj-check input {
+                            accent-color: #3b82f6;
+                        }
+                        .filtro-slider-box {
+                            background: var(--bg-card);
+                            border-radius: 8px;
+                            padding: 14px;
+                        }
+                        .filtro-slider-times {
                             display: flex;
                             justify-content: space-between;
-                            margin-bottom: 12px;
-                        }
-                        .slider-time {
-                            display: flex;
-                            flex-direction: column;
                             align-items: center;
+                            margin-bottom: 10px;
                         }
-                        .slider-time-value {
-                            font-size: 1.4em;
-                            font-weight: 700;
-                            font-family: 'Courier New', monospace;
-                            letter-spacing: 1px;
+                        .filtro-slider-time {
+                            font-family: monospace;
+                            font-size: 1.1em;
+                            font-weight: 600;
+                            color: #3b82f6;
                         }
-                        .slider-time-label {
-                            font-size: 0.7em;
-                            color: #64748b;
-                            text-transform: uppercase;
-                            letter-spacing: 1px;
+                        .filtro-slider-duration {
+                            font-size: 0.85em;
+                            color: var(--text-light);
+                            background: var(--bg);
+                            padding: 4px 10px;
+                            border-radius: 12px;
                         }
-                        .time-start .slider-time-value { color: #22c55e; text-shadow: 0 0 10px rgba(34, 197, 94, 0.5); }
-                        .time-end .slider-time-value { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
-                        .time-duration {
-                            background: rgba(99, 102, 241, 0.2);
-                            padding: 6px 14px;
-                            border-radius: 20px;
-                            border: 1px solid rgba(99, 102, 241, 0.3);
-                        }
-                        .time-duration .slider-time-value {
-                            font-size: 1em;
-                            color: #a5b4fc;
-                        }
-                        .slider-track-container {
+                        .filtro-slider-track {
                             position: relative;
-                            height: 40px;
+                            height: 32px;
                             display: flex;
                             align-items: center;
                         }
-                        .slider-track-bg {
+                        .filtro-slider-bg {
                             position: absolute;
                             left: 0; right: 0;
-                            height: 8px;
-                            background: rgba(255,255,255,0.1);
-                            border-radius: 4px;
+                            height: 6px;
+                            background: var(--border-light);
+                            border-radius: 3px;
                         }
-                        .slider-track-fill {
+                        .filtro-slider-fill {
                             position: absolute;
-                            height: 8px;
-                            background: linear-gradient(90deg, #22c55e, #6366f1, #ef4444);
-                            border-radius: 4px;
-                            box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+                            height: 6px;
+                            background: #60a5fa;
+                            border-radius: 3px;
                         }
-                        .slider-input {
+                        .filtro-slider-input {
                             position: absolute;
                             width: 100%;
-                            height: 40px;
+                            height: 32px;
                             -webkit-appearance: none;
                             background: transparent;
                             pointer-events: none;
                         }
-                        .slider-input::-webkit-slider-thumb {
+                        .filtro-slider-input::-webkit-slider-thumb {
                             -webkit-appearance: none;
                             pointer-events: auto;
-                            width: 22px;
-                            height: 22px;
+                            width: 18px;
+                            height: 18px;
                             border-radius: 50%;
-                            background: #22c55e;
+                            background: #3b82f6;
                             cursor: pointer;
-                            border: 3px solid #0f172a;
-                            box-shadow: 0 0 15px rgba(34, 197, 94, 0.6), 0 2px 8px rgba(0,0,0,0.3);
-                            transition: transform 0.2s, box-shadow 0.2s;
+                            border: 2px solid white;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
                         }
-                        .slider-input::-webkit-slider-thumb:hover {
-                            transform: scale(1.15);
-                        }
-                        .slider-input.slider-end::-webkit-slider-thumb {
-                            background: #ef4444;
-                            box-shadow: 0 0 15px rgba(239, 68, 68, 0.6), 0 2px 8px rgba(0,0,0,0.3);
-                        }
-                        .slider-input::-moz-range-thumb {
+                        .filtro-slider-input::-moz-range-thumb {
                             pointer-events: auto;
-                            width: 22px;
-                            height: 22px;
+                            width: 18px;
+                            height: 18px;
                             border-radius: 50%;
-                            background: #22c55e;
+                            background: #3b82f6;
                             cursor: pointer;
-                            border: 3px solid #0f172a;
-                            box-shadow: 0 0 15px rgba(34, 197, 94, 0.6);
+                            border: 2px solid white;
                         }
-                        .slider-input.slider-end::-moz-range-thumb {
-                            background: #ef4444;
-                            box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
-                        }
-                        .slider-marks {
+                        .filtro-slider-marks {
                             display: flex;
                             justify-content: space-between;
-                            margin-top: 8px;
-                            padding: 0 5px;
+                            margin-top: 6px;
                         }
-                        .slider-mark {
+                        .filtro-slider-marks span {
                             font-size: 0.7em;
-                            color: #475569;
-                            position: relative;
+                            color: var(--text-light);
                         }
-                        .slider-mark::before {
-                            content: '';
-                            position: absolute;
-                            top: -12px;
-                            left: 50%;
-                            transform: translateX(-50%);
-                            width: 1px;
-                            height: 6px;
-                            background: #334155;
-                        }
-                        .filtro-status {
+                        .filtro-status-bar {
                             display: none;
                             align-items: center;
                             gap: 8px;
-                            margin-top: 12px;
-                            padding: 10px 14px;
-                            background: rgba(34, 197, 94, 0.1);
-                            border: 1px solid rgba(34, 197, 94, 0.2);
-                            border-radius: 8px;
-                            color: #4ade80;
+                            margin-top: 10px;
+                            padding: 8px 12px;
+                            background: rgba(59, 130, 246, 0.1);
+                            border-radius: 6px;
+                            color: #3b82f6;
                             font-size: 0.85em;
                         }
-                        .filtro-status.active { display: flex; }
+                        .filtro-status-bar.active { display: flex; }
                     </style>
 
-                    <div class="filtro-futurista" id="filtro-trajetoria">
-                        <div class="filtro-header">
-                            <div class="filtro-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                    <circle cx="12" cy="10" r="3"/>
-                                </svg>
-                            </div>
-                            <span class="filtro-title">Análise de Trajetória</span>
+                    <div class="filtro-trajetoria-box" id="filtro-trajetoria">
+                        <div class="filtro-traj-header">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            <span>Filtrar por Data e Horário</span>
                         </div>
 
-                        <div class="filtro-controls">
-                            <div class="filtro-input-group">
-                                <label>📅</label>
-                                <input type="date" id="filtro-data">
-                            </div>
-                            <button class="filtro-btn" onclick="aplicarFiltroTrajetoria()">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                                </svg>
-                                Aplicar Filtro
+                        <div class="filtro-traj-controls">
+                            <input type="date" id="filtro-data" class="filtro-traj-input">
+                            <button class="filtro-traj-btn primary" onclick="aplicarFiltroTrajetoria()">
+                                Filtrar Viagens
                             </button>
-                            <button class="filtro-btn" onclick="verTrajetoriaDia()" style="background: linear-gradient(135deg, #22c55e, #16a34a);">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                    <circle cx="12" cy="10" r="3"/>
-                                </svg>
-                                Ver no Mapa
+                            <button class="filtro-traj-btn secondary" onclick="verTrajetoriaDia()">
+                                🗺️ Ver no Mapa
                             </button>
-                            <label class="filtro-checkbox">
+                            <label class="filtro-traj-check">
                                 <input type="checkbox" id="mostrar-excessos" checked>
-                                <span>🔴 Destacar excessos</span>
+                                Destacar excessos
                             </label>
                         </div>
 
-                        <div class="slider-container">
-                            <div class="slider-labels">
-                                <div class="slider-time time-start">
-                                    <span class="slider-time-value" id="hora-inicio-label">00:00</span>
-                                    <span class="slider-time-label">Início</span>
-                                </div>
-                                <div class="slider-time time-duration">
-                                    <span class="slider-time-value" id="duracao-label">24h 00min</span>
-                                </div>
-                                <div class="slider-time time-end">
-                                    <span class="slider-time-value" id="hora-fim-label">23:59</span>
-                                    <span class="slider-time-label">Fim</span>
-                                </div>
+                        <div class="filtro-slider-box">
+                            <div class="filtro-slider-times">
+                                <span class="filtro-slider-time" id="hora-inicio-label">00:00</span>
+                                <span class="filtro-slider-duration" id="duracao-label">24h 00min</span>
+                                <span class="filtro-slider-time" id="hora-fim-label">23:59</span>
                             </div>
 
-                            <div class="slider-track-container">
-                                <div class="slider-track-bg"></div>
-                                <div class="slider-track-fill" id="slider-range"></div>
-                                <input type="range" class="slider-input" id="filtro-hora-inicio" min="0" max="1439" value="0" oninput="atualizarSliderHorario()">
-                                <input type="range" class="slider-input slider-end" id="filtro-hora-fim" min="0" max="1439" value="1439" oninput="atualizarSliderHorario()">
+                            <div class="filtro-slider-track">
+                                <div class="filtro-slider-bg"></div>
+                                <div class="filtro-slider-fill" id="slider-range"></div>
+                                <input type="range" class="filtro-slider-input" id="filtro-hora-inicio" min="0" max="1439" value="0" oninput="atualizarSliderHorario()">
+                                <input type="range" class="filtro-slider-input" id="filtro-hora-fim" min="0" max="1439" value="1439" oninput="atualizarSliderHorario()">
                             </div>
 
-                            <div class="slider-marks">
-                                <span class="slider-mark">00:00</span>
-                                <span class="slider-mark">06:00</span>
-                                <span class="slider-mark">12:00</span>
-                                <span class="slider-mark">18:00</span>
-                                <span class="slider-mark">23:59</span>
+                            <div class="filtro-slider-marks">
+                                <span>00:00</span>
+                                <span>06:00</span>
+                                <span>12:00</span>
+                                <span>18:00</span>
+                                <span>23:59</span>
                             </div>
                         </div>
 
-                        <div class="filtro-status" id="filtro-status">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <div class="filtro-status-bar" id="filtro-status">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"/>
                             </svg>
-                            <span id="filtro-status-text">Filtro aplicado: mostrando viagens de 08:00 às 18:00</span>
+                            <span id="filtro-status-text">Filtro aplicado</span>
                         </div>
                     </div>
                     <!-- Resumo das viagens -->
