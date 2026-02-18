@@ -264,11 +264,17 @@ class LocalizacaoService {
         // Calcular velocidade necessária para fazer o salto
         const velocidadeNecessaria = (distanciaKm / tempoSegundos) * 3600;
 
+        // ✅ CORREÇÃO: Saltos > 100km são SEMPRE rejeitados (impossível mesmo transportado)
+        if (distanciaKm > 100) {
+          console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto ABSURDO ${distanciaKm.toFixed(1)}km - distância máxima 100km`);
+          return null;
+        }
+
         if (velocidadeNecessaria <= 120) {
           // Velocidade razoável (até 120km/h de média) - aceitar
           console.log(`[GPS Filter] ✅ ${imei}: Salto ${distanciaKm.toFixed(1)}km aceito - velocidade média ${velocidadeNecessaria.toFixed(0)}km/h (razoável)`);
-        } else if (tempoOfflineMinutos > 60) {
-          // Veículo offline por mais de 1 hora - aceitar (pode ter sido transportado)
+        } else if (tempoOfflineMinutos > 60 && distanciaKm <= 50) {
+          // ✅ CORREÇÃO: Offline > 1 hora E distância <= 50km (transporte razoável)
           console.log(`[GPS Filter] 🔄 RESET ${imei}: Aceito salto ${distanciaKm.toFixed(1)}km após ${tempoOfflineMinutos.toFixed(0)}min offline`);
         } else {
           console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto ${distanciaKm.toFixed(1)}km requer ${velocidadeNecessaria.toFixed(0)}km/h média (máx 120km/h)`);

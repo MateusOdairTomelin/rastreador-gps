@@ -362,8 +362,10 @@ async function processLocationMessage(message) {
         }
       }
     } catch (e) {
-      // ✅ CORREÇÃO: Logar erros do filtro - não silenciar
-      console.warn(`[${WORKER_ID}] ⚠️ ${imei}: Erro no filtro de saltos: ${e.message}`);
+      // ✅ CORREÇÃO: Se o filtro falhar, REJEITAR o ponto para segurança
+      // Isso evita salvar pontos ruins quando Redis/banco está lento
+      console.error(`[${WORKER_ID}] ❌ ${imei}: Erro no filtro de saltos - REJEITANDO ponto: ${e.message}`);
+      return; // Rejeita por segurança
     }
 
     // Pipeline GPS (Kalman, Map-Matching)
