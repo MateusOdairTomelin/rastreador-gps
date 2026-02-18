@@ -93,13 +93,28 @@ class SpeedLimitService {
     }
     this.globalCooldown = false;
 
-    // Rate limiter: mínimo 1 segundo entre requisições
+    // ✅ OSRM local NÃO precisa de rate limit (é local e rápido)
+    try {
+      const osrmResult = await this.getSpeedLimitFromOSRM(lat, lng);
+      if (osrmResult) {
+        // Sucesso - armazenar no cache
+        this.cache.set(cacheKey, {
+          data: osrmResult,
+          timestamp: Date.now()
+        });
+        return osrmResult;
+      }
+    } catch (osrmError) {
+      console.warn('[SpeedLimit] OSRM falhou, tentando Overpass:', osrmError.message);
+    }
+
+    // ⚠️ Rate limiter apenas para Overpass API (externa)
     const timeSinceLastRequest = now - this.lastRequestTime;
     if (timeSinceLastRequest < this.minRequestInterval) {
-      // Retornar padrão sem fazer requisição (rate limited)
+      // OSRM falhou e rate limited - retornar padrão
       return {
         limite: this.defaultLimits.default,
-        via: 'Rate limited',
+        via: 'Consultando...',
         tipo: 'default',
         fonte: 'rate_limit'
       };
@@ -117,19 +132,8 @@ class SpeedLimitService {
     }
 
     try {
-      // Marcar tempo da requisição
+      // Marcar tempo da requisição para Overpass
       this.lastRequestTime = now;
-
-      // ✅ Tentar OSRM local primeiro (muito mais rápido e confiável)
-      const osrmResult = await this.getSpeedLimitFromOSRM(lat, lng);
-      if (osrmResult) {
-        // Sucesso - armazenar no cache
-        this.cache.set(cacheKey, {
-          data: osrmResult,
-          timestamp: Date.now()
-        });
-        return osrmResult;
-      }
 
       // Fallback: Consultar Overpass API (OpenStreetMap) - mais lento mas tem maxspeed real
       const result = await this.queryOverpass(lat, lng);
