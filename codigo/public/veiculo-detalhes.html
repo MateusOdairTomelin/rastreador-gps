@@ -2022,6 +2022,10 @@
                                 <input type="checkbox" id="mostrar-excessos" checked>
                                 Destacar excessos
                             </label>
+                            <label class="filtro-traj-check">
+                                <input type="checkbox" id="mostrar-paradas" checked>
+                                🅿️ Mostrar paradas
+                            </label>
                         </div>
 
                         <div class="filtro-slider-box">
@@ -2089,35 +2093,6 @@
                         </thead>
                         <tbody id="history-viagens"></tbody>
                     </table>
-
-                    <!-- Seção de Paradas da Viagem Selecionada -->
-                    <div id="paradas-viagem-container" style="display: none; margin-top: 20px;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <h4 style="margin: 0; color: var(--text);">
-                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="vertical-align: middle;">
-                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                                </svg>
-                                Paradas da Viagem
-                            </h4>
-                            <span id="paradas-count" style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em;"></span>
-                            <button onclick="fecharParadasViagem()" style="margin-left: auto; background: none; border: none; cursor: pointer; font-size: 1.2em; color: var(--text-light);">✕</button>
-                        </div>
-                        <div style="overflow-x: auto;">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Início</th>
-                                        <th>Fim</th>
-                                        <th>Duração</th>
-                                        <th>Endereço</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="paradas-viagem-tbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Aba de Gráfico de Velocidade -->
@@ -3721,9 +3696,6 @@
                                 <button class="period-btn" onclick="verRotaViagem(${v.id}, '${v.inicio}', '${v.fim}')" title="Ver rota no mapa">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align: middle;"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg> Rota
                                 </button>
-                                <button class="period-btn" onclick="carregarParadasViagem(${v.id})" title="Ver paradas da viagem" style="background: #f97316; color: white;">
-                                    🅿️
-                                </button>
                                 <button class="period-btn replay-btn-table" onclick="iniciarReplay(${v.id}, '${v.inicio}', '${v.fim}')" title="Replay animado da viagem">
                                     ▶️ Replay
                                 </button>
@@ -3792,6 +3764,7 @@
             const minutosInicio = parseInt(document.getElementById('filtro-hora-inicio').value) || 0;
             const minutosFim = parseInt(document.getElementById('filtro-hora-fim').value) || 1439;
             const mostrarExcessos = document.getElementById('mostrar-excessos').checked;
+            const mostrarParadas = document.getElementById('mostrar-paradas').checked;
 
             if (!dataInput) {
                 toastWarning('Selecione uma data para ver a trajetória');
@@ -4070,6 +4043,145 @@
                     }
                 }
 
+                // Detectar e mostrar PARADAS
+                let paradasDetectadas = [];
+                if (mostrarParadas) {
+                    // Limpar marcadores de paradas anteriores
+                    paradasMarkers.forEach(m => {
+                        if (m && map.hasLayer(m)) map.removeLayer(m);
+                    });
+                    paradasMarkers = [];
+
+                    // Detectar paradas (velocidade < 3 km/h por >= 2 minutos)
+                    const VELOCIDADE_PARADA = 3;
+                    const MIN_DURACAO_MINUTOS = 2;
+                    let paradaAtual = null;
+
+                    pontos.forEach((ponto, index) => {
+                        const velocidade = ponto.velocidade || 0;
+
+                        if (velocidade < VELOCIDADE_PARADA) {
+                            // Está parado
+                            if (!paradaAtual) {
+                                paradaAtual = {
+                                    inicio: ponto.timestamp,
+                                    latitude: ponto.latitude,
+                                    longitude: ponto.longitude,
+                                    pontos: [ponto]
+                                };
+                            } else {
+                                paradaAtual.pontos.push(ponto);
+                            }
+                        } else {
+                            // Está em movimento - verificar se tinha parada
+                            if (paradaAtual && paradaAtual.pontos.length > 0) {
+                                const ultimoPontoParada = paradaAtual.pontos[paradaAtual.pontos.length - 1];
+                                const duracaoMs = new Date(ultimoPontoParada.timestamp) - new Date(paradaAtual.inicio);
+                                const duracaoMinutos = duracaoMs / (1000 * 60);
+
+                                if (duracaoMinutos >= MIN_DURACAO_MINUTOS) {
+                                    // Calcular centro da parada
+                                    const latMedia = paradaAtual.pontos.reduce((sum, p) => sum + p.latitude, 0) / paradaAtual.pontos.length;
+                                    const lngMedia = paradaAtual.pontos.reduce((sum, p) => sum + p.longitude, 0) / paradaAtual.pontos.length;
+
+                                    paradasDetectadas.push({
+                                        numero: paradasDetectadas.length + 1,
+                                        inicio: paradaAtual.inicio,
+                                        fim: ultimoPontoParada.timestamp,
+                                        duracao_minutos: Math.round(duracaoMinutos),
+                                        latitude: latMedia,
+                                        longitude: lngMedia
+                                    });
+                                }
+                            }
+                            paradaAtual = null;
+                        }
+                    });
+
+                    // Verificar parada no final
+                    if (paradaAtual && paradaAtual.pontos.length > 0) {
+                        const ultimoPontoParada = paradaAtual.pontos[paradaAtual.pontos.length - 1];
+                        const duracaoMs = new Date(ultimoPontoParada.timestamp) - new Date(paradaAtual.inicio);
+                        const duracaoMinutos = duracaoMs / (1000 * 60);
+
+                        if (duracaoMinutos >= MIN_DURACAO_MINUTOS) {
+                            const latMedia = paradaAtual.pontos.reduce((sum, p) => sum + p.latitude, 0) / paradaAtual.pontos.length;
+                            const lngMedia = paradaAtual.pontos.reduce((sum, p) => sum + p.longitude, 0) / paradaAtual.pontos.length;
+
+                            paradasDetectadas.push({
+                                numero: paradasDetectadas.length + 1,
+                                inicio: paradaAtual.inicio,
+                                fim: ultimoPontoParada.timestamp,
+                                duracao_minutos: Math.round(duracaoMinutos),
+                                latitude: latMedia,
+                                longitude: lngMedia
+                            });
+                        }
+                    }
+
+                    // Criar marcadores de paradas
+                    paradasDetectadas.forEach((parada) => {
+                        const horaInicio = new Date(parada.inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        const horaFim = new Date(parada.fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        const duracao = parada.duracao_minutos >= 60
+                            ? `${Math.floor(parada.duracao_minutos / 60)}h ${parada.duracao_minutos % 60}min`
+                            : `${parada.duracao_minutos} min`;
+
+                        const paradaMarker = L.marker([parada.latitude, parada.longitude], {
+                            icon: L.divIcon({
+                                className: 'parada-marker',
+                                html: `<div style="
+                                    background: #f97316;
+                                    color: white;
+                                    border-radius: 50%;
+                                    width: 32px;
+                                    height: 32px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    font-size: 12px;
+                                    font-weight: bold;
+                                    border: 3px solid white;
+                                    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                                ">P${parada.numero}</div>`,
+                                iconSize: [32, 32],
+                                iconAnchor: [16, 16]
+                            })
+                        }).addTo(map);
+
+                        paradaMarker.bindPopup(`
+                            <div style="min-width: 180px; font-family: system-ui, sans-serif;">
+                                <div style="background: #f97316; color: white; padding: 8px 12px; margin: -13px -20px 10px; border-radius: 4px 4px 0 0; font-weight: 600;">
+                                    🅿️ Parada ${parada.numero}
+                                </div>
+                                <div style="padding: 0 4px;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                        <span style="color: #666;">Início:</span>
+                                        <strong>${horaInicio}</strong>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                        <span style="color: #666;">Fim:</span>
+                                        <strong>${horaFim}</strong>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; padding-top: 6px; border-top: 1px solid #eee;">
+                                        <span style="color: #666;">Duração:</span>
+                                        <strong style="color: #f97316; font-size: 1.1em;">${duracao}</strong>
+                                    </div>
+                                    <div id="endereco-parada-traj-${parada.numero}" style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #eee; color: #666; font-size: 0.9em;">
+                                        📍 Carregando endereço...
+                                    </div>
+                                </div>
+                            </div>
+                        `, { maxWidth: 250 });
+
+                        paradasMarkers.push(paradaMarker);
+                        routeMarkers.push(paradaMarker);
+
+                        // Buscar endereço assíncrono
+                        buscarEnderecoParadaTraj(parada.latitude, parada.longitude, parada.numero);
+                    });
+                }
+
                 // Ajustar zoom
                 const allCoords = pontos.map(p => [p.latitude, p.longitude]);
                 const bounds = L.latLngBounds(allCoords);
@@ -4080,15 +4192,60 @@
                     ? `${Math.floor(tempoMovimento/60)}h ${Math.round(tempoMovimento%60)}min`
                     : `${Math.round(tempoMovimento)} min`;
 
-                toastSuccess(
-                    `📍 ${pontos.length} pontos | 🛣️ ${distanciaTotal.toFixed(1)} km | ⏱️ ${tempoStr}` +
-                    (mostrarExcessos ? ` | ⚠️ ${totalExcessos} excessos` : ''),
-                    'Trajetória carregada'
-                );
+                let resumo = `📍 ${pontos.length} pontos | 🛣️ ${distanciaTotal.toFixed(1)} km | ⏱️ ${tempoStr}`;
+                if (mostrarExcessos && totalExcessos > 0) {
+                    resumo += ` | ⚠️ ${totalExcessos} excessos`;
+                }
+                if (mostrarParadas && paradasDetectadas.length > 0) {
+                    resumo += ` | 🅿️ ${paradasDetectadas.length} paradas`;
+                }
+
+                toastSuccess(resumo, 'Trajetória carregada');
 
             } catch (error) {
                 console.error('Erro ao carregar trajetória:', error);
                 toastError('Erro ao carregar trajetória: ' + error.message);
+            }
+        }
+
+        // Buscar endereço para paradas da trajetória
+        async function buscarEnderecoParadaTraj(lat, lng, numero) {
+            const cacheKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+
+            // Verificar cache
+            if (cacheEnderecos[cacheKey]) {
+                const el = document.getElementById(`endereco-parada-traj-${numero}`);
+                if (el) el.innerHTML = `📍 ${cacheEnderecos[cacheKey]}`;
+                return;
+            }
+
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+                    headers: { 'Accept-Language': 'pt-BR' }
+                });
+                const data = await res.json();
+
+                let endereco = 'Endereço não encontrado';
+                if (data.address) {
+                    const parts = [];
+                    if (data.address.road) parts.push(data.address.road);
+                    if (data.address.house_number) parts.push(data.address.house_number);
+                    if (data.address.suburb || data.address.neighbourhood) {
+                        parts.push(data.address.suburb || data.address.neighbourhood);
+                    }
+                    if (data.address.city || data.address.town) {
+                        parts.push(data.address.city || data.address.town);
+                    }
+                    endereco = parts.join(', ') || data.display_name?.substring(0, 50) || 'Endereço não encontrado';
+                }
+
+                cacheEnderecos[cacheKey] = endereco;
+                const el = document.getElementById(`endereco-parada-traj-${numero}`);
+                if (el) el.innerHTML = `📍 ${endereco}`;
+
+            } catch (e) {
+                const el = document.getElementById(`endereco-parada-traj-${numero}`);
+                if (el) el.innerHTML = '📍 Erro ao buscar';
             }
         }
 
@@ -4154,9 +4311,6 @@
                                 <td style="display: flex; gap: 6px; flex-wrap: wrap;">
                                     <button class="period-btn" onclick="verRotaViagem(${v.id}, '${v.inicio}', '${v.fim}')" title="Ver rota no mapa">
                                         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align: middle;"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg> Rota
-                                    </button>
-                                    <button class="period-btn" onclick="carregarParadasViagem(${v.id})" title="Ver paradas da viagem" style="background: #f97316; color: white;">
-                                        🅿️
                                     </button>
                                     <button class="period-btn replay-btn-table" onclick="iniciarReplay(${v.id}, '${v.inicio}', '${v.fim}')" title="Replay animado da viagem">
                                         ▶️ Replay
@@ -4432,161 +4586,10 @@
             }
         }
 
-        // ============ PARADAS DE VIAGEM ============
+        // ============ PARADAS DE TRAJETÓRIA ============
 
         let paradasMarkers = []; // Marcadores de paradas no mapa
         let cacheEnderecos = {}; // Cache de geocoding reverso
-
-        // Carregar paradas de uma viagem
-        async function carregarParadasViagem(viagemId) {
-            const container = document.getElementById('paradas-viagem-container');
-            const tbody = document.getElementById('paradas-viagem-tbody');
-            const countEl = document.getElementById('paradas-count');
-
-            try {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">⏳ Carregando paradas...</td></tr>';
-                container.style.display = 'block';
-
-                const res = await authFetch(`${API_BASE}/viagens/${IMEI}/${viagemId}/paradas?minDuracao=2`);
-                const data = await res.json();
-
-                if (!data.sucesso || !data.dados?.paradas || data.dados.paradas.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-light);">Nenhuma parada detectada nesta viagem</td></tr>';
-                    countEl.textContent = '0';
-                    return;
-                }
-
-                const paradas = data.dados.paradas;
-                countEl.textContent = paradas.length;
-
-                // Limpar marcadores anteriores
-                paradasMarkers.forEach(m => {
-                    if (m && map.hasLayer(m)) map.removeLayer(m);
-                });
-                paradasMarkers = [];
-
-                // Renderizar tabela
-                tbody.innerHTML = paradas.map((p, idx) => {
-                    const horaInicio = new Date(p.inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    const horaFim = new Date(p.fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                    const duracao = p.duracao_minutos >= 60
-                        ? `${Math.floor(p.duracao_minutos / 60)}h ${p.duracao_minutos % 60}min`
-                        : `${p.duracao_minutos} min`;
-
-                    // Adicionar marcador no mapa
-                    const paradaMarker = L.marker([p.latitude, p.longitude], {
-                        icon: L.divIcon({
-                            html: `<div style="background: #f97316; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">P${p.numero}</div>`,
-                            className: 'parada-marker',
-                            iconSize: [28, 28],
-                            iconAnchor: [14, 14]
-                        })
-                    }).addTo(map);
-
-                    paradaMarker.bindPopup(`
-                        <div style="min-width: 200px;">
-                            <div style="background: #f97316; color: white; padding: 8px; margin: -8px -8px 8px -8px; font-weight: bold;">
-                                🅿️ Parada ${p.numero}
-                            </div>
-                            <div style="padding: 5px 0;">
-                                <div>⏰ ${horaInicio} - ${horaFim}</div>
-                                <div>⏱️ Duração: ${duracao}</div>
-                                <div id="endereco-parada-${idx}" style="margin-top: 5px; color: var(--text-light);">📍 Carregando endereço...</div>
-                            </div>
-                        </div>
-                    `);
-
-                    paradasMarkers.push(paradaMarker);
-
-                    // Buscar endereço (async)
-                    buscarEnderecoParada(p.latitude, p.longitude, idx);
-
-                    return `
-                        <tr>
-                            <td style="text-align: center; font-weight: bold; color: #f97316;">P${p.numero}</td>
-                            <td>${horaInicio}</td>
-                            <td>${horaFim}</td>
-                            <td>${duracao}</td>
-                            <td id="endereco-tabela-${idx}" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis;">
-                                <span style="color: var(--text-light);">Carregando...</span>
-                            </td>
-                            <td>
-                                <button class="period-btn" onclick="focarParada(${p.latitude}, ${p.longitude})" title="Ver no mapa" style="padding: 4px 8px;">
-                                    📍
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-
-            } catch (error) {
-                console.error('Erro ao carregar paradas:', error);
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--danger);">Erro ao carregar paradas</td></tr>';
-            }
-        }
-
-        // Buscar endereço de uma parada via geocoding reverso
-        async function buscarEnderecoParada(lat, lng, idx) {
-            const cacheKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-
-            // Verificar cache
-            if (cacheEnderecos[cacheKey]) {
-                atualizarEnderecoParada(idx, cacheEnderecos[cacheKey]);
-                return;
-            }
-
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
-                    headers: { 'Accept-Language': 'pt-BR' }
-                });
-                const data = await res.json();
-
-                let endereco = 'Endereço não encontrado';
-                if (data.address) {
-                    const parts = [];
-                    if (data.address.road) parts.push(data.address.road);
-                    if (data.address.house_number) parts.push(data.address.house_number);
-                    if (data.address.suburb || data.address.neighbourhood) {
-                        parts.push(data.address.suburb || data.address.neighbourhood);
-                    }
-                    if (data.address.city || data.address.town) {
-                        parts.push(data.address.city || data.address.town);
-                    }
-                    endereco = parts.join(', ') || data.display_name?.substring(0, 60) || 'Endereço não encontrado';
-                }
-
-                cacheEnderecos[cacheKey] = endereco;
-                atualizarEnderecoParada(idx, endereco);
-
-            } catch (e) {
-                atualizarEnderecoParada(idx, 'Erro ao buscar endereço');
-            }
-        }
-
-        // Atualizar endereço na tabela e no popup
-        function atualizarEnderecoParada(idx, endereco) {
-            const tabelaEl = document.getElementById(`endereco-tabela-${idx}`);
-            const popupEl = document.getElementById(`endereco-parada-${idx}`);
-
-            if (tabelaEl) tabelaEl.textContent = endereco;
-            if (popupEl) popupEl.innerHTML = `📍 ${endereco}`;
-        }
-
-        // Focar em uma parada no mapa
-        function focarParada(lat, lng) {
-            map.setView([lat, lng], 17);
-        }
-
-        // Fechar painel de paradas
-        function fecharParadasViagem() {
-            document.getElementById('paradas-viagem-container').style.display = 'none';
-
-            // Remover marcadores de paradas
-            paradasMarkers.forEach(m => {
-                if (m && map.hasLayer(m)) map.removeLayer(m);
-            });
-            paradasMarkers = [];
-        }
 
         // Carregar viagens quando a aba for selecionada
         const originalShowTab = showTab;
