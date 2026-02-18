@@ -7868,14 +7868,47 @@
     }
 
     // Conexão WebSocket para atualizações em tempo real
+    // ✅ Flag para prevenir múltiplas conexões simultâneas
+    let wsConnecting = false;
+
     function connectWebSocket() {
-      if (ws && ws.readyState === WebSocket.OPEN) return;
+      // ✅ CORREÇÃO: Verificar todos os estados que indicam conexão ativa/em andamento
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        console.log('[WS] Conexão já ativa/em andamento, ignorando');
+        return;
+      }
+
+      // ✅ CORREÇÃO: Evitar múltiplas tentativas simultâneas
+      if (wsConnecting) {
+        console.log('[WS] Já está tentando conectar, ignorando');
+        return;
+      }
+      wsConnecting = true;
+
+      // ✅ CORREÇÃO: Cancelar timeout de reconexão pendente
+      if (wsReconnectTimeout) {
+        clearTimeout(wsReconnectTimeout);
+        wsReconnectTimeout = null;
+      }
+
+      // ✅ CORREÇÃO: Limpar conexão anterior completamente
+      if (ws) {
+        ws.onclose = null; // Prevenir reconexão automática
+        ws.onerror = null;
+        ws.onmessage = null;
+        ws.onopen = null;
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+          ws.close();
+        }
+        ws = null;
+      }
 
       // ✅ SEGURANÇA: Enviar token JWT na conexão WebSocket
       const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
       if (!token) {
         console.warn('[WS] Sem token de autenticação - WebSocket não conectado');
         updateStatusBox('ws', false, 'Não autenticado');
+        wsConnecting = false;
         return;
       }
 
@@ -7884,6 +7917,7 @@
 
       ws.onopen = () => {
         console.log('[WS] Conectado ao servidor (autenticado)');
+        wsConnecting = false; // ✅ Conexão estabelecida
         updateStatusBox('ws', true, 'Online');
         // Enviar identificação
         ws.send(JSON.stringify({ tipo: 'subscribe', canal: 'updates' }));
@@ -8020,18 +8054,22 @@
         }
       };
 
-      ws.onclose = () => {
-        console.log('[WS] Conexão fechada, reconectando em 3s...');
+      ws.onclose = (event) => {
+        wsConnecting = false; // ✅ Permitir nova tentativa
+        console.log(`[WS] Conexão fechada (code: ${event.code}, reason: ${event.reason || 'nenhum'})`);
         updateStatusBox('ws', false, 'Reconectando');
         // Limpar ping interval
         if (window.wsPingInterval) {
           clearInterval(window.wsPingInterval);
           window.wsPingInterval = null;
         }
-        wsReconnectTimeout = setTimeout(connectWebSocket, 3000);
+        // ✅ Reconectar com backoff progressivo para evitar flood
+        const delay = Math.min(3000 + Math.random() * 2000, 10000); // 3-5s, max 10s
+        wsReconnectTimeout = setTimeout(connectWebSocket, delay);
       };
 
       ws.onerror = (error) => {
+        wsConnecting = false; // ✅ Permitir nova tentativa
         console.error('[WS] Erro:', error);
         updateStatusBox('ws', false, 'Erro');
       };

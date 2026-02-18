@@ -227,10 +227,44 @@ app.use((err, req, res, next) => {
 
 // ============ WEBSOCKET PARA TEMPO REAL (COM AUTENTICAÇÃO) ============
 
-const wss = new WebSocket.Server({ server, path: '/ws' });
+const wss = new WebSocket.Server({
+  server,
+  path: '/ws',
+  // ✅ Configurações para estabilidade de conexão
+  perMessageDeflate: false, // Desabilitar compressão (economiza CPU)
+  maxPayload: 1024 * 1024   // 1MB max (suficiente para métricas)
+});
+
+// ✅ Heartbeat para detectar conexões mortas (a cada 30s)
+const WS_HEARTBEAT_INTERVAL = 30000;
+const WS_HEARTBEAT_TIMEOUT = 35000; // 5s de tolerância
 
 // Mapa de clientes autenticados para broadcasts filtrados por organização
-const authenticatedClients = new Map(); // ws -> { userId, organizacaoId, role }
+const authenticatedClients = new Map(); // ws -> { userId, organizacaoId, role, isAlive, lastPing }
+
+// ✅ Heartbeat do servidor para detectar conexões mortas
+const wsHeartbeatInterval = setInterval(() => {
+  const now = Date.now();
+  wss.clients.forEach((ws) => {
+    const clientInfo = authenticatedClients.get(ws);
+    if (!clientInfo) return;
+
+    // Se não recebeu pong no timeout, terminar conexão
+    if (!clientInfo.isAlive) {
+      logger.warn('WebSocket', `Conexão morta detectada: ${clientInfo.email} - terminando`);
+      authenticatedClients.delete(ws);
+      return ws.terminate();
+    }
+
+    // Marcar como morto até receber pong
+    clientInfo.isAlive = false;
+    ws.ping(); // Servidor envia ping nativo do WebSocket
+  });
+}, WS_HEARTBEAT_INTERVAL);
+
+wss.on('close', () => {
+  clearInterval(wsHeartbeatInterval);
+});
 
 // ✅ Função para validar token JWT no WebSocket
 function validateWebSocketToken(token) {
@@ -305,7 +339,7 @@ async function setupLocationSubscription() {
       try {
         // locationData já vem parseado do redis.service.js
         const imei = locationData.imei;
-        console.log(`[API] 📡 PubSub recebido: ${imei} @ ${locationData.velocidade}km/h`);
+        // Log removido - muito verboso (dezenas por segundo)
 
         // Buscar organizacao_id do dispositivo
         const dispositivo = await dispositivoService.getByImei(imei);
@@ -337,9 +371,7 @@ async function setupLocationSubscription() {
             }
           }
         });
-        if (clienteCount > 0) {
-          console.log(`[API] 📤 WebSocket: ${imei} enviado para ${clienteCount} cliente(s)`);
-        }
+        // Log removido - muito verboso (dezenas por segundo)
       } catch (err) {
         logger.warn('Redis', `Erro ao processar location update: ${err.message}`);
       }
@@ -441,9 +473,17 @@ wss.on('connection', (ws, req) => {
     return;
   }
 
-  // ✅ Registrar cliente autenticado
-  authenticatedClients.set(ws, userInfo);
+  // ✅ Registrar cliente autenticado com heartbeat
+  authenticatedClients.set(ws, { ...userInfo, isAlive: true });
   logger.info('WebSocket', `Cliente autenticado: ${userInfo.email} (org: ${userInfo.organizacaoId})`);
+
+  // ✅ Handler para pong do heartbeat nativo
+  ws.on('pong', () => {
+    const clientInfo = authenticatedClients.get(ws);
+    if (clientInfo) {
+      clientInfo.isAlive = true;
+    }
+  });
 
   // Enviar confirmação de conexão
   ws.send(JSON.stringify({
@@ -473,6 +513,9 @@ wss.on('connection', (ws, req) => {
 
       // ✅ Comandos especiais do WebSocket
       if (dados.tipo === 'ping') {
+        // Marcar conexão como viva (cliente enviou ping)
+        const clientInfo = authenticatedClients.get(ws);
+        if (clientInfo) clientInfo.isAlive = true;
         ws.send(JSON.stringify({ tipo: 'pong', timestamp: new Date().toISOString() }));
         return;
       }

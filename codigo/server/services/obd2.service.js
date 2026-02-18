@@ -145,7 +145,7 @@ class OBD2Service {
 
     // ✅ Para dispositivos sem OBD2: calcular odômetro e horímetro pela plataforma
     if (!suportaOBD2) {
-      console.log(`[OBD2] Dispositivo ${imei} (${dispositivo.tipo}) não suporta OBD2 - usando cálculos da plataforma`);
+      // Log removido - muito verboso (era logado a cada localização)
 
       // Calcular odômetro por GPS se não tiver embarcado
       if (merged.odometro_embarcado === null || merged.odometro_embarcado === 0) {
