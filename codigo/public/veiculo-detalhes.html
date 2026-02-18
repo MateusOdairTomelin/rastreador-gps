@@ -1810,13 +1810,36 @@
                 </div>
 
                 <div id="tab-viagens" class="tab-content">
-                    <!-- Filtro por período de dias -->
-                    <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center;">
+                    <!-- Filtros de período -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
                         <span style="font-weight: 600; color: var(--text-light);">Período:</span>
                         <button class="period-btn active" data-days="7" onclick="selectViagensPeriod(7)">7 dias</button>
                         <button class="period-btn" data-days="15" onclick="selectViagensPeriod(15)">15 dias</button>
                         <button class="period-btn" data-days="30" onclick="selectViagensPeriod(30)">30 dias</button>
                         <button class="period-btn" data-days="90" onclick="selectViagensPeriod(90)">90 dias</button>
+                    </div>
+
+                    <!-- Filtro por data específica e horário -->
+                    <div id="filtro-trajetoria" style="display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; padding: 12px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border-light);">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label style="font-weight: 500; color: var(--text-light); font-size: 0.9em;">📅 Data:</label>
+                            <input type="date" id="filtro-data" style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: 6px; background: var(--bg-card); color: var(--text);">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label style="font-weight: 500; color: var(--text-light); font-size: 0.9em;">⏰ De:</label>
+                            <input type="time" id="filtro-hora-inicio" value="00:00" style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: 6px; background: var(--bg-card); color: var(--text);">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label style="font-weight: 500; color: var(--text-light); font-size: 0.9em;">Até:</label>
+                            <input type="time" id="filtro-hora-fim" value="23:59" style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: 6px; background: var(--bg-card); color: var(--text);">
+                        </div>
+                        <button class="period-btn" onclick="verTrajetoriaDia()" style="background: var(--primary); color: white; font-weight: 600;">
+                            🗺️ Ver Trajetória
+                        </button>
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 0.85em; color: var(--text-light);">
+                            <input type="checkbox" id="mostrar-excessos" checked style="width: 16px; height: 16px;">
+                            Destacar excessos
+                        </label>
                     </div>
                     <!-- Resumo das viagens -->
                     <div id="viagens-resumo" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px; padding: 15px; background: var(--bg); border-radius: 8px;">
@@ -3254,6 +3277,13 @@
         let currentViagensPeriod = 7; // Período padrão: 7 dias
         let viagensData = []; // Dados das viagens carregadas
 
+        // Inicializar campo de data com hoje
+        (function initFiltroData() {
+            const hoje = new Date().toISOString().split('T')[0];
+            const filtroData = document.getElementById('filtro-data');
+            if (filtroData) filtroData.value = hoje;
+        })();
+
         // Selecionar período de viagens
         function selectViagensPeriod(days) {
             currentViagensPeriod = days;
@@ -3270,6 +3300,230 @@
 
             // Recarregar viagens
             loadHistoryViagens();
+        }
+
+        // Ver trajetória de um dia específico com filtro de horário
+        async function verTrajetoriaDia() {
+            const dataInput = document.getElementById('filtro-data').value;
+            const horaInicio = document.getElementById('filtro-hora-inicio').value || '00:00';
+            const horaFim = document.getElementById('filtro-hora-fim').value || '23:59';
+            const mostrarExcessos = document.getElementById('mostrar-excessos').checked;
+
+            if (!dataInput) {
+                toastWarning('Selecione uma data para ver a trajetória');
+                return;
+            }
+
+            // Construir timestamps
+            const dataInicio = new Date(`${dataInput}T${horaInicio}:00`);
+            const dataFimTs = new Date(`${dataInput}T${horaFim}:59`);
+
+            // Validar intervalo
+            if (dataFimTs <= dataInicio) {
+                toastWarning('O horário final deve ser maior que o inicial');
+                return;
+            }
+
+            try {
+                // Mostrar loading
+                toastInfo('Carregando trajetória...', 'Aguarde');
+
+                // Buscar pontos GPS do período
+                const res = await authFetch(`${API_BASE}/dispositivos/${IMEI}/historico?dataInicio=${dataInicio.toISOString()}&dataFim=${dataFimTs.toISOString()}&corrigido=true`);
+                const data = await res.json();
+
+                if (!data.sucesso || !data.dados || data.dados.length === 0) {
+                    toastWarning('Nenhum dado GPS encontrado para este período');
+                    return;
+                }
+
+                let pontos = data.dados.filter(p => p.latitude && p.longitude);
+
+                if (pontos.length < 2) {
+                    toastWarning('Pontos insuficientes para traçar a rota');
+                    return;
+                }
+
+                // Ordenar por timestamp
+                pontos.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+                // Buscar limites de velocidade para cada ponto (em batch)
+                let limitesVelocidade = {};
+                if (mostrarExcessos) {
+                    try {
+                        const coordsUnicos = [];
+                        const seen = new Set();
+
+                        // Pegar coordenadas únicas (arredondadas para ~100m de precisão)
+                        pontos.forEach(p => {
+                            const key = `${p.latitude.toFixed(3)},${p.longitude.toFixed(3)}`;
+                            if (!seen.has(key)) {
+                                seen.add(key);
+                                coordsUnicos.push({ lat: p.latitude, lng: p.longitude, key });
+                            }
+                        });
+
+                        // Buscar limites em paralelo (máximo 10 por vez)
+                        const batchSize = 10;
+                        for (let i = 0; i < coordsUnicos.length; i += batchSize) {
+                            const batch = coordsUnicos.slice(i, i + batchSize);
+                            const promises = batch.map(async (coord) => {
+                                try {
+                                    const limRes = await authFetch(`${API_BASE}/speedlimit?lat=${coord.lat}&lng=${coord.lng}`);
+                                    const limData = await limRes.json();
+                                    if (limData.sucesso && limData.dados?.limite) {
+                                        limitesVelocidade[coord.key] = limData.dados.limite;
+                                    }
+                                } catch (e) {
+                                    // Ignorar erro de limite individual
+                                }
+                            });
+                            await Promise.all(promises);
+                        }
+                    } catch (e) {
+                        console.warn('Erro ao buscar limites de velocidade:', e);
+                    }
+                }
+
+                // Limpar elementos antigos
+                routePolylines.forEach(polyline => {
+                    if (polyline && map.hasLayer(polyline)) {
+                        map.removeLayer(polyline);
+                    }
+                });
+                routePolylines = [];
+
+                routeMarkers.forEach(m => {
+                    if (m && map.hasLayer(m)) {
+                        map.removeLayer(m);
+                    }
+                });
+                routeMarkers = [];
+
+                gpsPointMarkers.forEach(m => {
+                    if (m && map.hasLayer(m)) {
+                        map.removeLayer(m);
+                    }
+                });
+                gpsPointMarkers = [];
+
+                // Estatísticas
+                let totalExcessos = 0;
+                let distanciaTotal = 0;
+                let tempoMovimento = 0;
+                let ultimoPonto = null;
+
+                // Desenhar rota com cores baseadas em excesso de velocidade
+                // Criar segmentos de cor diferente
+                let segmentoAtual = [];
+                let corAtual = '#22c55e'; // Verde padrão
+                let excessoAtual = false;
+
+                pontos.forEach((ponto, index) => {
+                    const coord = [ponto.latitude, ponto.longitude];
+                    const key = `${ponto.latitude.toFixed(3)},${ponto.longitude.toFixed(3)}`;
+                    const limiteVia = limitesVelocidade[key] || 60; // Default 60 se não encontrou
+                    const velocidade = ponto.velocidade || 0;
+                    const emExcesso = mostrarExcessos && velocidade > limiteVia;
+
+                    // Calcular distância e tempo
+                    if (ultimoPonto) {
+                        const dist = calcularDistancia(
+                            ultimoPonto.latitude, ultimoPonto.longitude,
+                            ponto.latitude, ponto.longitude
+                        );
+                        distanciaTotal += dist;
+
+                        if (velocidade > 0) {
+                            const diffMs = new Date(ponto.timestamp) - new Date(ultimoPonto.timestamp);
+                            tempoMovimento += diffMs / 1000 / 60; // minutos
+                        }
+                    }
+                    ultimoPonto = ponto;
+
+                    if (emExcesso) totalExcessos++;
+
+                    // Verificar se mudou o estado de excesso
+                    if (emExcesso !== excessoAtual && segmentoAtual.length > 0) {
+                        // Desenhar segmento anterior
+                        const polyline = L.polyline(segmentoAtual, {
+                            color: corAtual,
+                            weight: 5,
+                            opacity: 0.9,
+                            lineCap: 'round',
+                            lineJoin: 'round'
+                        }).addTo(map);
+                        routePolylines.push(polyline);
+
+                        // Iniciar novo segmento (manter último ponto para continuidade)
+                        segmentoAtual = [segmentoAtual[segmentoAtual.length - 1]];
+                    }
+
+                    segmentoAtual.push(coord);
+                    excessoAtual = emExcesso;
+                    corAtual = emExcesso ? '#ef4444' : '#22c55e'; // Vermelho ou Verde
+                });
+
+                // Desenhar último segmento
+                if (segmentoAtual.length > 1) {
+                    const polyline = L.polyline(segmentoAtual, {
+                        color: corAtual,
+                        weight: 5,
+                        opacity: 0.9,
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                    }).addTo(map);
+                    routePolylines.push(polyline);
+                }
+
+                // Marcador de INÍCIO (verde)
+                const startMarker = L.marker([pontos[0].latitude, pontos[0].longitude], {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41]
+                    })
+                }).addTo(map);
+                startMarker.bindPopup(`<b>🟢 Início</b><br>${formatTime(pontos[0].timestamp)}`);
+                routeMarkers.push(startMarker);
+
+                // Marcador de FIM (vermelho)
+                const ultimo = pontos[pontos.length - 1];
+                const endMarker = L.marker([ultimo.latitude, ultimo.longitude], {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41]
+                    })
+                }).addTo(map);
+                endMarker.bindPopup(`<b>🔴 Fim</b><br>${formatTime(ultimo.timestamp)}`);
+                routeMarkers.push(endMarker);
+
+                // Ajustar zoom
+                const allCoords = pontos.map(p => [p.latitude, p.longitude]);
+                const bounds = L.latLngBounds(allCoords);
+                map.fitBounds(bounds, { padding: [50, 50] });
+
+                // Mostrar resumo
+                const tempoStr = tempoMovimento >= 60
+                    ? `${Math.floor(tempoMovimento/60)}h ${Math.round(tempoMovimento%60)}min`
+                    : `${Math.round(tempoMovimento)} min`;
+
+                toastSuccess(
+                    `📍 ${pontos.length} pontos | 🛣️ ${distanciaTotal.toFixed(1)} km | ⏱️ ${tempoStr}` +
+                    (mostrarExcessos ? ` | ⚠️ ${totalExcessos} excessos` : ''),
+                    'Trajetória carregada'
+                );
+
+                // Mudar para aba do mapa
+                showTab('mapa');
+
+            } catch (error) {
+                console.error('Erro ao carregar trajetória:', error);
+                toastError('Erro ao carregar trajetória: ' + error.message);
+            }
         }
 
         // Carregar histórico de viagens
