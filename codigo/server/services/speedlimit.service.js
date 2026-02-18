@@ -7,7 +7,17 @@ class SpeedLimitService {
   constructor() {
     // Cache de limites de velocidade para evitar consultas repetidas
     this.cache = new Map();
-    this.cacheTimeout = 5 * 60 * 1000; // 5 minutos
+    this.cacheTimeout = 60 * 60 * 1000; // 1 hora (era 5 min) - vias não mudam frequentemente
+
+    // Cache de erros para evitar bombardear API após falha
+    this.errorCache = new Map();
+    this.errorCacheTimeout = 60 * 1000; // 1 minuto de cooldown após erro
+
+    // Rate limiter global - máximo 1 requisição por segundo à Overpass API
+    this.lastRequestTime = 0;
+    this.minRequestInterval = 1000; // 1 segundo entre requisições
+    this.globalCooldown = false;
+    this.globalCooldownUntil = 0;
 
     // Limites padrão por tipo de via (Brasil)
     this.defaultLimits = {
@@ -61,37 +71,97 @@ class SpeedLimitService {
    */
   async getSpeedLimit(lat, lng) {
     const cacheKey = this.getCacheKey(lat, lng);
+    const now = Date.now();
 
-    // Verificar cache
+    // Verificar cache de sucesso
     const cached = this.cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+    if (cached && now - cached.timestamp < this.cacheTimeout) {
       return cached.data;
     }
 
+    // Verificar cooldown global (após muitos erros)
+    if (this.globalCooldown && now < this.globalCooldownUntil) {
+      return {
+        limite: this.defaultLimits.default,
+        via: 'API em cooldown',
+        tipo: 'default',
+        fonte: 'global_cooldown'
+      };
+    }
+    this.globalCooldown = false;
+
+    // Rate limiter: mínimo 1 segundo entre requisições
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    if (timeSinceLastRequest < this.minRequestInterval) {
+      // Retornar padrão sem fazer requisição (rate limited)
+      return {
+        limite: this.defaultLimits.default,
+        via: 'Rate limited',
+        tipo: 'default',
+        fonte: 'rate_limit'
+      };
+    }
+
+    // Verificar cache de erros (cooldown após falha nesta posição)
+    const errorCached = this.errorCache.get(cacheKey);
+    if (errorCached && now - errorCached < this.errorCacheTimeout) {
+      return {
+        limite: this.defaultLimits.default,
+        via: 'Em cooldown',
+        tipo: 'default',
+        fonte: 'cooldown'
+      };
+    }
+
     try {
+      // Marcar tempo da requisição
+      this.lastRequestTime = now;
+
       // Consultar Overpass API (OpenStreetMap)
       const result = await this.queryOverpass(lat, lng);
 
-      // Armazenar no cache
+      // Sucesso - limpar cache de erro e armazenar resultado
+      this.errorCache.delete(cacheKey);
       this.cache.set(cacheKey, {
         data: result,
         timestamp: Date.now()
       });
 
-      // Limpar cache antigo periodicamente
-      if (this.cache.size > 1000) {
+      // Limpar cache antigo periodicamente (aumentado para 5000)
+      if (this.cache.size > 5000) {
         this.cleanCache();
       }
 
       return result;
     } catch (error) {
       console.error('[SpeedLimit] Erro ao consultar limite:', error.message);
+
+      // Se erro 429 ou 504, ativar cooldown global de 5 minutos
+      if (error.message.includes('429') || error.message.includes('504')) {
+        this.globalCooldown = true;
+        this.globalCooldownUntil = Date.now() + (5 * 60 * 1000); // 5 minutos
+        console.warn('[SpeedLimit] ⚠️ Cooldown global ativado por 5 minutos (erro de rate limit/timeout)');
+      }
+
+      // Adicionar ao cache de erros para evitar bombardear a API
+      this.errorCache.set(cacheKey, Date.now());
+
+      // Limpar cache de erros antigos
+      if (this.errorCache.size > 1000) {
+        const cleanNow = Date.now();
+        for (const [key, timestamp] of this.errorCache.entries()) {
+          if (cleanNow - timestamp > this.errorCacheTimeout) {
+            this.errorCache.delete(key);
+          }
+        }
+      }
+
       // Retornar limite padrão em caso de erro
       return {
         limite: this.defaultLimits.default,
         via: 'Desconhecida',
         tipo: 'default',
-        fonte: 'padrao'
+        fonte: 'erro'
       };
     }
   }
