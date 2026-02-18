@@ -4032,6 +4032,10 @@
 
         // Carregar histórico de viagens
         async function loadHistoryViagens() {
+            // Se filtro de horário estiver ativo, não recarregar (manter dados filtrados)
+            if (typeof filtroHorarioAtivo !== 'undefined' && filtroHorarioAtivo !== null) {
+                return;
+            }
             try {
                 const dataFim = new Date();
                 const dataInicio = new Date(dataFim.getTime() - (currentViagensPeriod * 24 * 60 * 60 * 1000));
