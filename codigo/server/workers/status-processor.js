@@ -19,6 +19,7 @@ const dispositivoService = require('../services/dispositivo.service');
 const heartbeatService = require('../services/heartbeat.service');
 const obd2Service = require('../services/obd2.service');
 const redisService = require('../services/redis.service');
+const localizacaoService = require('../services/localizacao.service');
 
 // ============ CONFIGURAÇÃO ============
 const WORKER_ID = process.env.WORKER_ID || `status-${process.pid}`;
@@ -217,26 +218,25 @@ async function createStatusLocationRecord(imei, estadoIgnicao, statusData) {
       return;
     }
 
-    // Criar registro de localização com status
-    const newLocation = await prisma.localizacao.create({
-      data: {
-        dispositivo_id: dispositivo.id,
-        latitude: lastPosition.latitude,
-        longitude: lastPosition.longitude,
-        altitude: lastPosition.altitude || null,
-        velocidade: 0, // Status geralmente significa parado
-        direcao: lastPosition.direcao || 0,
-        precisao: lastPosition.precisao || null,
-        ignicao: estadoIgnicao !== 'off',
-        estado_ignicao: estadoIgnicao,
-        timestamp: new Date()
-      }
+    // ✅ CORREÇÃO: Usar localizacaoService.create() para aplicar filtros de GPS
+    // Isso evita salvar localizações com coordenadas ruins vindas do cache
+    const newLocation = await localizacaoService.create(imei, {
+      latitude: lastPosition.latitude,
+      longitude: lastPosition.longitude,
+      altitude: lastPosition.altitude || null,
+      velocidade: 0, // Status geralmente significa parado
+      direcao: lastPosition.direcao || 0,
+      precisao: lastPosition.precisao || null,
+      ignicao: estadoIgnicao !== 'off',
+      estado_ignicao: estadoIgnicao,
+      timestamp: new Date()
     });
 
-    // Atualizar cache Redis
-    await redisService.setPosition(imei, newLocation);
-
-    console.log(`[${WORKER_ID}] 📍 ${imei}: Localização de status criada (${estadoIgnicao})`);
+    if (newLocation) {
+      console.log(`[${WORKER_ID}] 📍 ${imei}: Localização de status criada (${estadoIgnicao})`);
+    } else {
+      console.log(`[${WORKER_ID}] ⚠️ ${imei}: Localização de status rejeitada pelo filtro GPS`);
+    }
 
   } catch (error) {
     console.error(`[${WORKER_ID}] ⚠️ Erro ao criar localização de status para ${imei}:`, error.message);
