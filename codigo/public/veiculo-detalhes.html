@@ -3541,8 +3541,9 @@
             }
         }
 
-        // Variável para armazenar o filtro ativo
+        // Variável para armazenar o filtro ativo e dados originais
         let filtroHorarioAtivo = null;
+        let viagensDataOriginal = []; // Cópia dos dados originais para poder limpar filtro
 
         // Aplicar filtro de horário na lista de viagens
         function aplicarFiltroTrajetoria() {
@@ -3550,9 +3551,17 @@
             const minutosInicio = parseInt(document.getElementById('filtro-hora-inicio').value) || 0;
             const minutosFim = parseInt(document.getElementById('filtro-hora-fim').value) || 1439;
 
-            if (!dataInput) {
-                toastWarning('Selecione uma data para filtrar');
+            // Usar dados originais se existirem, senão usar viagensData
+            const dadosParaFiltrar = viagensDataOriginal.length > 0 ? viagensDataOriginal : viagensData;
+
+            if (!dadosParaFiltrar || dadosParaFiltrar.length === 0) {
+                toastWarning('Carregue as viagens primeiro (selecione um período acima)');
                 return;
+            }
+
+            // Salvar dados originais na primeira vez
+            if (viagensDataOriginal.length === 0) {
+                viagensDataOriginal = [...viagensData];
             }
 
             // Armazenar filtro ativo
@@ -3562,39 +3571,47 @@
                 horaFim: minutosParaHora(minutosFim)
             };
 
-            // Filtrar viagens na tabela
             const tbody = document.getElementById('history-viagens');
-            if (!tbody || !viagensData || viagensData.length === 0) {
-                toastWarning('Carregue as viagens primeiro');
-                return;
-            }
-
-            // Criar timestamps para comparação
-            const dataFiltro = new Date(dataInput);
             const filtroInicioMin = minutosInicio;
             const filtroFimMin = minutosFim;
 
             // Filtrar viagens
-            const viagensFiltradas = viagensData.filter(v => {
+            const viagensFiltradas = dadosParaFiltrar.filter(v => {
                 const viagemDate = new Date(v.inicio);
-                const viagemData = viagemDate.toISOString().split('T')[0];
 
-                // Verificar se é a mesma data
-                if (viagemData !== dataInput) return false;
+                // Se data específica foi selecionada, filtrar por ela
+                if (dataInput) {
+                    const viagemData = viagemDate.toISOString().split('T')[0];
+                    if (viagemData !== dataInput) return false;
+                }
 
                 // Converter hora da viagem para minutos
                 const viagemHora = viagemDate.getHours();
                 const viagemMin = viagemDate.getMinutes();
                 const viagemMinutos = viagemHora * 60 + viagemMin;
 
-                // Verificar se está no intervalo
+                // Verificar se está no intervalo de horário
                 return viagemMinutos >= filtroInicioMin && viagemMinutos <= filtroFimMin;
             });
 
+            // Atualizar estatísticas com base no filtro
+            const totalViagens = viagensFiltradas.length;
+            const distanciaTotal = viagensFiltradas.reduce((sum, v) => sum + (v.distancia_km || 0), 0);
+            const tempoTotal = viagensFiltradas.reduce((sum, v) => sum + (v.duracao_minutos || 0), 0) / 60;
+            const velMedia = viagensFiltradas.length > 0
+                ? viagensFiltradas.reduce((sum, v) => sum + (v.velocidade_media || 0), 0) / viagensFiltradas.length
+                : 0;
+
+            document.getElementById('viagens-total').textContent = totalViagens;
+            document.getElementById('viagens-distancia').textContent = `${distanciaTotal.toFixed(1)} km`;
+            document.getElementById('viagens-tempo').textContent = `${tempoTotal.toFixed(1)}h`;
+            document.getElementById('viagens-vel-media').textContent = `${velMedia.toFixed(1)} km/h`;
+
             // Atualizar tabela
             if (viagensFiltradas.length === 0) {
+                const msgData = dataInput ? ` em ${new Date(dataInput).toLocaleDateString('pt-BR')}` : '';
                 tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-light);">
-                    Nenhuma viagem encontrada entre ${minutosParaHora(minutosInicio)} e ${minutosParaHora(minutosFim)}
+                    Nenhuma viagem encontrada entre ${minutosParaHora(minutosInicio)} e ${minutosParaHora(minutosFim)}${msgData}
                 </td></tr>`;
             } else {
                 tbody.innerHTML = viagensFiltradas.map((v, index) => {
@@ -3628,15 +3645,38 @@
                 }).join('');
             }
 
-            // Mostrar status do filtro
+            // Mostrar status do filtro com botão de limpar
             const statusEl = document.getElementById('filtro-status');
             const statusText = document.getElementById('filtro-status-text');
             if (statusEl && statusText) {
-                statusText.textContent = `Filtro aplicado: ${viagensFiltradas.length} viagens de ${minutosParaHora(minutosInicio)} às ${minutosParaHora(minutosFim)}`;
+                const dataStr = dataInput ? ` em ${new Date(dataInput).toLocaleDateString('pt-BR')}` : '';
+                statusText.innerHTML = `✓ ${viagensFiltradas.length} viagens (${minutosParaHora(minutosInicio)} - ${minutosParaHora(minutosFim)}${dataStr}) <a href="#" onclick="limparFiltroViagens(); return false;" style="margin-left: 10px; color: #3b82f6;">Limpar filtro</a>`;
                 statusEl.classList.add('active');
             }
+        }
 
-            toastSuccess(`${viagensFiltradas.length} viagens encontradas`, 'Filtro aplicado');
+        // Limpar filtro e restaurar dados originais
+        function limparFiltroViagens() {
+            filtroHorarioAtivo = null;
+
+            // Restaurar dados originais
+            if (viagensDataOriginal.length > 0) {
+                viagensData = [...viagensDataOriginal];
+                viagensDataOriginal = [];
+            }
+
+            // Resetar slider para dia todo
+            document.getElementById('filtro-hora-inicio').value = 0;
+            document.getElementById('filtro-hora-fim').value = 1439;
+            atualizarSliderHorario();
+
+            // Esconder status
+            const statusEl = document.getElementById('filtro-status');
+            if (statusEl) statusEl.classList.remove('active');
+
+            // Recarregar viagens
+            loadHistoryViagens();
+            toastInfo('Filtro removido', 'Mostrando todas as viagens');
         }
 
         // Selecionar período de viagens
