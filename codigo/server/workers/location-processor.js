@@ -114,39 +114,25 @@ function incrementRejectionCounter(imei, lat, lon, satellites, velocidade, dista
   current.lastCoords = { lat, lon };
   rejectionCounter.set(imei, current);
 
-  // Se atingiu o limite, verificar se deve resetar Kalman
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AUTO-RESET INCONDICIONAL
+  //
+  // Após N rejeições consecutivas, SEMPRE aceitar o novo ponto
+  // Motivos válidos para saltos grandes:
+  // - Veículo transportado (caminhão-cegonha)
+  // - GPS perdeu sinal por tempo prolongado
+  // - Dados de buffer chegando fora de ordem
+  // - Viagem longa sem comunicação
+  //
+  // NÃO REJEITAR NUNCA após atingir o threshold!
+  // Isso garante que dispositivos NUNCA fiquem travados.
+  // ═══════════════════════════════════════════════════════════════════════════
   if (current.count >= REJECTION_THRESHOLD) {
-    // ⚠️ REGRAS RIGOROSAS para aceitar ponto após múltiplas rejeições:
-    // 1. Saltos > 5km NUNCA são aceitos (impossível mesmo em alta velocidade)
-    // 2. Saltos > 1km com velocidade 0 NUNCA são aceitos (drift de GPS)
-    // 3. Saltos > 2km com poucos satélites (<10) NÃO são aceitos
-
-    const isHugeSalt = distanciaKm > 5; // Salto absurdo - NUNCA aceitar
-    const isDriftWithZeroSpeed = (distanciaKm > 1) && (velocidade === 0); // Drift com carro parado
-    const isLowQualityJump = (distanciaKm > 2) && (satellites < 10); // Salto grande com poucos satélites
-
-    if (isHugeSalt) {
-      console.warn(`[${WORKER_ID}] ⚠️ ${imei}: ${current.count} rejeições - salto ABSURDO de ${distanciaKm.toFixed(1)}km - NUNCA aceitar`);
-      rejectionCounter.delete(imei);
-      return false;
-    }
-
-    if (isDriftWithZeroSpeed) {
-      console.warn(`[${WORKER_ID}] ⚠️ ${imei}: ${current.count} rejeições - drift de ${distanciaKm.toFixed(1)}km com vel=0 - NÃO aceitar`);
-      rejectionCounter.delete(imei);
-      return false;
-    }
-
-    if (isLowQualityJump) {
-      console.warn(`[${WORKER_ID}] ⚠️ ${imei}: ${current.count} rejeições - salto ${distanciaKm.toFixed(1)}km com apenas ${satellites} satélites - NÃO aceitar`);
-      rejectionCounter.delete(imei);
-      return false;
-    }
-
-    console.log(`[${WORKER_ID}] 🔄 ${imei}: ${current.count} rejeições consecutivas - RESETANDO KALMAN (${distanciaKm.toFixed(1)}km, sat=${satellites}, vel=${velocidade})`);
+    console.log(`[${WORKER_ID}] 🔄 ${imei}: ${current.count} rejeições consecutivas - AUTO-RESET INCONDICIONAL`);
+    console.log(`[${WORKER_ID}] 🔄 ${imei}: Aceitando nova posição: ${distanciaKm.toFixed(1)}km, sat=${satellites || 'N/A'}, vel=${velocidade}km/h`);
     gpsPipeline.resetKalman(imei);
     rejectionCounter.delete(imei);
-    return true; // Indica que deve aceitar o ponto atual
+    return true; // SEMPRE aceitar após threshold
   }
   return false;
 }
@@ -332,23 +318,26 @@ async function processLocationMessage(message) {
         const velocidadeAtual = locationData.velocidade || 0;
         const velocidadeAnterior = ultimaLoc.velocidade || 0;
 
-        // Usar a MAIOR velocidade entre atual e anterior (com margem de 50%)
-        // Isso cobre aceleração/frenagem entre os pontos
-        const velocidadeReferencia = Math.max(velocidadeAtual, velocidadeAnterior);
+        // ✅ CORREÇÃO: Calcular velocidade MÉDIA necessária para o salto
+        // Se a velocidade média é plausível (< 200km/h), aceitar o ponto
+        const velocidadeMediaNecessaria = tempoAbsoluto > 0 ? (distanciaKm / tempoAbsoluto) * 3600 : 999;
+
+        // Usar a MAIOR velocidade entre atual, anterior e média necessária
+        const velocidadeReferencia = Math.max(velocidadeAtual, velocidadeAnterior, velocidadeMediaNecessaria * 0.5);
 
         // RIGOROSO para parado: máximo 100m absoluto
         // Em movimento: velocidade real + 50% de margem (max 200km/h)
         let limiteKm;
-        if (velocidadeReferencia === 0) {
-          // Parado: limite ABSOLUTO de 100m (0.1km), independente do tempo
+        if (velocidadeReferencia === 0 && velocidadeMediaNecessaria < 10) {
+          // Realmente parado: limite ABSOLUTO de 100m (0.1km)
           // GPS drift normal é < 50m, qualquer coisa > 100m é dado ruim
           limiteKm = 0.1;
         } else {
-          // Em movimento: baseado na velocidade real
-          const velocidadeMaxKmh = Math.min(velocidadeReferencia * 1.5, 200);
-          // ✅ CORREÇÃO: Usar tempoAbsoluto para evitar limites negativos/errados
+          // Em movimento: baseado na velocidade de referência OU velocidade média
+          // Se a velocidade média necessária é < 200km/h, o salto é PLAUSÍVEL
+          const velocidadeMaxKmh = Math.min(Math.max(velocidadeReferencia * 1.5, velocidadeMediaNecessaria), 200);
           const distanciaMaxKm = (velocidadeMaxKmh / 3600) * Math.max(tempoAbsoluto, 1);
-          // Mínimo de 300m em movimento (para GPS drift durante frenagem)
+          // Mínimo de 300m em movimento
           limiteKm = Math.max(distanciaMaxKm, 0.3);
         }
 

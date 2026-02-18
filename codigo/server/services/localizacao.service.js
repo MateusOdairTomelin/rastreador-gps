@@ -255,67 +255,36 @@ class LocalizacaoService {
       }
 
       // ══════════════════════════════════════════════════════════════════════
-      // REGRA 1: SALTO ABSOLUTO - Verificar se a velocidade implícita é razoável
-      // ✅ CORREÇÃO: Não rejeitar por distância absoluta, usar velocidade implícita
-      // Ex: 15km em 23min = 39km/h (aceitável), 15km em 2min = 450km/h (impossível)
+      // FILTRO GPS SIMPLIFICADO
+      //
+      // ⚠️ IMPORTANTE: O filtro principal está no location-processor.js
+      // Aqui mantemos apenas REGRAS ABSOLUTAS (fisicamente impossíveis)
+      // O location-processor tem auto-reset após 5 rejeições para evitar travamento
       // ══════════════════════════════════════════════════════════════════════
-      const tempoOfflineMinutos = tempoSegundos / 60;
-      if (distanciaKm > 10) {
-        // Calcular velocidade necessária para fazer o salto
-        const velocidadeNecessaria = (distanciaKm / tempoSegundos) * 3600;
 
-        // ✅ CORREÇÃO: Saltos > 100km são SEMPRE rejeitados (impossível mesmo transportado)
-        if (distanciaKm > 100) {
-          console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto ABSURDO ${distanciaKm.toFixed(1)}km - distância máxima 100km`);
-          return null;
-        }
-
-        if (velocidadeNecessaria <= 120) {
-          // Velocidade razoável (até 120km/h de média) - aceitar
-          console.log(`[GPS Filter] ✅ ${imei}: Salto ${distanciaKm.toFixed(1)}km aceito - velocidade média ${velocidadeNecessaria.toFixed(0)}km/h (razoável)`);
-        } else if (tempoOfflineMinutos > 60 && distanciaKm <= 50) {
-          // ✅ CORREÇÃO: Offline > 1 hora E distância <= 50km (transporte razoável)
-          console.log(`[GPS Filter] 🔄 RESET ${imei}: Aceito salto ${distanciaKm.toFixed(1)}km após ${tempoOfflineMinutos.toFixed(0)}min offline`);
-        } else {
-          console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto ${distanciaKm.toFixed(1)}km requer ${velocidadeNecessaria.toFixed(0)}km/h média (máx 120km/h)`);
-          return null;
-        }
-      }
-
-      // ══════════════════════════════════════════════════════════════════════
-      // REGRA 2: SALTO INSTANTÂNEO - Rejeitar > 500m em < 2 segundos
-      // ══════════════════════════════════════════════════════════════════════
-      if (tempoSegundos < 2 && distanciaKm > 0.5) {
-        console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto instantâneo ${(distanciaKm * 1000).toFixed(0)}m em ${tempoSegundos.toFixed(1)}s`);
-        return null;
-      }
-
-      // ══════════════════════════════════════════════════════════════════════
-      // REGRA 3: VELOCIDADE IMPOSSÍVEL - Rejeitar se velocidade implícita > 200 km/h
-      // ══════════════════════════════════════════════════════════════════════
-      if (velocidadeImplicita > 200) {
+      // REGRA 1: VELOCIDADE IMPOSSÍVEL - Rejeitar se velocidade implícita > 300 km/h
+      // (Margem maior para dados de buffer chegando fora de ordem)
+      if (velocidadeImplicita > 300) {
         console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Velocidade impossível ${velocidadeImplicita.toFixed(0)}km/h (${distanciaKm.toFixed(2)}km em ${tempoSegundos.toFixed(0)}s)`);
         return null;
       }
 
-      // ══════════════════════════════════════════════════════════════════════
-      // REGRA 4: DRIFT PARADO - Rejeitar > 200m quando velocidade = 0
-      // (GPS cold start ou multipath - comum em OBD2 e 4F)
-      // EXCEÇÃO: Não aplicar se offline > 1 hora (veículo foi movido/transportado)
-      // ══════════════════════════════════════════════════════════════════════
-      if (velocidadeReportada === 0 && distanciaKm > 0.2 && tempoOfflineMinutos < 60) {
-        console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Drift parado ${(distanciaKm * 1000).toFixed(0)}m com velocidade 0`);
+      // REGRA 2: SALTO INSTANTÂNEO - Rejeitar > 1km em < 2 segundos
+      // (Impossível fisicamente - até 1800km/h)
+      if (tempoSegundos < 2 && distanciaKm > 1) {
+        console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto instantâneo ${(distanciaKm * 1000).toFixed(0)}m em ${tempoSegundos.toFixed(1)}s`);
         return null;
       }
 
-      // ══════════════════════════════════════════════════════════════════════
-      // REGRA 5: SALTO MÉDIO SEM MOVIMENTO - Rejeitar > 1km quando vel < 5 km/h
-      // (Evita aceitar pontos de GPS convergindo após cold start)
-      // EXCEÇÃO: Não aplicar se offline > 1 hora
-      // ══════════════════════════════════════════════════════════════════════
-      if (velocidadeReportada < 5 && distanciaKm > 1 && tempoOfflineMinutos < 60) {
-        console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto ${distanciaKm.toFixed(2)}km com velocidade baixa (${velocidadeReportada}km/h)`);
+      // REGRA 3: SALTO ABSURDO - Rejeitar > 200km (impossível mesmo transportado por avião)
+      if (distanciaKm > 200) {
+        console.warn(`[GPS Filter] ❌ REJEITADO ${imei}: Salto ABSURDO ${distanciaKm.toFixed(1)}km - máximo 200km`);
         return null;
+      }
+
+      // Log para monitoramento (sem rejeitar)
+      if (distanciaKm > 5) {
+        console.log(`[GPS Filter] 📏 ${imei}: Salto grande ${distanciaKm.toFixed(2)}km em ${tempoSegundos.toFixed(0)}s = ${velocidadeImplicita.toFixed(0)}km/h (aceito)`);
       }
     }
 
