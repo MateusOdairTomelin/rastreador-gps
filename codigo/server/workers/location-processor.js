@@ -262,6 +262,10 @@ async function processLocationMessage(message) {
 
   const { imei, data, gateway_id } = message;
 
+  // ✅ Variáveis de lock declaradas FORA do try para serem acessíveis no finally
+  const filterLockKey = `lock:filter:${imei}`;
+  let filterLockAcquired = false;
+
   try {
     const locationData = typeof data === 'string' ? JSON.parse(data) : data;
 
@@ -306,9 +310,7 @@ async function processLocationMessage(message) {
     // ========== LOCK POR IMEI (Evita race condition entre processadores) ==========
     // ✅ CORREÇÃO SCALING: Adquirir lock ANTES do filtro para garantir consistência
     // Sem lock, dois processadores podem ler a mesma "última posição" e ambos passar no filtro
-    const filterLockKey = `lock:filter:${imei}`;
     const filterLockTTL = 10; // 10 segundos
-    let filterLockAcquired = false;
 
     try {
       filterLockAcquired = await redisService.acquireLock(filterLockKey, filterLockTTL);
