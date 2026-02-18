@@ -4234,11 +4234,50 @@
                             </div>
                         `, { maxWidth: 300, className: 'popup-parada' });
 
+                        // Buscar endereço quando popup abrir
+                        paradaMarker.on('popupopen', async function() {
+                            const el = document.getElementById(`endereco-parada-traj-${parada.numero}`);
+                            if (!el || el.dataset.loaded === 'true') return;
+
+                            const cacheKey = `${parada.latitude.toFixed(4)},${parada.longitude.toFixed(4)}`;
+
+                            // Verificar cache
+                            if (cacheEnderecos[cacheKey]) {
+                                el.innerHTML = `📍 ${cacheEnderecos[cacheKey]}`;
+                                el.dataset.loaded = 'true';
+                                return;
+                            }
+
+                            try {
+                                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${parada.latitude}&lon=${parada.longitude}&zoom=18&addressdetails=1`, {
+                                    headers: { 'Accept-Language': 'pt-BR' }
+                                });
+                                const data = await res.json();
+
+                                let endereco = 'Endereço não encontrado';
+                                if (data.address) {
+                                    const parts = [];
+                                    if (data.address.road) parts.push(data.address.road);
+                                    if (data.address.house_number) parts.push(data.address.house_number);
+                                    if (data.address.suburb || data.address.neighbourhood) {
+                                        parts.push(data.address.suburb || data.address.neighbourhood);
+                                    }
+                                    if (data.address.city || data.address.town) {
+                                        parts.push(data.address.city || data.address.town);
+                                    }
+                                    endereco = parts.join(', ') || data.display_name?.substring(0, 60) || 'Endereço não encontrado';
+                                }
+
+                                cacheEnderecos[cacheKey] = endereco;
+                                el.innerHTML = `📍 ${endereco}`;
+                                el.dataset.loaded = 'true';
+                            } catch (e) {
+                                el.innerHTML = '📍 Erro ao buscar endereço';
+                            }
+                        });
+
                         paradasMarkers.push(paradaMarker);
                         routeMarkers.push(paradaMarker);
-
-                        // Buscar endereço assíncrono
-                        buscarEnderecoParadaTraj(parada.latitude, parada.longitude, parada.numero);
                     });
                 }
 
@@ -4265,47 +4304,6 @@
             } catch (error) {
                 console.error('Erro ao carregar trajetória:', error);
                 toastError('Erro ao carregar trajetória: ' + error.message);
-            }
-        }
-
-        // Buscar endereço para paradas da trajetória
-        async function buscarEnderecoParadaTraj(lat, lng, numero) {
-            const cacheKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-
-            // Verificar cache
-            if (cacheEnderecos[cacheKey]) {
-                const el = document.getElementById(`endereco-parada-traj-${numero}`);
-                if (el) el.innerHTML = `📍 ${cacheEnderecos[cacheKey]}`;
-                return;
-            }
-
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
-                    headers: { 'Accept-Language': 'pt-BR' }
-                });
-                const data = await res.json();
-
-                let endereco = 'Endereço não encontrado';
-                if (data.address) {
-                    const parts = [];
-                    if (data.address.road) parts.push(data.address.road);
-                    if (data.address.house_number) parts.push(data.address.house_number);
-                    if (data.address.suburb || data.address.neighbourhood) {
-                        parts.push(data.address.suburb || data.address.neighbourhood);
-                    }
-                    if (data.address.city || data.address.town) {
-                        parts.push(data.address.city || data.address.town);
-                    }
-                    endereco = parts.join(', ') || data.display_name?.substring(0, 50) || 'Endereço não encontrado';
-                }
-
-                cacheEnderecos[cacheKey] = endereco;
-                const el = document.getElementById(`endereco-parada-traj-${numero}`);
-                if (el) el.innerHTML = `📍 ${endereco}`;
-
-            } catch (e) {
-                const el = document.getElementById(`endereco-parada-traj-${numero}`);
-                if (el) el.innerHTML = '📍 Erro ao buscar';
             }
         }
 
