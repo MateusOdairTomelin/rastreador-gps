@@ -1820,27 +1820,76 @@
                     </div>
 
                     <!-- Filtro por data específica e horário -->
-                    <div id="filtro-trajetoria" style="display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; padding: 12px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border-light);">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <label style="font-weight: 500; color: var(--text-light); font-size: 0.9em;">📅 Data:</label>
-                            <input type="date" id="filtro-data" style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: 6px; background: var(--bg-card); color: var(--text);">
+                    <!-- Filtro de trajetória com slider de horário -->
+                    <div id="filtro-trajetoria" style="padding: 15px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border-light); margin-bottom: 15px;">
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-weight: 500; color: var(--text-light); font-size: 0.9em;">📅 Data:</label>
+                                <input type="date" id="filtro-data" style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: 6px; background: var(--bg-card); color: var(--text);">
+                            </div>
+                            <button class="period-btn" onclick="verTrajetoriaDia()" style="background: var(--primary); color: white; font-weight: 600;">
+                                🗺️ Ver Trajetória
+                            </button>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 0.85em; color: var(--text-light);">
+                                <input type="checkbox" id="mostrar-excessos" checked style="width: 16px; height: 16px;">
+                                Destacar excessos
+                            </label>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <label style="font-weight: 500; color: var(--text-light); font-size: 0.9em;">⏰ De:</label>
-                            <input type="time" id="filtro-hora-inicio" value="00:00" style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: 6px; background: var(--bg-card); color: var(--text);">
+                        <!-- Slider de horário -->
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-weight: 600; color: var(--primary); min-width: 45px;" id="hora-inicio-label">00:00</span>
+                            <div style="flex: 1; position: relative; height: 30px;">
+                                <div id="slider-track" style="position: absolute; top: 50%; transform: translateY(-50%); left: 0; right: 0; height: 6px; background: var(--border-light); border-radius: 3px;"></div>
+                                <div id="slider-range" style="position: absolute; top: 50%; transform: translateY(-50%); height: 6px; background: linear-gradient(90deg, var(--primary), var(--accent)); border-radius: 3px;"></div>
+                                <input type="range" id="filtro-hora-inicio" min="0" max="1439" value="0"
+                                    style="position: absolute; width: 100%; height: 30px; -webkit-appearance: none; background: transparent; pointer-events: none; top: 0;"
+                                    oninput="atualizarSliderHorario()">
+                                <input type="range" id="filtro-hora-fim" min="0" max="1439" value="1439"
+                                    style="position: absolute; width: 100%; height: 30px; -webkit-appearance: none; background: transparent; pointer-events: none; top: 0;"
+                                    oninput="atualizarSliderHorario()">
+                            </div>
+                            <span style="font-weight: 600; color: var(--accent); min-width: 45px; text-align: right;" id="hora-fim-label">23:59</span>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <label style="font-weight: 500; color: var(--text-light); font-size: 0.9em;">Até:</label>
-                            <input type="time" id="filtro-hora-fim" value="23:59" style="padding: 6px 10px; border: 1px solid var(--border-light); border-radius: 6px; background: var(--bg-card); color: var(--text);">
+                        <!-- Marcações de hora -->
+                        <div style="display: flex; justify-content: space-between; padding: 0 55px; margin-top: 4px;">
+                            <span style="font-size: 0.7em; color: var(--text-light);">00h</span>
+                            <span style="font-size: 0.7em; color: var(--text-light);">06h</span>
+                            <span style="font-size: 0.7em; color: var(--text-light);">12h</span>
+                            <span style="font-size: 0.7em; color: var(--text-light);">18h</span>
+                            <span style="font-size: 0.7em; color: var(--text-light);">24h</span>
                         </div>
-                        <button class="period-btn" onclick="verTrajetoriaDia()" style="background: var(--primary); color: white; font-weight: 600;">
-                            🗺️ Ver Trajetória
-                        </button>
-                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 0.85em; color: var(--text-light);">
-                            <input type="checkbox" id="mostrar-excessos" checked style="width: 16px; height: 16px;">
-                            Destacar excessos
-                        </label>
                     </div>
+                    <style>
+                        #filtro-hora-inicio::-webkit-slider-thumb,
+                        #filtro-hora-fim::-webkit-slider-thumb {
+                            -webkit-appearance: none;
+                            pointer-events: auto;
+                            width: 18px;
+                            height: 18px;
+                            border-radius: 50%;
+                            background: var(--primary);
+                            cursor: pointer;
+                            border: 2px solid white;
+                            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                        }
+                        #filtro-hora-fim::-webkit-slider-thumb {
+                            background: var(--accent);
+                        }
+                        #filtro-hora-inicio::-moz-range-thumb,
+                        #filtro-hora-fim::-moz-range-thumb {
+                            pointer-events: auto;
+                            width: 18px;
+                            height: 18px;
+                            border-radius: 50%;
+                            background: var(--primary);
+                            cursor: pointer;
+                            border: 2px solid white;
+                            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                        }
+                        #filtro-hora-fim::-moz-range-thumb {
+                            background: var(--accent);
+                        }
+                    </style>
                     <!-- Resumo das viagens -->
                     <div id="viagens-resumo" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px; padding: 15px; background: var(--bg); border-radius: 8px;">
                         <div style="text-align: center;">
@@ -3277,12 +3326,58 @@
         let currentViagensPeriod = 7; // Período padrão: 7 dias
         let viagensData = []; // Dados das viagens carregadas
 
-        // Inicializar campo de data com hoje
+        // Inicializar campo de data com hoje e slider de horário
         (function initFiltroData() {
             const hoje = new Date().toISOString().split('T')[0];
             const filtroData = document.getElementById('filtro-data');
             if (filtroData) filtroData.value = hoje;
+            // Inicializar slider
+            atualizarSliderHorario();
         })();
+
+        // Converter minutos para formato HH:MM
+        function minutosParaHora(minutos) {
+            const h = Math.floor(minutos / 60);
+            const m = minutos % 60;
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+
+        // Atualizar visual do slider de horário
+        function atualizarSliderHorario() {
+            const sliderInicio = document.getElementById('filtro-hora-inicio');
+            const sliderFim = document.getElementById('filtro-hora-fim');
+            const labelInicio = document.getElementById('hora-inicio-label');
+            const labelFim = document.getElementById('hora-fim-label');
+            const rangeEl = document.getElementById('slider-range');
+
+            if (!sliderInicio || !sliderFim) return;
+
+            let inicio = parseInt(sliderInicio.value);
+            let fim = parseInt(sliderFim.value);
+
+            // Garantir que início não ultrapasse fim
+            if (inicio > fim) {
+                if (this === sliderInicio) {
+                    sliderInicio.value = fim;
+                    inicio = fim;
+                } else {
+                    sliderFim.value = inicio;
+                    fim = inicio;
+                }
+            }
+
+            // Atualizar labels
+            if (labelInicio) labelInicio.textContent = minutosParaHora(inicio);
+            if (labelFim) labelFim.textContent = minutosParaHora(fim);
+
+            // Atualizar barra colorida
+            if (rangeEl) {
+                const percent1 = (inicio / 1439) * 100;
+                const percent2 = (fim / 1439) * 100;
+                rangeEl.style.left = percent1 + '%';
+                rangeEl.style.width = (percent2 - percent1) + '%';
+            }
+        }
 
         // Selecionar período de viagens
         function selectViagensPeriod(days) {
@@ -3305,14 +3400,18 @@
         // Ver trajetória de um dia específico com filtro de horário
         async function verTrajetoriaDia() {
             const dataInput = document.getElementById('filtro-data').value;
-            const horaInicio = document.getElementById('filtro-hora-inicio').value || '00:00';
-            const horaFim = document.getElementById('filtro-hora-fim').value || '23:59';
+            const minutosInicio = parseInt(document.getElementById('filtro-hora-inicio').value) || 0;
+            const minutosFim = parseInt(document.getElementById('filtro-hora-fim').value) || 1439;
             const mostrarExcessos = document.getElementById('mostrar-excessos').checked;
 
             if (!dataInput) {
                 toastWarning('Selecione uma data para ver a trajetória');
                 return;
             }
+
+            // Converter minutos para HH:MM
+            const horaInicio = minutosParaHora(minutosInicio);
+            const horaFim = minutosParaHora(minutosFim);
 
             // Construir timestamps
             const dataInicio = new Date(`${dataInput}T${horaInicio}:00`);
