@@ -2079,6 +2079,19 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         IMEI = urlParams.get('imei');
+        const isEmbedMode = urlParams.get('embed') === '1';
+
+        // Modo embed: esconder header, aurora e orbs para integração no dashboard
+        if (isEmbedMode) {
+            document.body.classList.add('embed-mode');
+            const header = document.querySelector('.header');
+            if (header) header.style.display = 'none';
+            const aurora = document.querySelector('.aurora-bg');
+            if (aurora) aurora.style.display = 'none';
+            document.querySelectorAll('.floating-orb').forEach(el => el.style.display = 'none');
+            const container = document.querySelector('.container');
+            if (container) container.style.paddingTop = '10px';
+        }
 
         if (!IMEI) {
             document.body.innerHTML = '<div style="padding: 50px; text-align: center;"><h2>Erro: IMEI não especificado</h2><p>Use: ?imei=XXXXXXXXXXXXXXX</p><a href="/admin-dashboard.html">Voltar ao Dashboard</a></div>';

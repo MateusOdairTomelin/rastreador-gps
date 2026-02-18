@@ -4106,6 +4106,10 @@
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg></span>
           <span>Veiculos</span>
         </button>
+        <button class="nav-item" id="nav-info-veiculo" onclick="switchSection('info-veiculo')" style="display: none;">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+          <span id="nav-info-veiculo-label">Info Veículo</span>
+        </button>
         <button class="nav-item" id="nav-multas" onclick="switchSection('multas')">
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></span>
           <span>Multas</span>
@@ -5475,6 +5479,33 @@
                 </tbody>
               </table>
             </div>
+          </div>
+        </section>
+
+        <!-- INFO VEÍCULO SECTION - Carrega página de detalhes via iframe -->
+        <section class="section" id="section-info-veiculo">
+          <!-- Mensagem quando nenhum veículo selecionado -->
+          <div id="info-veiculo-vazio" style="text-align: center; padding: 60px 20px;">
+            <div style="font-size: 80px; margin-bottom: 20px;">🚗</div>
+            <h2 style="color: var(--text); margin-bottom: 10px;">Nenhum veículo selecionado</h2>
+            <p style="color: var(--text-light); margin-bottom: 20px;">Selecione um veículo na lista de dispositivos ou no mapa para ver os detalhes.</p>
+            <button onclick="switchSection('dispositivos')" class="btn btn-primary" style="padding: 12px 24px;">
+              📋 Ver Dispositivos
+            </button>
+          </div>
+
+          <!-- Iframe com a página de detalhes completa -->
+          <div id="info-veiculo-conteudo" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 10px;">
+              <h2 style="margin: 0; color: var(--text);" id="info-veiculo-titulo">Detalhes do Veículo</h2>
+              <button onclick="fecharInfoVeiculo()" class="btn" style="padding: 8px 16px;">
+                ✕ Fechar
+              </button>
+            </div>
+            <iframe id="info-veiculo-iframe"
+                    style="width: 100%; height: calc(100vh - 140px); border: none; border-radius: 12px; background: var(--bg);"
+                    src="about:blank">
+            </iframe>
           </div>
         </section>
 
@@ -9807,7 +9838,7 @@
             <td><span class="badge ${statusUsoBadge}">${statusUsoLabel}</span></td>
             <td>
               <button class="btn btn-primary" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); verNoMapa('${imeiSeguro.replace(/'/g, "\\'")}')">📍 Mapa</button>
-              <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); window.open('/veiculo-detalhes.html?imei=${imeiSeguro.replace(/'/g, "\\'")}', '_blank')">📊 Detalhes</button>
+              <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); abrirInfoVeiculo('${imeiSeguro.replace(/'/g, "\\'")}')">📊 Detalhes</button>
               <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #f59e0b;" onclick="event.stopPropagation(); openEditModal('${imeiSeguro.replace(/'/g, "\\'")}')">✏️ Editar</button>
               ${statusUso !== 'inativo' ? `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #6b7280;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'inativo')" title="Desativar rastreador">🚫</button>` : `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #10b981;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'disponivel')" title="Reativar como disponível">✅</button>`}
               <button class="btn btn-danger" style="padding: 6px 12px; font-size: 11px;" onclick="event.stopPropagation(); deleteDevice('${imeiSeguro.replace(/'/g, "\\'")}')">🗑️</button>
@@ -10510,6 +10541,51 @@
       window.open(`/veiculo-detalhes.html?imei=${encodeURIComponent(selectedVehicleImei)}#viagens`, '_blank');
     }
 
+    // ============ INFO VEÍCULO - Carrega página de detalhes via iframe ============
+    let infoVeiculoImei = null;
+
+    function abrirInfoVeiculo(imei) {
+      infoVeiculoImei = imei;
+      selectedVehicleImei = imei;
+
+      // Mostrar botão na sidebar
+      const navBtn = document.getElementById('nav-info-veiculo');
+      navBtn.style.display = 'flex';
+
+      // Atualizar label com placa do veículo
+      const device = allDevices.find(d => d.imei === imei);
+      if (device) {
+        const label = device.placa || device.veiculo || 'Info Veículo';
+        document.getElementById('nav-info-veiculo-label').textContent = label;
+        document.getElementById('info-veiculo-titulo').textContent = `Detalhes: ${label}`;
+      }
+
+      // Mudar para seção
+      switchSection('info-veiculo');
+
+      // Carregar página de detalhes no iframe (modo embed = sem header)
+      document.getElementById('info-veiculo-vazio').style.display = 'none';
+      document.getElementById('info-veiculo-conteudo').style.display = 'block';
+
+      const iframe = document.getElementById('info-veiculo-iframe');
+      iframe.src = `/veiculo-detalhes.html?imei=${encodeURIComponent(imei)}&embed=1`;
+    }
+
+    function fecharInfoVeiculo() {
+      infoVeiculoImei = null;
+
+      // Esconder botão na sidebar
+      document.getElementById('nav-info-veiculo').style.display = 'none';
+
+      // Limpar iframe
+      document.getElementById('info-veiculo-iframe').src = 'about:blank';
+      document.getElementById('info-veiculo-vazio').style.display = 'block';
+      document.getElementById('info-veiculo-conteudo').style.display = 'none';
+
+      // Voltar para dispositivos
+      switchSection('dispositivos');
+    }
+
     function toggleFollowMode() {
       const btn = document.getElementById('btn-follow');
       const select = document.getElementById('select-vehicle');
@@ -11079,7 +11155,7 @@
             <td><span class="badge ${statusUsoBadge}">${statusUsoLabel}</span></td>
             <td>
               <button class="btn btn-primary" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); verNoMapa('${imeiSeguro.replace(/'/g, "\\'")}')">📍 Mapa</button>
-              <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); window.open('/veiculo-detalhes.html?imei=${imeiSeguro.replace(/'/g, "\\'")}', '_blank')">📊 Detalhes</button>
+              <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); abrirInfoVeiculo('${imeiSeguro.replace(/'/g, "\\'")}')">📊 Detalhes</button>
               <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #f59e0b;" onclick="event.stopPropagation(); openEditModal('${imeiSeguro.replace(/'/g, "\\'")}')">✏️ Editar</button>
               ${statusUso !== 'inativo' ? `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #6b7280;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'inativo')" title="Desativar rastreador">🚫</button>` : `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #10b981;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'disponivel')" title="Reativar como disponível">✅</button>`}
               <button class="btn btn-danger" style="padding: 6px 12px; font-size: 11px;" onclick="event.stopPropagation(); deleteDevice('${imeiSeguro.replace(/'/g, "\\'")}')">🗑️</button>
