@@ -19,6 +19,9 @@ class SpeedLimitService {
     this.globalCooldown = false;
     this.globalCooldownUntil = 0;
 
+    // ✅ OSRM local para fallback (muito mais rápido)
+    this.osrmUrl = process.env.OSRM_URL || 'http://osrm-sul-brasil:5000';
+
     // Limites padrão por tipo de via (Brasil)
     this.defaultLimits = {
       motorway: 110,      // Rodovia
@@ -117,7 +120,18 @@ class SpeedLimitService {
       // Marcar tempo da requisição
       this.lastRequestTime = now;
 
-      // Consultar Overpass API (OpenStreetMap)
+      // ✅ Tentar OSRM local primeiro (muito mais rápido e confiável)
+      const osrmResult = await this.getSpeedLimitFromOSRM(lat, lng);
+      if (osrmResult) {
+        // Sucesso - armazenar no cache
+        this.cache.set(cacheKey, {
+          data: osrmResult,
+          timestamp: Date.now()
+        });
+        return osrmResult;
+      }
+
+      // Fallback: Consultar Overpass API (OpenStreetMap) - mais lento mas tem maxspeed real
       const result = await this.queryOverpass(lat, lng);
 
       // Sucesso - limpar cache de erro e armazenar resultado
@@ -141,6 +155,21 @@ class SpeedLimitService {
         this.globalCooldown = true;
         this.globalCooldownUntil = Date.now() + (5 * 60 * 1000); // 5 minutos
         console.warn('[SpeedLimit] ⚠️ Cooldown global ativado por 5 minutos (erro de rate limit/timeout)');
+      }
+
+      // ✅ Tentar OSRM local como fallback final
+      try {
+        const osrmFallback = await this.getSpeedLimitFromOSRM(lat, lng);
+        if (osrmFallback) {
+          console.log('[SpeedLimit] ✅ Usando OSRM como fallback após erro Overpass');
+          this.cache.set(cacheKey, {
+            data: osrmFallback,
+            timestamp: Date.now()
+          });
+          return osrmFallback;
+        }
+      } catch (osrmError) {
+        console.error('[SpeedLimit] OSRM fallback também falhou:', osrmError.message);
       }
 
       // Adicionar ao cache de erros para evitar bombardear a API
@@ -416,6 +445,59 @@ class SpeedLimitService {
       maxSize: 1000,
       timeout: this.cacheTimeout / 1000 + 's'
     };
+  }
+
+  /**
+   * ✅ Fallback usando OSRM local (muito mais rápido que Overpass)
+   * Retorna nome da rua com limite padrão baseado no tipo
+   */
+  async getSpeedLimitFromOSRM(lat, lng) {
+    try {
+      const url = `${this.osrmUrl}/nearest/v1/driving/${lng},${lat}`;
+      const response = await fetch(url, { timeout: 3000 });
+
+      if (!response.ok) {
+        throw new Error(`OSRM error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.code === 'Ok' && data.waypoints && data.waypoints.length > 0) {
+        const waypoint = data.waypoints[0];
+        const roadName = waypoint.name || 'Via não identificada';
+
+        // Detectar tipo de via pelo nome (heurística simples)
+        let roadType = 'unclassified';
+        let speedLimit = this.defaultLimits.default;
+
+        const nameLower = roadName.toLowerCase();
+        if (nameLower.includes('rodovia') || nameLower.includes('br-') || nameLower.includes('sc-')) {
+          roadType = 'trunk';
+          speedLimit = this.defaultLimits.trunk;
+        } else if (nameLower.includes('avenida') || nameLower.includes('av.')) {
+          roadType = 'primary';
+          speedLimit = this.defaultLimits.primary;
+        } else if (nameLower.includes('rua') || nameLower.includes('r.')) {
+          roadType = 'residential';
+          speedLimit = this.defaultLimits.residential;
+        } else if (nameLower.includes('travessa') || nameLower.includes('beco')) {
+          roadType = 'living_street';
+          speedLimit = this.defaultLimits.living_street;
+        }
+
+        return {
+          limite: speedLimit,
+          via: roadName,
+          tipo: roadType,
+          fonte: 'osrm'
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('[SpeedLimit] Erro ao consultar OSRM:', error.message);
+      return null;
+    }
   }
 }
 
