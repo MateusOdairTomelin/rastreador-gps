@@ -10186,8 +10186,8 @@
               mapMarkers[d.imei]._placaCache = placaDisplay;
               // Atualizar popup
               mapMarkers[d.imei].setPopupContent(`
-                <div style="min-width: 180px;">
-                  <strong style="font-size: 14px;">${d.veiculo || 'Sem nome'}</strong><br>
+                <div style="min-width: 180px; color: #333;">
+                  <strong style="font-size: 14px; color: #111;">${d.veiculo || 'Sem nome'}</strong><br>
                   <hr style="margin: 8px 0; border: none; border-top: 1px solid #eee;">
                   <b>Placa:</b> ${d.placa || 'N/A'}<br>
                   <b>IMEI:</b> ${d.imei}<br>
@@ -10201,8 +10201,8 @@
             } else {
               // Criar novo marcador
               const marker = L.marker([lat, lng], { icon: carIcon }).bindPopup(`
-                <div style="min-width: 180px;">
-                  <strong style="font-size: 14px;">${d.veiculo || 'Sem nome'}</strong><br>
+                <div style="min-width: 180px; color: #333;">
+                  <strong style="font-size: 14px; color: #111;">${d.veiculo || 'Sem nome'}</strong><br>
                   <hr style="margin: 8px 0; border: none; border-top: 1px solid #eee;">
                   <b>Placa:</b> ${d.placa || 'N/A'}<br>
                   <b>IMEI:</b> ${d.imei}<br>
@@ -10366,16 +10366,16 @@
 
       // Atualizar popup com info do limite da via
       marker.setPopupContent(`
-        <div style="min-width: 200px;">
-          <strong style="font-size: 14px;">${device.veiculo || 'Sem nome'}</strong><br>
+        <div style="min-width: 200px; color: #333;">
+          <strong style="font-size: 14px; color: #111;">${device.veiculo || 'Sem nome'}</strong><br>
           <hr style="margin: 8px 0; border: none; border-top: 1px solid #eee;">
           <b>Placa:</b> ${device.placa || 'N/A'}<br>
           <b>IMEI:</b> ${device.imei}<br>
           <b>Status:</b> ${isOnline ? '🟢 Online' : '🔴 Offline'}<br>
           <b>Velocidade:</b> <span style="color: ${(isAboveUserLimit || isAboveRoadLimit) ? '#EF4444' : '#10B981'}; font-weight: bold;">${speed} km/h</span><br>
           <b>Via:</b> ${roadLimit.via || 'Desconhecida'}<br>
-          <b>Limite da via:</b> <span style="font-weight: bold;">${roadLimit.limite} km/h</span>
-            <span style="font-size: 10px; color: #888;">(${roadLimit.fonte === 'osm' ? 'OpenStreetMap' : roadLimit.fonte === 'tipo_via' ? 'Tipo de via' : 'Padrão'})</span>
+          <b>Limite da via:</b> <span style="font-weight: bold; color: #111;">${roadLimit.limite} km/h</span>
+            <span style="font-size: 10px; color: #666;">(${roadLimit.fonte === 'osm' ? 'OpenStreetMap' : roadLimit.fonte === 'osrm' ? 'OSRM' : roadLimit.fonte === 'tipo_via' ? 'Tipo de via' : 'Padrão'})</span>
           ${isAboveRoadLimit ? `<br><span style="color: #F59E0B; font-size: 11px; font-weight: bold;">⚠️ Acima do limite da via! (+${speed - roadLimit.limite} km/h)</span>` : ''}
           ${isAboveUserLimit && !isAboveRoadLimit ? `<br><span style="color: #EF4444; font-size: 11px;">⚠️ Acima do limite configurado!</span>` : ''}
           <hr style="margin: 8px 0; border: none; border-top: 1px solid #eee;">
