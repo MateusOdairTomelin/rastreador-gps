@@ -4353,23 +4353,90 @@
             </div>
           </div>
 
-          <!-- Info do Veículo Selecionado -->
-          <div id="vehicle-info-panel" class="card" style="margin-bottom: 15px; padding: 15px; display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <h3 id="selected-vehicle-name" style="margin: 0; color: var(--primary);">Veículo</h3>
-                <p id="selected-vehicle-details" style="margin: 5px 0 0; font-size: 13px; color: var(--text-light);">Placa: --- | IMEI: ---</p>
-              </div>
-              <div style="display: flex; gap: 20px; text-align: center;">
+          <!-- Info do Veículo Selecionado - Painel Expandido -->
+          <div id="vehicle-info-panel" class="card" style="margin-bottom: 15px; padding: 0; display: none; overflow: hidden;">
+            <!-- Cabeçalho -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div id="selected-ignition-icon" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 20px;">🚗</div>
                 <div>
-                  <div id="selected-speed" style="font-size: 28px; font-weight: bold; color: var(--primary);">0</div>
-                  <div style="font-size: 11px; color: var(--text-light);">km/h</div>
-                </div>
-                <div>
-                  <div id="selected-status" class="badge badge-success">Online</div>
-                  <div style="font-size: 11px; color: var(--text-light); margin-top: 4px;">Status</div>
+                  <h3 id="selected-vehicle-name" style="margin: 0; font-size: 16px;">Veículo</h3>
+                  <p id="selected-vehicle-details" style="margin: 3px 0 0; font-size: 12px; opacity: 0.9;">Placa: --- | IMEI: ---</p>
                 </div>
               </div>
+              <div style="display: flex; gap: 15px; align-items: center;">
+                <div style="text-align: center;">
+                  <div id="selected-speed" style="font-size: 32px; font-weight: bold;">0</div>
+                  <div style="font-size: 10px; opacity: 0.8;">km/h</div>
+                </div>
+                <div id="selected-status" class="badge" style="background: rgba(255,255,255,0.2); padding: 6px 12px;">Online</div>
+                <button onclick="fecharPainelVeiculo()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 14px;">✕</button>
+              </div>
+            </div>
+
+            <!-- Detalhes em Grid -->
+            <div style="padding: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
+              <!-- Estado Ignição -->
+              <div style="background: var(--bg-card); border-radius: 10px; padding: 12px; text-align: center;">
+                <div id="selected-ignition-status" style="font-size: 24px; margin-bottom: 4px;">⚫</div>
+                <div id="selected-ignition-text" style="font-size: 11px; color: var(--text-light); text-transform: uppercase;">Desligado</div>
+              </div>
+
+              <!-- Tensão Bateria -->
+              <div style="background: var(--bg-card); border-radius: 10px; padding: 12px; text-align: center;">
+                <div id="selected-voltage" style="font-size: 18px; font-weight: bold; color: var(--success);">--</div>
+                <div style="font-size: 11px; color: var(--text-light);">Bateria (V)</div>
+              </div>
+
+              <!-- Direção -->
+              <div style="background: var(--bg-card); border-radius: 10px; padding: 12px; text-align: center;">
+                <div id="selected-direction" style="font-size: 18px; font-weight: bold; color: var(--accent);">--°</div>
+                <div style="font-size: 11px; color: var(--text-light);">Direção</div>
+              </div>
+
+              <!-- Última Atualização -->
+              <div style="background: var(--bg-card); border-radius: 10px; padding: 12px; text-align: center;">
+                <div id="selected-lastupdate" style="font-size: 14px; font-weight: bold; color: var(--text);">--:--</div>
+                <div style="font-size: 11px; color: var(--text-light);">Atualizado</div>
+              </div>
+
+              <!-- Odômetro -->
+              <div style="background: var(--bg-card); border-radius: 10px; padding: 12px; text-align: center;">
+                <div id="selected-odometer" style="font-size: 14px; font-weight: bold; color: var(--text);">-- km</div>
+                <div style="font-size: 11px; color: var(--text-light);">Odômetro</div>
+              </div>
+
+              <!-- Horas Motor -->
+              <div style="background: var(--bg-card); border-radius: 10px; padding: 12px; text-align: center;">
+                <div id="selected-engine-hours" style="font-size: 14px; font-weight: bold; color: var(--text);">-- h</div>
+                <div style="font-size: 11px; color: var(--text-light);">Motor</div>
+              </div>
+            </div>
+
+            <!-- Endereço -->
+            <div style="padding: 0 15px 12px;">
+              <div style="background: var(--bg-card); border-radius: 10px; padding: 12px;">
+                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                  <span style="font-size: 18px;">📍</span>
+                  <div>
+                    <div id="selected-address" style="font-size: 13px; color: var(--text);">Carregando endereço...</div>
+                    <div id="selected-coords" style="font-size: 11px; color: var(--text-light); margin-top: 4px;">---, ---</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div style="padding: 0 15px 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+              <button onclick="abrirRotaVeiculo()" class="btn btn-primary" style="flex: 1; min-width: 100px; padding: 10px;">
+                🗺️ Ver Rota
+              </button>
+              <button onclick="abrirViagensVeiculo()" class="btn" style="flex: 1; min-width: 100px; padding: 10px; background: var(--accent);">
+                📊 Viagens
+              </button>
+              <a id="btn-detalhes-completos" href="#" class="btn" style="flex: 1; min-width: 100px; padding: 10px; background: var(--bg-light); border: 1px solid var(--border); text-decoration: none; text-align: center;">
+                📋 Detalhes
+              </a>
             </div>
           </div>
 
@@ -8003,6 +8070,31 @@
               }
 
               console.log(`[WS] ✅ Marcador ${data.imei} atualizado em TEMPO REAL`);
+
+              // ✅ ATUALIZAR PAINEL DE DETALHES se este veículo está selecionado
+              if (selectedVehicleImei === data.imei) {
+                document.getElementById('selected-speed').textContent = vel;
+                atualizarIgnicaoPainel(estado, vel);
+                document.getElementById('selected-lastupdate').textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                document.getElementById('selected-coords').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                // Atualizar endereço (com debounce)
+                if (!window.addressUpdatePending) {
+                  window.addressUpdatePending = true;
+                  setTimeout(() => {
+                    buscarEnderecoVeiculo(lat, lng);
+                    window.addressUpdatePending = false;
+                  }, 3000);
+                }
+                // Atualizar tensão se disponível
+                if (locData.tensao_principal) {
+                  document.getElementById('selected-voltage').textContent = locData.tensao_principal.toFixed(1);
+                  document.getElementById('selected-voltage').style.color = locData.tensao_principal >= 12.5 ? 'var(--success)' : 'var(--danger)';
+                }
+                // Atualizar direção
+                if (locData.direcao !== undefined) {
+                  document.getElementById('selected-direction').textContent = `${locData.direcao}°`;
+                }
+              }
             } else if (map && !mapMarkers[data.imei] && lat && lng) {
               // Novo dispositivo - fazer fetch apenas para este caso
               console.log(`[WS] 🆕 Novo dispositivo ${data.imei} - carregando marcadores`);
@@ -10229,11 +10321,15 @@
       }
     }
 
+    // Veículo atualmente selecionado no painel
+    let selectedVehicleImei = null;
+
     function focusOnVehicle(imei) {
       if (!imei) {
         // Mostrar todos
         document.getElementById('vehicle-info-panel').style.display = 'none';
         window.followingVehicle = null;
+        selectedVehicleImei = null;
         document.getElementById('btn-follow').style.background = 'var(--bg)';
         return;
       }
@@ -10241,22 +10337,62 @@
       const device = allDevices.find(d => d.imei === imei);
       if (!device) return;
 
+      selectedVehicleImei = imei;
+
       // Mostrar painel de info
       const panel = document.getElementById('vehicle-info-panel');
       panel.style.display = 'block';
 
+      // Dados básicos
       document.getElementById('selected-vehicle-name').textContent = device.veiculo || 'Sem nome';
       document.getElementById('selected-vehicle-details').textContent = `Placa: ${device.placa || '---'} | IMEI: ${device.imei}`;
       document.getElementById('selected-speed').textContent = device.velocidade || '0';
 
+      // Status online/offline
       const statusEl = document.getElementById('selected-status');
       if (device.status === 'online') {
-        statusEl.className = 'badge badge-success';
+        statusEl.style.background = 'rgba(16, 185, 129, 0.8)';
         statusEl.textContent = 'Online';
       } else {
-        statusEl.className = 'badge badge-danger';
+        statusEl.style.background = 'rgba(239, 68, 68, 0.8)';
         statusEl.textContent = 'Offline';
       }
+
+      // Estado de ignição
+      atualizarIgnicaoPainel(device.estado_ignicao, device.velocidade);
+
+      // Tensão
+      const tensao = device.tensao_principal || device.tensao_bateria;
+      document.getElementById('selected-voltage').textContent = tensao ? tensao.toFixed(1) : '--';
+      document.getElementById('selected-voltage').style.color = tensao >= 12.5 ? 'var(--success)' : 'var(--danger)';
+
+      // Direção
+      document.getElementById('selected-direction').textContent = device.direcao ? `${device.direcao}°` : '--°';
+
+      // Última atualização
+      if (device.updated_at) {
+        const dt = new Date(device.updated_at);
+        document.getElementById('selected-lastupdate').textContent = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      } else {
+        document.getElementById('selected-lastupdate').textContent = '--:--';
+      }
+
+      // Odômetro e horas motor (se disponível)
+      document.getElementById('selected-odometer').textContent = device.odometro ? `${Math.round(device.odometro)} km` : '-- km';
+      document.getElementById('selected-engine-hours').textContent = device.horas_motor ? `${device.horas_motor.toFixed(1)} h` : '-- h';
+
+      // Coordenadas
+      if (device.latitude && device.longitude) {
+        document.getElementById('selected-coords').textContent = `${device.latitude.toFixed(6)}, ${device.longitude.toFixed(6)}`;
+        // Buscar endereço via geocoding reverso
+        buscarEnderecoVeiculo(device.latitude, device.longitude);
+      } else {
+        document.getElementById('selected-coords').textContent = '---, ---';
+        document.getElementById('selected-address').textContent = 'Localização não disponível';
+      }
+
+      // Link para detalhes completos
+      document.getElementById('btn-detalhes-completos').href = `/veiculo-detalhes.html?imei=${encodeURIComponent(imei)}`;
 
       // Centralizar no veículo
       if (mapMarkers[imei]) {
@@ -10269,6 +10405,97 @@
       window.followingVehicle = imei;
       document.getElementById('btn-follow').style.background = 'var(--primary)';
       document.getElementById('btn-follow').style.color = 'white';
+
+      // Buscar dados OBD2 extras (se disponível)
+      buscarDadosOBD2Veiculo(imei);
+    }
+
+    function atualizarIgnicaoPainel(estado, velocidade) {
+      const iconEl = document.getElementById('selected-ignition-status');
+      const textEl = document.getElementById('selected-ignition-text');
+      const headerIcon = document.getElementById('selected-ignition-icon');
+
+      if (velocidade > 5 || estado === 'moving') {
+        iconEl.textContent = '🔵';
+        textEl.textContent = 'Em Movimento';
+        headerIcon.style.background = 'rgba(59, 130, 246, 0.5)';
+        headerIcon.textContent = '🚗';
+      } else if (estado === 'idle' || estado === 'acc_on') {
+        iconEl.textContent = '🟡';
+        textEl.textContent = 'Ligado/Ocioso';
+        headerIcon.style.background = 'rgba(245, 158, 11, 0.5)';
+        headerIcon.textContent = '🔑';
+      } else {
+        iconEl.textContent = '🔴';
+        textEl.textContent = 'Desligado';
+        headerIcon.style.background = 'rgba(239, 68, 68, 0.3)';
+        headerIcon.textContent = '🅿️';
+      }
+    }
+
+    function fecharPainelVeiculo() {
+      document.getElementById('vehicle-info-panel').style.display = 'none';
+      document.getElementById('select-vehicle').value = '';
+      selectedVehicleImei = null;
+      window.followingVehicle = null;
+      document.getElementById('btn-follow').style.background = 'var(--bg)';
+      document.getElementById('btn-follow').style.color = 'var(--text)';
+    }
+
+    // Cache de endereços para evitar chamadas repetidas
+    const addressCache = {};
+
+    async function buscarEnderecoVeiculo(lat, lon) {
+      const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+      if (addressCache[cacheKey]) {
+        document.getElementById('selected-address').textContent = addressCache[cacheKey];
+        return;
+      }
+
+      document.getElementById('selected-address').textContent = 'Buscando endereço...';
+
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {
+          headers: { 'Accept-Language': 'pt-BR' }
+        });
+        const data = await res.json();
+        const addr = data.display_name || 'Endereço não encontrado';
+        addressCache[cacheKey] = addr;
+        document.getElementById('selected-address').textContent = addr;
+      } catch (e) {
+        document.getElementById('selected-address').textContent = 'Erro ao buscar endereço';
+      }
+    }
+
+    async function buscarDadosOBD2Veiculo(imei) {
+      try {
+        const res = await authFetch(`${API_BASE}/dispositivos/${imei}/obd2-atual`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.odometro) {
+            document.getElementById('selected-odometer').textContent = `${Math.round(data.odometro)} km`;
+          }
+          if (data.horas_motor) {
+            document.getElementById('selected-engine-hours').textContent = `${data.horas_motor.toFixed(1)} h`;
+          }
+          if (data.tensao_principal) {
+            document.getElementById('selected-voltage').textContent = data.tensao_principal.toFixed(1);
+            document.getElementById('selected-voltage').style.color = data.tensao_principal >= 12.5 ? 'var(--success)' : 'var(--danger)';
+          }
+        }
+      } catch (e) {
+        // Silencioso - dados OBD2 são opcionais
+      }
+    }
+
+    function abrirRotaVeiculo() {
+      if (!selectedVehicleImei) return;
+      window.open(`/veiculo-detalhes.html?imei=${encodeURIComponent(selectedVehicleImei)}#rota`, '_blank');
+    }
+
+    function abrirViagensVeiculo() {
+      if (!selectedVehicleImei) return;
+      window.open(`/veiculo-detalhes.html?imei=${encodeURIComponent(selectedVehicleImei)}#viagens`, '_blank');
     }
 
     function toggleFollowMode() {
