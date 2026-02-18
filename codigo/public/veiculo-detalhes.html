@@ -2079,6 +2079,9 @@
                                 <input type="checkbox" id="mostrar-paradas" checked>
                                 🅿️ Mostrar paradas
                             </label>
+                            <span id="motorista-traj-info" style="display: none; margin-left: 12px; padding: 4px 10px; background: rgba(99,102,241,0.15); border-radius: 6px; font-size: 0.85em; color: #a5b4fc;">
+                                👤 <span id="motorista-traj-nome">--</span>
+                            </span>
                         </div>
 
                         <div class="filtro-slider-box">
@@ -3070,13 +3073,17 @@
                     statusEl.className = 'status-badge ' + (device.status === 'online' ? 'status-online' : 'status-offline');
                     statusEl.textContent = device.status === 'online' ? '🟢 Online' : '🔴 Offline';
 
-                    // Mostrar motorista vinculado
-                    const motoristaEl = document.getElementById('motorista-info');
+                    // Mostrar motorista vinculado (header e filtro de trajetória)
+                    const motoristaHeaderEl = document.getElementById('motorista-info');
+                    const motoristaTrajEl = document.getElementById('motorista-traj-info');
                     if (device.motorista && device.motorista.nome) {
                         document.getElementById('motorista-nome').textContent = device.motorista.nome;
-                        motoristaEl.style.display = 'block';
+                        document.getElementById('motorista-traj-nome').textContent = device.motorista.nome;
+                        motoristaHeaderEl.style.display = 'block';
+                        motoristaTrajEl.style.display = 'inline-block';
                     } else {
-                        motoristaEl.style.display = 'none';
+                        motoristaHeaderEl.style.display = 'none';
+                        motoristaTrajEl.style.display = 'none';
                     }
 
                     // Adaptar card de telemetria baseado no tipo do dispositivo
