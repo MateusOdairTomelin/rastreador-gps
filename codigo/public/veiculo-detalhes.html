@@ -1492,8 +1492,20 @@
         <div class="grid">
             <!-- Card de Localização com Filtros -->
             <div class="card full-width">
-                <div class="card-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Localização GPS
-                    <div style="float: right; font-size: 0.8em;" id="period-buttons">
+                <div class="card-title" style="flex-wrap: wrap; gap: 8px;">
+                    <span><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Localização GPS</span>
+                    <div style="display: flex; align-items: center; gap: 10px; font-size: 0.75em; margin-left: auto;">
+                        <label style="display: flex; align-items: center; gap: 3px; cursor: pointer;" title="Mostrar pontos GPS">
+                            <input type="checkbox" id="chk-show-points" onchange="toggleShowPoints()">
+                            <span>Pontos</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 3px; cursor: pointer;" title="Snap nas ruas">
+                            <input type="checkbox" id="chk-osrm" onchange="toggleOSRM()" checked>
+                            <span>OSRM</span>
+                        </label>
+                        <span id="route-status" style="color: var(--text-light);"></span>
+                    </div>
+                    <div style="display: flex; gap: 3px; font-size: 0.8em;" id="period-buttons">
                         <button class="period-btn active" data-hours="1" onclick="selectPeriod(1)">1h</button>
                         <button class="period-btn" data-hours="6" onclick="selectPeriod(6)">6h</button>
                         <button class="period-btn" data-hours="12" onclick="selectPeriod(12)">12h</button>
@@ -1501,50 +1513,8 @@
                         <button class="period-btn" data-hours="48" onclick="selectPeriod(48)">48h</button>
                     </div>
                 </div>
-                <!-- Opções de visualização da rota -->
-                <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
-                    <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8em; cursor: pointer;" title="Mostra círculos nos pontos GPS originais">
-                        <input type="checkbox" id="chk-show-points" onchange="toggleShowPoints()">
-                        <span><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="vertical-align: middle;"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg> Pontos</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 4px; font-size: 0.8em; cursor: pointer;" title="Usa OSRM para colar pontos nas ruas reais">
-                        <input type="checkbox" id="chk-osrm" onchange="toggleOSRM()" checked>
-                        <span>🛣️ OSRM</span>
-                    </label>
-                    <!-- IA removida - correção GPS agora é automática via OSRM -->
-                    </div>
-                    <span id="route-status" style="font-size: 0.7em; color: var(--text-light);"></span>
-                </div>
-                <div class="info-grid-compact">
-                    <div class="info-item">
-                        <div class="info-value" id="gps-lat">--</div>
-                        <div class="info-label">Lat</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-value" id="gps-lon">--</div>
-                        <div class="info-label">Lon</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-value" id="gps-speed">0</div>
-                        <div class="info-label">Vel (km/h)</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-value" id="gps-direction">--</div>
-                        <div class="info-label">Dir (°)</div>
-                    </div>
-                </div>
-                <!-- Endereço (Geocoding Reverso) -->
-                <div class="endereco-container" style="padding: 12px 15px; border-radius: 8px; margin-bottom: 10px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="font-size: 1.2em;"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></span>
-                        <div style="flex: 1;">
-                            <div id="gps-endereco" style="font-weight: 600; color: var(--text); font-size: 0.95em;">Carregando endereço...</div>
-                            <div id="gps-bairro-cidade" style="font-size: 0.85em; color: var(--text-light); margin-top: 2px;">--</div>
-                        </div>
-                        <button onclick="atualizarEndereco()" style="background: var(--primary); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.8em;" title="Atualizar endereço">🔄</button>
-                    </div>
-                </div>
-                <div class="map-container" id="map-container">
+                <!-- Mapa (expandido para ocupar mais espaço) -->
+                <div class="map-container" id="map-container" style="height: 450px;">
                     <button class="map-expand-btn" onclick="toggleMapExpand()" title="Expandir/Recolher mapa">
                         <span id="expand-icon">⛶</span>
                         <span id="expand-text">Expandir</span>
@@ -1607,6 +1577,40 @@
                     </div>
                 </div>
                 <div class="refresh-info">Última atualização: <span id="gps-time">--</span></div>
+
+                <!-- Info compacta abaixo do mapa -->
+                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; align-items: stretch;">
+                    <!-- Cards de coordenadas/velocidade -->
+                    <div class="info-grid-compact" style="flex: 1; min-width: 200px;">
+                        <div class="info-item">
+                            <div class="info-value" id="gps-lat">--</div>
+                            <div class="info-label">Lat</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-value" id="gps-lon">--</div>
+                            <div class="info-label">Lon</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-value" id="gps-speed">0</div>
+                            <div class="info-label">Vel</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-value" id="gps-direction">--</div>
+                            <div class="info-label">Dir</div>
+                        </div>
+                    </div>
+                    <!-- Endereço -->
+                    <div class="endereco-container" style="flex: 2; min-width: 250px; padding: 8px 12px; border-radius: 8px; display: flex; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                            <span style="font-size: 1em;"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></span>
+                            <div style="flex: 1;">
+                                <div id="gps-endereco" style="font-weight: 600; color: var(--text); font-size: 0.85em;">Carregando endereço...</div>
+                                <div id="gps-bairro-cidade" style="font-size: 0.75em; color: var(--text-light); margin-top: 2px;">--</div>
+                            </div>
+                            <button onclick="atualizarEndereco()" style="background: var(--primary); color: white; border: none; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 0.7em;" title="Atualizar">🔄</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Card Telemetria/OBD2 (adapta ao tipo de dispositivo) -->
@@ -1684,8 +1688,9 @@
             </div>
 
             <!-- Card Estatísticas -->
-            <div class="card" id="stats-card">
-                <div class="card-title" id="stats-card-title"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg> Estatísticas (Última Hora)</div>
+            <div class="card card-collapsible collapsed" id="stats-card">
+                <div class="card-title" id="stats-card-title" onclick="toggleCard(this)"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg> Estatísticas</div>
+                <div class="card-content">
                 <div class="info-grid">
                     <div class="info-item obd2-only" id="stats-field-rpm-avg">
                         <div class="info-value" id="stats-rpm-avg">--</div>
@@ -1711,6 +1716,7 @@
                         <div class="info-value" id="stats-ignition-count">--</div>
                         <div class="info-label">Ignição Ativa</div>
                     </div>
+                </div>
                 </div>
             </div>
 
