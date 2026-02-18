@@ -7199,7 +7199,9 @@
         const cpuEl = document.getElementById('metric-cpu');
         if (cpuEl) {
           cpuEl.textContent = `${data.cpu.usage}%`;
-          document.getElementById('metric-cpu-cores').textContent = `${data.cpu.cores} cores @ ${data.cpu.speed}MHz`;
+          // Calcular cores em uso (ex: 56.7% de 8 cores = ~4.5 cores)
+          const coresUsados = ((data.cpu.usage / 100) * data.cpu.cores).toFixed(1);
+          document.getElementById('metric-cpu-cores').textContent = `~${coresUsados} / ${data.cpu.cores} cores em uso`;
           const cpuProgress = document.getElementById('progress-cpu');
           cpuProgress.style.width = `${data.cpu.usage}%`;
           cpuProgress.className = 'progress-fill ' + getProgressClass(data.cpu.usage);

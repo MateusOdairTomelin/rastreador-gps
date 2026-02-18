@@ -11,7 +11,7 @@ class DockerMonitorService {
   constructor() {
     this.cache = null;
     this.cacheTime = null;
-    this.cacheTTL = 5000; // 5 segundos de cache
+    this.cacheTTL = 15000; // 15 segundos de cache (era 5s - reduz CPU)
     this.socketPath = '/var/run/docker.sock';
   }
 

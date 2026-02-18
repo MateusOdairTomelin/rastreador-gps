@@ -14,18 +14,8 @@ const prisma = require('../db/prisma');
  * - Usuários com permissão gerenciar_subtenants: orgs que criaram ou são associados
  */
 async function tenantContext(req, res, next) {
-  // DEBUG: Log para diagnóstico
-  console.log(`[Tenant] ${req.method} ${req.path} - usuario:`, req.usuario ? {
-    id: req.usuario.id,
-    email: req.usuario.email,
-    role: req.usuario.role,
-    organizacao_id: req.usuario.organizacao_id,
-    organizacao_id_type: typeof req.usuario.organizacao_id
-  } : 'null');
-
   // Se não há usuário autenticado, não há tenant
   if (!req.usuario) {
-    console.log(`[Tenant] BYPASS: sem usuário autenticado`);
     req.tenant = null;
     req.tenantFilter = {};
     return next();
@@ -39,17 +29,13 @@ async function tenantContext(req, res, next) {
     // Converter para número e verificar se é válido
     const parsedId = parseInt(requestedTenantId);
     if (isNaN(parsedId) || parsedId <= 0 || requestedTenantId === 'undefined' || requestedTenantId === 'null') {
-      console.log(`[Tenant] Header x-tenant-id inválido: "${requestedTenantId}" - ignorando`);
       requestedTenantId = null; // Tratar como se não tivesse sido enviado
     }
   }
 
-  console.log(`[Tenant] Header x-tenant-id: "${requestedTenantId}" (validado)`);
-
   // ✅ Validar organizacao_id do usuário
   const userOrgId = req.usuario.organizacao_id;
   if (userOrgId === undefined || userOrgId === null || userOrgId === 'null' || userOrgId === 'undefined') {
-    console.log(`[Tenant] PROBLEMA: organizacao_id do usuário está inválido: ${userOrgId}`);
     // Para usuários não super_admin sem org, retornar erro amigável
     if (req.usuario.role !== 'super_admin') {
       return res.status(403).json({
@@ -121,7 +107,6 @@ async function tenantContext(req, res, next) {
     }
   } else {
     // Usuários normais só acessam sua própria organização
-    console.log(`[Tenant] Definindo tenant para usuário normal: org_id=${req.usuario.organizacao_id}`);
     req.tenant = {
       id: req.usuario.organizacao_id,
       slug: req.usuario.organizacao_slug,
@@ -129,12 +114,8 @@ async function tenantContext(req, res, next) {
     };
   }
 
-  // Log do tenant definido
-  console.log(`[Tenant] Tenant definido:`, { id: req.tenant?.id, isSuperAdmin: req.tenant?.isSuperAdmin });
-
   // Verificar se há organização selecionada
   if (!req.tenant.id && req.usuario.role !== 'super_admin') {
-    console.log(`[Tenant] ERRO 403: tenant.id está falsy (${req.tenant?.id})`);
     return res.status(403).json({
       sucesso: false,
       erro: 'Nenhuma organização selecionada. Faça login novamente.'
