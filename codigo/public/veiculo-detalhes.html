@@ -3597,6 +3597,7 @@
 
         // Variável para armazenar o filtro ativo e dados originais
         let filtroHorarioAtivo = null;
+        let filtroViagensAtivo = false; // Flag simples para verificação rápida
         let viagensDataOriginal = []; // Cópia dos dados originais para poder limpar filtro
 
         // Aplicar filtro de horário na lista de viagens
@@ -3624,6 +3625,7 @@
                 horaInicio: minutosParaHora(minutosInicio),
                 horaFim: minutosParaHora(minutosFim)
             };
+            filtroViagensAtivo = true; // Flag simples para bloquear refresh
 
             const tbody = document.getElementById('history-viagens');
             const filtroInicioMin = minutosInicio;
@@ -3712,6 +3714,7 @@
         // Limpar filtro e restaurar dados originais
         function limparFiltroViagens() {
             filtroHorarioAtivo = null;
+            filtroViagensAtivo = false; // Resetar flag
 
             // Restaurar dados originais
             if (viagensDataOriginal.length > 0) {
@@ -4060,7 +4063,8 @@
         // Carregar histórico de viagens
         async function loadHistoryViagens() {
             // Se filtro de horário estiver ativo, não recarregar (manter dados filtrados)
-            if (typeof filtroHorarioAtivo !== 'undefined' && filtroHorarioAtivo !== null) {
+            if (filtroViagensAtivo === true) {
+                console.log('[Viagens] Filtro ativo - ignorando refresh');
                 return;
             }
             try {
