@@ -2089,6 +2089,35 @@
                         </thead>
                         <tbody id="history-viagens"></tbody>
                     </table>
+
+                    <!-- Seção de Paradas da Viagem Selecionada -->
+                    <div id="paradas-viagem-container" style="display: none; margin-top: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <h4 style="margin: 0; color: var(--text);">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="vertical-align: middle;">
+                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                                </svg>
+                                Paradas da Viagem
+                            </h4>
+                            <span id="paradas-count" style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em;"></span>
+                            <button onclick="fecharParadasViagem()" style="margin-left: auto; background: none; border: none; cursor: pointer; font-size: 1.2em; color: var(--text-light);">✕</button>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Início</th>
+                                        <th>Fim</th>
+                                        <th>Duração</th>
+                                        <th>Endereço</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="paradas-viagem-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Aba de Gráfico de Velocidade -->
@@ -3692,6 +3721,9 @@
                                 <button class="period-btn" onclick="verRotaViagem(${v.id}, '${v.inicio}', '${v.fim}')" title="Ver rota no mapa">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align: middle;"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg> Rota
                                 </button>
+                                <button class="period-btn" onclick="carregarParadasViagem(${v.id})" title="Ver paradas da viagem" style="background: #f97316; color: white;">
+                                    🅿️
+                                </button>
                                 <button class="period-btn replay-btn-table" onclick="iniciarReplay(${v.id}, '${v.inicio}', '${v.fim}')" title="Replay animado da viagem">
                                     ▶️ Replay
                                 </button>
@@ -4123,6 +4155,9 @@
                                     <button class="period-btn" onclick="verRotaViagem(${v.id}, '${v.inicio}', '${v.fim}')" title="Ver rota no mapa">
                                         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align: middle;"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg> Rota
                                     </button>
+                                    <button class="period-btn" onclick="carregarParadasViagem(${v.id})" title="Ver paradas da viagem" style="background: #f97316; color: white;">
+                                        🅿️
+                                    </button>
                                     <button class="period-btn replay-btn-table" onclick="iniciarReplay(${v.id}, '${v.inicio}', '${v.fim}')" title="Replay animado da viagem">
                                         ▶️ Replay
                                     </button>
@@ -4395,6 +4430,162 @@
                 document.getElementById('route-status').textContent = '❌ Erro ao carregar';
                 toastError('Erro ao carregar a rota da viagem: ' + error.message);
             }
+        }
+
+        // ============ PARADAS DE VIAGEM ============
+
+        let paradasMarkers = []; // Marcadores de paradas no mapa
+        let cacheEnderecos = {}; // Cache de geocoding reverso
+
+        // Carregar paradas de uma viagem
+        async function carregarParadasViagem(viagemId) {
+            const container = document.getElementById('paradas-viagem-container');
+            const tbody = document.getElementById('paradas-viagem-tbody');
+            const countEl = document.getElementById('paradas-count');
+
+            try {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">⏳ Carregando paradas...</td></tr>';
+                container.style.display = 'block';
+
+                const res = await authFetch(`${API_BASE}/viagens/${IMEI}/${viagemId}/paradas?minDuracao=2`);
+                const data = await res.json();
+
+                if (!data.sucesso || !data.dados?.paradas || data.dados.paradas.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-light);">Nenhuma parada detectada nesta viagem</td></tr>';
+                    countEl.textContent = '0';
+                    return;
+                }
+
+                const paradas = data.dados.paradas;
+                countEl.textContent = paradas.length;
+
+                // Limpar marcadores anteriores
+                paradasMarkers.forEach(m => {
+                    if (m && map.hasLayer(m)) map.removeLayer(m);
+                });
+                paradasMarkers = [];
+
+                // Renderizar tabela
+                tbody.innerHTML = paradas.map((p, idx) => {
+                    const horaInicio = new Date(p.inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    const horaFim = new Date(p.fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    const duracao = p.duracao_minutos >= 60
+                        ? `${Math.floor(p.duracao_minutos / 60)}h ${p.duracao_minutos % 60}min`
+                        : `${p.duracao_minutos} min`;
+
+                    // Adicionar marcador no mapa
+                    const paradaMarker = L.marker([p.latitude, p.longitude], {
+                        icon: L.divIcon({
+                            html: `<div style="background: #f97316; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">P${p.numero}</div>`,
+                            className: 'parada-marker',
+                            iconSize: [28, 28],
+                            iconAnchor: [14, 14]
+                        })
+                    }).addTo(map);
+
+                    paradaMarker.bindPopup(`
+                        <div style="min-width: 200px;">
+                            <div style="background: #f97316; color: white; padding: 8px; margin: -8px -8px 8px -8px; font-weight: bold;">
+                                🅿️ Parada ${p.numero}
+                            </div>
+                            <div style="padding: 5px 0;">
+                                <div>⏰ ${horaInicio} - ${horaFim}</div>
+                                <div>⏱️ Duração: ${duracao}</div>
+                                <div id="endereco-parada-${idx}" style="margin-top: 5px; color: var(--text-light);">📍 Carregando endereço...</div>
+                            </div>
+                        </div>
+                    `);
+
+                    paradasMarkers.push(paradaMarker);
+
+                    // Buscar endereço (async)
+                    buscarEnderecoParada(p.latitude, p.longitude, idx);
+
+                    return `
+                        <tr>
+                            <td style="text-align: center; font-weight: bold; color: #f97316;">P${p.numero}</td>
+                            <td>${horaInicio}</td>
+                            <td>${horaFim}</td>
+                            <td>${duracao}</td>
+                            <td id="endereco-tabela-${idx}" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis;">
+                                <span style="color: var(--text-light);">Carregando...</span>
+                            </td>
+                            <td>
+                                <button class="period-btn" onclick="focarParada(${p.latitude}, ${p.longitude})" title="Ver no mapa" style="padding: 4px 8px;">
+                                    📍
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Erro ao carregar paradas:', error);
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--danger);">Erro ao carregar paradas</td></tr>';
+            }
+        }
+
+        // Buscar endereço de uma parada via geocoding reverso
+        async function buscarEnderecoParada(lat, lng, idx) {
+            const cacheKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+
+            // Verificar cache
+            if (cacheEnderecos[cacheKey]) {
+                atualizarEnderecoParada(idx, cacheEnderecos[cacheKey]);
+                return;
+            }
+
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+                    headers: { 'Accept-Language': 'pt-BR' }
+                });
+                const data = await res.json();
+
+                let endereco = 'Endereço não encontrado';
+                if (data.address) {
+                    const parts = [];
+                    if (data.address.road) parts.push(data.address.road);
+                    if (data.address.house_number) parts.push(data.address.house_number);
+                    if (data.address.suburb || data.address.neighbourhood) {
+                        parts.push(data.address.suburb || data.address.neighbourhood);
+                    }
+                    if (data.address.city || data.address.town) {
+                        parts.push(data.address.city || data.address.town);
+                    }
+                    endereco = parts.join(', ') || data.display_name?.substring(0, 60) || 'Endereço não encontrado';
+                }
+
+                cacheEnderecos[cacheKey] = endereco;
+                atualizarEnderecoParada(idx, endereco);
+
+            } catch (e) {
+                atualizarEnderecoParada(idx, 'Erro ao buscar endereço');
+            }
+        }
+
+        // Atualizar endereço na tabela e no popup
+        function atualizarEnderecoParada(idx, endereco) {
+            const tabelaEl = document.getElementById(`endereco-tabela-${idx}`);
+            const popupEl = document.getElementById(`endereco-parada-${idx}`);
+
+            if (tabelaEl) tabelaEl.textContent = endereco;
+            if (popupEl) popupEl.innerHTML = `📍 ${endereco}`;
+        }
+
+        // Focar em uma parada no mapa
+        function focarParada(lat, lng) {
+            map.setView([lat, lng], 17);
+        }
+
+        // Fechar painel de paradas
+        function fecharParadasViagem() {
+            document.getElementById('paradas-viagem-container').style.display = 'none';
+
+            // Remover marcadores de paradas
+            paradasMarkers.forEach(m => {
+                if (m && map.hasLayer(m)) map.removeLayer(m);
+            });
+            paradasMarkers = [];
         }
 
         // Carregar viagens quando a aba for selecionada

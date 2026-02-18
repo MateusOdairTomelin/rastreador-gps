@@ -1348,6 +1348,25 @@ router.get('/:imei/:viagemId/rota-estradas', verificarDispositivoTenant, asyncHa
   }
 }));
 
+// ============== PARADAS DE VIAGEM ==============
+
+// GET /api/viagens/:imei/:viagemId/paradas - Detectar paradas em uma viagem
+// ✅ Multi-tenant: Verifica propriedade do dispositivo
+router.get('/:imei/:viagemId/paradas', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+  const { imei, viagemId } = req.params;
+  const minDuracao = parseInt(req.query.minDuracao) || 2; // Mínimo 2 minutos para considerar parada
+
+  const paradas = await viagemService.getParadasViagem(imei, viagemId, minDuracao);
+
+  res.json({
+    sucesso: true,
+    dados: {
+      total: paradas.length,
+      paradas: paradas,
+    },
+  });
+}));
+
 // ============== VIAGENS RETROATIVAS ==============
 
 // POST /api/viagens/processar-retroativas - Processar viagens retroativas para dispositivos sem viagens

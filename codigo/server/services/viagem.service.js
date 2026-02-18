@@ -568,6 +568,128 @@ class ViagemService {
       velocidade_max_geral: velMaxGeral,
     };
   }
+
+  /**
+   * Detecta paradas em uma viagem
+   * Uma parada é quando velocidade = 0 por pelo menos X minutos
+   * @param {string} imei - IMEI do dispositivo
+   * @param {number} viagemId - ID da viagem
+   * @param {number} minDuracaoMinutos - Duração mínima para considerar parada (default: 2 min)
+   */
+  async getParadasViagem(imei, viagemId, minDuracaoMinutos = 2) {
+    const dispositivo = await prisma.dispositivo.findUnique({
+      where: { imei },
+    });
+
+    if (!dispositivo) {
+      return [];
+    }
+
+    const viagem = await prisma.viagem.findUnique({
+      where: { id: parseInt(viagemId) },
+    });
+
+    if (!viagem || viagem.dispositivo_id !== dispositivo.id) {
+      return [];
+    }
+
+    // Buscar localizações da viagem ordenadas por timestamp
+    const localizacoes = await prisma.localizacao.findMany({
+      where: {
+        dispositivo_id: dispositivo.id,
+        timestamp: {
+          gte: viagem.inicio,
+          lte: viagem.fim,
+        },
+      },
+      orderBy: { timestamp: 'asc' },
+    });
+
+    if (localizacoes.length < 2) {
+      return [];
+    }
+
+    const paradas = [];
+    let paradaAtual = null;
+    const VELOCIDADE_PARADA = 3; // Considera parado se vel < 3 km/h
+
+    for (let i = 0; i < localizacoes.length; i++) {
+      const loc = localizacoes[i];
+      const velocidade = loc.velocidade || 0;
+
+      if (velocidade < VELOCIDADE_PARADA) {
+        // Está parado
+        if (!paradaAtual) {
+          // Início de nova parada
+          paradaAtual = {
+            inicio: loc.timestamp,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            localizacoes: [loc],
+          };
+        } else {
+          // Continua parado - adicionar localização
+          paradaAtual.localizacoes.push(loc);
+        }
+      } else {
+        // Está em movimento
+        if (paradaAtual) {
+          // Finalizar parada anterior
+          const ultimaLoc = paradaAtual.localizacoes[paradaAtual.localizacoes.length - 1];
+          paradaAtual.fim = ultimaLoc.timestamp;
+
+          // Calcular duração em minutos
+          const duracaoMs = new Date(paradaAtual.fim) - new Date(paradaAtual.inicio);
+          const duracaoMinutos = duracaoMs / (1000 * 60);
+
+          // Só incluir se duração >= mínimo
+          if (duracaoMinutos >= minDuracaoMinutos) {
+            // Calcular coordenadas médias (centro da parada)
+            const latMedia = paradaAtual.localizacoes.reduce((sum, l) => sum + l.latitude, 0) / paradaAtual.localizacoes.length;
+            const lonMedia = paradaAtual.localizacoes.reduce((sum, l) => sum + l.longitude, 0) / paradaAtual.localizacoes.length;
+
+            paradas.push({
+              numero: paradas.length + 1,
+              inicio: paradaAtual.inicio,
+              fim: paradaAtual.fim,
+              duracao_minutos: Math.round(duracaoMinutos),
+              latitude: parseFloat(latMedia.toFixed(6)),
+              longitude: parseFloat(lonMedia.toFixed(6)),
+              pontos: paradaAtual.localizacoes.length,
+            });
+          }
+
+          paradaAtual = null;
+        }
+      }
+    }
+
+    // Verificar se há parada no final da viagem
+    if (paradaAtual) {
+      const ultimaLoc = paradaAtual.localizacoes[paradaAtual.localizacoes.length - 1];
+      paradaAtual.fim = ultimaLoc.timestamp;
+
+      const duracaoMs = new Date(paradaAtual.fim) - new Date(paradaAtual.inicio);
+      const duracaoMinutos = duracaoMs / (1000 * 60);
+
+      if (duracaoMinutos >= minDuracaoMinutos) {
+        const latMedia = paradaAtual.localizacoes.reduce((sum, l) => sum + l.latitude, 0) / paradaAtual.localizacoes.length;
+        const lonMedia = paradaAtual.localizacoes.reduce((sum, l) => sum + l.longitude, 0) / paradaAtual.localizacoes.length;
+
+        paradas.push({
+          numero: paradas.length + 1,
+          inicio: paradaAtual.inicio,
+          fim: paradaAtual.fim,
+          duracao_minutos: Math.round(duracaoMinutos),
+          latitude: parseFloat(latMedia.toFixed(6)),
+          longitude: parseFloat(lonMedia.toFixed(6)),
+          pontos: paradaAtual.localizacoes.length,
+        });
+      }
+    }
+
+    return paradas;
+  }
 }
 
 module.exports = new ViagemService();
