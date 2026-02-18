@@ -4311,14 +4311,14 @@
           <div class="card" style="margin-bottom: 15px; padding: 15px;">
             <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
               <!-- Seletor de Veículo com busca -->
-              <div style="flex: 1; min-width: 250px; position: relative;">
+              <div id="vehicle-search-container" style="flex: 1; min-width: 250px; position: relative;">
                 <label style="font-size: 12px; color: var(--text-light); display: block; margin-bottom: 5px;">Veículo</label>
-                <input type="text" id="search-vehicle" placeholder="Digite para buscar ou clique..."
-                       style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; cursor: pointer;"
+                <input type="text" id="search-vehicle" placeholder="Buscar veículo..."
+                       style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;"
                        oninput="filterVehicleList(this.value)"
-                       onfocus="showVehicleDropdown()"
+                       onclick="showVehicleDropdown()"
                        autocomplete="off">
-                <div id="vehicle-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 8px; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                <div id="vehicle-dropdown" style="display: none; position: fixed; background: white; border: 1px solid #ddd; border-radius: 8px; max-height: 300px; overflow-y: auto; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.2); min-width: 280px;">
                 </div>
                 <!-- Mantém select oculto para compatibilidade -->
                 <select id="select-vehicle" style="display: none;"></select>
@@ -10409,25 +10409,35 @@
     let vehicleDropdownVisible = false;
 
     function showVehicleDropdown() {
+      const input = document.getElementById('search-vehicle');
       const dropdown = document.getElementById('vehicle-dropdown');
+      const rect = input.getBoundingClientRect();
+
+      // Posicionar dropdown abaixo do input
+      dropdown.style.top = (rect.bottom + 2) + 'px';
+      dropdown.style.left = rect.left + 'px';
+      dropdown.style.width = rect.width + 'px';
       dropdown.style.display = 'block';
       vehicleDropdownVisible = true;
-      renderVehicleDropdown('');
+
+      renderVehicleDropdown(input.value);
     }
 
     function hideVehicleDropdown() {
-      setTimeout(() => {
-        const dropdown = document.getElementById('vehicle-dropdown');
+      const dropdown = document.getElementById('vehicle-dropdown');
+      if (dropdown) {
         dropdown.style.display = 'none';
-        vehicleDropdownVisible = false;
-      }, 150);
+      }
+      vehicleDropdownVisible = false;
     }
 
     function renderVehicleDropdown(searchTerm) {
       const dropdown = document.getElementById('vehicle-dropdown');
-      const term = searchTerm.toLowerCase().trim();
+      if (!dropdown) return;
 
-      let html = `<div class="vehicle-option" onclick="selectVehicleFromDropdown('')" style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #eee; color: #666;">
+      const term = (searchTerm || '').toLowerCase().trim();
+
+      let html = `<div onclick="selectVehicleFromDropdown('')" style="padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #eee; color: #666; font-weight: 500;">
         Todos os veículos
       </div>`;
 
@@ -10441,22 +10451,22 @@
       filtered.forEach(d => {
         const statusColor = d.status === 'online' ? '#10B981' : '#EF4444';
         const speed = d.velocidade || 0;
-        html += `<div class="vehicle-option" onclick="selectVehicleFromDropdown('${d.imei}')"
-                     style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;"
-                     onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='white'">
+        html += `<div onclick="selectVehicleFromDropdown('${d.imei}')"
+                     style="padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; transition: background 0.1s;"
+                     onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background='white'">
           <div>
             <div style="font-weight: 500; color: #333;">${d.veiculo || 'Sem nome'}</div>
-            <div style="font-size: 12px; color: #888;">${d.placa || 'Sem placa'}</div>
+            <div style="font-size: 11px; color: #999;">${d.placa || 'Sem placa'}</div>
           </div>
-          <div style="text-align: right;">
-            <div style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor}; display: inline-block;"></div>
-            <span style="font-size: 12px; color: #666; margin-left: 4px;">${speed} km/h</span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 12px; color: #555;">${speed} km/h</span>
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor};"></div>
           </div>
         </div>`;
       });
 
       if (filtered.length === 0 && term) {
-        html += `<div style="padding: 15px; text-align: center; color: #999;">Nenhum veículo encontrado</div>`;
+        html += `<div style="padding: 20px; text-align: center; color: #999;">Nenhum veículo encontrado</div>`;
       }
 
       dropdown.innerHTML = html;
@@ -10465,13 +10475,13 @@
     function filterVehicleList(searchTerm) {
       if (!vehicleDropdownVisible) {
         showVehicleDropdown();
+      } else {
+        renderVehicleDropdown(searchTerm);
       }
-      renderVehicleDropdown(searchTerm);
     }
 
     function selectVehicleFromDropdown(imei) {
       const input = document.getElementById('search-vehicle');
-      const dropdown = document.getElementById('vehicle-dropdown');
 
       if (imei) {
         const device = allDevices.find(d => d.imei === imei);
@@ -10480,18 +10490,18 @@
         input.value = '';
       }
 
-      dropdown.style.display = 'none';
-      vehicleDropdownVisible = false;
+      hideVehicleDropdown();
       focusOnVehicle(imei);
     }
 
     // Fechar dropdown ao clicar fora
     document.addEventListener('click', (e) => {
-      const container = document.getElementById('search-vehicle')?.parentElement;
-      if (container && !container.contains(e.target)) {
-        const dropdown = document.getElementById('vehicle-dropdown');
-        if (dropdown) dropdown.style.display = 'none';
-        vehicleDropdownVisible = false;
+      const input = document.getElementById('search-vehicle');
+      const dropdown = document.getElementById('vehicle-dropdown');
+      if (!input || !dropdown) return;
+
+      if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+        hideVehicleDropdown();
       }
     });
 
