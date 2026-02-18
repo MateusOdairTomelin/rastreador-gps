@@ -4351,7 +4351,7 @@
             <!-- Alertas de Velocidade -->
             <div id="speed-alerts" style="margin-top: 15px; display: none;">
               <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 10px;">
-                <strong style="color: #856404;">⚠️ Alertas de Velocidade:</strong>
+                <strong style="color: #856404;">Alertas de Velocidade:</strong>
                 <div id="speed-alert-list" style="margin-top: 8px; font-size: 13px; color: #856404;"></div>
               </div>
             </div>
@@ -10770,10 +10770,12 @@
           const alertKey = `${d.imei}-road-${Math.floor(Date.now() / 60000)}`;
           if (!speedAlertHistory[alertKey]) {
             speedAlertHistory[alertKey] = true;
-            playAlertSound();
             saveSpeedAlert(d, speed, roadLimit.limite, 'via');
           }
-          alerts.push(`<span style="color: #F59E0B;">⚠️</span> <strong>${d.veiculo || d.placa || d.imei}</strong>: ${speed} km/h (via: ${roadLimit.via} - limite: ${roadLimit.limite} km/h)`);
+          alerts.push(`<div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f0d78e;">
+            <span><strong>${d.veiculo || d.placa || d.imei}</strong>: ${speed} km/h (via: ${roadLimit.via} - limite: ${roadLimit.limite} km/h)</span>
+            <a href="#" onclick="abrirInfoVeiculo('${d.imei}'); return false;" style="color: #0066cc; text-decoration: none; font-size: 12px; white-space: nowrap;">Ver no mapa</a>
+          </div>`);
         }
 
         // Alerta para limite de velocidade configurado pelo usuário (vermelho)
@@ -10781,16 +10783,18 @@
           const alertKey = `${d.imei}-user-${Math.floor(Date.now() / 60000)}`;
           if (!speedAlertHistory[alertKey]) {
             speedAlertHistory[alertKey] = true;
-            playAlertSound();
             saveSpeedAlert(d, speed, userSpeedLimit, 'usuario');
           }
-          alerts.push(`🚨 <strong>${d.veiculo || d.placa || d.imei}</strong>: ${speed} km/h (limite configurado: ${userSpeedLimit} km/h)`);
+          alerts.push(`<div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f0d78e;">
+            <span><strong>${d.veiculo || d.placa || d.imei}</strong>: ${speed} km/h (limite configurado: ${userSpeedLimit} km/h)</span>
+            <a href="#" onclick="abrirInfoVeiculo('${d.imei}'); return false;" style="color: #0066cc; text-decoration: none; font-size: 12px; white-space: nowrap;">Ver no mapa</a>
+          </div>`);
         }
       });
 
       if (alerts.length > 0) {
         alertsContainer.style.display = 'block';
-        alertList.innerHTML = alerts.join('<br>');
+        alertList.innerHTML = alerts.join('');
       } else {
         alertsContainer.style.display = 'none';
       }
