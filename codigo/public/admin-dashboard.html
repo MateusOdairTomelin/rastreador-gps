@@ -7179,6 +7179,7 @@
     let autoRefreshHeartbeat = true;
     let ws = null;
     let wsReconnectTimeout = null;
+    let wsConnecting = false; // ✅ Flag para prevenir múltiplas conexões
     let deviceTypes = [];
     let systemMetricsInterval = null;
 
@@ -7868,9 +7869,6 @@
     }
 
     // Conexão WebSocket para atualizações em tempo real
-    // ✅ Flag para prevenir múltiplas conexões simultâneas
-    let wsConnecting = false;
-
     function connectWebSocket() {
       // ✅ CORREÇÃO: Verificar todos os estados que indicam conexão ativa/em andamento
       if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
