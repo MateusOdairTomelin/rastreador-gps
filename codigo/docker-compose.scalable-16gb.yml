@@ -67,6 +67,7 @@ services:
       - TCP_PORT_OBD2=0
       - TELTONIKA_PORT=0
       - MAX_CONNECTIONS=2000
+      - LOCATION_PARTITIONS=4
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
@@ -101,6 +102,7 @@ services:
       - TCP_PORT_OBD2=0
       - TELTONIKA_PORT=0
       - MAX_CONNECTIONS=2000
+      - LOCATION_PARTITIONS=4
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
@@ -139,6 +141,7 @@ services:
       - TCP_PORT_OBD2=0
       - TELTONIKA_PORT=0
       - MAX_CONNECTIONS=1000
+      - LOCATION_PARTITIONS=4
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
@@ -177,6 +180,7 @@ services:
       - TCP_PORT_OBD2=0
       - TELTONIKA_PORT=0
       - MAX_CONNECTIONS=1000
+      - LOCATION_PARTITIONS=4
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
@@ -201,8 +205,47 @@ services:
   # =============================================================================
   # PROCESSORS (Workers) - Processam dados em paralelo
   # =============================================================================
+  # ✅ PARTICIONAMENTO POR IMEI: Cada processor consome UMA partição
+  # hash(IMEI) % LOCATION_PARTITIONS determina a partição
+  # Isso garante que cada IMEI sempre vai para o mesmo processor (sem race conditions)
+  # LOCATION_PARTITIONS=4 → precisa de 4 location-processors (0, 1, 2, 3)
 
-  # Location Processor (2x) - Processa localizações GPS
+  # Location Processor 0 (Partição 0)
+  location-processor-0:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    container_name: rastreador-loc-proc-0
+    restart: unless-stopped
+    command: ["node", "server/workers/location-processor.js"]
+    environment:
+      - WORKER_ID=loc-0
+      - PARTITION_ID=0
+      - LOCATION_PARTITIONS=4
+      - BATCH_SIZE=20
+      - BLOCK_TIME=3000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
+      - REDIS_ENABLED=true
+      - REDIS_STREAMS_DB=2
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: '0.5'
+        reservations:
+          memory: 192M
+
+  # Location Processor 1 (Partição 1)
   location-processor-1:
     build:
       context: .
@@ -212,6 +255,8 @@ services:
     command: ["node", "server/workers/location-processor.js"]
     environment:
       - WORKER_ID=loc-1
+      - PARTITION_ID=1
+      - LOCATION_PARTITIONS=4
       - BATCH_SIZE=20
       - BLOCK_TIME=3000
       - REDIS_HOST=redis
@@ -230,11 +275,12 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '1'
+          memory: 384M
+          cpus: '0.5'
         reservations:
-          memory: 256M
+          memory: 192M
 
+  # Location Processor 2 (Partição 2)
   location-processor-2:
     build:
       context: .
@@ -244,6 +290,8 @@ services:
     command: ["node", "server/workers/location-processor.js"]
     environment:
       - WORKER_ID=loc-2
+      - PARTITION_ID=2
+      - LOCATION_PARTITIONS=4
       - BATCH_SIZE=20
       - BLOCK_TIME=3000
       - REDIS_HOST=redis
@@ -262,10 +310,45 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '1'
+          memory: 384M
+          cpus: '0.5'
         reservations:
-          memory: 256M
+          memory: 192M
+
+  # Location Processor 3 (Partição 3)
+  location-processor-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.processor
+    container_name: rastreador-loc-proc-3
+    restart: unless-stopped
+    command: ["node", "server/workers/location-processor.js"]
+    environment:
+      - WORKER_ID=loc-3
+      - PARTITION_ID=3
+      - LOCATION_PARTITIONS=4
+      - BATCH_SIZE=20
+      - BLOCK_TIME=3000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
+      - REDIS_ENABLED=true
+      - REDIS_STREAMS_DB=2
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-L5430ZEumKwHIlEeecXX}@postgres:5432/rastreador_db?schema=public
+    depends_on:
+      redis:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    networks:
+      - rastreador-network
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: '0.5'
+        reservations:
+          memory: 192M
 
   # Status Processor - Processa heartbeats
   status-processor:

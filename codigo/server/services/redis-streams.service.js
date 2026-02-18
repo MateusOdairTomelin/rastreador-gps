@@ -51,6 +51,41 @@ const CONSUMER_GROUPS = {
   STATUS: 'status-processors'
 };
 
+// ============ PARTICIONAMENTO POR IMEI ============
+// Número de partições para distribuir IMEIs entre processadores
+// Cada processor consome UMA partição, garantindo que o mesmo IMEI
+// sempre vai para o mesmo processor (elimina race conditions)
+const NUM_PARTITIONS = parseInt(process.env.LOCATION_PARTITIONS) || 4;
+
+/**
+ * Calcula a partição de um IMEI usando hash simples
+ * Usa djb2 hash que é rápido e distribui bem
+ */
+function getPartitionForImei(imei) {
+  if (!imei) return 0;
+  let hash = 5381;
+  for (let i = 0; i < imei.length; i++) {
+    hash = ((hash << 5) + hash) + imei.charCodeAt(i);
+    hash = hash & 0x7FFFFFFF; // Manter positivo
+  }
+  return hash % NUM_PARTITIONS;
+}
+
+/**
+ * Retorna o nome do stream particionado para um IMEI
+ */
+function getPartitionedStreamName(baseStream, imei) {
+  const partition = getPartitionForImei(imei);
+  return `${baseStream}:${partition}`;
+}
+
+/**
+ * Retorna o nome do consumer group para uma partição
+ */
+function getPartitionedGroupName(baseGroup, partition) {
+  return `${baseGroup}-p${partition}`;
+}
+
 class RedisStreamsService {
   constructor() {
     this.client = null;
@@ -131,6 +166,24 @@ class RedisStreamsService {
         }
       }
     }
+
+    // ✅ Criar streams e groups particionados para LOCATION
+    // Cada partição tem seu próprio stream e consumer group
+    for (let partition = 0; partition < NUM_PARTITIONS; partition++) {
+      const partitionedStream = `${STREAMS.LOCATION}:${partition}`;
+      const partitionedGroup = getPartitionedGroupName(CONSUMER_GROUPS.LOCATION, partition);
+
+      try {
+        await this.client.xgroup('CREATE', partitionedStream, partitionedGroup, '0', 'MKSTREAM');
+        console.log(`[RedisStreams] ✅ Partição ${partition}: ${partitionedStream} -> ${partitionedGroup}`);
+      } catch (error) {
+        if (!error.message.includes('BUSYGROUP')) {
+          console.warn(`[RedisStreams] Aviso partição ${partition}:`, error.message);
+        }
+      }
+    }
+
+    console.log(`[RedisStreams] 📊 ${NUM_PARTITIONS} partições de location configuradas`);
   }
 
   /**
@@ -143,14 +196,29 @@ class RedisStreamsService {
   // ==================== PUBLICAÇÃO ====================
 
   /**
-   * Publica pacote de localização
+   * Publica pacote de localização (DEPRECATED - usar publishLocationPartitioned)
+   * Mantido para compatibilidade durante migração
    */
   async publishLocation(imei, data, gatewayId = 'gw-1') {
-    return this.publish(STREAMS.LOCATION, {
+    // ✅ MIGRAÇÃO: Redirecionar para stream particionado
+    // Isso garante que novos pacotes vão para as partições corretas
+    return this.publishLocationPartitioned(imei, data, gatewayId);
+  }
+
+  /**
+   * Publica pacote de localização em stream PARTICIONADO
+   * Cada IMEI sempre vai para a mesma partição, eliminando race conditions
+   */
+  async publishLocationPartitioned(imei, data, gatewayId = 'gw-1') {
+    const partition = getPartitionForImei(imei);
+    const partitionedStream = `${STREAMS.LOCATION}:${partition}`;
+
+    return this.publish(partitionedStream, {
       imei,
       type: 'location',
       data,
       gateway_id: gatewayId,
+      partition, // Incluir partição para debug
       timestamp: new Date().toISOString()
     });
   }
@@ -239,13 +307,50 @@ class RedisStreamsService {
   // ==================== CONSUMO ====================
 
   /**
-   * Consome mensagens de localização
+   * Consome mensagens de localização (DEPRECATED - usar consumeLocationPartition)
+   * Mantido para compatibilidade durante migração
    * @param {Function} processor - Função async que processa cada mensagem
    * @param {number} count - Número de mensagens por lote
    * @param {number} blockMs - Tempo de bloqueio aguardando mensagens
    */
   async consumeLocation(processor, count = 10, blockMs = 5000) {
     return this.consume(STREAMS.LOCATION, CONSUMER_GROUPS.LOCATION, processor, count, blockMs);
+  }
+
+  /**
+   * Consome mensagens de localização de uma PARTIÇÃO específica
+   * Cada processor deve consumir UMA partição (definida por PARTITION_ID)
+   * Isso garante que cada IMEI é processado por apenas UM processor
+   */
+  async consumeLocationPartition(partition, processor, count = 10, blockMs = 5000) {
+    const partitionedStream = `${STREAMS.LOCATION}:${partition}`;
+    const partitionedGroup = getPartitionedGroupName(CONSUMER_GROUPS.LOCATION, partition);
+
+    return this.consume(partitionedStream, partitionedGroup, processor, count, blockMs);
+  }
+
+  /**
+   * Processa mensagens pendentes de uma partição específica
+   */
+  async processPendingPartition(partition, processor, count = 10) {
+    const partitionedStream = `${STREAMS.LOCATION}:${partition}`;
+    const partitionedGroup = getPartitionedGroupName(CONSUMER_GROUPS.LOCATION, partition);
+
+    return this.processPending(partitionedStream, partitionedGroup, processor, count);
+  }
+
+  /**
+   * Retorna o número de partições configurado
+   */
+  getNumPartitions() {
+    return NUM_PARTITIONS;
+  }
+
+  /**
+   * Retorna a partição para um IMEI específico (útil para debug)
+   */
+  getPartitionForImei(imei) {
+    return getPartitionForImei(imei);
   }
 
   /**
@@ -580,6 +685,11 @@ module.exports = {
   RedisStreamsService,
   STREAMS,
   CONSUMER_GROUPS,
+  // Particionamento
+  NUM_PARTITIONS,
+  getPartitionForImei,
+  getPartitionedStreamName,
+  getPartitionedGroupName,
   // Singleton para uso comum
   redisStreams: new RedisStreamsService()
 };

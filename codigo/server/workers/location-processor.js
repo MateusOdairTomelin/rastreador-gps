@@ -68,6 +68,14 @@ const BATCH_SIZE = parseInt(process.env.BATCH_SIZE) || 10;
 const BLOCK_TIME = parseInt(process.env.BLOCK_TIME) || 5000;
 const PROCESS_INTERVAL = parseInt(process.env.PROCESS_INTERVAL) || 100;
 
+// ✅ PARTICIONAMENTO: Cada processor consome UMA partição específica
+// PARTITION_ID deve ser definido de 0 a NUM_PARTITIONS-1
+// Se não definido, usa modo legado (stream único compartilhado)
+const PARTITION_ID = process.env.PARTITION_ID !== undefined
+  ? parseInt(process.env.PARTITION_ID)
+  : null;
+const USE_PARTITIONING = PARTITION_ID !== null;
+
 // ============ ESTADO ============
 const stats = {
   processed: 0,
@@ -262,10 +270,6 @@ async function processLocationMessage(message) {
 
   const { imei, data, gateway_id } = message;
 
-  // ✅ Variáveis de lock declaradas FORA do try para serem acessíveis no finally
-  const filterLockKey = `lock:filter:${imei}`;
-  let filterLockAcquired = false;
-
   try {
     const locationData = typeof data === 'string' ? JSON.parse(data) : data;
 
@@ -307,26 +311,9 @@ async function processLocationMessage(message) {
     // Buscar dispositivo
     const dispositivo = await dispositivoService.getByImei(imei);
 
-    // ========== LOCK POR IMEI (Evita race condition entre processadores) ==========
-    // ✅ CORREÇÃO SCALING: Adquirir lock ANTES do filtro para garantir consistência
-    // Sem lock, dois processadores podem ler a mesma "última posição" e ambos passar no filtro
-    const filterLockTTL = 10; // 10 segundos
-
-    try {
-      filterLockAcquired = await redisService.acquireLock(filterLockKey, filterLockTTL);
-      if (!filterLockAcquired) {
-        // Outro processador está processando este IMEI - aguardar
-        await new Promise(resolve => setTimeout(resolve, 100));
-        filterLockAcquired = await redisService.acquireLock(filterLockKey, filterLockTTL);
-        if (!filterLockAcquired) {
-          console.log(`[${WORKER_ID}] ⏳ ${imei}: Lock não adquirido, descartando pacote`);
-          return;
-        }
-      }
-    } catch (lockErr) {
-      console.warn(`[${WORKER_ID}] ⚠️ ${imei}: Erro ao adquirir lock: ${lockErr.message}`);
-      // Continuar sem lock (fail open)
-    }
+    // ✅ PARTICIONAMENTO: Com partições, não precisa de lock!
+    // Cada IMEI vai sempre para o MESMO processor, então não há race condition
+    // O hash(IMEI) % NUM_PARTITIONS garante roteamento consistente
 
     // ========== FILTRO DE SALTOS GPS (Outlier Detection) ==========
     // Rejeita pontos que pulam distâncias impossíveis (LBS errado, GPS bugado)
@@ -587,11 +574,6 @@ async function processLocationMessage(message) {
     stats.errors++;
     console.error(`[${WORKER_ID}] ❌ ${imei}: ${error.message}`);
     throw error;
-  } finally {
-    // ✅ SEMPRE liberar o lock do filtro, mesmo em caso de erro
-    if (filterLockAcquired) {
-      await redisService.releaseLock(filterLockKey).catch(() => {});
-    }
   }
 }
 
@@ -602,20 +584,38 @@ let running = true;
 async function processLoop() {
   while (running) {
     try {
-      // Processar mensagens pendentes primeiro
-      await redisStreams.processPending(
-        'gps:packets:location',
-        'location-processors',
-        processLocationMessage,
-        5
-      );
+      if (USE_PARTITIONING) {
+        // ✅ MODO PARTICIONADO: Consome apenas da sua partição
+        // Processar mensagens pendentes da partição
+        await redisStreams.processPendingPartition(
+          PARTITION_ID,
+          processLocationMessage,
+          5
+        );
 
-      // Processar novas mensagens
-      await redisStreams.consumeLocation(
-        processLocationMessage,
-        BATCH_SIZE,
-        BLOCK_TIME
-      );
+        // Processar novas mensagens da partição
+        await redisStreams.consumeLocationPartition(
+          PARTITION_ID,
+          processLocationMessage,
+          BATCH_SIZE,
+          BLOCK_TIME
+        );
+      } else {
+        // ⚠️ MODO LEGADO: Stream compartilhado (pode ter race conditions)
+        // Usado durante migração ou quando PARTITION_ID não é definido
+        await redisStreams.processPending(
+          'gps:packets:location',
+          'location-processors',
+          processLocationMessage,
+          5
+        );
+
+        await redisStreams.consumeLocation(
+          processLocationMessage,
+          BATCH_SIZE,
+          BLOCK_TIME
+        );
+      }
 
     } catch (error) {
       console.error(`[${WORKER_ID}] Erro no loop:`, error.message);
@@ -631,6 +631,11 @@ async function processLoop() {
 async function start() {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`📍 LOCATION PROCESSOR - ${WORKER_ID}`);
+  if (USE_PARTITIONING) {
+    console.log(`🎯 PARTIÇÃO: ${PARTITION_ID} de ${redisStreams.getNumPartitions()}`);
+  } else {
+    console.log(`⚠️ MODO LEGADO: Stream compartilhado (sem particionamento)`);
+  }
   console.log(`${'='.repeat(60)}\n`);
 
   // Conectar Redis Streams (para consumir pacotes)
@@ -658,6 +663,9 @@ async function start() {
   }
 
   console.log(`✅ Worker ${WORKER_ID} iniciado`);
+  if (USE_PARTITIONING) {
+    console.log(`🎯 Consumindo partição ${PARTITION_ID}: gps:packets:location:${PARTITION_ID}`);
+  }
   console.log(`📊 Batch: ${BATCH_SIZE} | Block: ${BLOCK_TIME}ms\n`);
 
   // Estatísticas periódicas
