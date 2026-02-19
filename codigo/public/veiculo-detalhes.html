@@ -4019,29 +4019,50 @@
                     routePolylines.push(polyline);
                 }
 
-                // Marcador de INÍCIO (verde)
+                // Marcador de INÍCIO (círculo laranja com número)
                 const startMarker = L.marker([pontos[0].latitude, pontos[0].longitude], {
-                    icon: L.icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
-                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41]
+                    icon: L.divIcon({
+                        className: 'start-marker',
+                        html: `<div style="
+                            width: 28px;
+                            height: 28px;
+                            background: #F97316;
+                            border: 3px solid white;
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-weight: 700;
+                            font-size: 14px;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        ">0</div>`,
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 14]
                     })
                 }).addTo(map);
-                startMarker.bindPopup(`<b>🟢 Início</b><br>${formatTime(pontos[0].timestamp)}`);
+                startMarker.bindPopup(`<b>Início do trajeto</b><br>${formatTime(pontos[0].timestamp)}`);
                 routeMarkers.push(startMarker);
 
-                // Marcador de FIM (vermelho)
+                // Marcador de FIM (bandeira quadriculada)
                 const ultimo = pontos[pontos.length - 1];
                 const endMarker = L.marker([ultimo.latitude, ultimo.longitude], {
-                    icon: L.icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41]
+                    icon: L.divIcon({
+                        className: 'end-marker',
+                        html: `<div style="
+                            width: 32px;
+                            height: 32px;
+                            background: linear-gradient(45deg, #000 25%, #fff 25%, #fff 50%, #000 50%, #000 75%, #fff 75%);
+                            background-size: 8px 8px;
+                            border: 3px solid #333;
+                            border-radius: 6px;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+                        "></div>`,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
                     })
                 }).addTo(map);
-                endMarker.bindPopup(`<b>🔴 Fim</b><br>${formatTime(ultimo.timestamp)}`);
+                endMarker.bindPopup(`<b>Fim do trajeto</b><br>${formatTime(ultimo.timestamp)}`);
                 routeMarkers.push(endMarker);
 
                 // Adicionar marcadores de EXCESSO DE VELOCIDADE
@@ -4050,25 +4071,44 @@
                     const excessosParaMostrar = excessosDetalhados.slice(0, 20);
 
                     excessosParaMostrar.forEach((exc, idx) => {
+                        // Cor baseada na gravidade do excesso
+                        const excesso = exc.excesso || (exc.velocidade - exc.limite);
+                        const isGrave = excesso > 20;
+                        const bgColor = isGrave ? '#EF4444' : '#F97316';
+
                         const excMarker = L.marker([exc.lat, exc.lng], {
                             icon: L.divIcon({
                                 className: 'excesso-marker',
                                 html: `<div style="
-                                    background: linear-gradient(135deg, #ff6b6b 0%, #dc2626 100%);
-                                    color: white;
-                                    border-radius: 16px;
-                                    padding: 6px 10px;
-                                    display: inline-flex;
+                                    width: 28px;
+                                    height: 28px;
+                                    background: ${bgColor};
+                                    border: 3px solid white;
+                                    border-radius: 50%;
+                                    display: flex;
                                     align-items: center;
-                                    gap: 4px;
-                                    font-size: 12px;
+                                    justify-content: center;
+                                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                                    position: relative;
+                                ">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                                        <path d="M13 3v6l3-2 1.5 1.5L13 13V9.5L10 12l-1.5-1.5L13 6V3h-2L7 7v10l4 4h2l4-4V7l-4-4h-2z"/>
+                                    </svg>
+                                </div>
+                                <div style="
+                                    position: absolute;
+                                    top: -8px;
+                                    right: -8px;
+                                    background: white;
+                                    color: ${bgColor};
+                                    font-size: 10px;
                                     font-weight: 700;
-                                    border: 2px solid white;
-                                    box-shadow: 0 4px 12px rgba(220,38,38,0.45);
-                                    white-space: nowrap;
-                                "><span style="font-size: 10px;">🚨</span>${exc.velocidade.toFixed(0)}<span style="font-size: 9px; opacity: 0.85; font-weight: 500;">km/h</span></div>`,
-                                iconSize: [null, null],
-                                iconAnchor: [45, 14]
+                                    padding: 2px 4px;
+                                    border-radius: 8px;
+                                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                                ">${idx + 1}</div>`,
+                                iconSize: [36, 36],
+                                iconAnchor: [14, 14]
                             })
                         }).addTo(map);
 
@@ -4206,21 +4246,21 @@
                             icon: L.divIcon({
                                 className: 'parada-marker',
                                 html: `<div style="
-                                    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-                                    color: white;
-                                    border-radius: 16px;
-                                    padding: 6px 10px;
-                                    display: inline-flex;
+                                    width: 28px;
+                                    height: 28px;
+                                    background: #DC2626;
+                                    border: 3px solid white;
+                                    border-radius: 50%;
+                                    display: flex;
                                     align-items: center;
-                                    gap: 4px;
-                                    font-size: 12px;
+                                    justify-content: center;
+                                    color: white;
                                     font-weight: 700;
-                                    border: 2px solid white;
-                                    box-shadow: 0 4px 12px rgba(99,102,241,0.45);
-                                    white-space: nowrap;
-                                "><span style="font-size: 10px;">🅿️</span>${duracao}</div>`,
-                                iconSize: [null, null],
-                                iconAnchor: [40, 14]
+                                    font-size: 14px;
+                                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                                ">${parada.numero}</div>`,
+                                iconSize: [28, 28],
+                                iconAnchor: [14, 14]
                             })
                         }).addTo(map);
 
