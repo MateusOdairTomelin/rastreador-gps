@@ -340,9 +340,20 @@ router.get('/:imei/atual', verificarDispositivoTenant, asyncHandler(async (req, 
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
 router.get('/:imei/historico', verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
-  const limite = parseInt(req.query.limite) || 20;
+  const limite = parseInt(req.query.limite) || 100;
+  const { dataInicio, dataFim } = req.query;
 
-  const viagens = await viagemService.getHistoricoViagens(imei, limite);
+  // Filtrar por período se fornecido
+  let viagens = await viagemService.getHistoricoViagens(imei, limite);
+
+  if (dataInicio || dataFim) {
+    const inicio = dataInicio ? new Date(dataInicio) : new Date(0);
+    const fim = dataFim ? new Date(dataFim) : new Date();
+    viagens = viagens.filter(v => {
+      const viagemData = new Date(v.inicio);
+      return viagemData >= inicio && viagemData <= fim;
+    });
+  }
 
   res.json({
     sucesso: true,
@@ -356,6 +367,10 @@ router.get('/:imei/historico', verificarDispositivoTenant, asyncHandler(async (r
         distancia_km: v.distancia_km,
         velocidade_media: v.velocidade_media,
         velocidade_max: v.velocidade_max,
+        velocidade_maxima: v.velocidade_max,
+        paradas: v.paradas || 0,
+        excessos_velocidade: v.excessos_velocidade || 0,
+        tempo_parado_minutos: v.tempo_parado_minutos || 0,
         origem: { lat: v.origem_lat, lng: v.origem_lng },
         destino: { lat: v.destino_lat, lng: v.destino_lng },
       })),

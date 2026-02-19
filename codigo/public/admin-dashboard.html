@@ -14290,10 +14290,11 @@
 
       try {
         const { inicio, fim } = calcularPeriodoTrajetos();
-        const response = await authFetch(`${API_URL}/viagens/${imei}?dataInicio=${inicio.toISOString()}&dataFim=${fim.toISOString()}`);
+        const response = await authFetch(`${API_URL}/viagens/${imei}/historico?dataInicio=${inicio.toISOString()}&dataFim=${fim.toISOString()}`);
         const data = await response.json();
 
-        if (!data.sucesso || !data.dados || data.dados.length === 0) {
+        const viagens = data.dados?.viagens || data.dados || [];
+        if (!data.sucesso || viagens.length === 0) {
           tbody.innerHTML = `
             <tr><td colspan="9" style="text-align:center;padding:60px;color:var(--text-light);">
               <div style="font-size:48px;margin-bottom:12px;">🚫</div>
@@ -14305,7 +14306,7 @@
           return;
         }
 
-        trajetoViagens = data.dados;
+        trajetoViagens = viagens;
 
         // Calcular resumo
         let kmTotal = 0, tempoMov = 0, tempoPar = 0, excessos = 0;
