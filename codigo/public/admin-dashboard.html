@@ -17089,20 +17089,27 @@
       trajetosMarkersLayer.clearLayers();
 
       try {
+        console.log('[Trajetos] Carregando rota para viagem:', viagem.id);
         const response = await authFetch(`${API_URL}/viagens/${trajetosImeiAtual}/${viagem.id}/rota`);
         const data = await response.json();
 
-        if (!data.sucesso || !data.dados || data.dados.length === 0) {
+        console.log('[Trajetos] Resposta da rota:', data);
+
+        // A API retorna dados.rota.pontos
+        const pontos = data.dados?.rota?.pontos || data.dados?.pontos || data.dados || [];
+
+        if (!data.sucesso || !pontos || pontos.length === 0) {
+          console.warn('[Trajetos] Sem pontos de rota:', pontos);
           toastError('Sem dados de rota para esta viagem');
           return;
         }
 
-        const pontos = data.dados;
+        console.log('[Trajetos] Pontos encontrados:', pontos.length);
         const coords = pontos.map(p => [p.latitude, p.longitude]);
 
-        // Rota simples (sem ant-path para evitar dependência externa)
+        // Rota com cor visível
         const polyline = L.polyline(coords, {
-          color: '#1a1a1a',
+          color: '#3FCFD5',
           weight: 5,
           opacity: 0.9
         });
