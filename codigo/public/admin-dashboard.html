@@ -77,6 +77,30 @@
       --card-shadow-hover: 0 8px 30px rgba(63, 207, 213, 0.2);
     }
 
+    /* ====== TRAJETOS SLIDER STYLES ====== */
+    #trajetos-hora-inicio::-webkit-slider-thumb,
+    #trajetos-hora-fim::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      pointer-events: auto;
+      width: 16px;
+      height: 16px;
+      background: #3b82f6;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    #trajetos-hora-inicio::-moz-range-thumb,
+    #trajetos-hora-fim::-moz-range-thumb {
+      pointer-events: auto;
+      width: 16px;
+      height: 16px;
+      background: #3b82f6;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid white;
+    }
+
     /* ====== DARK MODE ====== */
     [data-theme="dark"] {
       --bg-card: rgba(15, 23, 42, 0.5);
@@ -6055,32 +6079,52 @@
                 </select>
               </div>
 
-              <!-- Filtros -->
+              <!-- Filtros com Slider de Horário -->
               <div style="padding: 16px; border-bottom: 1px solid var(--border);">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--text-light); font-size: 0.85em; font-weight: 500;">
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                   </svg>
-                  Filtros
+                  Filtrar por Data e Horário
                 </div>
 
-                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                  <button class="trajetos-filtro-btn active" data-dias="7" onclick="trajetosSelecionarPeriodo(7)" style="flex: 1; padding: 8px 12px; background: var(--primary); border: 1px solid var(--primary); border-radius: 6px; color: var(--bg); font-size: 0.8em; cursor: pointer;">7 dias</button>
-                  <button class="trajetos-filtro-btn" data-dias="15" onclick="trajetosSelecionarPeriodo(15)" style="flex: 1; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text-light); font-size: 0.8em; cursor: pointer;">15 dias</button>
-                  <button class="trajetos-filtro-btn" data-dias="30" onclick="trajetosSelecionarPeriodo(30)" style="flex: 1; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text-light); font-size: 0.8em; cursor: pointer;">30 dias</button>
+                <!-- Data e Botões de Período -->
+                <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center;">
+                  <input type="date" id="trajetos-data" style="flex: 1; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9em;">
+                  <button onclick="trajetosBuscarViagens()" style="padding: 8px 16px; background: var(--primary); border: none; border-radius: 6px; color: var(--bg); font-weight: 600; font-size: 0.85em; cursor: pointer; white-space: nowrap;">
+                    Filtrar
+                  </button>
                 </div>
 
-                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                  <input type="date" id="trajetos-data-inicio" style="flex: 1; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9em;" onchange="trajetosOnDataChange()">
-                  <input type="date" id="trajetos-data-fim" style="flex: 1; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9em;" onchange="trajetosOnDataChange()">
+                <!-- Botões de Período -->
+                <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+                  <button class="trajetos-periodo-btn" data-dias="1" onclick="trajetosSelecionarPeriodo(1)" style="flex: 1; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text-light); font-size: 0.75em; cursor: pointer;">Hoje</button>
+                  <button class="trajetos-periodo-btn active" data-dias="7" onclick="trajetosSelecionarPeriodo(7)" style="flex: 1; padding: 6px 8px; background: var(--primary); border: 1px solid var(--primary); border-radius: 6px; color: var(--bg); font-size: 0.75em; cursor: pointer;">7 dias</button>
+                  <button class="trajetos-periodo-btn" data-dias="15" onclick="trajetosSelecionarPeriodo(15)" style="flex: 1; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text-light); font-size: 0.75em; cursor: pointer;">15 dias</button>
+                  <button class="trajetos-periodo-btn" data-dias="30" onclick="trajetosSelecionarPeriodo(30)" style="flex: 1; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text-light); font-size: 0.75em; cursor: pointer;">30 dias</button>
                 </div>
 
-                <button onclick="trajetosBuscarViagens()" style="width: 100%; padding: 10px; background: var(--primary); border: none; border-radius: 8px; color: var(--bg); font-weight: 600; font-size: 0.9em; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                  </svg>
-                  Buscar Trajetos
-                </button>
+                <!-- Slider de Horário -->
+                <div style="background: var(--bg); border-radius: 8px; padding: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-family: monospace; font-size: 1em; font-weight: 600; color: #3b82f6;" id="trajetos-hora-inicio-label">00:00</span>
+                    <span style="font-size: 0.8em; color: var(--text-light); background: var(--bg-card); padding: 3px 8px; border-radius: 10px;" id="trajetos-duracao-label">24h 00min</span>
+                    <span style="font-family: monospace; font-size: 1em; font-weight: 600; color: #3b82f6;" id="trajetos-hora-fim-label">23:59</span>
+                  </div>
+                  <div style="position: relative; height: 28px; display: flex; align-items: center;">
+                    <div style="position: absolute; left: 0; right: 0; height: 5px; background: var(--border); border-radius: 3px;"></div>
+                    <div style="position: absolute; height: 5px; background: #60a5fa; border-radius: 3px;" id="trajetos-slider-range"></div>
+                    <input type="range" id="trajetos-hora-inicio" min="0" max="1439" value="0" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 28px; -webkit-appearance: none; background: transparent; pointer-events: none;">
+                    <input type="range" id="trajetos-hora-fim" min="0" max="1439" value="1439" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 28px; -webkit-appearance: none; background: transparent; pointer-events: none;">
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                    <span style="font-size: 0.65em; color: var(--text-light);">00:00</span>
+                    <span style="font-size: 0.65em; color: var(--text-light);">06:00</span>
+                    <span style="font-size: 0.65em; color: var(--text-light);">12:00</span>
+                    <span style="font-size: 0.65em; color: var(--text-light);">18:00</span>
+                    <span style="font-size: 0.65em; color: var(--text-light);">23:59</span>
+                  </div>
+                </div>
               </div>
 
               <!-- Resumo -->
@@ -16668,6 +16712,7 @@
     let trajetosRouteLayer = null;
     let trajetosMarkersLayer = null;
     let trajetosViagens = [];
+    let trajetosViagensOriginal = [];
     let trajetosViagemAtual = null;
     let trajetosPeriodoAtual = 7;
     let trajetosImeiAtual = null;
@@ -16677,6 +16722,7 @@
     async function trajetosInit() {
       if (!trajetosInitialized) {
         trajetosInitDatas();
+        trajetosAtualizarSlider();
         await trajetosCarregarVeiculos();
         setTimeout(trajetosInitMap, 200);
         trajetosInitialized = true;
@@ -16704,11 +16750,8 @@
 
     // Inicializar Datas
     function trajetosInitDatas() {
-      const hoje = new Date();
-      const inicio = new Date(hoje.getTime() - (trajetosPeriodoAtual * 24 * 60 * 60 * 1000));
-
-      document.getElementById('trajetos-data-fim').value = hoje.toISOString().split('T')[0];
-      document.getElementById('trajetos-data-inicio').value = inicio.toISOString().split('T')[0];
+      const hoje = new Date().toISOString().split('T')[0];
+      document.getElementById('trajetos-data').value = hoje;
     }
 
     // Carregar Veículos
@@ -16733,11 +16776,79 @@
       }
     }
 
+    // Converter minutos para HH:MM
+    function trajetosMinToTime(min) {
+      const h = Math.floor(min / 60);
+      const m = min % 60;
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    }
+
+    // Atualizar Slider de Horário
+    function trajetosAtualizarSlider() {
+      const sliderInicio = document.getElementById('trajetos-hora-inicio');
+      const sliderFim = document.getElementById('trajetos-hora-fim');
+      const labelInicio = document.getElementById('trajetos-hora-inicio-label');
+      const labelFim = document.getElementById('trajetos-hora-fim-label');
+      const labelDuracao = document.getElementById('trajetos-duracao-label');
+      const rangeEl = document.getElementById('trajetos-slider-range');
+
+      if (!sliderInicio || !sliderFim) return;
+
+      let inicio = parseInt(sliderInicio.value);
+      let fim = parseInt(sliderFim.value);
+
+      // Garantir que início não ultrapasse fim
+      if (inicio > fim) {
+        sliderInicio.value = fim;
+        inicio = fim;
+      }
+
+      // Atualizar labels
+      if (labelInicio) labelInicio.textContent = trajetosMinToTime(inicio);
+      if (labelFim) labelFim.textContent = trajetosMinToTime(fim);
+
+      // Calcular duração
+      if (labelDuracao) {
+        const durMin = fim - inicio;
+        const durH = Math.floor(durMin / 60);
+        const durM = durMin % 60;
+        labelDuracao.textContent = `${durH}h ${durM.toString().padStart(2, '0')}min`;
+      }
+
+      // Atualizar barra colorida
+      if (rangeEl) {
+        const percent1 = (inicio / 1439) * 100;
+        const percent2 = (fim / 1439) * 100;
+        rangeEl.style.left = percent1 + '%';
+        rangeEl.style.width = (percent2 - percent1) + '%';
+      }
+
+      // Aplicar filtro se tiver viagens carregadas
+      if (trajetosViagensOriginal.length > 0) {
+        trajetosAplicarFiltroHorario();
+      }
+    }
+
+    // Aplicar filtro de horário nas viagens
+    function trajetosAplicarFiltroHorario() {
+      const filtroInicioMin = parseInt(document.getElementById('trajetos-hora-inicio').value);
+      const filtroFimMin = parseInt(document.getElementById('trajetos-hora-fim').value);
+
+      trajetosViagens = trajetosViagensOriginal.filter(v => {
+        const viagemDate = new Date(v.inicio);
+        const viagemMinutos = viagemDate.getHours() * 60 + viagemDate.getMinutes();
+        return viagemMinutos >= filtroInicioMin && viagemMinutos <= filtroFimMin;
+      });
+
+      trajetosRenderizarViagens();
+      trajetosAtualizarResumo();
+    }
+
     // Selecionar Período
     function trajetosSelecionarPeriodo(dias) {
       trajetosPeriodoAtual = dias;
 
-      document.querySelectorAll('.trajetos-filtro-btn').forEach(btn => {
+      document.querySelectorAll('.trajetos-periodo-btn').forEach(btn => {
         const btnDias = parseInt(btn.getAttribute('data-dias'));
         if (btnDias === dias) {
           btn.style.background = 'var(--primary)';
@@ -16750,11 +16861,14 @@
         }
       });
 
-      const hoje = new Date();
-      const inicio = new Date(hoje.getTime() - (dias * 24 * 60 * 60 * 1000));
+      // Atualizar data para hoje
+      const hoje = new Date().toISOString().split('T')[0];
+      document.getElementById('trajetos-data').value = hoje;
 
-      document.getElementById('trajetos-data-fim').value = hoje.toISOString().split('T')[0];
-      document.getElementById('trajetos-data-inicio').value = inicio.toISOString().split('T')[0];
+      // Buscar automaticamente se tiver veículo selecionado
+      if (trajetosImeiAtual) {
+        trajetosBuscarViagens();
+      }
     }
 
     // On Veículo Change
@@ -16766,15 +16880,6 @@
       }
     }
 
-    // On Data Change
-    function trajetosOnDataChange() {
-      document.querySelectorAll('.trajetos-filtro-btn').forEach(btn => {
-        btn.style.background = 'var(--bg)';
-        btn.style.color = 'var(--text-light)';
-        btn.style.borderColor = 'var(--border)';
-      });
-    }
-
     // Buscar Viagens
     async function trajetosBuscarViagens() {
       const imei = document.getElementById('trajetos-veiculo-select').value;
@@ -16784,18 +16889,23 @@
       }
 
       trajetosImeiAtual = imei;
-      const dataInicio = document.getElementById('trajetos-data-inicio').value;
-      const dataFim = document.getElementById('trajetos-data-fim').value;
+      const dataSelecionada = document.getElementById('trajetos-data').value;
+
+      // Calcular período baseado no botão selecionado
+      const dataFim = new Date(dataSelecionada + 'T23:59:59');
+      const dataInicio = new Date(dataFim.getTime() - (trajetosPeriodoAtual * 24 * 60 * 60 * 1000));
+      dataInicio.setHours(0, 0, 0, 0);
 
       const lista = document.getElementById('trajetos-viagens-lista');
       lista.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center; padding: 60px; color: var(--text-light);"><div style="width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px;"></div>Buscando viagens...</div>';
 
       try {
-        const inicio = new Date(dataInicio + 'T00:00:00');
-        const fim = new Date(dataFim + 'T23:59:59');
+        console.log('[Trajetos] Buscando viagens:', { imei, dataInicio: dataInicio.toISOString(), dataFim: dataFim.toISOString() });
 
-        const response = await authFetch(`${API_URL}/viagens/${imei}/historico?dataInicio=${inicio.toISOString()}&dataFim=${fim.toISOString()}&limite=100`);
+        const response = await authFetch(`${API_URL}/viagens/${imei}/historico?dataInicio=${dataInicio.toISOString()}&dataFim=${dataFim.toISOString()}&limite=100`);
         const data = await response.json();
+
+        console.log('[Trajetos] Resposta:', data);
 
         const viagensData = data.dados?.viagens || data.dados || [];
 
@@ -16806,13 +16916,16 @@
                 <circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/>
               </svg>
               <div style="font-weight: 500;">Nenhuma viagem encontrada</div>
-              <div style="font-size: 0.85em; opacity: 0.7;">Tente outro periodo</div>
+              <div style="font-size: 0.85em; opacity: 0.7;">Tente outro periodo ou verifique se o veiculo tem viagens</div>
             </div>
           `;
           document.getElementById('trajetos-resumo').style.display = 'none';
+          trajetosViagensOriginal = [];
+          trajetosViagens = [];
           return;
         }
 
+        trajetosViagensOriginal = viagensData;
         trajetosViagens = viagensData;
         trajetosRenderizarViagens();
         trajetosAtualizarResumo();
@@ -17058,10 +17171,10 @@
     window.trajetosInit = trajetosInit;
     window.trajetosSelecionarPeriodo = trajetosSelecionarPeriodo;
     window.trajetosOnVeiculoChange = trajetosOnVeiculoChange;
-    window.trajetosOnDataChange = trajetosOnDataChange;
     window.trajetosBuscarViagens = trajetosBuscarViagens;
     window.trajetosSelecionarViagem = trajetosSelecionarViagem;
     window.trajetosFocarEvento = trajetosFocarEvento;
+    window.trajetosAtualizarSlider = trajetosAtualizarSlider;
 
   </script>
 
