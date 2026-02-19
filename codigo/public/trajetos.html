@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trajetos - Rastreador</title>
+    <link rel="icon" type="image/png" sizes="48x48" href="/FAVICON_48x48.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-ant-path@1.3.0/dist/leaflet-ant-path.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --unifique-cyan: #3FCFD5;
+            --unifique-cyan-dark: #28B8BE;
+            --unifique-blue: #00A2FF;
+            --unifique-deep-blue: #212492;
+            --unifique-violet: #131E7D;
+            --primary: #3FCFD5;
+            --primary-dark: #28B8BE;
+            --accent: #00A2FF;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+            --bg: #0d1042;
+            --bg-light: #131E7D;
+            --bg-card: rgba(63, 207, 213, 0.08);
+            --text: #E8FCFD;
+            --text-light: #9EEEF2;
+            --border: rgba(63, 207, 213, 0.25);
+            --border-light: rgba(63, 207, 213, 0.15);
+            --card-shadow: 0 4px 20px rgba(33, 36, 146, 0.3);
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--unifique-violet) 0%, var(--unifique-deep-blue) 100%);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title svg {
+            width: 28px;
+            height: 28px;
+            color: var(--primary);
+        }
+
+        .header-title h1 {
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            color: var(--bg);
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-left: auto;
+        }
+
+        .veiculo-select {
+            padding: 10px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.95em;
+            min-width: 280px;
+            cursor: pointer;
+        }
+
+        .veiculo-select option {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        /* Layout Principal */
+        .main-container {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            height: calc(100vh - 70px);
+        }
+
+        /* Painel Lateral */
+        .sidebar {
+            background: var(--bg-light);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Filtros */
+        .filtros {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .filtros-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: var(--text-light);
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .filtros-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .filtro-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-light);
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filtro-btn:hover {
+            background: var(--border);
+        }
+
+        .filtro-btn.active {
+            background: var(--primary);
+            color: var(--bg);
+            border-color: var(--primary);
+        }
+
+        .filtro-data {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.9em;
+        }
+
+        .btn-buscar {
+            width: 100%;
+            padding: 10px;
+            background: var(--primary);
+            border: none;
+            border-radius: 8px;
+            color: var(--bg);
+            font-weight: 600;
+            font-size: 0.9em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-buscar:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Resumo */
+        .resumo {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .resumo-item {
+            background: var(--bg-card);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .resumo-valor {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .resumo-label {
+            font-size: 0.75em;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+
+        /* Lista de Viagens */
+        .viagens-lista {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .viagem-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .viagem-item:hover {
+            background: rgba(63, 207, 213, 0.15);
+            border-color: var(--primary);
+        }
+
+        .viagem-item.active {
+            background: rgba(63, 207, 213, 0.2);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(63, 207, 213, 0.3);
+        }
+
+        .viagem-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .viagem-data {
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .viagem-horario {
+            font-size: 0.85em;
+            color: var(--text-light);
+        }
+
+        .viagem-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .viagem-stat {
+            text-align: center;
+        }
+
+        .viagem-stat-valor {
+            font-size: 0.95em;
+            font-weight: 600;
+        }
+
+        .viagem-stat-label {
+            font-size: 0.7em;
+            color: var(--text-light);
+        }
+
+        .viagem-stat.excesso .viagem-stat-valor {
+            color: var(--danger);
+        }
+
+        /* Mapa */
+        .mapa-container {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg);
+        }
+
+        #map {
+            flex: 1;
+            min-height: 400px;
+        }
+
+        /* Detalhes da Viagem */
+        .viagem-detalhes {
+            background: var(--bg-light);
+            border-top: 1px solid var(--border);
+            padding: 20px;
+            display: none;
+        }
+
+        .viagem-detalhes.active {
+            display: block;
+        }
+
+        .detalhes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .detalhes-titulo {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .detalhes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .detalhe-card {
+            background: var(--bg-card);
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .detalhe-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: var(--text-light);
+            font-size: 0.8em;
+        }
+
+        .detalhe-card-valor {
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        .detalhe-card.success .detalhe-card-valor { color: var(--success); }
+        .detalhe-card.warning .detalhe-card-valor { color: var(--warning); }
+        .detalhe-card.danger .detalhe-card-valor { color: var(--danger); }
+        .detalhe-card.info .detalhe-card-valor { color: var(--info); }
+
+        /* Paradas e Excessos */
+        .eventos-container {
+            margin-top: 20px;
+        }
+
+        .eventos-titulo {
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .eventos-lista {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+
+        .evento-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            min-width: 200px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .evento-item:hover {
+            border-color: var(--primary);
+        }
+
+        .evento-item.parada {
+            border-left: 3px solid var(--warning);
+        }
+
+        .evento-item.excesso {
+            border-left: 3px solid var(--danger);
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+        }
+
+        .toast {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 20px;
+            margin-bottom: 10px;
+            box-shadow: var(--card-shadow);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            color: var(--text-light);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            color: var(--text-light);
+            text-align: center;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Popup styles */
+        .leaflet-popup-content-wrapper {
+            background: var(--bg-light);
+            color: var(--text);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .leaflet-popup-tip {
+            background: var(--bg-light);
+        }
+
+        /* Responsivo */
+        @media (max-width: 900px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                max-height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <a href="/admin-dashboard.html" class="back-btn">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Voltar
+        </a>
+
+        <div class="header-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            <h1>Trajetos</h1>
+        </div>
+
+        <div class="header-controls">
+            <select id="veiculo-select" class="veiculo-select" onchange="onVeiculoChange()">
+                <option value="">Selecione um veiculo...</option>
+            </select>
+        </div>
+    </header>
+
+    <!-- Layout Principal -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Filtros -->
+            <div class="filtros">
+                <div class="filtros-header">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                    </svg>
+                    Filtros
+                </div>
+
+                <div class="filtros-row">
+                    <button class="filtro-btn active" data-dias="7" onclick="selecionarPeriodo(7)">7 dias</button>
+                    <button class="filtro-btn" data-dias="15" onclick="selecionarPeriodo(15)">15 dias</button>
+                    <button class="filtro-btn" data-dias="30" onclick="selecionarPeriodo(30)">30 dias</button>
+                </div>
+
+                <div class="filtros-row">
+                    <input type="date" id="data-inicio" class="filtro-data" onchange="onDataChange()">
+                    <input type="date" id="data-fim" class="filtro-data" onchange="onDataChange()">
+                </div>
+
+                <button class="btn-buscar" onclick="buscarViagens()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    Buscar Trajetos
+                </button>
+            </div>
+
+            <!-- Resumo -->
+            <div class="resumo" id="resumo" style="display: none;">
+                <div class="resumo-item">
+                    <div class="resumo-valor" id="resumo-viagens">0</div>
+                    <div class="resumo-label">Viagens</div>
+                </div>
+                <div class="resumo-item">
+                    <div class="resumo-valor" id="resumo-km">0 km</div>
+                    <div class="resumo-label">Distancia</div>
+                </div>
+                <div class="resumo-item">
+                    <div class="resumo-valor" id="resumo-tempo">0h</div>
+                    <div class="resumo-label">Tempo</div>
+                </div>
+                <div class="resumo-item">
+                    <div class="resumo-valor" id="resumo-excessos" style="color: var(--danger);">0</div>
+                    <div class="resumo-label">Excessos</div>
+                </div>
+            </div>
+
+            <!-- Lista de Viagens -->
+            <div class="viagens-lista" id="viagens-lista">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                    </svg>
+                    <div style="font-weight: 500; margin-bottom: 8px;">Selecione um veiculo</div>
+                    <div style="font-size: 0.85em; opacity: 0.7;">Escolha um veiculo e periodo para ver os trajetos</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Mapa -->
+        <div class="mapa-container">
+            <div id="map"></div>
+
+            <!-- Detalhes da Viagem -->
+            <div class="viagem-detalhes" id="viagem-detalhes">
+                <div class="detalhes-header">
+                    <div class="detalhes-titulo" id="detalhes-titulo">Detalhes da Viagem</div>
+                </div>
+
+                <div class="detalhes-grid">
+                    <div class="detalhe-card info">
+                        <div class="detalhe-card-header">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            Duracao
+                        </div>
+                        <div class="detalhe-card-valor" id="detalhe-duracao">--</div>
+                    </div>
+
+                    <div class="detalhe-card success">
+                        <div class="detalhe-card-header">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5"/>
+                            </svg>
+                            Distancia
+                        </div>
+                        <div class="detalhe-card-valor" id="detalhe-distancia">--</div>
+                    </div>
+
+                    <div class="detalhe-card">
+                        <div class="detalhe-card-header">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2v20M2 12h20"/>
+                            </svg>
+                            Vel. Media
+                        </div>
+                        <div class="detalhe-card-valor" id="detalhe-vel-media">--</div>
+                    </div>
+
+                    <div class="detalhe-card warning">
+                        <div class="detalhe-card-header">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                            </svg>
+                            Vel. Maxima
+                        </div>
+                        <div class="detalhe-card-valor" id="detalhe-vel-max">--</div>
+                    </div>
+
+                    <div class="detalhe-card">
+                        <div class="detalhe-card-header">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/>
+                            </svg>
+                            Paradas
+                        </div>
+                        <div class="detalhe-card-valor" id="detalhe-paradas">--</div>
+                    </div>
+
+                    <div class="detalhe-card danger">
+                        <div class="detalhe-card-header">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            Excessos
+                        </div>
+                        <div class="detalhe-card-valor" id="detalhe-excessos">--</div>
+                    </div>
+                </div>
+
+                <!-- Eventos (Paradas e Excessos) -->
+                <div class="eventos-container" id="eventos-container" style="display: none;">
+                    <div class="eventos-titulo">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        Paradas e Eventos
+                    </div>
+                    <div class="eventos-lista" id="eventos-lista"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // Configuracao
+        const API_BASE = '/api';
+        let map = null;
+        let routeLayer = null;
+        let markersLayer = null;
+        let viagens = [];
+        let viagemAtual = null;
+        let periodoAtual = 7;
+        let imeiAtual = null;
+
+        // Inicializacao
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            carregarVeiculos();
+            initDatas();
+        });
+
+        // Auth Fetch
+        async function authFetch(url, options = {}) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+            options.headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`
+            };
+            const response = await fetch(url, options);
+            if (response.status === 401) {
+                localStorage.removeItem('token');
+                window.location.href = '/login.html';
+            }
+            return response;
+        }
+
+        // Inicializar Mapa
+        function initMap() {
+            map = L.map('map').setView([-26.9, -49.1], 12);
+
+            L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                attribution: '&copy; Google Maps'
+            }).addTo(map);
+
+            routeLayer = L.layerGroup().addTo(map);
+            markersLayer = L.layerGroup().addTo(map);
+        }
+
+        // Inicializar Datas
+        function initDatas() {
+            const hoje = new Date();
+            const inicio = new Date(hoje.getTime() - (periodoAtual * 24 * 60 * 60 * 1000));
+
+            document.getElementById('data-fim').value = hoje.toISOString().split('T')[0];
+            document.getElementById('data-inicio').value = inicio.toISOString().split('T')[0];
+        }
+
+        // Carregar Veiculos
+        async function carregarVeiculos() {
+            try {
+                const response = await authFetch(`${API_BASE}/dispositivos`);
+                const data = await response.json();
+
+                if (data.sucesso && data.dados) {
+                    const select = document.getElementById('veiculo-select');
+                    select.innerHTML = '<option value="">Selecione um veiculo...</option>';
+
+                    data.dados.forEach(d => {
+                        const option = document.createElement('option');
+                        option.value = d.imei;
+                        option.textContent = `${d.placa || d.imei} - ${d.modelo || d.tipo || 'Veiculo'}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar veiculos:', error);
+                toast('Erro ao carregar veiculos', 'error');
+            }
+        }
+
+        // Selecionar Periodo
+        function selecionarPeriodo(dias) {
+            periodoAtual = dias;
+
+            document.querySelectorAll('.filtro-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.dias) === dias);
+            });
+
+            const hoje = new Date();
+            const inicio = new Date(hoje.getTime() - (dias * 24 * 60 * 60 * 1000));
+
+            document.getElementById('data-fim').value = hoje.toISOString().split('T')[0];
+            document.getElementById('data-inicio').value = inicio.toISOString().split('T')[0];
+        }
+
+        // On Veiculo Change
+        function onVeiculoChange() {
+            const imei = document.getElementById('veiculo-select').value;
+            if (imei) {
+                imeiAtual = imei;
+                buscarViagens();
+            }
+        }
+
+        // On Data Change
+        function onDataChange() {
+            document.querySelectorAll('.filtro-btn').forEach(btn => btn.classList.remove('active'));
+        }
+
+        // Buscar Viagens
+        async function buscarViagens() {
+            const imei = document.getElementById('veiculo-select').value;
+            if (!imei) {
+                toast('Selecione um veiculo', 'warning');
+                return;
+            }
+
+            imeiAtual = imei;
+            const dataInicio = document.getElementById('data-inicio').value;
+            const dataFim = document.getElementById('data-fim').value;
+
+            const lista = document.getElementById('viagens-lista');
+            lista.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Buscando viagens...</div>';
+
+            try {
+                const inicio = new Date(dataInicio + 'T00:00:00');
+                const fim = new Date(dataFim + 'T23:59:59');
+
+                const response = await authFetch(`${API_BASE}/viagens/${imei}/historico?dataInicio=${inicio.toISOString()}&dataFim=${fim.toISOString()}&limite=100`);
+                const data = await response.json();
+
+                const viagensData = data.dados?.viagens || data.dados || [];
+
+                if (!data.sucesso || viagensData.length === 0) {
+                    lista.innerHTML = `
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/>
+                            </svg>
+                            <div style="font-weight: 500;">Nenhuma viagem encontrada</div>
+                            <div style="font-size: 0.85em; opacity: 0.7;">Tente outro periodo</div>
+                        </div>
+                    `;
+                    document.getElementById('resumo').style.display = 'none';
+                    return;
+                }
+
+                viagens = viagensData;
+                renderizarViagens();
+                atualizarResumo();
+
+            } catch (error) {
+                console.error('Erro ao buscar viagens:', error);
+                lista.innerHTML = `
+                    <div class="empty-state">
+                        <div style="color: var(--danger);">Erro ao buscar viagens</div>
+                    </div>
+                `;
+                toast('Erro ao buscar viagens', 'error');
+            }
+        }
+
+        // Renderizar Viagens
+        function renderizarViagens() {
+            const lista = document.getElementById('viagens-lista');
+
+            lista.innerHTML = viagens.map((v, idx) => {
+                const data = new Date(v.inicio).toLocaleDateString('pt-BR');
+                const horaInicio = new Date(v.inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const horaFim = v.fim ? new Date(v.fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                const distancia = (v.distancia_km || 0).toFixed(1);
+                const duracao = formatarDuracao(v.duracao_minutos || 0);
+                const velMax = v.velocidade_max || v.velocidade_maxima || 0;
+
+                return `
+                    <div class="viagem-item" data-idx="${idx}" onclick="selecionarViagem(${idx})">
+                        <div class="viagem-header">
+                            <div class="viagem-data">${data}</div>
+                            <div class="viagem-horario">${horaInicio} - ${horaFim}</div>
+                        </div>
+                        <div class="viagem-stats">
+                            <div class="viagem-stat">
+                                <div class="viagem-stat-valor">${distancia} km</div>
+                                <div class="viagem-stat-label">Distancia</div>
+                            </div>
+                            <div class="viagem-stat">
+                                <div class="viagem-stat-valor">${duracao}</div>
+                                <div class="viagem-stat-label">Duracao</div>
+                            </div>
+                            <div class="viagem-stat ${v.excessos_velocidade > 0 ? 'excesso' : ''}">
+                                <div class="viagem-stat-valor">${velMax} km/h</div>
+                                <div class="viagem-stat-label">Vel. Max</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Atualizar Resumo
+        function atualizarResumo() {
+            let kmTotal = 0, tempoTotal = 0, excessosTotal = 0;
+
+            viagens.forEach(v => {
+                kmTotal += v.distancia_km || 0;
+                tempoTotal += v.duracao_minutos || 0;
+                excessosTotal += v.excessos_velocidade || 0;
+            });
+
+            document.getElementById('resumo-viagens').textContent = viagens.length;
+            document.getElementById('resumo-km').textContent = kmTotal.toFixed(1) + ' km';
+            document.getElementById('resumo-tempo').textContent = formatarDuracao(tempoTotal);
+            document.getElementById('resumo-excessos').textContent = excessosTotal;
+            document.getElementById('resumo').style.display = 'grid';
+        }
+
+        // Selecionar Viagem
+        async function selecionarViagem(idx) {
+            const viagem = viagens[idx];
+            viagemAtual = viagem;
+
+            // Marcar item ativo
+            document.querySelectorAll('.viagem-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.viagem-item[data-idx="${idx}"]`)?.classList.add('active');
+
+            // Atualizar detalhes
+            atualizarDetalhes(viagem);
+
+            // Carregar rota no mapa
+            await carregarRota(viagem);
+        }
+
+        // Atualizar Detalhes
+        function atualizarDetalhes(viagem) {
+            const data = new Date(viagem.inicio).toLocaleDateString('pt-BR');
+            const horaInicio = new Date(viagem.inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const horaFim = viagem.fim ? new Date(viagem.fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+
+            document.getElementById('detalhes-titulo').textContent = `Viagem de ${data} (${horaInicio} - ${horaFim})`;
+            document.getElementById('detalhe-duracao').textContent = formatarDuracao(viagem.duracao_minutos || 0);
+            document.getElementById('detalhe-distancia').textContent = (viagem.distancia_km || 0).toFixed(1) + ' km';
+            document.getElementById('detalhe-vel-media').textContent = (viagem.velocidade_media || 0).toFixed(0) + ' km/h';
+            document.getElementById('detalhe-vel-max').textContent = (viagem.velocidade_max || viagem.velocidade_maxima || 0) + ' km/h';
+            document.getElementById('detalhe-paradas').textContent = viagem.paradas || 0;
+            document.getElementById('detalhe-excessos').textContent = viagem.excessos_velocidade || 0;
+
+            document.getElementById('viagem-detalhes').classList.add('active');
+        }
+
+        // Carregar Rota
+        async function carregarRota(viagem) {
+            routeLayer.clearLayers();
+            markersLayer.clearLayers();
+
+            try {
+                const response = await authFetch(`${API_BASE}/viagens/${imeiAtual}/${viagem.id}/rota`);
+                const data = await response.json();
+
+                if (!data.sucesso || !data.dados || data.dados.length === 0) {
+                    toast('Sem dados de rota para esta viagem', 'warning');
+                    return;
+                }
+
+                const pontos = data.dados;
+                const coords = pontos.map(p => [p.latitude, p.longitude]);
+
+                // Rota com animacao
+                const antPath = L.polyline.antPath(coords, {
+                    color: '#1a1a1a',
+                    weight: 5,
+                    opacity: 0.9,
+                    pulseColor: '#ffffff',
+                    delay: 1500,
+                    dashArray: [10, 20]
+                });
+                routeLayer.addLayer(antPath);
+
+                // Marcador de inicio
+                const startMarker = L.marker(coords[0], {
+                    icon: L.divIcon({
+                        className: 'start-marker',
+                        html: `<div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+                            <svg width="32" height="32" viewBox="0 0 32 32">
+                                <circle cx="16" cy="16" r="15" fill="#1a1a1a" stroke="#fff" stroke-width="2"/>
+                                <path d="M12 9 L12 23 L24 16 Z" fill="#fff"/>
+                            </svg>
+                        </div>`,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                    })
+                });
+                markersLayer.addLayer(startMarker);
+
+                // Marcador de fim
+                const endMarker = L.marker(coords[coords.length - 1], {
+                    icon: L.divIcon({
+                        className: 'end-marker',
+                        html: `<div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+                            <svg width="32" height="32" viewBox="0 0 32 32">
+                                <circle cx="16" cy="16" r="15" fill="#1a1a1a" stroke="#fff" stroke-width="2"/>
+                                <rect x="10" y="10" width="12" height="12" fill="#fff"/>
+                            </svg>
+                        </div>`,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                    })
+                });
+                markersLayer.addLayer(endMarker);
+
+                // Ajustar zoom
+                map.fitBounds(L.latLngBounds(coords), { padding: [50, 50] });
+
+                // Carregar paradas
+                await carregarParadas(viagem);
+
+            } catch (error) {
+                console.error('Erro ao carregar rota:', error);
+                toast('Erro ao carregar rota', 'error');
+            }
+        }
+
+        // Carregar Paradas
+        async function carregarParadas(viagem) {
+            try {
+                const response = await authFetch(`${API_BASE}/viagens/${imeiAtual}/${viagem.id}/paradas`);
+                const data = await response.json();
+
+                if (data.sucesso && data.dados && data.dados.length > 0) {
+                    const eventosLista = document.getElementById('eventos-lista');
+                    eventosLista.innerHTML = '';
+
+                    data.dados.forEach((parada, idx) => {
+                        // Marcador no mapa
+                        const marker = L.marker([parada.latitude, parada.longitude], {
+                            icon: L.divIcon({
+                                className: 'parada-marker',
+                                html: `<div style="filter: drop-shadow(0 2px 6px rgba(0,0,0,0.35));">
+                                    <svg width="36" height="36" viewBox="0 0 36 36">
+                                        <circle cx="18" cy="18" r="16" fill="#DC2626" stroke="#fff" stroke-width="3"/>
+                                        <text x="18" y="23" text-anchor="middle" fill="white" font-size="14" font-weight="bold">${idx + 1}</text>
+                                    </svg>
+                                </div>`,
+                                iconSize: [36, 36],
+                                iconAnchor: [18, 18]
+                            })
+                        });
+
+                        const duracao = formatarDuracao(parada.duracao_minutos || 0);
+                        marker.bindPopup(`
+                            <div style="min-width: 200px;">
+                                <strong>Parada ${idx + 1}</strong><br>
+                                <small>Duracao: ${duracao}</small>
+                            </div>
+                        `);
+                        markersLayer.addLayer(marker);
+
+                        // Item na lista
+                        eventosLista.innerHTML += `
+                            <div class="evento-item parada" onclick="focarEvento(${parada.latitude}, ${parada.longitude})">
+                                <div style="font-weight: 600;">Parada ${idx + 1}</div>
+                                <div style="font-size: 0.85em; color: var(--text-light);">${duracao}</div>
+                            </div>
+                        `;
+                    });
+
+                    document.getElementById('eventos-container').style.display = 'block';
+                } else {
+                    document.getElementById('eventos-container').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar paradas:', error);
+            }
+        }
+
+        // Focar Evento
+        function focarEvento(lat, lng) {
+            map.setView([lat, lng], 17);
+        }
+
+        // Formatar Duracao
+        function formatarDuracao(minutos) {
+            if (minutos < 60) {
+                return Math.round(minutos) + ' min';
+            }
+            const horas = Math.floor(minutos / 60);
+            const mins = Math.round(minutos % 60);
+            return `${horas}h ${mins}min`;
+        }
+
+        // Toast
+        function toast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.style.borderLeftColor = type === 'error' ? 'var(--danger)' : type === 'warning' ? 'var(--warning)' : 'var(--primary)';
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
