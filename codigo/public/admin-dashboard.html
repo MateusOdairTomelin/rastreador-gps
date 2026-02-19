@@ -3004,6 +3004,291 @@
     }
 
     /* ====== CENTRAL DE RELATÓRIOS ====== */
+
+    /* Tabs de Relatórios */
+    .relatorios-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0;
+    }
+
+    .rel-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-light);
+      transition: all 0.2s;
+    }
+
+    .rel-tab:hover {
+      color: var(--primary);
+      background: var(--bg-hover);
+    }
+
+    .rel-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: transparent;
+    }
+
+    .rel-tab svg {
+      opacity: 0.7;
+    }
+
+    .rel-tab.active svg {
+      opacity: 1;
+    }
+
+    .rel-tab-content {
+      display: none;
+    }
+
+    .rel-tab-content.active {
+      display: block;
+    }
+
+    /* Seção de Trajetos */
+    .trajetos-filtros {
+      margin-bottom: 20px;
+    }
+
+    .trajetos-resumo {
+      margin-bottom: 20px;
+    }
+
+    .resumo-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+    }
+
+    .resumo-item {
+      text-align: center;
+      padding: 16px;
+      background: var(--bg);
+      border-radius: 10px;
+    }
+
+    .resumo-valor {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .resumo-label {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-top: 4px;
+      text-transform: uppercase;
+    }
+
+    .trajetos-lista {
+      margin-bottom: 20px;
+    }
+
+    .trajetos-table-container {
+      overflow-x: auto;
+    }
+
+    .trajetos-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .trajetos-table th {
+      background: var(--bg);
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--text-light);
+      border-bottom: 2px solid var(--border);
+    }
+
+    .trajetos-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .trajetos-table tr:hover {
+      background: var(--bg-hover);
+    }
+
+    .trajeto-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .trajeto-actions button {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-white);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+
+    .trajeto-actions button:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* Modal de Trajeto */
+    .trajeto-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 10000;
+    }
+
+    .trajeto-modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .trajeto-modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+    }
+
+    .trajeto-modal-content {
+      position: relative;
+      background: var(--bg-white);
+      border-radius: 16px;
+      width: 95%;
+      max-width: 1200px;
+      height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+    }
+
+    .trajeto-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .trajeto-modal-header h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .trajeto-modal-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .trajeto-modal-info {
+      width: 320px;
+      padding: 20px;
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .trajeto-modal-mapa {
+      flex: 1;
+      position: relative;
+    }
+
+    .trajeto-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .trajeto-info-card {
+      background: var(--bg-white);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .trajeto-info-card h4 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: var(--text-light);
+      text-transform: uppercase;
+    }
+
+    .trajeto-info-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .trajeto-info-item:last-child {
+      border-bottom: none;
+    }
+
+    .trajeto-info-label {
+      color: var(--text-light);
+      font-size: 13px;
+    }
+
+    .trajeto-info-value {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+      .resumo-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .trajeto-modal-body {
+        flex-direction: column;
+      }
+
+      .trajeto-modal-info {
+        width: 100%;
+        height: 200px;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .relatorios-tabs {
+        overflow-x: auto;
+      }
+
+      .rel-tab {
+        padding: 10px 16px;
+        white-space: nowrap;
+      }
+    }
+
     .relatorios-kpis {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -5793,6 +6078,20 @@
 
         <!-- RELATÓRIOS SECTION - Central de Relatórios -->
         <section class="section" id="section-relatorios">
+          <!-- Tabs de navegação -->
+          <div class="relatorios-tabs">
+            <button class="rel-tab active" data-tab="frota" onclick="switchRelatorioTab('frota')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8c-.1.2-.1.5-.1.7v4.6c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+              Frota
+            </button>
+            <button class="rel-tab" data-tab="trajetos" onclick="switchRelatorioTab('trajetos')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/><circle cx="6" cy="6" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="18" cy="18" r="2" fill="currentColor"/></svg>
+              Trajetos
+            </button>
+          </div>
+
+          <!-- TAB: FROTA -->
+          <div class="rel-tab-content active" id="tab-frota">
           <!-- Dashboard KPIs -->
           <div class="relatorios-kpis">
             <div class="kpi-card kpi-primary">
@@ -5952,9 +6251,143 @@
                 <!-- Conteúdo carregado dinamicamente -->
               </div>
               <div class="modal-footer-relatorio">
-                <button class="btn btn-success" onclick="exportarRelatorioVeiculo('csv')">📊 Exportar CSV</button>
-                <button class="btn btn-danger" onclick="exportarRelatorioVeiculo('pdf')">📄 Exportar PDF</button>
+                <button class="btn btn-success" onclick="exportarRelatorioVeiculo('csv')">Exportar CSV</button>
+                <button class="btn btn-danger" onclick="exportarRelatorioVeiculo('pdf')">Exportar PDF</button>
                 <button class="btn btn-secondary" onclick="fecharDetalheRelatorio()">Fechar</button>
+              </div>
+            </div>
+          </div>
+          </div><!-- Fim tab-frota -->
+
+          <!-- TAB: TRAJETOS -->
+          <div class="rel-tab-content" id="tab-trajetos">
+            <!-- Filtros de Trajetos -->
+            <div class="trajetos-filtros card">
+              <div class="filtros-header">
+                <h3 class="section-title-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                  Filtros de Trajeto
+                </h3>
+              </div>
+              <div class="filtros-grid">
+                <div class="filtro-item">
+                  <label>Veículo</label>
+                  <select id="traj-veiculo" onchange="carregarTrajetosVeiculo()">
+                    <option value="">Selecione um veículo</option>
+                  </select>
+                </div>
+                <div class="filtro-item">
+                  <label>Período</label>
+                  <select id="traj-periodo" onchange="toggleTrajDataPersonalizada()">
+                    <option value="hoje">Hoje</option>
+                    <option value="ontem">Ontem</option>
+                    <option value="7dias" selected>Últimos 7 dias</option>
+                    <option value="30dias">Últimos 30 dias</option>
+                    <option value="personalizado">Personalizado</option>
+                  </select>
+                </div>
+                <div class="filtro-item" id="traj-datas-container" style="display:none;">
+                  <label>De - Até</label>
+                  <div style="display:flex; gap:8px;">
+                    <input type="date" id="traj-data-inicio">
+                    <input type="date" id="traj-data-fim">
+                  </div>
+                </div>
+                <div class="filtro-item filtro-acoes">
+                  <label>&nbsp;</label>
+                  <button class="btn btn-success" onclick="carregarTrajetosVeiculo()" style="font-weight:bold;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    Buscar Trajetos
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resumo do Período -->
+            <div class="trajetos-resumo card" id="trajetos-resumo" style="display:none;">
+              <div class="resumo-grid">
+                <div class="resumo-item">
+                  <div class="resumo-valor" id="traj-total-viagens">0</div>
+                  <div class="resumo-label">Viagens</div>
+                </div>
+                <div class="resumo-item">
+                  <div class="resumo-valor" id="traj-km-total">0 km</div>
+                  <div class="resumo-label">Distância Total</div>
+                </div>
+                <div class="resumo-item">
+                  <div class="resumo-valor" id="traj-tempo-movimento">0h</div>
+                  <div class="resumo-label">Em Movimento</div>
+                </div>
+                <div class="resumo-item">
+                  <div class="resumo-valor" id="traj-tempo-parado">0h</div>
+                  <div class="resumo-label">Parado</div>
+                </div>
+                <div class="resumo-item">
+                  <div class="resumo-valor" id="traj-excessos">0</div>
+                  <div class="resumo-label">Excessos Vel.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lista de Viagens -->
+            <div class="trajetos-lista card">
+              <div class="lista-header">
+                <h3 class="section-title-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                  Viagens do Período
+                </h3>
+              </div>
+              <div class="trajetos-table-container">
+                <table class="trajetos-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Início</th>
+                      <th>Fim</th>
+                      <th>Duração</th>
+                      <th>Distância</th>
+                      <th>Vel. Máx</th>
+                      <th>Paradas</th>
+                      <th>Excessos</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="trajetos-tbody">
+                    <tr>
+                      <td colspan="9" style="text-align:center; padding:60px; color:var(--text-light);">
+                        <div style="font-size:48px; margin-bottom:12px;">🗺️</div>
+                        <div style="font-size:16px; font-weight:500;">Selecione um veículo para ver os trajetos</div>
+                        <div style="font-size:13px; margin-top:8px; opacity:0.7;">Use os filtros acima para buscar viagens</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div><!-- Fim tab-trajetos -->
+
+          <!-- Modal de Trajeto/Mapa -->
+          <div class="trajeto-modal" id="trajeto-modal">
+            <div class="trajeto-modal-overlay" onclick="fecharTrajetoModal()"></div>
+            <div class="trajeto-modal-content">
+              <div class="trajeto-modal-header">
+                <h3 id="trajeto-modal-titulo">Trajeto da Viagem</h3>
+                <button onclick="fecharTrajetoModal()" class="btn-fechar">&times;</button>
+              </div>
+              <div class="trajeto-modal-body">
+                <div class="trajeto-modal-info" id="trajeto-modal-info">
+                  <!-- Info da viagem -->
+                </div>
+                <div class="trajeto-modal-mapa" id="trajeto-modal-mapa">
+                  <!-- Mapa Leaflet -->
+                </div>
+              </div>
+              <div class="trajeto-modal-footer">
+                <button class="btn btn-primary" onclick="exportarTrajetoPDF()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  Exportar PDF
+                </button>
+                <button class="btn btn-secondary" onclick="fecharTrajetoModal()">Fechar</button>
               </div>
             </div>
           </div>
@@ -13749,6 +14182,378 @@
     });
 
     // ============ FIM AUTOCOMPLETE ============
+
+    // ============ TRAJETOS ============
+
+    let trajetoMap = null;
+    let trajetoViagens = [];
+
+    // Alternar entre tabs de relatórios
+    function switchRelatorioTab(tabName) {
+      // Atualizar tabs
+      document.querySelectorAll('.rel-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabName);
+      });
+
+      // Atualizar conteúdo
+      document.querySelectorAll('.rel-tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `tab-${tabName}`);
+      });
+
+      // Se for trajetos, carregar veículos no select
+      if (tabName === 'trajetos') {
+        carregarVeiculosSelectTrajeto();
+      }
+    }
+
+    // Carregar veículos no select de trajetos
+    async function carregarVeiculosSelectTrajeto() {
+      const select = document.getElementById('traj-veiculo');
+      if (!select || select.options.length > 1) return; // Já carregado
+
+      try {
+        const response = await authFetch(`${API_URL}/dispositivos`);
+        const data = await response.json();
+
+        if (data.sucesso && data.dados) {
+          data.dados.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.imei;
+            opt.textContent = `${d.placa || 'Sem placa'} - ${d.veiculo || d.imei}`;
+            select.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        console.error('Erro ao carregar veículos:', e);
+      }
+    }
+
+    // Toggle data personalizada em trajetos
+    function toggleTrajDataPersonalizada() {
+      const periodo = document.getElementById('traj-periodo').value;
+      const container = document.getElementById('traj-datas-container');
+      container.style.display = periodo === 'personalizado' ? 'block' : 'none';
+    }
+
+    // Calcular período de trajetos
+    function calcularPeriodoTrajetos() {
+      const periodo = document.getElementById('traj-periodo').value;
+      const agora = new Date();
+      let inicio, fim;
+
+      switch (periodo) {
+        case 'hoje':
+          inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+          fim = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59);
+          break;
+        case 'ontem':
+          inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 1);
+          fim = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 1, 23, 59, 59);
+          break;
+        case '7dias':
+          inicio = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+          fim = agora;
+          break;
+        case '30dias':
+          inicio = new Date(agora.getTime() - 30 * 24 * 60 * 60 * 1000);
+          fim = agora;
+          break;
+        case 'personalizado':
+          const dataInicio = document.getElementById('traj-data-inicio').value;
+          const dataFim = document.getElementById('traj-data-fim').value;
+          inicio = dataInicio ? new Date(dataInicio) : new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+          fim = dataFim ? new Date(dataFim + 'T23:59:59') : agora;
+          break;
+        default:
+          inicio = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+          fim = agora;
+      }
+
+      return { inicio, fim };
+    }
+
+    // Carregar trajetos do veículo
+    async function carregarTrajetosVeiculo() {
+      const imei = document.getElementById('traj-veiculo').value;
+      if (!imei) {
+        toastInfo('Selecione um veículo');
+        return;
+      }
+
+      const tbody = document.getElementById('trajetos-tbody');
+      tbody.innerHTML = `
+        <tr><td colspan="9" style="text-align:center;padding:40px;">
+          <div style="font-size:32px;">⏳</div>
+          <div>Buscando viagens...</div>
+        </td></tr>
+      `;
+
+      try {
+        const { inicio, fim } = calcularPeriodoTrajetos();
+        const response = await authFetch(`${API_URL}/viagens/${imei}?dataInicio=${inicio.toISOString()}&dataFim=${fim.toISOString()}`);
+        const data = await response.json();
+
+        if (!data.sucesso || !data.dados || data.dados.length === 0) {
+          tbody.innerHTML = `
+            <tr><td colspan="9" style="text-align:center;padding:60px;color:var(--text-light);">
+              <div style="font-size:48px;margin-bottom:12px;">🚫</div>
+              <div style="font-size:16px;font-weight:500;">Nenhuma viagem encontrada</div>
+              <div style="font-size:13px;margin-top:8px;opacity:0.7;">Tente outro período ou verifique o veículo</div>
+            </td></tr>
+          `;
+          document.getElementById('trajetos-resumo').style.display = 'none';
+          return;
+        }
+
+        trajetoViagens = data.dados;
+
+        // Calcular resumo
+        let kmTotal = 0, tempoMov = 0, tempoPar = 0, excessos = 0;
+        trajetoViagens.forEach(v => {
+          kmTotal += v.distancia_km || 0;
+          tempoMov += v.duracao_minutos || 0;
+          tempoPar += v.tempo_parado_minutos || 0;
+          excessos += v.excessos_velocidade || 0;
+        });
+
+        document.getElementById('traj-total-viagens').textContent = trajetoViagens.length;
+        document.getElementById('traj-km-total').textContent = kmTotal.toFixed(1) + ' km';
+        document.getElementById('traj-tempo-movimento').textContent = formatarTempoHoras(tempoMov);
+        document.getElementById('traj-tempo-parado').textContent = formatarTempoHoras(tempoPar);
+        document.getElementById('traj-excessos').textContent = excessos;
+        document.getElementById('trajetos-resumo').style.display = 'block';
+
+        // Renderizar tabela
+        tbody.innerHTML = trajetoViagens.map((v, idx) => {
+          const dataViagem = new Date(v.inicio);
+          const dataStr = dataViagem.toLocaleDateString('pt-BR');
+          const horaInicio = new Date(v.inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          const horaFim = v.fim ? new Date(v.fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+          const duracao = formatarTempoMinutos(v.duracao_minutos || 0);
+          const distancia = (v.distancia_km || 0).toFixed(1) + ' km';
+          const velMax = (v.velocidade_maxima || 0) + ' km/h';
+          const paradas = v.paradas || 0;
+          const exc = v.excessos_velocidade || 0;
+
+          return `
+            <tr>
+              <td><strong>${dataStr}</strong></td>
+              <td>${horaInicio}</td>
+              <td>${horaFim}</td>
+              <td>${duracao}</td>
+              <td>${distancia}</td>
+              <td>${velMax}</td>
+              <td>${paradas}</td>
+              <td>${exc > 0 ? `<span style="color:#EF4444;font-weight:600;">${exc}</span>` : '0'}</td>
+              <td class="trajeto-actions">
+                <button onclick="abrirTrajetoModal('${v.id}', ${idx})">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  Ver
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+      } catch (e) {
+        console.error('Erro ao carregar trajetos:', e);
+        tbody.innerHTML = `
+          <tr><td colspan="9" style="text-align:center;padding:40px;color:#EF4444;">
+            Erro ao carregar viagens: ${e.message}
+          </td></tr>
+        `;
+      }
+    }
+
+    function formatarTempoHoras(minutos) {
+      const h = Math.floor(minutos / 60);
+      const m = Math.round(minutos % 60);
+      return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    }
+
+    function formatarTempoMinutos(minutos) {
+      const h = Math.floor(minutos / 60);
+      const m = Math.round(minutos % 60);
+      return h > 0 ? `${h}h ${m}min` : `${m} min`;
+    }
+
+    // Abrir modal de trajeto
+    async function abrirTrajetoModal(viagemId, idx) {
+      const viagem = trajetoViagens[idx];
+      if (!viagem) return;
+
+      const modal = document.getElementById('trajeto-modal');
+      modal.classList.add('active');
+
+      // Atualizar título
+      const dataViagem = new Date(viagem.inicio).toLocaleDateString('pt-BR');
+      document.getElementById('trajeto-modal-titulo').textContent = `Trajeto - ${dataViagem}`;
+
+      // Renderizar info
+      const horaInicio = new Date(viagem.inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const horaFim = viagem.fim ? new Date(viagem.fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+
+      document.getElementById('trajeto-modal-info').innerHTML = `
+        <div class="trajeto-info-card">
+          <h4>Informações da Viagem</h4>
+          <div class="trajeto-info-item">
+            <span class="trajeto-info-label">Data</span>
+            <span class="trajeto-info-value">${dataViagem}</span>
+          </div>
+          <div class="trajeto-info-item">
+            <span class="trajeto-info-label">Início</span>
+            <span class="trajeto-info-value">${horaInicio}</span>
+          </div>
+          <div class="trajeto-info-item">
+            <span class="trajeto-info-label">Fim</span>
+            <span class="trajeto-info-value">${horaFim}</span>
+          </div>
+          <div class="trajeto-info-item">
+            <span class="trajeto-info-label">Duração</span>
+            <span class="trajeto-info-value">${formatarTempoMinutos(viagem.duracao_minutos || 0)}</span>
+          </div>
+          <div class="trajeto-info-item">
+            <span class="trajeto-info-label">Distância</span>
+            <span class="trajeto-info-value">${(viagem.distancia_km || 0).toFixed(1)} km</span>
+          </div>
+        </div>
+        <div class="trajeto-info-card">
+          <h4>Estatísticas</h4>
+          <div class="trajeto-info-item">
+            <span class="trajeto-info-label">Vel. Máxima</span>
+            <span class="trajeto-info-value">${viagem.velocidade_maxima || 0} km/h</span>
+          </div>
+          <div class="trajeto-info-item">
+            <span class="trajeto-info-label">Vel. Média</span>
+            <span class="trajeto-info-value">${viagem.velocidade_media || 0} km/h</span>
+          </div>
+          <div class="trajeto-info-item">
+            <span class="trajeto-info-label">Paradas</span>
+            <span class="trajeto-info-value">${viagem.paradas || 0}</span>
+          </div>
+          <div class="trajeto-info-item">
+            <span class="trajeto-info-label">Excessos</span>
+            <span class="trajeto-info-value" style="color: ${viagem.excessos_velocidade > 0 ? '#EF4444' : 'inherit'};">${viagem.excessos_velocidade || 0}</span>
+          </div>
+        </div>
+      `;
+
+      // Inicializar mapa
+      setTimeout(() => {
+        carregarMapaTrajeto(viagem);
+      }, 100);
+    }
+
+    // Carregar mapa do trajeto
+    async function carregarMapaTrajeto(viagem) {
+      const container = document.getElementById('trajeto-modal-mapa');
+
+      // Limpar mapa anterior
+      if (trajetoMap) {
+        trajetoMap.remove();
+        trajetoMap = null;
+      }
+
+      // Criar mapa
+      trajetoMap = L.map(container).setView([-26.9, -49.1], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(trajetoMap);
+
+      // Buscar pontos da viagem
+      try {
+        const imei = document.getElementById('traj-veiculo').value;
+        const response = await authFetch(`${API_URL}/viagens/${imei}/${viagem.id}/pontos`);
+        const data = await response.json();
+
+        if (!data.sucesso || !data.dados || data.dados.length === 0) {
+          container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-light);">Sem pontos para esta viagem</div>';
+          return;
+        }
+
+        const pontos = data.dados;
+        const coords = pontos.map(p => [p.latitude, p.longitude]);
+
+        // Desenhar rota com antPath
+        if (typeof L.polyline.antPath === 'function') {
+          L.polyline.antPath(coords, {
+            color: '#333333',
+            weight: 5,
+            opacity: 0.9,
+            delay: 1200,
+            dashArray: [10, 20],
+            pulseColor: '#666666'
+          }).addTo(trajetoMap);
+        } else {
+          L.polyline(coords, { color: '#333', weight: 4 }).addTo(trajetoMap);
+        }
+
+        // Marcador início
+        L.marker(coords[0], {
+          icon: L.divIcon({
+            className: 'start-marker',
+            html: `<div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+              <svg width="32" height="32" viewBox="0 0 32 32">
+                <circle cx="16" cy="16" r="15" fill="#1a1a1a" stroke="#fff" stroke-width="2"/>
+                <path d="M12 9 L12 23 L24 16 Z" fill="#fff"/>
+              </svg>
+            </div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+          })
+        }).addTo(trajetoMap).bindPopup(`<b>Início</b><br>${new Date(viagem.inicio).toLocaleTimeString('pt-BR')}`);
+
+        // Marcador fim
+        L.marker(coords[coords.length - 1], {
+          icon: L.divIcon({
+            className: 'end-marker',
+            html: `<div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+              <svg width="32" height="32" viewBox="0 0 32 32">
+                <circle cx="16" cy="16" r="15" fill="#1a1a1a" stroke="#fff" stroke-width="2"/>
+                <g transform="translate(7, 7)">
+                  <rect width="18" height="18" rx="2" fill="#fff"/>
+                  <rect x="0" y="0" width="4.5" height="4.5" fill="#1a1a1a"/>
+                  <rect x="9" y="0" width="4.5" height="4.5" fill="#1a1a1a"/>
+                  <rect x="4.5" y="4.5" width="4.5" height="4.5" fill="#1a1a1a"/>
+                  <rect x="13.5" y="4.5" width="4.5" height="4.5" fill="#1a1a1a"/>
+                  <rect x="0" y="9" width="4.5" height="4.5" fill="#1a1a1a"/>
+                  <rect x="9" y="9" width="4.5" height="4.5" fill="#1a1a1a"/>
+                  <rect x="4.5" y="13.5" width="4.5" height="4.5" fill="#1a1a1a"/>
+                  <rect x="13.5" y="13.5" width="4.5" height="4.5" fill="#1a1a1a"/>
+                </g>
+              </svg>
+            </div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+          })
+        }).addTo(trajetoMap).bindPopup(`<b>Fim</b><br>${viagem.fim ? new Date(viagem.fim).toLocaleTimeString('pt-BR') : '--:--'}`);
+
+        // Ajustar zoom
+        trajetoMap.fitBounds(L.latLngBounds(coords), { padding: [50, 50] });
+
+      } catch (e) {
+        console.error('Erro ao carregar pontos:', e);
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#EF4444;">Erro ao carregar trajeto</div>';
+      }
+    }
+
+    // Fechar modal de trajeto
+    function fecharTrajetoModal() {
+      const modal = document.getElementById('trajeto-modal');
+      modal.classList.remove('active');
+
+      if (trajetoMap) {
+        trajetoMap.remove();
+        trajetoMap = null;
+      }
+    }
+
+    // Exportar trajeto PDF
+    function exportarTrajetoPDF() {
+      toastInfo('Exportação de PDF em desenvolvimento');
+    }
+
+    // ============ FIM TRAJETOS ============
 
     // Buscar relatórios (chamado pelo botão "Buscar")
     async function buscarRelatorios() {
