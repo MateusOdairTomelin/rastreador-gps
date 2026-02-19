@@ -4079,53 +4079,72 @@
                     routePolylines.push(antPath);
                 }
 
-                // Marcador de INÍCIO (bandeira verde)
+                // Marcador de INÍCIO (pin verde moderno)
                 const startMarker = L.marker([pontos[0].latitude, pontos[0].longitude], {
                     icon: L.divIcon({
                         className: 'start-marker',
-                        html: `<div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-                            <svg width="32" height="40" viewBox="0 0 32 40">
-                                <!-- Mastro -->
-                                <rect x="2" y="0" width="3" height="40" rx="1.5" fill="#166534"/>
-                                <!-- Bandeira verde -->
-                                <path d="M5 2 L29 2 Q31 9 29 16 L5 16 Z" fill="#22c55e" stroke="#166534" stroke-width="1"/>
-                                <!-- Texto A -->
-                                <text x="16" y="12" text-anchor="middle" fill="white" font-size="10" font-weight="bold">A</text>
+                        html: `<div style="filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));">
+                            <svg width="36" height="48" viewBox="0 0 36 48">
+                                <!-- Sombra do pin -->
+                                <ellipse cx="18" cy="46" rx="8" ry="3" fill="rgba(0,0,0,0.2)"/>
+                                <!-- Pin principal -->
+                                <path d="M18 0C9.163 0 2 7.163 2 16c0 12 16 30 16 30s16-18 16-30C34 7.163 26.837 0 18 0z" fill="url(#gradInicio)"/>
+                                <!-- Círculo interno branco -->
+                                <circle cx="18" cy="15" r="10" fill="white"/>
+                                <!-- Ícone play/início -->
+                                <path d="M14 10 L14 20 L24 15 Z" fill="#22c55e"/>
+                                <!-- Gradiente -->
+                                <defs>
+                                    <linearGradient id="gradInicio" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#4ade80"/>
+                                        <stop offset="100%" style="stop-color:#16a34a"/>
+                                    </linearGradient>
+                                </defs>
                             </svg>
                         </div>`,
-                        iconSize: [32, 40],
-                        iconAnchor: [3, 40]
+                        iconSize: [36, 48],
+                        iconAnchor: [18, 46]
                     })
                 }).addTo(map);
                 startMarker.bindPopup(`<b>Início do trajeto</b><br>${formatTime(pontos[0].timestamp)}`);
                 routeMarkers.push(startMarker);
 
-                // Marcador de FIM (bandeira quadriculada)
+                // Marcador de FIM (pin vermelho com bandeira quadriculada)
                 const ultimo = pontos[pontos.length - 1];
                 const endMarker = L.marker([ultimo.latitude, ultimo.longitude], {
                     icon: L.divIcon({
                         className: 'end-marker',
-                        html: `<div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-                            <svg width="32" height="40" viewBox="0 0 32 40">
-                                <!-- Mastro -->
-                                <rect x="2" y="0" width="3" height="40" rx="1.5" fill="#444"/>
-                                <!-- Bandeira quadriculada -->
-                                <g transform="translate(5, 2)">
-                                    <rect width="24" height="16" rx="2" fill="#fff" stroke="#333" stroke-width="1"/>
-                                    <!-- Padrão xadrez -->
-                                    <rect x="0" y="0" width="6" height="4" fill="#111"/>
-                                    <rect x="12" y="0" width="6" height="4" fill="#111"/>
-                                    <rect x="6" y="4" width="6" height="4" fill="#111"/>
-                                    <rect x="18" y="4" width="6" height="4" fill="#111"/>
-                                    <rect x="0" y="8" width="6" height="4" fill="#111"/>
-                                    <rect x="12" y="8" width="6" height="4" fill="#111"/>
-                                    <rect x="6" y="12" width="6" height="4" fill="#111"/>
-                                    <rect x="18" y="12" width="6" height="4" fill="#111"/>
+                        html: `<div style="filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));">
+                            <svg width="36" height="48" viewBox="0 0 36 48">
+                                <!-- Sombra do pin -->
+                                <ellipse cx="18" cy="46" rx="8" ry="3" fill="rgba(0,0,0,0.2)"/>
+                                <!-- Pin principal -->
+                                <path d="M18 0C9.163 0 2 7.163 2 16c0 12 16 30 16 30s16-18 16-30C34 7.163 26.837 0 18 0z" fill="url(#gradFim)"/>
+                                <!-- Círculo interno branco -->
+                                <circle cx="18" cy="15" r="10" fill="white"/>
+                                <!-- Bandeira quadriculada mini -->
+                                <g transform="translate(10, 8)">
+                                    <rect width="16" height="14" rx="2" fill="#fff" stroke="#333" stroke-width="0.5"/>
+                                    <rect x="0" y="0" width="4" height="3.5" fill="#333"/>
+                                    <rect x="8" y="0" width="4" height="3.5" fill="#333"/>
+                                    <rect x="4" y="3.5" width="4" height="3.5" fill="#333"/>
+                                    <rect x="12" y="3.5" width="4" height="3.5" fill="#333"/>
+                                    <rect x="0" y="7" width="4" height="3.5" fill="#333"/>
+                                    <rect x="8" y="7" width="4" height="3.5" fill="#333"/>
+                                    <rect x="4" y="10.5" width="4" height="3.5" fill="#333"/>
+                                    <rect x="12" y="10.5" width="4" height="3.5" fill="#333"/>
                                 </g>
+                                <!-- Gradiente -->
+                                <defs>
+                                    <linearGradient id="gradFim" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#f87171"/>
+                                        <stop offset="100%" style="stop-color:#dc2626"/>
+                                    </linearGradient>
+                                </defs>
                             </svg>
                         </div>`,
-                        iconSize: [32, 40],
-                        iconAnchor: [3, 40]
+                        iconSize: [36, 48],
+                        iconAnchor: [18, 46]
                     })
                 }).addTo(map);
                 endMarker.bindPopup(`<b>Fim do trajeto</b><br>${formatTime(ultimo.timestamp)}`);
