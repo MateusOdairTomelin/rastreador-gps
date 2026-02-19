@@ -3937,8 +3937,8 @@
                 let distanciaTotal = 0;
                 let tempoMovimento = 0;
                 let ultimoPonto = null;
-                let excessosDetalhados = []; // Guardar detalhes dos excessos
-                let ultimoExcessoKey = null; // Evitar marcadores duplicados próximos
+                let excessosDetalhados = []; // Guardar detalhes dos excessos (agrupados por período)
+                let excessoEmAndamento = null; // Período de excesso atual
 
                 // Desenhar rota com cores baseadas em excesso de velocidade
                 // Criar segmentos de cor diferente
@@ -3970,20 +3970,50 @@
 
                     if (emExcesso) {
                         totalExcessos++;
-                        // Guardar excesso se não for muito próximo do último (evitar spam de marcadores)
-                        if (ultimoExcessoKey !== key) {
-                            excessosDetalhados.push({
+
+                        if (!excessoEmAndamento) {
+                            // Início de um novo período de excesso
+                            excessoEmAndamento = {
                                 lat: ponto.latitude,
                                 lng: ponto.longitude,
-                                velocidade: velocidade,
+                                velocidadeMax: velocidade,
+                                velocidadeSoma: velocidade,
+                                contagem: 1,
                                 limite: limiteVia,
-                                excesso: velocidade - limiteVia,
-                                horario: ponto.timestamp
-                            });
-                            ultimoExcessoKey = key;
+                                horarioInicio: ponto.timestamp,
+                                horarioFim: ponto.timestamp
+                            };
+                        } else {
+                            // Continua o período de excesso
+                            excessoEmAndamento.velocidadeSoma += velocidade;
+                            excessoEmAndamento.contagem++;
+                            excessoEmAndamento.horarioFim = ponto.timestamp;
+                            if (velocidade > excessoEmAndamento.velocidadeMax) {
+                                excessoEmAndamento.velocidadeMax = velocidade;
+                                // Atualizar posição para onde foi a velocidade máxima
+                                excessoEmAndamento.lat = ponto.latitude;
+                                excessoEmAndamento.lng = ponto.longitude;
+                            }
                         }
                     } else {
-                        ultimoExcessoKey = null; // Reset quando não está em excesso
+                        // Fim do período de excesso
+                        if (excessoEmAndamento) {
+                            const duracaoMs = new Date(excessoEmAndamento.horarioFim) - new Date(excessoEmAndamento.horarioInicio);
+                            const duracaoSeg = Math.round(duracaoMs / 1000);
+                            const velocidadeMedia = Math.round(excessoEmAndamento.velocidadeSoma / excessoEmAndamento.contagem);
+
+                            excessosDetalhados.push({
+                                lat: excessoEmAndamento.lat,
+                                lng: excessoEmAndamento.lng,
+                                velocidade: velocidadeMedia,
+                                velocidadeMax: excessoEmAndamento.velocidadeMax,
+                                limite: excessoEmAndamento.limite,
+                                excesso: velocidadeMedia - excessoEmAndamento.limite,
+                                horario: excessoEmAndamento.horarioInicio,
+                                duracao: duracaoSeg >= 60 ? `${Math.floor(duracaoSeg / 60)}min ${duracaoSeg % 60}s` : `${duracaoSeg}s`
+                            });
+                            excessoEmAndamento = null;
+                        }
                     }
 
                     // Verificar se mudou o estado de excesso
@@ -4006,6 +4036,24 @@
                     excessoAtual = emExcesso;
                     corAtual = emExcesso ? '#ef4444' : '#22c55e'; // Vermelho ou Verde
                 });
+
+                // Salvar último excesso em andamento (se trajeto terminou em excesso)
+                if (excessoEmAndamento) {
+                    const duracaoMs = new Date(excessoEmAndamento.horarioFim) - new Date(excessoEmAndamento.horarioInicio);
+                    const duracaoSeg = Math.round(duracaoMs / 1000);
+                    const velocidadeMedia = Math.round(excessoEmAndamento.velocidadeSoma / excessoEmAndamento.contagem);
+
+                    excessosDetalhados.push({
+                        lat: excessoEmAndamento.lat,
+                        lng: excessoEmAndamento.lng,
+                        velocidade: velocidadeMedia,
+                        velocidadeMax: excessoEmAndamento.velocidadeMax,
+                        limite: excessoEmAndamento.limite,
+                        excesso: velocidadeMedia - excessoEmAndamento.limite,
+                        horario: excessoEmAndamento.horarioInicio,
+                        duracao: duracaoSeg >= 60 ? `${Math.floor(duracaoSeg / 60)}min ${duracaoSeg % 60}s` : `${duracaoSeg}s`
+                    });
+                }
 
                 // Desenhar último segmento
                 if (segmentoAtual.length > 1) {
