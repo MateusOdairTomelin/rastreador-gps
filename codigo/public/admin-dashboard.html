@@ -16901,26 +16901,20 @@
         }
       });
 
-      // Atualizar data para hoje
-      const hoje = new Date().toISOString().split('T')[0];
-      document.getElementById('trajetos-data').value = hoje;
-
-      // Buscar automaticamente se tiver veículo selecionado
-      if (trajetosImeiAtual) {
-        trajetosBuscarViagens();
-      }
+      // NÃO sobrescrever a data - apenas atualizar o período selecionado
+      // A data selecionada pelo usuário deve ser mantida
     }
 
-    // On Veículo Change
+    // On Veículo Change - apenas guardar o IMEI, não buscar automaticamente
     function trajetosOnVeiculoChange() {
       const imei = document.getElementById('trajetos-veiculo-select').value;
       if (imei) {
         trajetosImeiAtual = imei;
-        trajetosBuscarViagens();
+        // NÃO buscar automaticamente - esperar usuário clicar em Buscar
       }
     }
 
-    // Buscar Viagens
+    // Buscar Trajetória (pontos GPS do período)
     async function trajetosBuscarViagens() {
       const imei = document.getElementById('trajetos-veiculo-select').value;
       if (!imei) {
@@ -16928,53 +16922,215 @@
         return;
       }
 
-      trajetosImeiAtual = imei;
       const dataSelecionada = document.getElementById('trajetos-data').value;
+      if (!dataSelecionada) {
+        toastError('Selecione uma data');
+        return;
+      }
 
-      // Calcular período baseado no botão selecionado
-      const dataFim = new Date(dataSelecionada + 'T23:59:59');
-      const dataInicio = new Date(dataFim.getTime() - (trajetosPeriodoAtual * 24 * 60 * 60 * 1000));
-      dataInicio.setHours(0, 0, 0, 0);
+      trajetosImeiAtual = imei;
+
+      // Obter horários do slider
+      const minutosInicio = parseInt(document.getElementById('trajetos-hora-inicio').value) || 0;
+      const minutosFim = parseInt(document.getElementById('trajetos-hora-fim').value) || 1439;
+
+      // Converter minutos para HH:MM
+      const horaInicio = trajetosMinToTime(minutosInicio);
+      const horaFim = trajetosMinToTime(minutosFim);
+
+      // Construir timestamps
+      const dataInicio = new Date(`${dataSelecionada}T${horaInicio}:00`);
+      const dataFimTs = new Date(`${dataSelecionada}T${horaFim}:59`);
 
       const lista = document.getElementById('trajetos-viagens-lista');
-      lista.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center; padding: 60px; color: var(--text-light);"><div style="width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px;"></div>Buscando viagens...</div>';
+      lista.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center; padding: 60px; color: var(--text);"><div style="width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px;"></div>Carregando trajetoria...</div>';
 
       try {
-        console.log('[Trajetos] Buscando viagens:', { imei, dataInicio: dataInicio.toISOString(), dataFim: dataFim.toISOString() });
+        console.log('[Trajetos] Buscando pontos GPS:', { imei, dataInicio: dataInicio.toISOString(), dataFim: dataFimTs.toISOString() });
 
-        const response = await authFetch(`${API_URL}/viagens/${imei}/historico?dataInicio=${dataInicio.toISOString()}&dataFim=${dataFim.toISOString()}&limite=100`);
+        // Buscar pontos GPS do período (API de histórico de localizações)
+        const response = await authFetch(`${API_URL}/dispositivos/${imei}/historico?dataInicio=${dataInicio.toISOString()}&dataFim=${dataFimTs.toISOString()}&corrigido=true`);
         const data = await response.json();
 
         console.log('[Trajetos] Resposta:', data);
 
-        const viagensData = data.dados?.viagens || data.dados || [];
-
-        if (!data.sucesso || viagensData.length === 0) {
+        if (!data.sucesso || !data.dados || data.dados.length === 0) {
           lista.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; padding: 60px 20px; color: var(--text-light); text-align: center;">
+            <div style="display: flex; flex-direction: column; align-items: center; padding: 60px 20px; color: var(--text); text-align: center;">
               <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5; margin-bottom: 16px;">
                 <circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/>
               </svg>
-              <div style="font-weight: 500;">Nenhuma viagem encontrada</div>
-              <div style="font-size: 0.85em; opacity: 0.7;">Tente outro periodo ou verifique se o veiculo tem viagens</div>
+              <div style="font-weight: 600;">Nenhum dado GPS encontrado</div>
+              <div style="font-size: 0.9em; color: var(--text-light);">Tente outro periodo ou horario</div>
             </div>
           `;
           document.getElementById('trajetos-resumo').style.display = 'none';
-          trajetosViagensOriginal = [];
-          trajetosViagens = [];
+          // Limpar mapa
+          if (trajetosRouteLayer) trajetosRouteLayer.clearLayers();
+          if (trajetosMarkersLayer) trajetosMarkersLayer.clearLayers();
           return;
         }
 
-        trajetosViagensOriginal = viagensData;
-        trajetosViagens = viagensData;
-        trajetosRenderizarViagens();
-        trajetosAtualizarResumo();
+        // Filtrar pontos válidos
+        let pontos = data.dados.filter(p => p.latitude && p.longitude);
+
+        if (pontos.length < 2) {
+          lista.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; padding: 60px 20px; color: var(--text); text-align: center;">
+              <div style="font-weight: 500;">Pontos insuficientes para tracar a rota</div>
+            </div>
+          `;
+          return;
+        }
+
+        // Ordenar por timestamp
+        pontos.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        console.log('[Trajetos] Pontos encontrados:', pontos.length);
+
+        // Desenhar trajetória no mapa
+        trajetosDesenharRota(pontos);
+
+        // Calcular estatísticas
+        trajetosCalcularEstatisticas(pontos, horaInicio, horaFim);
 
       } catch (error) {
-        console.error('Erro ao buscar viagens:', error);
-        lista.innerHTML = `<div style="text-align: center; padding: 60px; color: #EF4444;">Erro ao buscar viagens</div>`;
-        toastError('Erro ao buscar viagens');
+        console.error('Erro ao buscar trajetoria:', error);
+        lista.innerHTML = `<div style="text-align: center; padding: 60px; color: #EF4444;">Erro ao buscar trajetoria</div>`;
+        toastError('Erro ao buscar trajetoria');
       }
+    }
+
+    // Desenhar rota no mapa
+    function trajetosDesenharRota(pontos) {
+      if (!trajetosRouteLayer || !trajetosMarkersLayer || !trajetosMap) return;
+
+      trajetosRouteLayer.clearLayers();
+      trajetosMarkersLayer.clearLayers();
+
+      const coords = pontos.map(p => [p.latitude, p.longitude]);
+
+      // Desenhar rota principal (cyan)
+      const polyline = L.polyline(coords, {
+        color: '#3FCFD5',
+        weight: 5,
+        opacity: 0.9,
+        lineCap: 'round',
+        lineJoin: 'round'
+      });
+      trajetosRouteLayer.addLayer(polyline);
+
+      // Marcador de início (verde)
+      const startMarker = L.marker(coords[0], {
+        icon: L.divIcon({
+          className: 'start-marker',
+          html: `<div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+            <svg width="36" height="36" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="16" fill="#10B981" stroke="#fff" stroke-width="3"/>
+              <path d="M14 10 L14 26 L28 18 Z" fill="#fff"/>
+            </svg>
+          </div>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
+        })
+      });
+      startMarker.bindPopup(`<b>Inicio</b><br>${new Date(pontos[0].timestamp).toLocaleString('pt-BR')}`);
+      trajetosMarkersLayer.addLayer(startMarker);
+
+      // Marcador de fim (vermelho)
+      const endMarker = L.marker(coords[coords.length - 1], {
+        icon: L.divIcon({
+          className: 'end-marker',
+          html: `<div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+            <svg width="36" height="36" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="16" fill="#EF4444" stroke="#fff" stroke-width="3"/>
+              <rect x="12" y="12" width="12" height="12" fill="#fff"/>
+            </svg>
+          </div>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
+        })
+      });
+      endMarker.bindPopup(`<b>Fim</b><br>${new Date(pontos[pontos.length - 1].timestamp).toLocaleString('pt-BR')}`);
+      trajetosMarkersLayer.addLayer(endMarker);
+
+      // Ajustar zoom para mostrar toda a rota
+      trajetosMap.fitBounds(L.latLngBounds(coords), { padding: [50, 50] });
+    }
+
+    // Calcular e mostrar estatísticas
+    function trajetosCalcularEstatisticas(pontos, horaInicio, horaFim) {
+      let distanciaTotal = 0;
+      let velMax = 0;
+      let velSoma = 0;
+      let velCount = 0;
+
+      for (let i = 1; i < pontos.length; i++) {
+        const p1 = pontos[i - 1];
+        const p2 = pontos[i];
+
+        // Calcular distância (Haversine simplificado)
+        const lat1 = p1.latitude * Math.PI / 180;
+        const lat2 = p2.latitude * Math.PI / 180;
+        const dLat = lat2 - lat1;
+        const dLon = (p2.longitude - p1.longitude) * Math.PI / 180;
+
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        distanciaTotal += 6371 * c; // km
+
+        // Velocidade
+        if (p2.velocidade > 0) {
+          velSoma += p2.velocidade;
+          velCount++;
+          if (p2.velocidade > velMax) velMax = p2.velocidade;
+        }
+      }
+
+      const velMedia = velCount > 0 ? velSoma / velCount : 0;
+      const tempoMs = new Date(pontos[pontos.length - 1].timestamp) - new Date(pontos[0].timestamp);
+      const tempoMinutos = tempoMs / 1000 / 60;
+
+      // Atualizar resumo
+      document.getElementById('trajetos-resumo-viagens').textContent = pontos.length + ' pts';
+      document.getElementById('trajetos-resumo-km').textContent = distanciaTotal.toFixed(1) + ' km';
+      document.getElementById('trajetos-resumo-tempo').textContent = trajetosFormatarDuracao(tempoMinutos);
+      document.getElementById('trajetos-resumo-excessos').textContent = Math.round(velMax) + ' km/h';
+      document.getElementById('trajetos-resumo').style.display = 'grid';
+
+      // Mostrar detalhes na lista
+      const lista = document.getElementById('trajetos-viagens-lista');
+      lista.innerHTML = `
+        <div style="padding: 16px;">
+          <div style="background: rgba(63, 207, 213, 0.15); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+            <div style="font-weight: 700; font-size: 1.1em; color: var(--text); margin-bottom: 12px;">
+              Trajetoria ${horaInicio} - ${horaFim}
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div style="text-align: center; background: var(--bg); padding: 12px; border-radius: 8px;">
+                <div style="font-size: 1.3em; font-weight: 700; color: #10B981;">${distanciaTotal.toFixed(1)} km</div>
+                <div style="font-size: 0.8em; color: var(--text-light);">Distancia</div>
+              </div>
+              <div style="text-align: center; background: var(--bg); padding: 12px; border-radius: 8px;">
+                <div style="font-size: 1.3em; font-weight: 700; color: #3B82F6;">${trajetosFormatarDuracao(tempoMinutos)}</div>
+                <div style="font-size: 0.8em; color: var(--text-light);">Duracao</div>
+              </div>
+              <div style="text-align: center; background: var(--bg); padding: 12px; border-radius: 8px;">
+                <div style="font-size: 1.3em; font-weight: 700; color: var(--text);">${Math.round(velMedia)} km/h</div>
+                <div style="font-size: 0.8em; color: var(--text-light);">Vel. Media</div>
+              </div>
+              <div style="text-align: center; background: var(--bg); padding: 12px; border-radius: 8px;">
+                <div style="font-size: 1.3em; font-weight: 700; color: #F59E0B;">${Math.round(velMax)} km/h</div>
+                <div style="font-size: 0.8em; color: var(--text-light);">Vel. Maxima</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="color: var(--text-light); font-size: 0.85em; text-align: center;">
+            ${pontos.length} pontos GPS analisados
+          </div>
+        </div>
+      `;
     }
 
     // Renderizar Viagens
