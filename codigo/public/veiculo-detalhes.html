@@ -4049,17 +4049,30 @@
                 const endMarker = L.marker([ultimo.latitude, ultimo.longitude], {
                     icon: L.divIcon({
                         className: 'end-marker',
-                        html: `<div style="
-                            width: 32px;
-                            height: 32px;
-                            background: linear-gradient(45deg, #000 25%, #fff 25%, #fff 50%, #000 50%, #000 75%, #fff 75%);
-                            background-size: 8px 8px;
-                            border: 3px solid #333;
-                            border-radius: 6px;
-                            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-                        "></div>`,
-                        iconSize: [32, 32],
-                        iconAnchor: [16, 16]
+                        html: `<div style="position: relative; display: inline-block;">
+                            <div style="
+                                width: 4px;
+                                height: 36px;
+                                background: #333;
+                                position: absolute;
+                                left: 0;
+                                bottom: 0;
+                                border-radius: 2px;
+                            "></div>
+                            <div style="
+                                width: 24px;
+                                height: 18px;
+                                background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 50% / 8px 8px;
+                                border: 2px solid #333;
+                                position: absolute;
+                                left: 4px;
+                                top: 0;
+                                border-radius: 2px;
+                                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                            "></div>
+                        </div>`,
+                        iconSize: [28, 36],
+                        iconAnchor: [2, 36]
                     })
                 }).addTo(map);
                 endMarker.bindPopup(`<b>Fim do trajeto</b><br>${formatTime(ultimo.timestamp)}`);
@@ -4071,81 +4084,128 @@
                     const excessosParaMostrar = excessosDetalhados.slice(0, 20);
 
                     excessosParaMostrar.forEach((exc, idx) => {
-                        // Cor baseada na gravidade do excesso
-                        const excesso = exc.excesso || (exc.velocidade - exc.limite);
-                        const isGrave = excesso > 20;
-                        const bgColor = isGrave ? '#EF4444' : '#F97316';
+                        // Cor baseada na gravidade do excesso: Grave > 20km/h, Média <= 20km/h
+                        const excessoKmh = exc.excesso || (exc.velocidade - exc.limite);
+                        const isGrave = excessoKmh > 20;
+                        const bgColor = isGrave ? '#EF4444' : '#FBBF24'; // Vermelho grave, Amarelo média
 
                         const excMarker = L.marker([exc.lat, exc.lng], {
                             icon: L.divIcon({
                                 className: 'excesso-marker',
-                                html: `<div style="
-                                    width: 28px;
-                                    height: 28px;
-                                    background: ${bgColor};
-                                    border: 3px solid white;
-                                    border-radius: 50%;
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                                    position: relative;
-                                ">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-                                        <path d="M13 3v6l3-2 1.5 1.5L13 13V9.5L10 12l-1.5-1.5L13 6V3h-2L7 7v10l4 4h2l4-4V7l-4-4h-2z"/>
-                                    </svg>
-                                </div>
-                                <div style="
-                                    position: absolute;
-                                    top: -8px;
-                                    right: -8px;
-                                    background: white;
-                                    color: ${bgColor};
-                                    font-size: 10px;
-                                    font-weight: 700;
-                                    padding: 2px 4px;
-                                    border-radius: 8px;
-                                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-                                ">${idx + 1}</div>`,
-                                iconSize: [36, 36],
-                                iconAnchor: [14, 14]
+                                html: `<div style="position: relative; display: inline-block;">
+                                    <div style="
+                                        width: 32px;
+                                        height: 32px;
+                                        background: ${bgColor};
+                                        border: 3px solid white;
+                                        border-radius: 50%;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+                                    ">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="0.5">
+                                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                                        </svg>
+                                    </div>
+                                    <div style="
+                                        position: absolute;
+                                        bottom: -6px;
+                                        left: 50%;
+                                        transform: translateX(-50%);
+                                        background: white;
+                                        color: #333;
+                                        font-size: 10px;
+                                        font-weight: 700;
+                                        padding: 1px 5px;
+                                        border-radius: 6px;
+                                        box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+                                        border: 1px solid ${bgColor};
+                                    ">${idx + 1}</div>
+                                </div>`,
+                                iconSize: [32, 42],
+                                iconAnchor: [16, 21]
                             })
                         }).addTo(map);
 
-                        const horaExcesso = new Date(exc.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        const dataExcesso = new Date(exc.horario);
+                        const horaExcesso = dataExcesso.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        const dataFormatada = dataExcesso.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
                         const motoristaExcesso = motoristaPeriodo || currentDevice?.motorista?.nome || null;
+                        const excessoKmhPopup = exc.excesso || (exc.velocidade - exc.limite);
+                        const isGravePopup = excessoKmhPopup > 20;
+                        const badgeColor = isGravePopup ? '#EF4444' : '#F59E0B';
+                        const badgeText = isGravePopup ? 'Grave' : 'Média';
+
                         excMarker.bindPopup(`
-                            <div style="min-width: 230px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 0;">
-                                <div style="background: linear-gradient(135deg, #ff6b6b 0%, #dc2626 100%); color: white; padding: 14px 16px; margin: -13px -20px 0; border-radius: 8px 8px 0 0;">
-                                    <div style="font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                                        <span style="font-size: 18px;">🚨</span> Excesso de Velocidade
-                                    </div>
-                                    <div style="font-size: 12px; opacity: 0.9; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-                                        <span>🕐</span> ${horaExcesso}
+                            <div style="min-width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 0;">
+                                <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin: -13px -20px 0; border-bottom: 1px solid #e5e7eb; background: white; border-radius: 8px 8px 0 0;">
+                                    <div style="
+                                        width: 40px;
+                                        height: 40px;
+                                        border: 3px solid #333;
+                                        border-radius: 50%;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        font-weight: 700;
+                                        font-size: 14px;
+                                        background: white;
+                                    ">${exc.limite}</div>
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 15px; font-weight: 600; color: #111;">Velocidade da via excedida</div>
                                     </div>
                                 </div>
-                                <div style="padding: 16px 16px; margin: 0 -20px -13px; background: #fafafa;">
-                                    ${motoristaExcesso ? `<div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
-                                        <span style="font-size: 14px;">👤</span>
-                                        <span style="font-size: 13px; color: #0369a1; font-weight: 500;">${motoristaExcesso}</span>
-                                    </div>` : ''}
-                                    <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 14px; background: white; padding: 12px; border-radius: 10px; border: 1px solid #e5e7eb;">
-                                        <div>
-                                            <div style="font-size: 28px; font-weight: 800; color: #ef4444;">${exc.velocidade.toFixed(0)}</div>
-                                            <div style="font-size: 10px; color: #888; text-transform: uppercase; margin-top: 2px;">Velocidade</div>
-                                        </div>
-                                        <div style="width: 1px; background: #e5e7eb; margin: 0 8px;"></div>
-                                        <div>
-                                            <div style="font-size: 28px; font-weight: 800; color: #64748b;">${exc.limite}</div>
-                                            <div style="font-size: 10px; color: #888; text-transform: uppercase; margin-top: 2px;">Limite</div>
-                                        </div>
+                                <div style="padding: 14px 16px; margin: 0 -20px -13px; background: #fafafa;">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                        <span style="font-weight: 500; color: #555;">Velocidade média:</span>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#555"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                                        <span style="font-weight: 700; color: #111;">${exc.velocidade.toFixed(0)} km/h</span>
+                                        <span style="background: ${badgeColor}; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${badgeText}</span>
                                     </div>
-                                    <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 10px 14px; border-radius: 10px; text-align: center; font-weight: 700; font-size: 14px; box-shadow: 0 2px 8px rgba(220,38,38,0.3);">
-                                        +${exc.excesso.toFixed(0)} km/h acima do limite
+                                    <div style="font-size: 13px; color: #555; line-height: 1.8;">
+                                        <div><strong>Duração:</strong> ${exc.duracao || '—'}</div>
+                                        <div><strong>Data:</strong> ${dataFormatada} às ${horaExcesso}</div>
+                                        <div id="endereco-exc-${idx}" style="margin-top: 4px;"><strong>Endereço:</strong> <span style="color: #999;">Carregando...</span></div>
+                                        ${motoristaExcesso ? `<div style="margin-top: 4px;"><strong>Motorista:</strong> ${motoristaExcesso}</div>` : ''}
                                     </div>
                                 </div>
                             </div>
-                        `, { maxWidth: 300, className: 'popup-excesso' });
+                        `, { maxWidth: 320, className: 'popup-excesso' });
+
+                        // Buscar endereço quando popup abrir
+                        excMarker.on('popupopen', async function() {
+                            const el = document.getElementById(`endereco-exc-${idx}`);
+                            if (!el || el.dataset.loaded === 'true') return;
+
+                            const cacheKey = `${exc.lat.toFixed(4)},${exc.lng.toFixed(4)}`;
+                            if (cacheEnderecos[cacheKey]) {
+                                el.innerHTML = `<strong>Endereço:</strong> ${cacheEnderecos[cacheKey]}`;
+                                el.dataset.loaded = 'true';
+                                return;
+                            }
+
+                            try {
+                                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${exc.lat}&lon=${exc.lng}&zoom=18&addressdetails=1`);
+                                const geoData = await geoRes.json();
+                                const addr = geoData.address;
+                                let endereco = geoData.display_name || `${exc.lat.toFixed(5)}, ${exc.lng.toFixed(5)}`;
+                                if (addr) {
+                                    const parts = [];
+                                    if (addr.road) parts.push(addr.road);
+                                    if (addr.house_number) parts[parts.length - 1] += `, ${addr.house_number}`;
+                                    if (addr.suburb || addr.neighbourhood) parts.push(addr.suburb || addr.neighbourhood);
+                                    if (addr.city || addr.town || addr.village) parts.push(addr.city || addr.town || addr.village);
+                                    if (addr.state) parts.push(addr.state);
+                                    if (parts.length > 0) endereco = parts.join(' - ');
+                                }
+                                cacheEnderecos[cacheKey] = endereco;
+                                el.innerHTML = `<strong>Endereço:</strong> ${endereco}`;
+                                el.dataset.loaded = 'true';
+                            } catch (e) {
+                                el.innerHTML = `<strong>Endereço:</strong> ${exc.lat.toFixed(5)}, ${exc.lng.toFixed(5)}`;
+                            }
+                        });
 
                         routeMarkers.push(excMarker);
                     });
