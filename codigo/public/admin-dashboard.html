@@ -9682,7 +9682,8 @@
       'notificacoes-config': '◆',
       multas: '⚠',
       motoristas: '👤',
-      veiculos: '🚗'
+      veiculos: '🚗',
+      'info-veiculo': '🚗'
     };
 
     const sectionTitles = {
@@ -9703,7 +9704,8 @@
       'notificacoes-config': 'Configurações de Notificações',
       multas: 'Multas de Trânsito',
       motoristas: 'Motoristas',
-      veiculos: 'Veículos'
+      veiculos: 'Veículos',
+      'info-veiculo': 'Info Veículo'
     };
 
     function switchSection(name, updateHash = true) {
@@ -9792,6 +9794,23 @@
     function loadSectionFromHash() {
       const hash = window.location.hash.replace('#', '');
       if (hash && sectionTitles[hash]) {
+        // Caso especial: info-veiculo precisa restaurar o veículo
+        if (hash === 'info-veiculo') {
+          const savedImei = sessionStorage.getItem('infoVeiculoImei');
+          if (savedImei) {
+            // Aguardar dispositivos carregarem, então restaurar
+            const tryRestoreVeiculo = () => {
+              if (allDevices && allDevices.length > 0) {
+                abrirInfoVeiculo(savedImei);
+              } else {
+                // Tentar novamente em 500ms
+                setTimeout(tryRestoreVeiculo, 500);
+              }
+            };
+            tryRestoreVeiculo();
+            return;
+          }
+        }
         switchSection(hash, false);
       }
     }
@@ -9800,6 +9819,14 @@
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash.replace('#', '');
       if (hash && sectionTitles[hash]) {
+        // Caso especial: info-veiculo precisa restaurar o veículo
+        if (hash === 'info-veiculo') {
+          const savedImei = sessionStorage.getItem('infoVeiculoImei');
+          if (savedImei && allDevices && allDevices.length > 0) {
+            abrirInfoVeiculo(savedImei);
+            return;
+          }
+        }
         switchSection(hash, false);
       }
     });
@@ -10684,6 +10711,9 @@
       infoVeiculoImei = imei;
       selectedVehicleImei = imei;
 
+      // Salvar no sessionStorage para restaurar após refresh
+      sessionStorage.setItem('infoVeiculoImei', imei);
+
       // Mostrar botão na sidebar
       const navBtn = document.getElementById('nav-info-veiculo');
       navBtn.style.display = 'flex';
@@ -10709,6 +10739,9 @@
 
     function fecharInfoVeiculo() {
       infoVeiculoImei = null;
+
+      // Limpar sessionStorage
+      sessionStorage.removeItem('infoVeiculoImei');
 
       // Esconder botão na sidebar
       document.getElementById('nav-info-veiculo').style.display = 'none';
