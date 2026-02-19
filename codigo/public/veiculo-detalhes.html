@@ -13,6 +13,8 @@
     <!-- Leaflet com Google Maps Tiles (Gratuito) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Ant Path - Animação de direção na rota -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-ant-path@1.3.0/dist/leaflet-ant-path.min.js"></script>
     <!-- Chart.js para gráficos de velocidade -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- QRCode.js para gerar QR Code do IMEI -->
@@ -4018,15 +4020,20 @@
 
                     // Verificar se mudou o estado de excesso
                     if (emExcesso !== excessoAtual && segmentoAtual.length > 0) {
-                        // Desenhar segmento anterior
-                        const polyline = L.polyline(segmentoAtual, {
+                        // Desenhar segmento anterior com animação ant-path
+                        const antPath = L.polyline.antPath(segmentoAtual, {
                             color: corAtual,
                             weight: 5,
                             opacity: 0.9,
                             lineCap: 'round',
-                            lineJoin: 'round'
+                            lineJoin: 'round',
+                            delay: 1500,
+                            dashArray: [15, 30],
+                            pulseColor: corAtual === '#ef4444' ? '#fca5a5' : '#86efac',
+                            paused: false,
+                            reverse: false
                         }).addTo(map);
-                        routePolylines.push(polyline);
+                        routePolylines.push(antPath);
 
                         // Iniciar novo segmento (manter último ponto para continuidade)
                         segmentoAtual = [segmentoAtual[segmentoAtual.length - 1]];
@@ -4055,38 +4062,39 @@
                     });
                 }
 
-                // Desenhar último segmento
+                // Desenhar último segmento com animação ant-path
                 if (segmentoAtual.length > 1) {
-                    const polyline = L.polyline(segmentoAtual, {
+                    const antPath = L.polyline.antPath(segmentoAtual, {
                         color: corAtual,
                         weight: 5,
                         opacity: 0.9,
                         lineCap: 'round',
-                        lineJoin: 'round'
+                        lineJoin: 'round',
+                        delay: 1500,
+                        dashArray: [15, 30],
+                        pulseColor: corAtual === '#ef4444' ? '#fca5a5' : '#86efac',
+                        paused: false,
+                        reverse: false
                     }).addTo(map);
-                    routePolylines.push(polyline);
+                    routePolylines.push(antPath);
                 }
 
-                // Marcador de INÍCIO (círculo laranja com número)
+                // Marcador de INÍCIO (bandeira verde)
                 const startMarker = L.marker([pontos[0].latitude, pontos[0].longitude], {
                     icon: L.divIcon({
                         className: 'start-marker',
-                        html: `<div style="
-                            width: 28px;
-                            height: 28px;
-                            background: #F97316;
-                            border: 3px solid white;
-                            border-radius: 50%;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            color: white;
-                            font-weight: 700;
-                            font-size: 14px;
-                            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                        ">0</div>`,
-                        iconSize: [28, 28],
-                        iconAnchor: [14, 14]
+                        html: `<div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+                            <svg width="32" height="40" viewBox="0 0 32 40">
+                                <!-- Mastro -->
+                                <rect x="2" y="0" width="3" height="40" rx="1.5" fill="#166534"/>
+                                <!-- Bandeira verde -->
+                                <path d="M5 2 L29 2 Q31 9 29 16 L5 16 Z" fill="#22c55e" stroke="#166534" stroke-width="1"/>
+                                <!-- Texto A -->
+                                <text x="16" y="12" text-anchor="middle" fill="white" font-size="10" font-weight="bold">A</text>
+                            </svg>
+                        </div>`,
+                        iconSize: [32, 40],
+                        iconAnchor: [3, 40]
                     })
                 }).addTo(map);
                 startMarker.bindPopup(`<b>Início do trajeto</b><br>${formatTime(pontos[0].timestamp)}`);
