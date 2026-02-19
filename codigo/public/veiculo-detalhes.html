@@ -4049,30 +4049,27 @@
                 const endMarker = L.marker([ultimo.latitude, ultimo.longitude], {
                     icon: L.divIcon({
                         className: 'end-marker',
-                        html: `<div style="position: relative; display: inline-block;">
-                            <div style="
-                                width: 4px;
-                                height: 36px;
-                                background: #333;
-                                position: absolute;
-                                left: 0;
-                                bottom: 0;
-                                border-radius: 2px;
-                            "></div>
-                            <div style="
-                                width: 24px;
-                                height: 18px;
-                                background: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 50% / 8px 8px;
-                                border: 2px solid #333;
-                                position: absolute;
-                                left: 4px;
-                                top: 0;
-                                border-radius: 2px;
-                                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-                            "></div>
+                        html: `<div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+                            <svg width="32" height="40" viewBox="0 0 32 40">
+                                <!-- Mastro -->
+                                <rect x="2" y="0" width="3" height="40" rx="1.5" fill="#444"/>
+                                <!-- Bandeira quadriculada -->
+                                <g transform="translate(5, 2)">
+                                    <rect width="24" height="16" rx="2" fill="#fff" stroke="#333" stroke-width="1"/>
+                                    <!-- Padrão xadrez -->
+                                    <rect x="0" y="0" width="6" height="4" fill="#111"/>
+                                    <rect x="12" y="0" width="6" height="4" fill="#111"/>
+                                    <rect x="6" y="4" width="6" height="4" fill="#111"/>
+                                    <rect x="18" y="4" width="6" height="4" fill="#111"/>
+                                    <rect x="0" y="8" width="6" height="4" fill="#111"/>
+                                    <rect x="12" y="8" width="6" height="4" fill="#111"/>
+                                    <rect x="6" y="12" width="6" height="4" fill="#111"/>
+                                    <rect x="18" y="12" width="6" height="4" fill="#111"/>
+                                </g>
+                            </svg>
                         </div>`,
-                        iconSize: [28, 36],
-                        iconAnchor: [2, 36]
+                        iconSize: [32, 40],
+                        iconAnchor: [3, 40]
                     })
                 }).addTo(map);
                 endMarker.bindPopup(`<b>Fim do trajeto</b><br>${formatTime(ultimo.timestamp)}`);
