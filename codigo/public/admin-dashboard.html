@@ -6593,20 +6593,39 @@
             }
 
             .trajetos-sidebar-panel {
-              width: clamp(280px, 25vw, 350px);
+              width: 8px;
               flex-shrink: 0;
-              background: var(--bg-light);
-              border-right: 1px solid var(--border);
+              background: linear-gradient(180deg, var(--primary), var(--primary-dark));
+              border-right: none;
               display: flex;
               flex-direction: column;
+              overflow: hidden;
+              border-radius: 0;
+              max-height: 100%;
+              position: relative;
+              transition: width 0.3s ease;
+              cursor: pointer;
+            }
+
+            .trajetos-sidebar-panel:hover {
+              width: clamp(300px, 28vw, 380px);
+              background: var(--bg-light);
+              border-right: 1px solid var(--border);
+              border-radius: 12px 0 0 12px;
               overflow-y: auto;
               overflow-x: hidden;
-              border-radius: 12px 0 0 12px;
-              max-height: 100%;
+              cursor: default;
             }
 
             .trajetos-filtros-container {
               width: 100%;
+              min-width: 280px;
+              opacity: 0;
+              transition: opacity 0.2s ease;
+            }
+
+            .trajetos-sidebar-panel:hover .trajetos-filtros-container {
+              opacity: 1;
             }
 
             /* Scrollbar estilizada */
@@ -6818,27 +6837,12 @@
                   </button>
                 </div>
 
-                <!-- Slider de Horário - Simples com inputs de hora -->
-                <div style="padding: 10px 12px; border-bottom: 1px solid var(--border);">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 11px; color: var(--text-light);">Horário</span>
-                  </div>
-                  <div style="display: flex; gap: 8px; align-items: center;">
-                    <input type="time" id="trajetos-hora-inicio-input" value="00:00"
-                      style="flex: 1; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.9em;"
-                      onchange="trajetosAtualizarHorarioInput()">
-                    <span style="color: var(--text-light);">até</span>
-                    <input type="time" id="trajetos-hora-fim-input" value="23:59"
-                      style="flex: 1; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.9em;"
-                      onchange="trajetosAtualizarHorarioInput()">
-                  </div>
-                  <!-- Mantém inputs hidden para compatibilidade -->
-                  <input type="hidden" id="trajetos-hora-inicio" value="0">
-                  <input type="hidden" id="trajetos-hora-fim" value="1439">
-                  <span id="trajetos-hora-inicio-label" style="display: none;">00:00</span>
-                  <span id="trajetos-hora-fim-label" style="display: none;">23:59</span>
-                  <span id="trajetos-duracao-label" style="display: none;">00:00 - 23:59</span>
-                </div>
+                <!-- Inputs hidden para compatibilidade -->
+                <input type="hidden" id="trajetos-hora-inicio" value="0">
+                <input type="hidden" id="trajetos-hora-fim" value="1439">
+                <span id="trajetos-hora-inicio-label" style="display: none;">00:00</span>
+                <span id="trajetos-hora-fim-label" style="display: none;">23:59</span>
+                <span id="trajetos-duracao-label" style="display: none;">00:00 - 23:59</span>
 
                 <!-- Opções -->
                 <div style="padding: 8px 12px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
