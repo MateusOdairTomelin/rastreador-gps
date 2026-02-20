@@ -6555,12 +6555,32 @@
               flex-direction: column;
               background: var(--bg);
               border-radius: 0 12px 12px 0;
-              overflow: hidden;
+              overflow: visible;
             }
 
             .trajetos-map-container {
               flex: 1;
               min-height: 300px;
+            }
+
+            /* Barra de detalhes inferior - scroll horizontal se necessário */
+            #trajetos-viagem-detalhes {
+              flex-shrink: 0;
+              overflow-x: auto;
+              -webkit-overflow-scrolling: touch;
+            }
+
+            #trajetos-viagem-detalhes > div {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 12px;
+              min-width: 100%;
+            }
+
+            #trajetos-viagem-detalhes .trajetos-stat-card {
+              flex: 1 1 100px;
+              min-width: 100px;
+              text-align: center;
             }
 
             /* Tablet */
@@ -6765,8 +6785,8 @@
               <div id="trajetos-map" class="trajetos-map-container"></div>
 
               <!-- Detalhes da Viagem -->
-              <div id="trajetos-viagem-detalhes" style="display: none; background: var(--bg-card); border-top: 1px solid var(--border); padding: 16px 20px;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
+              <div id="trajetos-viagem-detalhes" style="display: none; background: var(--bg-card); border-top: 1px solid var(--border); padding: 12px 16px;">
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
                   <div class="trajetos-stat-card">
                     <div class="trajetos-stat-value" style="color: #10B981;" id="trajetos-detalhe-distancia">--</div>
                     <div class="trajetos-stat-label">Distancia</div>
