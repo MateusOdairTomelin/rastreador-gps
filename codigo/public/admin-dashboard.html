@@ -6595,63 +6595,52 @@
             }
 
             .trajetos-sidebar-panel {
-              width: clamp(280px, 25vw, 360px);
+              width: 50px;
               flex-shrink: 0;
               background: var(--bg-light);
               border-right: 1px solid var(--border);
               display: flex;
               flex-direction: column;
-              overflow-y: auto;
-              overflow-x: hidden;
+              overflow: hidden;
               border-radius: 12px 0 0 12px;
               max-height: 100%;
               position: relative;
-              transition: width 0.3s ease, transform 0.3s ease;
+              transition: width 0.3s ease;
             }
 
-            .trajetos-sidebar-panel.collapsed {
-              width: 40px;
-              overflow: hidden;
+            /* Expande ao passar o mouse */
+            .trajetos-sidebar-panel:hover {
+              width: clamp(300px, 28vw, 380px);
+              overflow-y: auto;
+              overflow-x: hidden;
             }
 
-            .trajetos-sidebar-panel.collapsed .trajetos-filtros-container {
+            /* Indicador visual quando recolhido */
+            .trajetos-sidebar-panel::before {
+              content: '';
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 24px;
+              height: 24px;
+              background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233FCFD5' stroke-width='2'%3E%3Cpolyline points='9 18 15 12 9 6'/%3E%3C/svg%3E") center/contain no-repeat;
+              opacity: 0.7;
+              transition: opacity 0.3s;
+            }
+
+            .trajetos-sidebar-panel:hover::before {
               opacity: 0;
               pointer-events: none;
             }
 
-            .trajetos-sidebar-panel.collapsed .trajetos-sidebar-toggle svg {
-              transform: rotate(180deg);
-            }
-
-            .trajetos-sidebar-toggle {
-              position: absolute;
-              top: 10px;
-              right: 8px;
-              width: 24px;
-              height: 24px;
-              background: var(--bg);
-              border: 1px solid var(--border);
-              border-radius: 4px;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              z-index: 10;
-              transition: all 0.2s;
-            }
-
-            .trajetos-sidebar-toggle:hover {
-              background: var(--primary);
-              color: #0d1042;
-            }
-
-            .trajetos-sidebar-toggle svg {
-              transition: transform 0.3s ease;
-              color: var(--text);
-            }
-
             .trajetos-filtros-container {
+              opacity: 0;
               transition: opacity 0.3s ease;
+            }
+
+            .trajetos-sidebar-panel:hover .trajetos-filtros-container {
+              opacity: 1;
             }
 
             /* Scrollbar estilizada */
@@ -6829,17 +6818,10 @@
 
           <div class="trajetos-layout">
 
-            <!-- Sidebar Trajetos - com hover para ocultar -->
+            <!-- Sidebar Trajetos - expande com hover -->
             <div class="trajetos-sidebar-panel" id="trajetos-sidebar">
 
-              <!-- Toggle para expandir/recolher -->
-              <div class="trajetos-sidebar-toggle" onclick="toggleTrajetosSidebar()" title="Clique para recolher">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="15 18 9 12 15 6"/>
-                </svg>
-              </div>
-
-              <!-- Filtros colapsáveis -->
+              <!-- Filtros - aparecem ao passar mouse -->
               <div class="trajetos-filtros-container" id="trajetos-filtros">
 
                 <!-- Veículo (digitável) -->
