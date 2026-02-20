@@ -6593,70 +6593,20 @@
             }
 
             .trajetos-sidebar-panel {
-              width: 0;
+              width: clamp(280px, 25vw, 350px);
               flex-shrink: 0;
               background: var(--bg-light);
-              border-right: none;
+              border-right: 1px solid var(--border);
               display: flex;
               flex-direction: column;
-              overflow: hidden;
-              border-radius: 12px 0 0 12px;
-              max-height: 100%;
-              position: relative;
-              transition: width 0.25s ease;
-            }
-
-            /* Aba/guia para expandir */
-            .trajetos-sidebar-panel::after {
-              content: '>';
-              position: absolute;
-              right: -24px;
-              top: 50%;
-              transform: translateY(-50%);
-              width: 24px;
-              height: 60px;
-              background: var(--primary);
-              color: #0d1042;
-              font-weight: bold;
-              font-size: 14px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              border-radius: 0 8px 8px 0;
-              cursor: pointer;
-              z-index: 15;
-              transition: right 0.25s ease, opacity 0.25s ease;
-            }
-
-            /* Expande ao passar o mouse na aba ou sidebar */
-            .trajetos-sidebar-panel:hover,
-            .trajetos-sidebar-panel:hover::after {
-              width: clamp(300px, 28vw, 380px);
-            }
-
-            .trajetos-sidebar-panel:hover {
-              border-right: 1px solid var(--border);
               overflow-y: auto;
               overflow-x: hidden;
-            }
-
-            .trajetos-sidebar-panel:hover::after {
-              opacity: 0;
-              right: 0;
-              pointer-events: none;
+              border-radius: 12px 0 0 12px;
+              max-height: 100%;
             }
 
             .trajetos-filtros-container {
-              opacity: 0;
-              visibility: hidden;
-              transition: opacity 0.2s ease;
               width: 100%;
-              min-width: 280px;
-            }
-
-            .trajetos-sidebar-panel:hover .trajetos-filtros-container {
-              opacity: 1;
-              visibility: visible;
             }
 
             /* Scrollbar estilizada */
@@ -6868,20 +6818,26 @@
                   </button>
                 </div>
 
-                <!-- Slider de Horário - Simples -->
+                <!-- Slider de Horário - Simples com inputs de hora -->
                 <div style="padding: 10px 12px; border-bottom: 1px solid var(--border);">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <span style="font-size: 11px; color: var(--text-light);">Horário</span>
-                    <span style="font-size: 12px; font-weight: 600; color: var(--primary);" id="trajetos-duracao-label">00:00 - 23:59</span>
                   </div>
-                  <div style="position: relative; height: 20px; display: flex; align-items: center;">
-                    <div style="position: absolute; left: 0; right: 0; height: 6px; background: #1a237e; border-radius: 3px;"></div>
-                    <div style="position: absolute; height: 6px; background: #3B82F6; border-radius: 3px;" id="trajetos-slider-range"></div>
-                    <input type="range" id="trajetos-hora-inicio" min="0" max="1439" value="0" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 20px; -webkit-appearance: none; background: transparent; pointer-events: none;">
-                    <input type="range" id="trajetos-hora-fim" min="0" max="1439" value="1439" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 20px; -webkit-appearance: none; background: transparent; pointer-events: none;">
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="time" id="trajetos-hora-inicio-input" value="00:00"
+                      style="flex: 1; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.9em;"
+                      onchange="trajetosAtualizarHorarioInput()">
+                    <span style="color: var(--text-light);">até</span>
+                    <input type="time" id="trajetos-hora-fim-input" value="23:59"
+                      style="flex: 1; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.9em;"
+                      onchange="trajetosAtualizarHorarioInput()">
                   </div>
+                  <!-- Mantém inputs hidden para compatibilidade -->
+                  <input type="hidden" id="trajetos-hora-inicio" value="0">
+                  <input type="hidden" id="trajetos-hora-fim" value="1439">
                   <span id="trajetos-hora-inicio-label" style="display: none;">00:00</span>
                   <span id="trajetos-hora-fim-label" style="display: none;">23:59</span>
+                  <span id="trajetos-duracao-label" style="display: none;">00:00 - 23:59</span>
                 </div>
 
                 <!-- Opções -->
@@ -17638,11 +17594,36 @@
       }
     }
 
-    // Toggle sidebar de trajetos
-    function toggleTrajetosSidebar() {
+    // Manter sidebar aberta quando tem viagens
+    function trajetosManterSidebarAberta(abrir) {
       const sidebar = document.getElementById('trajetos-sidebar');
       if (sidebar) {
-        sidebar.classList.toggle('collapsed');
+        if (abrir) {
+          sidebar.classList.add('ativo');
+        } else {
+          sidebar.classList.remove('ativo');
+        }
+      }
+    }
+
+    // Atualizar horário pelos inputs de time
+    function trajetosAtualizarHorarioInput() {
+      const inicioInput = document.getElementById('trajetos-hora-inicio-input');
+      const fimInput = document.getElementById('trajetos-hora-fim-input');
+      const sliderInicio = document.getElementById('trajetos-hora-inicio');
+      const sliderFim = document.getElementById('trajetos-hora-fim');
+
+      if (inicioInput && fimInput && sliderInicio && sliderFim) {
+        const [hI, mI] = inicioInput.value.split(':').map(Number);
+        const [hF, mF] = fimInput.value.split(':').map(Number);
+
+        sliderInicio.value = hI * 60 + mI;
+        sliderFim.value = hF * 60 + mF;
+
+        // Aplicar filtro se tiver viagens
+        if (trajetosViagensOriginal.length > 0) {
+          trajetosAplicarFiltroHorario();
+        }
       }
     }
 
