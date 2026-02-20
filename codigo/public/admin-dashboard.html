@@ -6531,12 +6531,115 @@
               border-color: var(--primary);
               box-shadow: 0 0 0 2px rgba(63, 207, 213, 0.3);
             }
+
+            /* Layout principal de Trajetos - RESPONSIVO */
+            .trajetos-layout {
+              display: grid;
+              grid-template-columns: minmax(280px, 380px) 1fr;
+              height: calc(100vh - 80px);
+              gap: 0;
+            }
+
+            .trajetos-sidebar-panel {
+              background: var(--bg-light);
+              border-right: 1px solid var(--border);
+              display: flex;
+              flex-direction: column;
+              overflow-y: auto;
+              overflow-x: hidden;
+              border-radius: 12px 0 0 12px;
+            }
+
+            .trajetos-map-panel {
+              display: flex;
+              flex-direction: column;
+              background: var(--bg);
+              border-radius: 0 12px 12px 0;
+              overflow: hidden;
+            }
+
+            .trajetos-map-container {
+              flex: 1;
+              min-height: 300px;
+            }
+
+            /* Tablet */
+            @media (max-width: 1024px) {
+              .trajetos-layout {
+                grid-template-columns: minmax(250px, 320px) 1fr;
+                height: calc(100vh - 70px);
+              }
+            }
+
+            /* Mobile - Layout empilhado */
+            @media (max-width: 768px) {
+              .trajetos-layout {
+                display: flex;
+                flex-direction: column;
+                height: auto;
+                min-height: calc(100vh - 60px);
+              }
+
+              .trajetos-sidebar-panel {
+                order: 2;
+                border-right: none;
+                border-top: 1px solid var(--border);
+                border-radius: 0 0 12px 12px;
+                max-height: 50vh;
+                overflow-y: auto;
+              }
+
+              .trajetos-map-panel {
+                order: 1;
+                border-radius: 12px 12px 0 0;
+                min-height: 45vh;
+              }
+
+              .trajetos-map-container {
+                min-height: 40vh;
+              }
+
+              #trajetos-viagem-detalhes {
+                padding: 12px !important;
+              }
+
+              #trajetos-viagem-detalhes .trajetos-stat-card {
+                padding: 8px;
+              }
+            }
+
+            /* Mobile pequeno */
+            @media (max-width: 480px) {
+              .trajetos-layout {
+                min-height: calc(100vh - 56px);
+              }
+
+              .trajetos-sidebar-panel {
+                max-height: 45vh;
+              }
+
+              .trajetos-map-container {
+                min-height: 35vh;
+              }
+
+              .trajetos-stat-card {
+                padding: 6px;
+              }
+
+              .trajetos-stat-value {
+                font-size: 14px;
+              }
+
+              .trajetos-stat-label {
+                font-size: 10px;
+              }
+            }
           </style>
 
-          <div style="display: grid; grid-template-columns: 380px 1fr; height: calc(100vh - 80px); gap: 0;">
+          <div class="trajetos-layout">
 
             <!-- Sidebar Trajetos -->
-            <div style="background: var(--bg-light); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; border-radius: 12px 0 0 12px;">
+            <div class="trajetos-sidebar-panel">
 
               <!-- Seletor de Veiculo -->
               <div style="padding: 16px; border-bottom: 1px solid var(--border);">
@@ -6658,8 +6761,8 @@
             </div>
 
             <!-- Mapa e Detalhes -->
-            <div style="display: flex; flex-direction: column; background: var(--bg); border-radius: 0 12px 12px 0; overflow: hidden;">
-              <div id="trajetos-map" style="flex: 1; min-height: 400px;"></div>
+            <div class="trajetos-map-panel">
+              <div id="trajetos-map" class="trajetos-map-container"></div>
 
               <!-- Detalhes da Viagem -->
               <div id="trajetos-viagem-detalhes" style="display: none; background: var(--bg-card); border-top: 1px solid var(--border); padding: 16px 20px;">
