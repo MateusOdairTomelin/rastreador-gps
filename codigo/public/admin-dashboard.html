@@ -6119,17 +6119,24 @@
 
               <!-- Filtros -->
               <div style="padding: 16px; border-bottom: 1px solid var(--border);">
-                <!-- Data e Botão Buscar -->
-                <div style="display: flex; gap: 8px; margin-bottom: 16px; align-items: center;">
+                <!-- Data Início e Fim -->
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                   <div style="flex: 1;">
-                    <label style="font-size: 11px; color: var(--text-light); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Data</label>
+                    <label style="font-size: 11px; color: var(--text-light); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Data Inicio</label>
                     <input type="date" id="trajetos-data" style="width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9em; color-scheme: dark;">
                   </div>
-                  <button onclick="trajetosBuscarViagens()" style="padding: 10px 24px; background: var(--primary); border: none; border-radius: 8px; color: #0d1042; font-weight: 600; font-size: 0.9em; cursor: pointer; white-space: nowrap; margin-top: 18px; transition: all 0.2s;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-right: 4px;">
+                  <div style="flex: 1;">
+                    <label style="font-size: 11px; color: var(--text-light); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Data Fim</label>
+                    <input type="date" id="trajetos-data-fim" style="width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9em; color-scheme: dark;">
+                  </div>
+                </div>
+                <!-- Botão Buscar -->
+                <div style="margin-bottom: 16px;">
+                  <button onclick="trajetosBuscarViagens()" style="width: 100%; padding: 12px 24px; background: var(--primary); border: none; border-radius: 8px; color: #0d1042; font-weight: 600; font-size: 0.95em; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
                       <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
                     </svg>
-                    Buscar
+                    Buscar Trajetos
                   </button>
                 </div>
 
@@ -6165,12 +6172,10 @@
                 <!-- Filtros de Exibição -->
                 <label style="font-size: 11px; color: var(--text-light); display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Opcoes de Exibicao</label>
                 <div style="background: var(--bg); border-radius: 10px; padding: 14px; border: 1px solid var(--border);">
-                  <!-- Limite de Velocidade -->
-                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
-                    <span style="font-size: 0.85em; color: var(--text); flex: 1;">Limite de velocidade:</span>
-                    <input type="number" id="trajetos-limite-velocidade" value="60" min="20" max="200" step="10" style="width: 70px; padding: 6px 10px; background: var(--bg-light); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9em; text-align: center;">
-                    <span style="font-size: 0.85em; color: var(--text-light);">km/h</span>
+                  <!-- Info: Usando limites das vias -->
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 10px; background: rgba(6, 182, 212, 0.08); border-radius: 8px; border: 1px solid rgba(6, 182, 212, 0.2);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#0891b2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    <span style="font-size: 0.8em; color: #0891b2;">Usa limites de velocidade das vias (OpenStreetMap)</span>
                   </div>
 
                   <!-- Checkboxes -->
@@ -16910,9 +16915,11 @@
         return;
       }
 
-      const dataSelecionada = document.getElementById('trajetos-data').value;
-      if (!dataSelecionada) {
-        toastError('Selecione uma data');
+      const dataInicioSel = document.getElementById('trajetos-data').value;
+      const dataFimSel = document.getElementById('trajetos-data-fim').value || dataInicioSel;
+
+      if (!dataInicioSel) {
+        toastError('Selecione uma data de inicio');
         return;
       }
 
@@ -16926,9 +16933,9 @@
       const horaInicio = trajetosMinToTime(minutosInicio);
       const horaFim = trajetosMinToTime(minutosFim);
 
-      // Construir timestamps
-      const dataInicio = new Date(`${dataSelecionada}T${horaInicio}:00`);
-      const dataFimTs = new Date(`${dataSelecionada}T${horaFim}:59`);
+      // Construir timestamps (range de datas)
+      const dataInicio = new Date(`${dataInicioSel}T${horaInicio}:00`);
+      const dataFimTs = new Date(`${dataFimSel}T${horaFim}:59`);
 
       const lista = document.getElementById('trajetos-viagens-lista');
       lista.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center; padding: 60px; color: var(--text);"><div style="width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px;"></div>Carregando trajetoria...</div>';
@@ -16996,7 +17003,7 @@
         }
 
         // Desenhar trajetória no mapa e obter eventos
-        const eventos = trajetosDesenharRota(pontos, motoristaPeriodo);
+        const eventos = await trajetosDesenharRota(pontos, motoristaPeriodo);
 
         // Calcular estatísticas com eventos
         trajetosCalcularEstatisticas(pontos, horaInicio, horaFim, eventos, motoristaPeriodo);
@@ -17009,8 +17016,8 @@
     }
 
     // Desenhar rota no mapa com animação, excessos e paradas
-    function trajetosDesenharRota(pontos, motoristaPeriodo = null) {
-      if (!trajetosRouteLayer || !trajetosMarkersLayer || !trajetosMap) return;
+    async function trajetosDesenharRota(pontos, motoristaPeriodo = null) {
+      if (!trajetosRouteLayer || !trajetosMarkersLayer || !trajetosMap) return { excessos: [], paradas: [], paradasLongas: [] };
 
       trajetosRouteLayer.clearLayers();
       trajetosMarkersLayer.clearLayers();
@@ -17018,72 +17025,54 @@
       const coords = pontos.map(p => [p.latitude, p.longitude]);
 
       // Obter configurações dos filtros
-      const LIMITE_VELOCIDADE = parseInt(document.getElementById('trajetos-limite-velocidade')?.value) || 60;
-      const PARADA_MIN_SEGUNDOS = 120; // 2 minutos parado = parada
+      const PARADA_MIN_SEGUNDOS = 120; // 2 minutos parado = parada normal
+      const PARADA_LONGA_MINUTOS = 30; // 30 minutos = parada longa (gap entre pontos)
       const mostrarExcessos = document.getElementById('trajetos-mostrar-excessos')?.checked !== false;
       const mostrarParadas = document.getElementById('trajetos-mostrar-paradas')?.checked !== false;
 
-      // Detectar excessos de velocidade (com duração e velocidade média)
-      let excessos = [];
-      let excessoEmAndamento = null;
+      // Cache de limites de velocidade das vias
+      if (!window.trajetosCacheLimites) {
+        window.trajetosCacheLimites = {};
+      }
 
-      // Detectar paradas
+      // Detectar excessos de velocidade usando limites das vias (API)
+      let excessos = [];
+      let pontosComExcesso = [];
+
+      // Detectar paradas normais
       let paradas = [];
       let paradaAtual = null;
+
+      // Detectar paradas longas (gaps entre pontos)
+      let paradasLongas = [];
 
       // Cache de endereços
       if (!window.trajetosCacheEnderecos) {
         window.trajetosCacheEnderecos = {};
       }
 
+      // 1. Primeira passagem: detectar paradas normais e paradas longas (gaps)
       pontos.forEach((ponto, idx) => {
         const velocidade = ponto.velocidade || 0;
 
-        // Detectar excesso de velocidade (com agrupamento)
-        if (velocidade > LIMITE_VELOCIDADE) {
-          if (!excessoEmAndamento) {
-            // Início de novo período de excesso
-            excessoEmAndamento = {
-              lat: ponto.latitude,
-              lng: ponto.longitude,
-              velocidadeMax: velocidade,
-              velocidadeSoma: velocidade,
-              contagem: 1,
-              limite: LIMITE_VELOCIDADE,
-              horarioInicio: ponto.timestamp,
-              horarioFim: ponto.timestamp
-            };
-          } else {
-            // Continua o período de excesso
-            excessoEmAndamento.velocidadeSoma += velocidade;
-            excessoEmAndamento.contagem++;
-            excessoEmAndamento.horarioFim = ponto.timestamp;
-            if (velocidade > excessoEmAndamento.velocidadeMax) {
-              excessoEmAndamento.velocidadeMax = velocidade;
-              excessoEmAndamento.lat = ponto.latitude;
-              excessoEmAndamento.lng = ponto.longitude;
-            }
-          }
-        } else if (excessoEmAndamento) {
-          // Fim do período de excesso - calcular estatísticas
-          const duracaoMs = new Date(excessoEmAndamento.horarioFim) - new Date(excessoEmAndamento.horarioInicio);
-          const duracaoSeg = Math.round(duracaoMs / 1000);
-          const velocidadeMedia = Math.round(excessoEmAndamento.velocidadeSoma / excessoEmAndamento.contagem);
+        // Detectar PARADA LONGA (gap entre pontos > 30 min)
+        if (idx > 0) {
+          const pontoAnterior = pontos[idx - 1];
+          const gapMs = new Date(ponto.timestamp) - new Date(pontoAnterior.timestamp);
+          const gapMinutos = gapMs / 1000 / 60;
 
-          excessos.push({
-            lat: excessoEmAndamento.lat,
-            lng: excessoEmAndamento.lng,
-            velocidade: velocidadeMedia,
-            velocidadeMax: excessoEmAndamento.velocidadeMax,
-            limite: LIMITE_VELOCIDADE,
-            excesso: velocidadeMedia - LIMITE_VELOCIDADE,
-            horario: excessoEmAndamento.horarioInicio,
-            duracao: duracaoSeg >= 60 ? `${Math.floor(duracaoSeg / 60)}min ${duracaoSeg % 60}s` : `${duracaoSeg}s`
-          });
-          excessoEmAndamento = null;
+          if (gapMinutos >= PARADA_LONGA_MINUTOS) {
+            paradasLongas.push({
+              lat: pontoAnterior.latitude,
+              lng: pontoAnterior.longitude,
+              inicio: pontoAnterior.timestamp,
+              fim: ponto.timestamp,
+              duracao: gapMs / 1000 // em segundos
+            });
+          }
         }
 
-        // Detectar parada (velocidade 0 por mais de X segundos)
+        // Detectar parada normal (velocidade 0 por mais de X segundos)
         if (velocidade === 0) {
           if (!paradaAtual) {
             paradaAtual = {
@@ -17103,9 +17092,103 @@
           }
           paradaAtual = null;
         }
+
+        // Coletar pontos com velocidade alta (potenciais excessos)
+        if (velocidade > 50) {
+          pontosComExcesso.push({ ...ponto, idx });
+        }
       });
 
-      // Salvar último excesso em andamento (se trajeto terminou em excesso)
+      // Salvar última parada
+      if (paradaAtual) {
+        const duracaoSeg = (new Date(paradaAtual.fim) - new Date(paradaAtual.inicio)) / 1000;
+        if (duracaoSeg >= PARADA_MIN_SEGUNDOS) {
+          paradaAtual.duracao = duracaoSeg;
+          paradas.push(paradaAtual);
+        }
+      }
+
+      // 2. Buscar limites de velocidade das vias para pontos com velocidade alta
+      const coordsUnicas = [];
+      const coordsMap = {};
+      pontosComExcesso.forEach(p => {
+        const key = `${p.latitude.toFixed(4)},${p.longitude.toFixed(4)}`;
+        if (!coordsMap[key]) {
+          coordsMap[key] = true;
+          if (!window.trajetosCacheLimites[key]) {
+            coordsUnicas.push({ lat: p.latitude, lng: p.longitude, key });
+          }
+        }
+      });
+
+      // Buscar limites em batch (máximo 15 requisições para não sobrecarregar)
+      const batchLimites = coordsUnicas.slice(0, 15);
+      await Promise.all(batchLimites.map(async (coord) => {
+        try {
+          const res = await fetch(`/api/speedlimit?lat=${coord.lat}&lng=${coord.lng}`);
+          const data = await res.json();
+          if (data.sucesso && data.limite) {
+            window.trajetosCacheLimites[coord.key] = data.limite;
+          } else {
+            window.trajetosCacheLimites[coord.key] = 60; // default urbano
+          }
+        } catch (e) {
+          window.trajetosCacheLimites[coord.key] = 60;
+        }
+      }));
+
+      // 3. Agrupar excessos usando limites das vias
+      let excessoEmAndamento = null;
+
+      pontosComExcesso.forEach((ponto) => {
+        const velocidade = ponto.velocidade || 0;
+        const key = `${ponto.latitude.toFixed(4)},${ponto.longitude.toFixed(4)}`;
+        const limiteVia = window.trajetosCacheLimites[key] || 60;
+
+        if (velocidade > limiteVia) {
+          if (!excessoEmAndamento) {
+            excessoEmAndamento = {
+              lat: ponto.latitude,
+              lng: ponto.longitude,
+              velocidadeMax: velocidade,
+              velocidadeSoma: velocidade,
+              contagem: 1,
+              limite: limiteVia,
+              horarioInicio: ponto.timestamp,
+              horarioFim: ponto.timestamp
+            };
+          } else {
+            excessoEmAndamento.velocidadeSoma += velocidade;
+            excessoEmAndamento.contagem++;
+            excessoEmAndamento.horarioFim = ponto.timestamp;
+            if (velocidade > excessoEmAndamento.velocidadeMax) {
+              excessoEmAndamento.velocidadeMax = velocidade;
+              excessoEmAndamento.lat = ponto.latitude;
+              excessoEmAndamento.lng = ponto.longitude;
+              excessoEmAndamento.limite = limiteVia;
+            }
+          }
+        } else if (excessoEmAndamento) {
+          // Finalizar excesso em andamento
+          const duracaoMs = new Date(excessoEmAndamento.horarioFim) - new Date(excessoEmAndamento.horarioInicio);
+          const duracaoSeg = Math.round(duracaoMs / 1000);
+          const velocidadeMedia = Math.round(excessoEmAndamento.velocidadeSoma / excessoEmAndamento.contagem);
+
+          excessos.push({
+            lat: excessoEmAndamento.lat,
+            lng: excessoEmAndamento.lng,
+            velocidade: velocidadeMedia,
+            velocidadeMax: excessoEmAndamento.velocidadeMax,
+            limite: excessoEmAndamento.limite,
+            excesso: velocidadeMedia - excessoEmAndamento.limite,
+            horario: excessoEmAndamento.horarioInicio,
+            duracao: duracaoSeg >= 60 ? `${Math.floor(duracaoSeg / 60)}min ${duracaoSeg % 60}s` : `${duracaoSeg}s`
+          });
+          excessoEmAndamento = null;
+        }
+      });
+
+      // Salvar último excesso em andamento
       if (excessoEmAndamento) {
         const duracaoMs = new Date(excessoEmAndamento.horarioFim) - new Date(excessoEmAndamento.horarioInicio);
         const duracaoSeg = Math.round(duracaoMs / 1000);
@@ -17116,20 +17199,11 @@
           lng: excessoEmAndamento.lng,
           velocidade: velocidadeMedia,
           velocidadeMax: excessoEmAndamento.velocidadeMax,
-          limite: LIMITE_VELOCIDADE,
-          excesso: velocidadeMedia - LIMITE_VELOCIDADE,
+          limite: excessoEmAndamento.limite,
+          excesso: velocidadeMedia - excessoEmAndamento.limite,
           horario: excessoEmAndamento.horarioInicio,
           duracao: duracaoSeg >= 60 ? `${Math.floor(duracaoSeg / 60)}min ${duracaoSeg % 60}s` : `${duracaoSeg}s`
         });
-      }
-
-      // Salvar última parada
-      if (paradaAtual) {
-        const duracaoSeg = (new Date(paradaAtual.fim) - new Date(paradaAtual.inicio)) / 1000;
-        if (duracaoSeg >= PARADA_MIN_SEGUNDOS) {
-          paradaAtual.duracao = duracaoSeg;
-          paradas.push(paradaAtual);
-        }
       }
 
       // Desenhar rota animada com ant-path (cor teal/cyan)
@@ -17227,9 +17301,10 @@
       endMarker.bindPopup(`<b>Fim do trajeto</b><br>${new Date(pontos[pontos.length - 1].timestamp).toLocaleString('pt-BR')}`);
       trajetosMarkersLayer.addLayer(endMarker);
 
-      // Marcadores de EXCESSO DE VELOCIDADE - igual veiculo-detalhes
+      // Marcadores de EXCESSO DE VELOCIDADE - usando limite da via
       if (mostrarExcessos) excessos.forEach((exc, idx) => {
-        const excessoKmh = exc.velocidadeMax - LIMITE_VELOCIDADE;
+        const limiteVia = exc.limite || 60;
+        const excessoKmh = exc.velocidadeMax - limiteVia;
         const isGrave = excessoKmh > 20;
         const bgColor = isGrave ? '#EF4444' : '#FBBF24';
         const badgeText = isGrave ? 'Grave' : 'Média';
@@ -17289,7 +17364,7 @@
                 font-weight: 700;
                 font-size: 14px;
                 background: white;
-              ">${LIMITE_VELOCIDADE}</div>
+              ">${limiteVia}</div>
               <div style="flex: 1;">
                 <div style="font-size: 15px; font-weight: 600; color: #111;">Velocidade da via excedida</div>
               </div>
@@ -17443,11 +17518,114 @@
         trajetosMarkersLayer.addLayer(marker);
       });
 
+      // Marcadores de PARADAS LONGAS (círculo azul/cinza com ícone de lua/pausa) - gaps entre pontos
+      if (mostrarParadas) paradasLongas.forEach((parada, idx) => {
+        const duracaoSeg = parada.duracao;
+        const duracaoMin = Math.round(duracaoSeg / 60);
+        const horaInicio = new Date(parada.inicio).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        const horaFim = new Date(parada.fim).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        let duracaoStr;
+        if (duracaoMin >= 1440) {
+          const dias = Math.floor(duracaoMin / 1440);
+          const horas = Math.floor((duracaoMin % 1440) / 60);
+          duracaoStr = `${dias}d ${horas}h`;
+        } else if (duracaoMin >= 60) {
+          duracaoStr = `${Math.floor(duracaoMin / 60)}h ${duracaoMin % 60}min`;
+        } else {
+          duracaoStr = `${duracaoMin} min`;
+        }
+        const numero = idx + 1;
+
+        const marker = L.marker([parada.lat, parada.lng], {
+          icon: L.divIcon({
+            className: 'parada-longa-marker',
+            html: `<div style="filter: drop-shadow(0 2px 6px rgba(0,0,0,0.35));">
+              <svg width="36" height="36" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="16" fill="#6366F1" stroke="#fff" stroke-width="3"/>
+                <path d="M18 10v8l5 3" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+              </svg>
+            </div>`,
+            iconSize: [36, 36],
+            iconAnchor: [18, 18]
+          })
+        });
+        marker.bindPopup(`
+          <div style="min-width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 0;">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin: -13px -20px 0; border-bottom: 1px solid #e5e7eb; background: white; border-radius: 8px 8px 0 0;">
+              <div style="
+                width: 40px;
+                height: 40px;
+                border: 3px solid #6366F1;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: white;
+              ">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#6366F1"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+              </div>
+              <div style="flex: 1;">
+                <div style="font-size: 15px; font-weight: 600; color: #111;">Veiculo Parado</div>
+                <div style="font-size: 12px; color: #6366F1; font-weight: 500;">${duracaoStr} sem movimentacao</div>
+              </div>
+            </div>
+            <div style="padding: 14px 16px; margin: 0 -20px -13px; background: #fafafa;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <span style="font-weight: 500; color: #555;">Período:</span>
+                <span style="background: #6366F1; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${duracaoStr}</span>
+              </div>
+              <div style="font-size: 13px; color: #555; line-height: 1.8;">
+                <div><strong>Inicio:</strong> ${horaInicio}</div>
+                <div><strong>Retomada:</strong> ${horaFim}</div>
+                <div id="trajetos-endereco-longa-${numero}" style="margin-top: 4px;"><strong>Endereço:</strong> <span style="color: #999;">Carregando...</span></div>
+                ${motoristaPeriodo ? `<div style="margin-top: 4px;"><strong>Motorista:</strong> ${motoristaPeriodo}</div>` : ''}
+              </div>
+            </div>
+          </div>
+        `, { maxWidth: 320, className: 'popup-parada-longa' });
+
+        // Buscar endereço quando popup abrir
+        marker.on('popupopen', async function() {
+          const el = document.getElementById(`trajetos-endereco-longa-${numero}`);
+          if (!el || el.dataset.loaded === 'true') return;
+
+          const cacheKey = `${parada.lat.toFixed(4)},${parada.lng.toFixed(4)}`;
+          if (window.trajetosCacheEnderecos[cacheKey]) {
+            el.innerHTML = `<strong>Endereço:</strong> ${window.trajetosCacheEnderecos[cacheKey]}`;
+            el.dataset.loaded = 'true';
+            return;
+          }
+
+          try {
+            const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${parada.lat}&lon=${parada.lng}&zoom=18&addressdetails=1`, {
+              headers: { 'Accept-Language': 'pt-BR' }
+            });
+            const geoData = await geoRes.json();
+            let endereco = `${parada.lat.toFixed(5)}, ${parada.lng.toFixed(5)}`;
+            if (geoData.address) {
+              const parts = [];
+              if (geoData.address.road) parts.push(geoData.address.road);
+              if (geoData.address.house_number && parts.length) parts[parts.length - 1] += `, ${geoData.address.house_number}`;
+              if (geoData.address.suburb || geoData.address.neighbourhood) parts.push(geoData.address.suburb || geoData.address.neighbourhood);
+              if (geoData.address.city || geoData.address.town || geoData.address.village) parts.push(geoData.address.city || geoData.address.town || geoData.address.village);
+              if (parts.length > 0) endereco = parts.join(' - ');
+            }
+            window.trajetosCacheEnderecos[cacheKey] = endereco;
+            el.innerHTML = `<strong>Endereço:</strong> ${endereco}`;
+            el.dataset.loaded = 'true';
+          } catch (e) {
+            el.innerHTML = `<strong>Endereço:</strong> ${parada.lat.toFixed(5)}, ${parada.lng.toFixed(5)}`;
+          }
+        });
+
+        trajetosMarkersLayer.addLayer(marker);
+      });
+
       // Ajustar zoom para mostrar toda a rota
       trajetosMap.fitBounds(L.latLngBounds(coords), { padding: [50, 50] });
 
       // Retornar estatísticas de eventos
-      return { excessos, paradas };
+      return { excessos, paradas, paradasLongas };
     }
 
     // Calcular e mostrar estatísticas
@@ -17485,7 +17663,7 @@
 
       const excessos = eventos?.excessos || [];
       const paradas = eventos?.paradas || [];
-      const limiteVelocidade = parseInt(document.getElementById('trajetos-limite-velocidade')?.value) || 60;
+      const paradasLongas = eventos?.paradasLongas || [];
       const mostrarExcessos = document.getElementById('trajetos-mostrar-excessos')?.checked !== false;
       const mostrarParadas = document.getElementById('trajetos-mostrar-paradas')?.checked !== false;
 
@@ -17496,17 +17674,18 @@
       document.getElementById('trajetos-resumo-excessos').textContent = excessos.length;
       document.getElementById('trajetos-resumo').style.display = 'grid';
 
-      // Gerar HTML de excessos
+      // Gerar HTML de excessos (usando limite da via de cada excesso)
       let excessosHtml = '';
       if (mostrarExcessos && excessos.length > 0) {
         excessosHtml = `
           <div style="margin-top: 16px;">
             <div style="font-weight: 600; font-size: 0.85em; color: #DC2626; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="#DC2626"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              ${excessos.length} Excesso(s) de Velocidade (>${limiteVelocidade} km/h)
+              ${excessos.length} Excesso(s) de Velocidade (limites das vias)
             </div>
             ${excessos.map((e, i) => {
-              const excessoKmh = e.velocidadeMax - limiteVelocidade;
+              const limiteVia = e.limite || 60;
+              const excessoKmh = e.velocidadeMax - limiteVia;
               const isGrave = excessoKmh > 20;
               const bgColor = isGrave ? '#DC2626' : '#F59E0B';
               const badgeText = isGrave ? 'Grave' : 'Média';
@@ -17519,7 +17698,7 @@
                       <span style="font-weight: 700; color: ${bgColor}; font-size: 1.15em;">${Math.round(e.velocidadeMax)} km/h</span>
                       <span style="background: ${bgColor}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">${badgeText}</span>
                     </div>
-                    <div style="font-size: 0.8em; color: var(--text-light);">+${Math.round(excessoKmh)} km/h · ${new Date(e.horario).toLocaleTimeString('pt-BR')}</div>
+                    <div style="font-size: 0.8em; color: var(--text-light);">+${Math.round(excessoKmh)} km/h (limite ${limiteVia}) · ${new Date(e.horario).toLocaleTimeString('pt-BR')}</div>
                     ${motoristaPeriodo ? `<div style="font-size: 0.8em; color: var(--text); margin-top: 4px;"><strong>Motorista:</strong> ${motoristaPeriodo}</div>` : ''}
                   </div>
                 </div>
@@ -17566,7 +17745,8 @@
       document.getElementById('trajetos-detalhe-vel-media').textContent = Math.round(velMedia) + ' km/h';
       document.getElementById('trajetos-detalhe-vel-max').textContent = Math.round(velMax) + ' km/h';
       document.getElementById('trajetos-detalhe-excessos').textContent = excessos.length;
-      document.getElementById('trajetos-detalhe-paradas').textContent = paradas.length;
+      const totalParadas = paradas.length + paradasLongas.length;
+      document.getElementById('trajetos-detalhe-paradas').textContent = totalParadas + (paradasLongas.length > 0 ? ` (${paradasLongas.length} longas)` : '');
       document.getElementById('trajetos-viagem-detalhes').style.display = 'block';
 
       // Mostrar detalhes na lista lateral
@@ -17600,6 +17780,28 @@
 
           ${excessosHtml}
           ${paradasHtml}
+          ${mostrarParadas && paradasLongas.length > 0 ? `
+          <div style="margin-top: 16px;">
+            <div style="font-weight: 600; font-size: 0.85em; color: #6366F1; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#6366F1"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+              ${paradasLongas.length} Periodo(s) Parado
+            </div>
+            ${paradasLongas.map((p, i) => {
+              const duracaoMin = Math.round(p.duracao / 60);
+              let duracaoStr;
+              if (duracaoMin >= 1440) {
+                const dias = Math.floor(duracaoMin / 1440);
+                const horas = Math.floor((duracaoMin % 1440) / 60);
+                duracaoStr = dias + 'd ' + horas + 'h';
+              } else if (duracaoMin >= 60) {
+                duracaoStr = Math.floor(duracaoMin / 60) + 'h ' + (duracaoMin % 60) + 'min';
+              } else {
+                duracaoStr = duracaoMin + ' min';
+              }
+              return '<div onclick="trajetosFocarEvento(' + p.lat + ', ' + p.lng + ')" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 10px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform=\\'translateX(4px)\\'" onmouseout="this.style.transform=\\'none\\'"><div style="display: flex; align-items: flex-start; gap: 10px;"><div style="width: 28px; height: 28px; background: #6366F1; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div><div style="flex: 1;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;"><span style="font-weight: 700; color: #6366F1; font-size: 1.1em;">Veiculo Parado</span><span style="background: #6366F1; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">' + duracaoStr + '</span></div><div style="font-size: 0.8em; color: var(--text-light);">' + new Date(p.inicio).toLocaleString('pt-BR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) + ' - ' + new Date(p.fim).toLocaleString('pt-BR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'}) + '</div>' + (motoristaPeriodo ? '<div style="font-size: 0.8em; color: var(--text); margin-top: 4px;"><strong>Motorista:</strong> ' + motoristaPeriodo + '</div>' : '') + '</div></div></div>';
+            }).join('')}
+          </div>
+          ` : ''}
 
           <div style="color: var(--text-light); font-size: 0.75em; text-align: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
             ${pontos.length} pontos GPS analisados
