@@ -6567,40 +6567,56 @@
               min-height: 200px;
             }
 
-            /* Barra de detalhes inferior - ajusta ao conteúdo */
-            #trajetos-viagem-detalhes {
+            /* Barra de detalhes inferior */
+            .trajetos-detalhes-bar {
+              display: none;
+              background: var(--bg-card);
+              border-top: 1px solid var(--border);
+              padding: 10px;
               flex-shrink: 0;
               width: 100%;
               box-sizing: border-box;
             }
 
-            #trajetos-viagem-detalhes > div {
-              display: flex;
-              flex-wrap: wrap;
+            .trajetos-detalhes-grid {
+              display: grid;
+              grid-template-columns: repeat(6, 1fr);
               gap: 8px;
-              justify-content: space-evenly;
+              width: 100%;
             }
 
-            #trajetos-viagem-detalhes .trajetos-stat-card {
-              flex: 1 1 80px;
-              min-width: 80px;
-              max-width: 140px;
-              text-align: center;
+            .trajetos-stat-card {
+              background: rgba(63, 207, 213, 0.08);
+              border: 1px solid var(--border);
+              border-radius: 8px;
               padding: 8px 4px;
+              text-align: center;
+              min-width: 0;
             }
 
             .trajetos-stat-value {
-              font-size: clamp(14px, 2vw, 18px);
+              font-size: clamp(12px, 1.8vw, 16px);
               font-weight: 700;
               white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
 
             .trajetos-stat-label {
-              font-size: clamp(9px, 1.2vw, 11px);
+              font-size: clamp(8px, 1vw, 10px);
               color: var(--text-light);
               text-transform: uppercase;
               white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
+
+            /* Cores dos valores */
+            .color-green { color: #10B981; }
+            .color-blue { color: #3B82F6; }
+            .color-orange { color: #F59E0B; }
+            .color-red { color: #EF4444; }
+            .color-purple { color: #8B5CF6; }
 
             /* Tablet */
             @media (max-width: 1024px) {
@@ -6610,6 +6626,10 @@
 
               .trajetos-sidebar-panel {
                 width: clamp(250px, 30vw, 320px);
+              }
+
+              .trajetos-detalhes-grid {
+                grid-template-columns: repeat(3, 1fr);
               }
             }
 
@@ -6644,13 +6664,16 @@
                 min-height: unset;
               }
 
-              #trajetos-viagem-detalhes {
-                padding: 10px !important;
+              .trajetos-detalhes-bar {
+                padding: 8px;
               }
 
-              #trajetos-viagem-detalhes .trajetos-stat-card {
-                flex: 1 1 60px;
-                min-width: 60px;
+              .trajetos-detalhes-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px;
+              }
+
+              .trajetos-stat-card {
                 padding: 6px 2px;
               }
             }
@@ -6659,6 +6682,10 @@
             @media (max-width: 480px) {
               .trajetos-layout {
                 min-height: calc(100vh - 56px);
+              }
+
+              .trajetos-detalhes-grid {
+                grid-template-columns: repeat(2, 1fr);
               }
 
               .trajetos-sidebar-panel {
@@ -6808,14 +6835,14 @@
               <div id="trajetos-map" class="trajetos-map-container"></div>
 
               <!-- Detalhes da Viagem -->
-              <div id="trajetos-viagem-detalhes" style="display: none; background: var(--bg-card); border-top: 1px solid var(--border); padding: 12px 16px;">
-                <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
+              <div id="trajetos-viagem-detalhes" class="trajetos-detalhes-bar">
+                <div class="trajetos-detalhes-grid">
                   <div class="trajetos-stat-card">
-                    <div class="trajetos-stat-value" style="color: #10B981;" id="trajetos-detalhe-distancia">--</div>
+                    <div class="trajetos-stat-value color-green" id="trajetos-detalhe-distancia">--</div>
                     <div class="trajetos-stat-label">Distancia</div>
                   </div>
                   <div class="trajetos-stat-card">
-                    <div class="trajetos-stat-value" style="color: #3B82F6;" id="trajetos-detalhe-duracao">--</div>
+                    <div class="trajetos-stat-value color-blue" id="trajetos-detalhe-duracao">--</div>
                     <div class="trajetos-stat-label">Duracao</div>
                   </div>
                   <div class="trajetos-stat-card">
@@ -6823,15 +6850,15 @@
                     <div class="trajetos-stat-label">Vel. Media</div>
                   </div>
                   <div class="trajetos-stat-card">
-                    <div class="trajetos-stat-value" style="color: #F59E0B;" id="trajetos-detalhe-vel-max">--</div>
+                    <div class="trajetos-stat-value color-orange" id="trajetos-detalhe-vel-max">--</div>
                     <div class="trajetos-stat-label">Vel. Maxima</div>
                   </div>
                   <div class="trajetos-stat-card">
-                    <div class="trajetos-stat-value" style="color: #EF4444;" id="trajetos-detalhe-excessos">0</div>
+                    <div class="trajetos-stat-value color-red" id="trajetos-detalhe-excessos">0</div>
                     <div class="trajetos-stat-label">Excessos</div>
                   </div>
                   <div class="trajetos-stat-card">
-                    <div class="trajetos-stat-value" style="color: #8B5CF6;" id="trajetos-detalhe-paradas">0</div>
+                    <div class="trajetos-stat-value color-purple" id="trajetos-detalhe-paradas">0</div>
                     <div class="trajetos-stat-label">Paradas</div>
                   </div>
                 </div>
