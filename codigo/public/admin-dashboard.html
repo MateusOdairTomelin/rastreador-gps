@@ -77,7 +77,7 @@
       --card-shadow-hover: 0 8px 30px rgba(63, 207, 213, 0.2);
     }
 
-    /* ====== TRAJETOS SLIDER STYLES - MODERNO ====== */
+    /* ====== TRAJETOS SLIDER - SIMPLES ====== */
     #trajetos-hora-inicio,
     #trajetos-hora-fim {
       -webkit-appearance: none;
@@ -87,35 +87,22 @@
     #trajetos-hora-fim::-webkit-slider-thumb {
       -webkit-appearance: none;
       pointer-events: auto;
-      width: 18px;
-      height: 18px;
-      background: linear-gradient(135deg, #3FCFD5 0%, #2dd4bf 100%);
+      width: 14px;
+      height: 14px;
+      background: #3B82F6;
       border-radius: 50%;
-      cursor: grab;
+      cursor: pointer;
       border: 2px solid #fff;
-      box-shadow: 0 2px 8px rgba(63, 207, 213, 0.5), 0 0 0 3px rgba(63, 207, 213, 0.2);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    #trajetos-hora-inicio::-webkit-slider-thumb:hover,
-    #trajetos-hora-fim::-webkit-slider-thumb:hover {
-      transform: scale(1.15);
-      box-shadow: 0 3px 12px rgba(63, 207, 213, 0.6), 0 0 0 4px rgba(63, 207, 213, 0.3);
-    }
-    #trajetos-hora-inicio::-webkit-slider-thumb:active,
-    #trajetos-hora-fim::-webkit-slider-thumb:active {
-      cursor: grabbing;
-      transform: scale(1.1);
     }
     #trajetos-hora-inicio::-moz-range-thumb,
     #trajetos-hora-fim::-moz-range-thumb {
       pointer-events: auto;
-      width: 18px;
-      height: 18px;
-      background: linear-gradient(135deg, #3FCFD5 0%, #2dd4bf 100%);
+      width: 14px;
+      height: 14px;
+      background: #3B82F6;
       border-radius: 50%;
-      cursor: grab;
+      cursor: pointer;
       border: 2px solid #fff;
-      box-shadow: 0 2px 8px rgba(63, 207, 213, 0.5), 0 0 0 3px rgba(63, 207, 213, 0.2);
     }
 
     /* ====== DARK MODE ====== */
@@ -6606,52 +6593,63 @@
             }
 
             .trajetos-sidebar-panel {
-              width: 40px;
-              min-width: 40px;
+              width: 0;
               flex-shrink: 0;
               background: var(--bg-light);
-              border-right: 1px solid var(--border);
+              border-right: none;
               display: flex;
               flex-direction: column;
               overflow: hidden;
               border-radius: 12px 0 0 12px;
               max-height: 100%;
               position: relative;
-              transition: width 0.3s ease, min-width 0.3s ease;
+              transition: width 0.25s ease;
             }
 
-            /* Expande ao passar o mouse */
-            .trajetos-sidebar-panel:hover {
+            /* Aba/guia para expandir */
+            .trajetos-sidebar-panel::after {
+              content: '>';
+              position: absolute;
+              right: -24px;
+              top: 50%;
+              transform: translateY(-50%);
+              width: 24px;
+              height: 60px;
+              background: var(--primary);
+              color: #0d1042;
+              font-weight: bold;
+              font-size: 14px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 0 8px 8px 0;
+              cursor: pointer;
+              z-index: 15;
+              transition: right 0.25s ease, opacity 0.25s ease;
+            }
+
+            /* Expande ao passar o mouse na aba ou sidebar */
+            .trajetos-sidebar-panel:hover,
+            .trajetos-sidebar-panel:hover::after {
               width: clamp(300px, 28vw, 380px);
-              min-width: 300px;
+            }
+
+            .trajetos-sidebar-panel:hover {
+              border-right: 1px solid var(--border);
               overflow-y: auto;
               overflow-x: hidden;
             }
 
-            /* Indicador visual quando recolhido */
-            .trajetos-sidebar-panel::before {
-              content: '';
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              width: 20px;
-              height: 20px;
-              background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233FCFD5' stroke-width='2.5'%3E%3Cpolyline points='9 18 15 12 9 6'/%3E%3C/svg%3E") center/contain no-repeat;
-              opacity: 0.8;
-              transition: opacity 0.3s;
-              z-index: 5;
-            }
-
-            .trajetos-sidebar-panel:hover::before {
+            .trajetos-sidebar-panel:hover::after {
               opacity: 0;
+              right: 0;
               pointer-events: none;
             }
 
             .trajetos-filtros-container {
               opacity: 0;
               visibility: hidden;
-              transition: opacity 0.3s ease, visibility 0.3s ease;
+              transition: opacity 0.2s ease;
               width: 100%;
               min-width: 280px;
             }
@@ -6870,27 +6868,17 @@
                   </button>
                 </div>
 
-                <!-- Slider de Horário - Visual Moderno -->
-                <div style="padding: 12px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, rgba(63, 207, 213, 0.05), rgba(45, 212, 191, 0.02)); border-radius: 8px; margin: 8px 12px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <span style="font-size: 12px; color: var(--text-light); font-weight: 500;">Horário</span>
-                    <span style="font-family: 'Inter', monospace; font-size: 14px; font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--primary), #2dd4bf); padding: 4px 12px; border-radius: 20px;" id="trajetos-duracao-label">00:00 - 23:59</span>
+                <!-- Slider de Horário - Simples -->
+                <div style="padding: 10px 12px; border-bottom: 1px solid var(--border);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; color: var(--text-light);">Horário</span>
+                    <span style="font-size: 12px; font-weight: 600; color: var(--primary);" id="trajetos-duracao-label">00:00 - 23:59</span>
                   </div>
-                  <div style="position: relative; height: 32px; display: flex; align-items: center; padding: 0 4px;">
-                    <!-- Trilha de fundo -->
-                    <div style="position: absolute; left: 4px; right: 4px; height: 10px; background: linear-gradient(180deg, rgba(13, 16, 66, 0.8), rgba(19, 30, 125, 0.6)); border-radius: 5px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);"></div>
-                    <!-- Barra de progresso -->
-                    <div style="position: absolute; height: 10px; background: linear-gradient(90deg, #3FCFD5, #2dd4bf, #14b8a6); border-radius: 5px; box-shadow: 0 0 10px rgba(63, 207, 213, 0.4);" id="trajetos-slider-range"></div>
-                    <!-- Sliders -->
-                    <input type="range" id="trajetos-hora-inicio" min="0" max="1439" value="0" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 32px; -webkit-appearance: none; background: transparent; pointer-events: none;">
-                    <input type="range" id="trajetos-hora-fim" min="0" max="1439" value="1439" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 32px; -webkit-appearance: none; background: transparent; pointer-events: none;">
-                  </div>
-                  <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: var(--text-light);">
-                    <span>00:00</span>
-                    <span>06:00</span>
-                    <span>12:00</span>
-                    <span>18:00</span>
-                    <span>23:59</span>
+                  <div style="position: relative; height: 20px; display: flex; align-items: center;">
+                    <div style="position: absolute; left: 0; right: 0; height: 6px; background: #1a237e; border-radius: 3px;"></div>
+                    <div style="position: absolute; height: 6px; background: #3B82F6; border-radius: 3px;" id="trajetos-slider-range"></div>
+                    <input type="range" id="trajetos-hora-inicio" min="0" max="1439" value="0" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 20px; -webkit-appearance: none; background: transparent; pointer-events: none;">
+                    <input type="range" id="trajetos-hora-fim" min="0" max="1439" value="1439" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 20px; -webkit-appearance: none; background: transparent; pointer-events: none;">
                   </div>
                   <span id="trajetos-hora-inicio-label" style="display: none;">00:00</span>
                   <span id="trajetos-hora-fim-label" style="display: none;">23:59</span>
