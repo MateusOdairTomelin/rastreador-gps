@@ -6202,88 +6202,73 @@
               <div id="trajetos-map" style="flex: 1; min-height: 400px;"></div>
 
               <!-- Detalhes da Viagem -->
-              <div id="trajetos-viagem-detalhes" style="display: none; background: var(--bg-card); border-top: 1px solid var(--border); padding: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                  <div style="font-size: 1.1em; font-weight: 600;" id="trajetos-detalhes-titulo">Detalhes da Viagem</div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
-                  <div style="background: var(--bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border);">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-light); font-size: 0.8em;">
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                      </svg>
-                      Duracao
-                    </div>
-                    <div style="font-size: 1.3em; font-weight: 700; color: #3B82F6;" id="trajetos-detalhe-duracao">--</div>
+              <div id="trajetos-viagem-detalhes" style="display: none; background: var(--bg-card); border-top: 1px solid var(--border); padding: 16px 20px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
+                  <div class="trajetos-stat-card">
+                    <div class="trajetos-stat-value" style="color: #10B981;" id="trajetos-detalhe-distancia">--</div>
+                    <div class="trajetos-stat-label">Distancia</div>
                   </div>
-
-                  <div style="background: var(--bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border);">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-light); font-size: 0.8em;">
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5"/>
-                      </svg>
-                      Distancia
-                    </div>
-                    <div style="font-size: 1.3em; font-weight: 700; color: #10B981;" id="trajetos-detalhe-distancia">--</div>
+                  <div class="trajetos-stat-card">
+                    <div class="trajetos-stat-value" style="color: #3B82F6;" id="trajetos-detalhe-duracao">--</div>
+                    <div class="trajetos-stat-label">Duracao</div>
                   </div>
-
-                  <div style="background: var(--bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border);">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-light); font-size: 0.8em;">
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2v20M2 12h20"/>
-                      </svg>
-                      Vel. Media
-                    </div>
-                    <div style="font-size: 1.3em; font-weight: 700;" id="trajetos-detalhe-vel-media">--</div>
+                  <div class="trajetos-stat-card">
+                    <div class="trajetos-stat-value" id="trajetos-detalhe-vel-media">--</div>
+                    <div class="trajetos-stat-label">Vel. Media</div>
                   </div>
-
-                  <div style="background: var(--bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border);">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-light); font-size: 0.8em;">
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-                      </svg>
-                      Vel. Maxima
-                    </div>
-                    <div style="font-size: 1.3em; font-weight: 700; color: #F59E0B;" id="trajetos-detalhe-vel-max">--</div>
+                  <div class="trajetos-stat-card">
+                    <div class="trajetos-stat-value" style="color: #F59E0B;" id="trajetos-detalhe-vel-max">--</div>
+                    <div class="trajetos-stat-label">Vel. Maxima</div>
                   </div>
-
-                  <div style="background: var(--bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border);">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-light); font-size: 0.8em;">
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/>
-                      </svg>
-                      Paradas
-                    </div>
-                    <div style="font-size: 1.3em; font-weight: 700;" id="trajetos-detalhe-paradas">--</div>
+                  <div class="trajetos-stat-card">
+                    <div class="trajetos-stat-value" style="color: #EF4444;" id="trajetos-detalhe-excessos">0</div>
+                    <div class="trajetos-stat-label">Excessos</div>
                   </div>
-
-                  <div style="background: var(--bg); padding: 14px; border-radius: 10px; border: 1px solid var(--border);">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-light); font-size: 0.8em;">
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                      </svg>
-                      Excessos
-                    </div>
-                    <div style="font-size: 1.3em; font-weight: 700; color: #EF4444;" id="trajetos-detalhe-excessos">--</div>
+                  <div class="trajetos-stat-card">
+                    <div class="trajetos-stat-value" style="color: #8B5CF6;" id="trajetos-detalhe-paradas">0</div>
+                    <div class="trajetos-stat-label">Paradas</div>
                   </div>
-                </div>
-
-                <!-- Eventos (Paradas) -->
-                <div id="trajetos-eventos-container" style="display: none; margin-top: 20px;">
-                  <div style="font-size: 0.9em; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-                    </svg>
-                    Paradas
-                  </div>
-                  <div id="trajetos-eventos-lista" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px;"></div>
                 </div>
               </div>
             </div>
           </div>
+
+          <style>
+            .trajetos-stat-card {
+              background: rgba(6, 182, 212, 0.08);
+              border: 1px solid rgba(6, 182, 212, 0.15);
+              border-radius: 10px;
+              padding: 12px;
+              text-align: center;
+            }
+            .trajetos-stat-value {
+              font-size: 1.4em;
+              font-weight: 700;
+              color: var(--text);
+              line-height: 1.2;
+            }
+            .trajetos-stat-label {
+              font-size: 0.7em;
+              font-weight: 600;
+              color: var(--text-light);
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              margin-top: 4px;
+            }
+            .excesso-marker > div,
+            .parada-marker > div {
+              transition: transform 0.15s ease;
+              cursor: pointer;
+            }
+            .excesso-marker > div:hover {
+              transform: scale(1.15);
+            }
+            .parada-marker > div:hover {
+              transform: scale(1.15);
+            }
+          </style>
         </section>
+
 
         <!-- PERFIS DE PERMISSÃO SECTION -->
         <section class="section" id="section-perfis">
@@ -16986,7 +16971,7 @@
       trajetosMarkersLayer.clearLayers();
 
       const coords = pontos.map(p => [p.latitude, p.longitude]);
-      const LIMITE_VELOCIDADE = 80; // km/h - limite padrão para detectar excessos
+      const LIMITE_VELOCIDADE = 60; // km/h - limite padrão para detectar excessos (velocidade urbana)
       const PARADA_MIN_SEGUNDOS = 120; // 2 minutos parado = parada
 
       // Detectar excessos de velocidade
@@ -17108,46 +17093,134 @@
       endMarker.bindPopup(`<b>Fim</b><br>${new Date(pontos[pontos.length - 1].timestamp).toLocaleString('pt-BR')}`);
       trajetosMarkersLayer.addLayer(endMarker);
 
-      // Marcadores de excessos de velocidade (triângulo vermelho)
+      // Marcadores de excessos de velocidade (círculo vermelho com número)
       excessos.forEach((exc, idx) => {
+        const excessoKmh = exc.velocidadeMax - LIMITE_VELOCIDADE;
+        const isGrave = excessoKmh > 20; // Grave se excesso > 20 km/h
+        const bgColor = isGrave ? '#DC2626' : '#F59E0B'; // Vermelho grave, Amarelo média
+
         const marker = L.marker([exc.lat, exc.lng], {
           icon: L.divIcon({
             className: 'excesso-marker',
-            html: `<div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-              <svg width="32" height="32" viewBox="0 0 32 32">
-                <path d="M16 4 L28 28 L4 28 Z" fill="#DC2626" stroke="#fff" stroke-width="2"/>
-                <text x="16" y="22" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">${Math.round(exc.velocidadeMax)}</text>
-              </svg>
+            html: `<div style="position: relative; display: inline-block;">
+              <div style="
+                width: 36px;
+                height: 36px;
+                background: ${bgColor};
+                border: 3px solid white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+              ">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="0.5">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+              </div>
+              <div style="
+                position: absolute;
+                bottom: -8px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: white;
+                color: #333;
+                font-size: 10px;
+                font-weight: 700;
+                padding: 2px 6px;
+                border-radius: 8px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                border: 2px solid ${bgColor};
+              ">${idx + 1}</div>
             </div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 28]
+            iconSize: [36, 48],
+            iconAnchor: [18, 24]
           })
         });
-        marker.bindPopup(`<b>Excesso de Velocidade</b><br>
-          <span style="color: #DC2626; font-weight: bold;">${Math.round(exc.velocidadeMax)} km/h</span><br>
-          <small>${new Date(exc.horario).toLocaleTimeString('pt-BR')}</small>`);
+        marker.bindPopup(`
+          <div style="min-width: 160px;">
+            <div style="background: ${bgColor}; color: white; padding: 8px 12px; margin: -8px -12px 8px; border-radius: 4px 4px 0 0; font-weight: 600;">
+              Excesso #${idx + 1}
+            </div>
+            <div style="padding: 4px 0;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="color: #666;">Velocidade:</span>
+                <span style="font-weight: 700; color: ${bgColor};">${Math.round(exc.velocidadeMax)} km/h</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="color: #666;">Limite:</span>
+                <span style="font-weight: 600;">${LIMITE_VELOCIDADE} km/h</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: #666;">Excesso:</span>
+                <span style="font-weight: 700; color: ${bgColor};">+${Math.round(excessoKmh)} km/h</span>
+              </div>
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee; font-size: 0.85em; color: #888;">
+                ${new Date(exc.horario).toLocaleTimeString('pt-BR')}
+              </div>
+            </div>
+          </div>
+        `);
         trajetosMarkersLayer.addLayer(marker);
       });
 
-      // Marcadores de paradas (P azul)
+      // Marcadores de paradas (círculo azul com número)
       paradas.forEach((parada, idx) => {
         const duracaoMin = Math.round(parada.duracao / 60);
         const marker = L.marker([parada.lat, parada.lng], {
           icon: L.divIcon({
             className: 'parada-marker',
-            html: `<div style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
-              <svg width="32" height="32" viewBox="0 0 32 32">
-                <circle cx="16" cy="16" r="14" fill="#3B82F6" stroke="#fff" stroke-width="2"/>
-                <text x="16" y="21" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">P</text>
-              </svg>
+            html: `<div style="position: relative; display: inline-block;">
+              <div style="
+                width: 36px;
+                height: 36px;
+                background: #3B82F6;
+                border: 3px solid white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+              ">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                  <rect x="6" y="6" width="12" height="12" rx="2"/>
+                </svg>
+              </div>
+              <div style="
+                position: absolute;
+                bottom: -8px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: white;
+                color: #333;
+                font-size: 10px;
+                font-weight: 700;
+                padding: 2px 6px;
+                border-radius: 8px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                border: 2px solid #3B82F6;
+              ">${idx + 1}</div>
             </div>`,
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
+            iconSize: [36, 48],
+            iconAnchor: [18, 24]
           })
         });
-        marker.bindPopup(`<b>Parada ${idx + 1}</b><br>
-          Duracao: <b>${duracaoMin} min</b><br>
-          <small>${new Date(parada.inicio).toLocaleTimeString('pt-BR')} - ${new Date(parada.fim).toLocaleTimeString('pt-BR')}</small>`);
+        marker.bindPopup(`
+          <div style="min-width: 160px;">
+            <div style="background: #3B82F6; color: white; padding: 8px 12px; margin: -8px -12px 8px; border-radius: 4px 4px 0 0; font-weight: 600;">
+              Parada #${idx + 1}
+            </div>
+            <div style="padding: 4px 0;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="color: #666;">Duracao:</span>
+                <span style="font-weight: 700; color: #3B82F6;">${duracaoMin} min</span>
+              </div>
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee; font-size: 0.85em; color: #888;">
+                ${new Date(parada.inicio).toLocaleTimeString('pt-BR')} - ${new Date(parada.fim).toLocaleTimeString('pt-BR')}
+              </div>
+            </div>
+          </div>
+        `);
         trajetosMarkersLayer.addLayer(marker);
       });
 
@@ -17205,19 +17278,29 @@
       let excessosHtml = '';
       if (excessos.length > 0) {
         excessosHtml = `
-          <div style="margin-top: 12px;">
-            <div style="font-weight: 600; font-size: 0.9em; color: #DC2626; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div style="margin-top: 16px;">
+            <div style="font-weight: 600; font-size: 0.85em; color: #DC2626; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#DC2626"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
               ${excessos.length} Excesso(s) de Velocidade
             </div>
-            ${excessos.map((e, i) => `
-              <div onclick="trajetosFocarEvento(${e.lat}, ${e.lng})" style="background: rgba(220, 38, 38, 0.1); border: 1px solid rgba(220, 38, 38, 0.3); border-left: 3px solid #DC2626; border-radius: 6px; padding: 10px; margin-bottom: 6px; cursor: pointer;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-weight: 600; color: #DC2626;">${Math.round(e.velocidadeMax)} km/h</span>
-                  <span style="font-size: 0.8em; color: var(--text-light);">${new Date(e.horario).toLocaleTimeString('pt-BR')}</span>
+            ${excessos.map((e, i) => {
+              const excessoKmh = e.velocidadeMax - 60;
+              const isGrave = excessoKmh > 20;
+              const bgColor = isGrave ? '#DC2626' : '#F59E0B';
+              return `
+              <div onclick="trajetosFocarEvento(${e.lat}, ${e.lng})" style="background: ${isGrave ? 'rgba(220, 38, 38, 0.1)' : 'rgba(245, 158, 11, 0.1)'}; border: 1px solid ${isGrave ? 'rgba(220, 38, 38, 0.3)' : 'rgba(245, 158, 11, 0.3)'}; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='none'">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="width: 24px; height: 24px; background: ${bgColor}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 700; flex-shrink: 0;">${i + 1}</div>
+                  <div style="flex: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-weight: 700; color: ${bgColor}; font-size: 1.1em;">${Math.round(e.velocidadeMax)} km/h</span>
+                      <span style="font-size: 0.75em; color: var(--text-light);">${new Date(e.horario).toLocaleTimeString('pt-BR')}</span>
+                    </div>
+                    <div style="font-size: 0.75em; color: var(--text-light); margin-top: 2px;">+${Math.round(excessoKmh)} km/h acima do limite</div>
+                  </div>
                 </div>
               </div>
-            `).join('')}
+            `}).join('')}
           </div>
         `;
       }
@@ -17226,48 +17309,63 @@
       let paradasHtml = '';
       if (paradas.length > 0) {
         paradasHtml = `
-          <div style="margin-top: 12px;">
-            <div style="font-weight: 600; font-size: 0.9em; color: #3B82F6; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+          <div style="margin-top: 16px;">
+            <div style="font-weight: 600; font-size: 0.85em; color: #3B82F6; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#3B82F6"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
               ${paradas.length} Parada(s)
             </div>
             ${paradas.map((p, i) => `
-              <div onclick="trajetosFocarEvento(${p.lat}, ${p.lng})" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-left: 3px solid #3B82F6; border-radius: 6px; padding: 10px; margin-bottom: 6px; cursor: pointer;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-weight: 600; color: #3B82F6;">Parada ${i + 1}</span>
-                  <span style="font-size: 0.8em; color: var(--text-light);">${Math.round(p.duracao / 60)} min</span>
+              <div onclick="trajetosFocarEvento(${p.lat}, ${p.lng})" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='none'">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="width: 24px; height: 24px; background: #3B82F6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 700; flex-shrink: 0;">${i + 1}</div>
+                  <div style="flex: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-weight: 700; color: #3B82F6;">${Math.round(p.duracao / 60)} min</span>
+                      <span style="font-size: 0.75em; color: var(--text-light);">${new Date(p.inicio).toLocaleTimeString('pt-BR')}</span>
+                    </div>
+                    <div style="font-size: 0.75em; color: var(--text-light); margin-top: 2px;">${new Date(p.inicio).toLocaleTimeString('pt-BR')} - ${new Date(p.fim).toLocaleTimeString('pt-BR')}</div>
+                  </div>
                 </div>
-                <div style="font-size: 0.8em; color: var(--text-light);">${new Date(p.inicio).toLocaleTimeString('pt-BR')} - ${new Date(p.fim).toLocaleTimeString('pt-BR')}</div>
               </div>
             `).join('')}
           </div>
         `;
       }
 
-      // Mostrar detalhes na lista
+      // Atualizar painel de detalhes embaixo do mapa
+      document.getElementById('trajetos-detalhe-distancia').textContent = distanciaTotal.toFixed(1) + ' km';
+      document.getElementById('trajetos-detalhe-duracao').textContent = trajetosFormatarDuracao(tempoMinutos);
+      document.getElementById('trajetos-detalhe-vel-media').textContent = Math.round(velMedia) + ' km/h';
+      document.getElementById('trajetos-detalhe-vel-max').textContent = Math.round(velMax) + ' km/h';
+      document.getElementById('trajetos-detalhe-excessos').textContent = excessos.length;
+      document.getElementById('trajetos-detalhe-paradas').textContent = paradas.length;
+      document.getElementById('trajetos-viagem-detalhes').style.display = 'block';
+
+      // Mostrar detalhes na lista lateral
       const lista = document.getElementById('trajetos-viagens-lista');
       lista.innerHTML = `
         <div style="padding: 12px;">
-          <div style="background: rgba(63, 207, 213, 0.15); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px;">
-            <div style="font-weight: 700; font-size: 1em; color: var(--text); margin-bottom: 10px;">
+          <div style="margin-bottom: 16px;">
+            <div style="font-weight: 700; font-size: 0.95em; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
               Trajetoria ${horaInicio} - ${horaFim}
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <div style="text-align: center; background: var(--bg); padding: 10px; border-radius: 8px;">
-                <div style="font-size: 1.2em; font-weight: 700; color: #10B981;">${distanciaTotal.toFixed(1)} km</div>
-                <div style="font-size: 0.75em; color: var(--text-light);">Distancia</div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+              <div class="trajetos-stat-card">
+                <div class="trajetos-stat-value" style="color: #10B981;">${distanciaTotal.toFixed(1)} km</div>
+                <div class="trajetos-stat-label">Distancia</div>
               </div>
-              <div style="text-align: center; background: var(--bg); padding: 10px; border-radius: 8px;">
-                <div style="font-size: 1.2em; font-weight: 700; color: #3B82F6;">${trajetosFormatarDuracao(tempoMinutos)}</div>
-                <div style="font-size: 0.75em; color: var(--text-light);">Duracao</div>
+              <div class="trajetos-stat-card">
+                <div class="trajetos-stat-value" style="color: #3B82F6;">${trajetosFormatarDuracao(tempoMinutos)}</div>
+                <div class="trajetos-stat-label">Duracao</div>
               </div>
-              <div style="text-align: center; background: var(--bg); padding: 10px; border-radius: 8px;">
-                <div style="font-size: 1.2em; font-weight: 700; color: var(--text);">${Math.round(velMedia)} km/h</div>
-                <div style="font-size: 0.75em; color: var(--text-light);">Vel. Media</div>
+              <div class="trajetos-stat-card">
+                <div class="trajetos-stat-value">${Math.round(velMedia)} km/h</div>
+                <div class="trajetos-stat-label">Vel. Media</div>
               </div>
-              <div style="text-align: center; background: var(--bg); padding: 10px; border-radius: 8px;">
-                <div style="font-size: 1.2em; font-weight: 700; color: #F59E0B;">${Math.round(velMax)} km/h</div>
-                <div style="font-size: 0.75em; color: var(--text-light);">Vel. Maxima</div>
+              <div class="trajetos-stat-card">
+                <div class="trajetos-stat-value" style="color: #F59E0B;">${Math.round(velMax)} km/h</div>
+                <div class="trajetos-stat-label">Vel. Maxima</div>
               </div>
             </div>
           </div>
@@ -17275,7 +17373,7 @@
           ${excessosHtml}
           ${paradasHtml}
 
-          <div style="color: var(--text-light); font-size: 0.8em; text-align: center; margin-top: 12px;">
+          <div style="color: var(--text-light); font-size: 0.75em; text-align: center; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
             ${pontos.length} pontos GPS analisados
           </div>
         </div>
