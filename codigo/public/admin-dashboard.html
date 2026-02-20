@@ -1022,11 +1022,16 @@
     .content {
       flex: 1;
       overflow-y: auto;
-      padding: 40px;
+      overflow-x: hidden;
+      padding: clamp(16px, 3vw, 40px);
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .section {
       display: none;
+      max-width: 100%;
+      overflow-x: hidden;
     }
 
     .section.active {
@@ -1039,11 +1044,13 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ====== GRID & LAYOUT ====== */
+    /* ====== GRID & LAYOUT - RESPONSIVO ====== */
     .grid-4 {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+      gap: clamp(12px, 2vw, 24px);
+      width: 100%;
+      box-sizing: border-box;
       margin-bottom: 40px;
     }
 
@@ -1051,8 +1058,8 @@
     .card {
       background: rgba(6, 182, 212, 0.06);
       border: 1px solid rgba(6, 182, 212, 0.2);
-      border-radius: 16px;
-      padding: 24px;
+      border-radius: clamp(10px, 2vw, 16px);
+      padding: clamp(14px, 2vw, 24px);
       transition: all 0.3s ease;
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
@@ -1060,6 +1067,7 @@
       overflow: hidden;
       box-shadow: 0 4px 20px rgba(6, 182, 212, 0.1);
       color: var(--text);
+      min-width: 0;
     }
 
     .card:hover {
@@ -1095,8 +1103,10 @@
     .stat-card {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: clamp(8px, 1.5vw, 16px);
       position: relative;
+      min-width: 0;
+      overflow: hidden;
     }
 
     .stat-card::after {
@@ -1206,21 +1216,25 @@
     }
 
     .stat-label {
-      font-size: 11px;
+      font-size: clamp(9px, 1.2vw, 11px);
       font-weight: 700;
       color: var(--text-light);
       text-transform: uppercase;
       letter-spacing: 1.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .stat-value {
-      font-size: 38px;
+      font-size: clamp(24px, 4vw, 38px);
       font-weight: 800;
       background: linear-gradient(135deg, #22D3EE 0%, #06B6D4 50%, #0891B2 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
       line-height: 1;
+      white-space: nowrap;
     }
 
     .stat-change {
@@ -1862,7 +1876,8 @@
     /* ====== TABLET (1024px) ====== */
     @media (max-width: 1024px) {
       .grid-4 {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+        gap: 16px;
       }
 
       .status-grid {
@@ -1870,7 +1885,7 @@
       }
 
       .content {
-        padding: 24px;
+        padding: 20px;
       }
 
       /* Sidebar mais estreita */
@@ -1894,6 +1909,21 @@
       .status-indicator {
         padding: 8px 14px;
         font-size: 12px;
+      }
+
+      /* Stat cards - mais compactos */
+      .stat-card {
+        padding: 16px;
+      }
+
+      .stat-icon {
+        width: 50px;
+        height: 50px;
+      }
+
+      .stat-icon .lucide-icon {
+        width: 26px;
+        height: 26px;
       }
 
       /* Mapa */
@@ -1983,13 +2013,29 @@
         grid-template-columns: 1fr;
       }
 
-      /* Cards */
+      /* Cards - ajuste responsivo */
       .stat-card {
-        padding: 16px;
+        padding: 14px;
+        gap: 10px;
+      }
+
+      .stat-icon {
+        width: 44px;
+        height: 44px;
+      }
+
+      .stat-icon .lucide-icon {
+        width: 22px;
+        height: 22px;
       }
 
       .stat-value {
-        font-size: 24px;
+        font-size: 22px;
+      }
+
+      .stat-label {
+        font-size: 9px;
+        letter-spacing: 1px;
       }
 
       /* Mapa */
@@ -6516,9 +6562,9 @@
             .trajetos-viagem-card {
               background: rgba(63, 207, 213, 0.1);
               border: 1px solid var(--border);
-              border-radius: 10px;
-              padding: 14px;
-              margin-bottom: 8px;
+              border-radius: 8px;
+              padding: 10px 12px;
+              margin-bottom: 6px;
               cursor: pointer;
               transition: all 0.2s;
             }
@@ -6549,7 +6595,7 @@
             }
 
             .trajetos-sidebar-panel {
-              width: clamp(280px, 25vw, 380px);
+              width: clamp(260px, 22vw, 340px);
               flex-shrink: 0;
               background: var(--bg-light);
               border-right: 1px solid var(--border);
@@ -6739,104 +6785,61 @@
             <!-- Sidebar Trajetos -->
             <div class="trajetos-sidebar-panel">
 
-              <!-- Seletor de Veiculo -->
-              <div style="padding: 16px; border-bottom: 1px solid var(--border);">
-                <label style="font-size: 12px; color: var(--text); display: block; margin-bottom: 6px; font-weight: 500;">Veiculo</label>
-                <select id="trajetos-veiculo-select" style="width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9em;" onchange="trajetosOnVeiculoChange()">
-                  <option value="">Selecione um veiculo...</option>
-                </select>
-              </div>
-
-              <!-- Filtros -->
-              <div style="padding: 16px; border-bottom: 1px solid var(--border);">
-                <!-- Data Início e Fim -->
-                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                  <div style="flex: 1;">
-                    <label style="font-size: 11px; color: var(--text-light); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Data Inicio</label>
-                    <input type="date" id="trajetos-data" style="width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9em; color-scheme: dark;">
-                  </div>
-                  <div style="flex: 1;">
-                    <label style="font-size: 11px; color: var(--text-light); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Data Fim</label>
-                    <input type="date" id="trajetos-data-fim" style="width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9em; color-scheme: dark;">
-                  </div>
-                </div>
-                <!-- Botão Buscar -->
-                <div style="margin-bottom: 16px;">
-                  <button onclick="trajetosBuscarViagens()" style="width: 100%; padding: 12px 24px; background: var(--primary); border: none; border-radius: 8px; color: #0d1042; font-weight: 600; font-size: 0.95em; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                    </svg>
-                    Buscar Trajetos
+              <!-- Seletor de Veiculo + Datas + Buscar - ULTRA COMPACTO -->
+              <div style="padding: 8px 10px; border-bottom: 1px solid var(--border);">
+                <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                  <select id="trajetos-veiculo-select" style="flex: 2; min-width: 120px; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.8em;" onchange="trajetosOnVeiculoChange()">
+                    <option value="">Veiculo...</option>
+                  </select>
+                  <input type="date" id="trajetos-data" style="flex: 1; min-width: 100px; padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.75em; color-scheme: dark;">
+                  <input type="date" id="trajetos-data-fim" style="flex: 1; min-width: 100px; padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.75em; color-scheme: dark;">
+                  <button onclick="trajetosBuscarViagens()" style="padding: 6px 10px; background: var(--primary); border: none; border-radius: 5px; color: #0d1042; font-weight: 600; font-size: 0.75em; cursor: pointer; white-space: nowrap;">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                   </button>
                 </div>
+              </div>
 
-                <!-- Slider de Horário -->
-                <label style="font-size: 11px; color: var(--text-light); display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Intervalo de Horario</label>
-                <div style="background: var(--bg); border-radius: 10px; padding: 16px; border: 1px solid var(--border); margin-bottom: 16px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <div style="text-align: center;">
-                      <div style="font-size: 10px; color: var(--text-light); margin-bottom: 2px;">INICIO</div>
-                      <span style="font-family: 'SF Mono', monospace; font-size: 1.2em; font-weight: 700; color: var(--primary);" id="trajetos-hora-inicio-label">00:00</span>
-                    </div>
-                    <span style="font-size: 0.8em; color: var(--text); background: rgba(63, 207, 213, 0.15); padding: 6px 14px; border-radius: 16px; font-weight: 600;" id="trajetos-duracao-label">24h 00min</span>
-                    <div style="text-align: center;">
-                      <div style="font-size: 10px; color: var(--text-light); margin-bottom: 2px;">FIM</div>
-                      <span style="font-family: 'SF Mono', monospace; font-size: 1.2em; font-weight: 700; color: var(--primary);" id="trajetos-hora-fim-label">23:59</span>
-                    </div>
+              <!-- Slider de Horário + Opções - LINHA ÚNICA -->
+              <div style="padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--bg);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                  <span style="font-family: monospace; font-size: 0.8em; font-weight: 700; color: var(--primary);" id="trajetos-hora-inicio-label">00:00</span>
+                  <div style="flex: 1; position: relative; height: 20px; display: flex; align-items: center;">
+                    <div style="position: absolute; left: 0; right: 0; height: 4px; background: rgba(63, 207, 213, 0.15); border-radius: 2px;"></div>
+                    <div style="position: absolute; height: 4px; background: linear-gradient(90deg, var(--primary), #2dd4bf); border-radius: 2px;" id="trajetos-slider-range"></div>
+                    <input type="range" id="trajetos-hora-inicio" min="0" max="1439" value="0" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 20px; -webkit-appearance: none; background: transparent; pointer-events: none;">
+                    <input type="range" id="trajetos-hora-fim" min="0" max="1439" value="1439" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 20px; -webkit-appearance: none; background: transparent; pointer-events: none;">
                   </div>
-                  <div style="position: relative; height: 36px; display: flex; align-items: center;">
-                    <div style="position: absolute; left: 0; right: 0; height: 8px; background: rgba(63, 207, 213, 0.15); border-radius: 4px;"></div>
-                    <div style="position: absolute; height: 8px; background: linear-gradient(90deg, var(--primary), #2dd4bf); border-radius: 4px; box-shadow: 0 2px 8px rgba(63, 207, 213, 0.4);" id="trajetos-slider-range"></div>
-                    <input type="range" id="trajetos-hora-inicio" min="0" max="1439" value="0" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 36px; -webkit-appearance: none; background: transparent; pointer-events: none;">
-                    <input type="range" id="trajetos-hora-fim" min="0" max="1439" value="1439" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 36px; -webkit-appearance: none; background: transparent; pointer-events: none;">
-                  </div>
-                  <div style="display: flex; justify-content: space-between; margin-top: 8px; padding: 0 4px;">
-                    <span style="font-size: 0.7em; color: var(--text-light);">00:00</span>
-                    <span style="font-size: 0.7em; color: var(--text-light);">06:00</span>
-                    <span style="font-size: 0.7em; color: var(--text-light);">12:00</span>
-                    <span style="font-size: 0.7em; color: var(--text-light);">18:00</span>
-                    <span style="font-size: 0.7em; color: var(--text-light);">23:59</span>
-                  </div>
+                  <span style="font-family: monospace; font-size: 0.8em; font-weight: 700; color: var(--primary);" id="trajetos-hora-fim-label">23:59</span>
+                  <span style="font-size: 0.65em; color: var(--text); background: rgba(63, 207, 213, 0.15); padding: 2px 6px; border-radius: 8px; font-weight: 600;" id="trajetos-duracao-label">24h</span>
                 </div>
-
-                <!-- Filtros de Exibição -->
-                <label style="font-size: 11px; color: var(--text-light); display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Opcoes de Exibicao</label>
-                <div style="background: var(--bg); border-radius: 10px; padding: 14px; border: 1px solid var(--border);">
-                  <!-- Info: Usando limites das vias -->
-                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 10px; background: rgba(6, 182, 212, 0.08); border-radius: 8px; border: 1px solid rgba(6, 182, 212, 0.2);">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#0891b2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                    <span style="font-size: 0.8em; color: #0891b2;">Usa limites de velocidade das vias (OpenStreetMap)</span>
-                  </div>
-
-                  <!-- Checkboxes -->
-                  <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                      <input type="checkbox" id="trajetos-mostrar-excessos" checked style="width: 18px; height: 18px; accent-color: #EF4444;">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#EF4444"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                      <span style="font-size: 0.85em; color: var(--text);">Mostrar excessos de velocidade</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                      <input type="checkbox" id="trajetos-mostrar-paradas" checked style="width: 18px; height: 18px; accent-color: #DC2626;">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#DC2626"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-                      <span style="font-size: 0.85em; color: var(--text);">Mostrar paradas</span>
-                    </label>
-                  </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                  <label style="display: flex; align-items: center; gap: 3px; cursor: pointer; font-size: 0.7em; color: var(--text);">
+                    <input type="checkbox" id="trajetos-mostrar-excessos" checked style="width: 12px; height: 12px; accent-color: #EF4444;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="#EF4444"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    Excessos
+                  </label>
+                  <label style="display: flex; align-items: center; gap: 3px; cursor: pointer; font-size: 0.7em; color: var(--text);">
+                    <input type="checkbox" id="trajetos-mostrar-paradas" checked style="width: 12px; height: 12px; accent-color: #DC2626;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="#DC2626"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                    Paradas
+                  </label>
+                  <span style="font-size: 0.6em; color: #0891b2; margin-left: auto;">Limites OSM</span>
                 </div>
               </div>
 
-              <!-- Resumo -->
-              <div id="trajetos-resumo" style="display: none; padding: 12px 16px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, rgba(63, 207, 213, 0.05), rgba(45, 212, 191, 0.05));">
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                  <div style="flex: 1; min-width: 70px; background: var(--bg); padding: 10px 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border);">
-                    <div style="font-size: 1.3em; font-weight: 700; color: var(--primary);" id="trajetos-resumo-viagens">0</div>
-                    <div style="font-size: 0.7em; color: var(--text-light); margin-top: 2px;">Pontos</div>
+              <!-- Resumo Compacto -->
+              <div id="trajetos-resumo" style="display: none; padding: 8px 12px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, rgba(63, 207, 213, 0.05), rgba(45, 212, 191, 0.05));">
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <div style="flex: 1; min-width: 55px; background: var(--bg); padding: 6px 8px; border-radius: 6px; text-align: center; border: 1px solid var(--border);">
+                    <div style="font-size: 1.1em; font-weight: 700; color: var(--primary);" id="trajetos-resumo-viagens">0</div>
+                    <div style="font-size: 0.6em; color: var(--text-light);">Pontos</div>
                   </div>
-                  <div style="flex: 1; min-width: 70px; background: var(--bg); padding: 10px 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border);">
-                    <div style="font-size: 1.3em; font-weight: 700; color: #10B981;" id="trajetos-resumo-km">0</div>
-                    <div style="font-size: 0.7em; color: var(--text-light); margin-top: 2px;">km</div>
+                  <div style="flex: 1; min-width: 55px; background: var(--bg); padding: 6px 8px; border-radius: 6px; text-align: center; border: 1px solid var(--border);">
+                    <div style="font-size: 1.1em; font-weight: 700; color: #10B981;" id="trajetos-resumo-km">0</div>
+                    <div style="font-size: 0.6em; color: var(--text-light);">km</div>
                   </div>
-                  <div style="flex: 1; min-width: 70px; background: var(--bg); padding: 10px 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border);">
-                    <div style="font-size: 1.3em; font-weight: 700; color: #3B82F6;" id="trajetos-resumo-tempo">0h</div>
+                  <div style="flex: 1; min-width: 55px; background: var(--bg); padding: 6px 8px; border-radius: 6px; text-align: center; border: 1px solid var(--border);">
+                    <div style="font-size: 1.1em; font-weight: 700; color: #3B82F6;" id="trajetos-resumo-tempo">0h</div>
                     <div style="font-size: 0.7em; color: var(--text-light); margin-top: 2px;">Tempo</div>
                   </div>
                   <div style="flex: 1; min-width: 70px; background: var(--bg); padding: 10px 12px; border-radius: 8px; text-align: center; border: 1px solid var(--border);">
