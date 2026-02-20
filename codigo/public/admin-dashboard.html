@@ -10199,12 +10199,14 @@
         const overlay = document.getElementById('sidebar-overlay');
         const toggle = document.getElementById('mobile-menu-toggle');
 
+        if (!sidebar) return;
+
         sidebar.classList.toggle('open');
-        overlay.classList.toggle('active');
+        if (overlay) overlay.classList.toggle('active');
 
         // Atualizar ícone do botão
         if (sidebar.classList.contains('open')) {
-          toggle.innerHTML = `
+          if (toggle) toggle.innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -10212,7 +10214,7 @@
           `;
           document.body.style.overflow = 'hidden'; // Prevenir scroll
         } else {
-          toggle.innerHTML = `
+          if (toggle) toggle.innerHTML = `
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <line x1="3" y1="6" x2="21" y2="6"></line>
               <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -10231,11 +10233,12 @@
             if (window.innerWidth <= 768) {
               const sidebar = document.querySelector('.sidebar');
               const overlay = document.getElementById('sidebar-overlay');
-              if (sidebar.classList.contains('open')) {
+              const toggle = document.getElementById('mobile-menu-toggle');
+              if (sidebar && sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
-                overlay.classList.remove('active');
+                if (overlay) overlay.classList.remove('active');
                 document.body.style.overflow = '';
-                document.getElementById('mobile-menu-toggle').innerHTML = `
+                if (toggle) toggle.innerHTML = `
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <line x1="3" y1="6" x2="21" y2="6"></line>
                     <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -10252,8 +10255,8 @@
           if (window.innerWidth > 768) {
             const sidebar = document.querySelector('.sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            sidebar.classList.remove('open');
-            overlay.classList.remove('active');
+            if (sidebar) sidebar.classList.remove('open');
+            if (overlay) overlay.classList.remove('active');
             document.body.style.overflow = '';
           }
         });
