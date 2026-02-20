@@ -6532,12 +6532,20 @@
               box-shadow: 0 0 0 2px rgba(63, 207, 213, 0.3);
             }
 
+            /* Evita scroll horizontal em toda a seção */
+            #section-trajetos {
+              overflow-x: hidden;
+              max-width: 100vw;
+            }
+
             /* Layout principal de Trajetos - RESPONSIVO */
             .trajetos-layout {
               display: flex;
               height: calc(100vh - 80px);
               width: 100%;
+              max-width: 100%;
               overflow: hidden;
+              box-sizing: border-box;
             }
 
             .trajetos-sidebar-panel {
