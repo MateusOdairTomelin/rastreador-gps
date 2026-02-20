@@ -6595,39 +6595,20 @@
             }
 
             .trajetos-sidebar-panel {
-              width: 8px;
+              width: clamp(280px, 25vw, 350px);
               flex-shrink: 0;
-              background: linear-gradient(180deg, var(--primary), var(--primary-dark));
-              border-right: none;
-              display: flex;
-              flex-direction: column;
-              overflow: hidden;
-              border-radius: 0;
-              max-height: 100%;
-              position: relative;
-              transition: width 0.3s ease;
-              cursor: pointer;
-            }
-
-            .trajetos-sidebar-panel:hover {
-              width: clamp(300px, 28vw, 380px);
               background: var(--bg-light);
               border-right: 1px solid var(--border);
-              border-radius: 12px 0 0 12px;
+              display: flex;
+              flex-direction: column;
               overflow-y: auto;
               overflow-x: hidden;
-              cursor: default;
+              border-radius: 12px 0 0 12px;
+              max-height: 100%;
             }
 
             .trajetos-filtros-container {
               width: 100%;
-              min-width: 280px;
-              opacity: 0;
-              transition: opacity 0.2s ease;
-            }
-
-            .trajetos-sidebar-panel:hover .trajetos-filtros-container {
-              opacity: 1;
             }
 
             /* Scrollbar estilizada */
