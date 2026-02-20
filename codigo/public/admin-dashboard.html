@@ -6534,13 +6534,15 @@
 
             /* Layout principal de Trajetos - RESPONSIVO */
             .trajetos-layout {
-              display: grid;
-              grid-template-columns: minmax(280px, 380px) 1fr;
+              display: flex;
               height: calc(100vh - 80px);
-              gap: 0;
+              width: 100%;
+              overflow: hidden;
             }
 
             .trajetos-sidebar-panel {
+              width: clamp(280px, 25vw, 380px);
+              flex-shrink: 0;
               background: var(--bg-light);
               border-right: 1px solid var(--border);
               display: flex;
@@ -6551,80 +6553,105 @@
             }
 
             .trajetos-map-panel {
+              flex: 1;
               display: flex;
               flex-direction: column;
               background: var(--bg);
               border-radius: 0 12px 12px 0;
-              overflow: visible;
+              overflow: hidden;
+              min-width: 0;
             }
 
             .trajetos-map-container {
               flex: 1;
-              min-height: 300px;
+              min-height: 200px;
             }
 
-            /* Barra de detalhes inferior - scroll horizontal se necessário */
+            /* Barra de detalhes inferior - ajusta ao conteúdo */
             #trajetos-viagem-detalhes {
               flex-shrink: 0;
-              overflow-x: auto;
-              -webkit-overflow-scrolling: touch;
+              width: 100%;
+              box-sizing: border-box;
             }
 
             #trajetos-viagem-detalhes > div {
               display: flex;
               flex-wrap: wrap;
-              gap: 12px;
-              min-width: 100%;
+              gap: 8px;
+              justify-content: space-evenly;
             }
 
             #trajetos-viagem-detalhes .trajetos-stat-card {
-              flex: 1 1 100px;
-              min-width: 100px;
+              flex: 1 1 80px;
+              min-width: 80px;
+              max-width: 140px;
               text-align: center;
+              padding: 8px 4px;
+            }
+
+            .trajetos-stat-value {
+              font-size: clamp(14px, 2vw, 18px);
+              font-weight: 700;
+              white-space: nowrap;
+            }
+
+            .trajetos-stat-label {
+              font-size: clamp(9px, 1.2vw, 11px);
+              color: var(--text-light);
+              text-transform: uppercase;
+              white-space: nowrap;
             }
 
             /* Tablet */
             @media (max-width: 1024px) {
               .trajetos-layout {
-                grid-template-columns: minmax(250px, 320px) 1fr;
                 height: calc(100vh - 70px);
+              }
+
+              .trajetos-sidebar-panel {
+                width: clamp(250px, 30vw, 320px);
               }
             }
 
             /* Mobile - Layout empilhado */
             @media (max-width: 768px) {
               .trajetos-layout {
-                display: flex;
                 flex-direction: column;
                 height: auto;
                 min-height: calc(100vh - 60px);
+                overflow: visible;
               }
 
               .trajetos-sidebar-panel {
                 order: 2;
+                width: 100%;
                 border-right: none;
                 border-top: 1px solid var(--border);
                 border-radius: 0 0 12px 12px;
-                max-height: 50vh;
+                max-height: 40vh;
                 overflow-y: auto;
               }
 
               .trajetos-map-panel {
                 order: 1;
                 border-radius: 12px 12px 0 0;
-                min-height: 45vh;
+                flex: none;
+                height: 50vh;
               }
 
               .trajetos-map-container {
-                min-height: 40vh;
+                height: 100%;
+                min-height: unset;
               }
 
               #trajetos-viagem-detalhes {
-                padding: 12px !important;
+                padding: 10px !important;
               }
 
               #trajetos-viagem-detalhes .trajetos-stat-card {
-                padding: 8px;
+                flex: 1 1 60px;
+                min-width: 60px;
+                padding: 6px 2px;
               }
             }
 
@@ -6635,15 +6662,11 @@
               }
 
               .trajetos-sidebar-panel {
-                max-height: 45vh;
+                max-height: 35vh;
               }
 
-              .trajetos-map-container {
-                min-height: 35vh;
-              }
-
-              .trajetos-stat-card {
-                padding: 6px;
+              .trajetos-map-panel {
+                height: 45vh;
               }
 
               .trajetos-stat-value {
