@@ -6785,33 +6785,50 @@
             <!-- Sidebar Trajetos -->
             <div class="trajetos-sidebar-panel">
 
-              <!-- Seletor de Veiculo + Datas + Buscar - ULTRA COMPACTO -->
-              <div style="padding: 8px 10px; border-bottom: 1px solid var(--border);">
-                <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                  <select id="trajetos-veiculo-select" style="flex: 2; min-width: 120px; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.8em;" onchange="trajetosOnVeiculoChange()">
-                    <option value="">Veiculo...</option>
-                  </select>
-                  <input type="date" id="trajetos-data" style="flex: 1; min-width: 100px; padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.75em; color-scheme: dark;">
-                  <input type="date" id="trajetos-data-fim" style="flex: 1; min-width: 100px; padding: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.75em; color-scheme: dark;">
-                  <button onclick="trajetosBuscarViagens()" style="padding: 6px 10px; background: var(--primary); border: none; border-radius: 5px; color: #0d1042; font-weight: 600; font-size: 0.75em; cursor: pointer; white-space: nowrap;">
-                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <!-- Seletor de Veículo (digitável) -->
+              <div style="padding: 10px 12px; border-bottom: 1px solid var(--border);">
+                <div style="position: relative;">
+                  <input type="text" id="trajetos-veiculo-input" list="trajetos-veiculo-list" placeholder="Digite ou selecione um veículo..."
+                    style="width: 100%; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.85em;"
+                    oninput="trajetosOnVeiculoInputChange(this.value)" autocomplete="off">
+                  <datalist id="trajetos-veiculo-list"></datalist>
+                  <select id="trajetos-veiculo-select" style="display: none;" onchange="trajetosOnVeiculoChange()"></select>
+                </div>
+              </div>
+
+              <!-- Datas + Buscar -->
+              <div style="padding: 8px 12px; border-bottom: 1px solid var(--border);">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <div style="flex: 1;">
+                    <label style="font-size: 10px; color: var(--text-light); display: block; margin-bottom: 3px;">Início</label>
+                    <input type="date" id="trajetos-data" style="width: 100%; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.85em; color-scheme: dark;">
+                  </div>
+                  <div style="flex: 1;">
+                    <label style="font-size: 10px; color: var(--text-light); display: block; margin-bottom: 3px;">Fim</label>
+                    <input type="date" id="trajetos-data-fim" style="width: 100%; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.85em; color-scheme: dark;">
+                  </div>
+                  <button onclick="trajetosBuscarViagens()" style="padding: 8px 14px; background: var(--primary); border: none; border-radius: 6px; color: #0d1042; font-weight: 600; font-size: 0.85em; cursor: pointer; margin-top: 14px;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    Buscar
                   </button>
                 </div>
               </div>
 
-              <!-- Slider de Horário + Opções - LINHA ÚNICA -->
-              <div style="padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--bg);">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                  <span style="font-family: monospace; font-size: 0.8em; font-weight: 700; color: var(--primary);" id="trajetos-hora-inicio-label">00:00</span>
-                  <div style="flex: 1; position: relative; height: 20px; display: flex; align-items: center;">
-                    <div style="position: absolute; left: 0; right: 0; height: 4px; background: rgba(63, 207, 213, 0.15); border-radius: 2px;"></div>
-                    <div style="position: absolute; height: 4px; background: linear-gradient(90deg, var(--primary), #2dd4bf); border-radius: 2px;" id="trajetos-slider-range"></div>
-                    <input type="range" id="trajetos-hora-inicio" min="0" max="1439" value="0" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 20px; -webkit-appearance: none; background: transparent; pointer-events: none;">
-                    <input type="range" id="trajetos-hora-fim" min="0" max="1439" value="1439" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 20px; -webkit-appearance: none; background: transparent; pointer-events: none;">
-                  </div>
-                  <span style="font-family: monospace; font-size: 0.8em; font-weight: 700; color: var(--primary);" id="trajetos-hora-fim-label">23:59</span>
-                  <span style="font-size: 0.65em; color: var(--text); background: rgba(63, 207, 213, 0.15); padding: 2px 6px; border-radius: 8px; font-weight: 600;" id="trajetos-duracao-label">24h</span>
+              <!-- Slider de Horário Simplificado -->
+              <div style="padding: 8px 12px; border-bottom: 1px solid var(--border); background: rgba(63, 207, 213, 0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <span style="font-size: 11px; color: var(--text-light);">Horário</span>
+                  <span style="font-family: monospace; font-size: 12px; font-weight: 600; color: var(--primary); background: var(--bg); padding: 2px 8px; border-radius: 4px;" id="trajetos-duracao-label">00:00 - 23:59</span>
                 </div>
+                <div style="position: relative; height: 28px; display: flex; align-items: center;">
+                  <div style="position: absolute; left: 0; right: 0; height: 6px; background: var(--bg); border-radius: 3px; border: 1px solid var(--border);"></div>
+                  <div style="position: absolute; height: 6px; background: var(--primary); border-radius: 3px;" id="trajetos-slider-range"></div>
+                  <input type="range" id="trajetos-hora-inicio" min="0" max="1439" value="0" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 28px; -webkit-appearance: none; background: transparent; pointer-events: none;">
+                  <input type="range" id="trajetos-hora-fim" min="0" max="1439" value="1439" oninput="trajetosAtualizarSlider()" style="position: absolute; width: 100%; height: 28px; -webkit-appearance: none; background: transparent; pointer-events: none;">
+                </div>
+                <!-- Labels ocultos mas mantidos para JS -->
+                <span id="trajetos-hora-inicio-label" style="display: none;">00:00</span>
+                <span id="trajetos-hora-fim-label" style="display: none;">23:59</span>
                 <div style="display: flex; gap: 10px; align-items: center;">
                   <label style="display: flex; align-items: center; gap: 3px; cursor: pointer; font-size: 0.7em; color: var(--text);">
                     <input type="checkbox" id="trajetos-mostrar-excessos" checked style="width: 12px; height: 12px; accent-color: #EF4444;">
@@ -17510,6 +17527,9 @@
       document.getElementById('trajetos-data').value = hoje;
     }
 
+    // Armazenar veículos para busca
+    let trajetosVeiculosLista = [];
+
     // Carregar Veículos
     async function trajetosCarregarVeiculos() {
       try {
@@ -17517,18 +17537,47 @@
         const data = await response.json();
 
         if (data.sucesso && data.dados) {
+          trajetosVeiculosLista = data.dados;
           const select = document.getElementById('trajetos-veiculo-select');
+          const datalist = document.getElementById('trajetos-veiculo-list');
+
           select.innerHTML = '<option value="">Selecione um veiculo...</option>';
+          datalist.innerHTML = '';
 
           data.dados.forEach(d => {
+            const label = `${d.placa || d.imei} - ${d.modelo || d.tipo || 'Veiculo'}`;
+
+            // Select oculto
             const option = document.createElement('option');
             option.value = d.imei;
-            option.textContent = `${d.placa || d.imei} - ${d.modelo || d.tipo || 'Veiculo'}`;
+            option.textContent = label;
             select.appendChild(option);
+
+            // Datalist para input digitável
+            const dataOption = document.createElement('option');
+            dataOption.value = label;
+            dataOption.dataset.imei = d.imei;
+            datalist.appendChild(dataOption);
           });
         }
       } catch (error) {
         console.error('Erro ao carregar veiculos para trajetos:', error);
+      }
+    }
+
+    // Input de veículo digitável
+    function trajetosOnVeiculoInputChange(valor) {
+      // Buscar veículo pelo texto digitado
+      const veiculo = trajetosVeiculosLista.find(v => {
+        const label = `${v.placa || v.imei} - ${v.modelo || v.tipo || 'Veiculo'}`;
+        return label.toLowerCase() === valor.toLowerCase() ||
+               v.placa?.toLowerCase() === valor.toLowerCase() ||
+               v.imei === valor;
+      });
+
+      if (veiculo) {
+        trajetosImeiAtual = veiculo.imei;
+        document.getElementById('trajetos-veiculo-select').value = veiculo.imei;
       }
     }
 
@@ -17563,12 +17612,9 @@
       if (labelInicio) labelInicio.textContent = trajetosMinToTime(inicio);
       if (labelFim) labelFim.textContent = trajetosMinToTime(fim);
 
-      // Calcular duração
+      // Mostrar horário no formato simplificado
       if (labelDuracao) {
-        const durMin = fim - inicio;
-        const durH = Math.floor(durMin / 60);
-        const durM = durMin % 60;
-        labelDuracao.textContent = `${durH}h ${durM.toString().padStart(2, '0')}min`;
+        labelDuracao.textContent = `${trajetosMinToTime(inicio)} - ${trajetosMinToTime(fim)}`;
       }
 
       // Atualizar barra colorida
@@ -18773,6 +18819,7 @@
     // Expor funções de trajetos globalmente
     window.trajetosInit = trajetosInit;
     window.trajetosOnVeiculoChange = trajetosOnVeiculoChange;
+    window.trajetosOnVeiculoInputChange = trajetosOnVeiculoInputChange;
     window.trajetosBuscarViagens = trajetosBuscarViagens;
     window.trajetosSelecionarViagem = trajetosSelecionarViagem;
     window.trajetosFocarEvento = trajetosFocarEvento;
