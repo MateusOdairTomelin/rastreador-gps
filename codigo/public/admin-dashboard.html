@@ -16993,34 +16993,64 @@
       const LIMITE_VELOCIDADE = 60; // km/h - limite padrão para detectar excessos (velocidade urbana)
       const PARADA_MIN_SEGUNDOS = 120; // 2 minutos parado = parada
 
-      // Detectar excessos de velocidade
+      // Detectar excessos de velocidade (com duração e velocidade média)
       let excessos = [];
-      let excessoAtual = null;
+      let excessoEmAndamento = null;
 
       // Detectar paradas
       let paradas = [];
       let paradaAtual = null;
 
+      // Cache de endereços
+      if (!window.trajetosCacheEnderecos) {
+        window.trajetosCacheEnderecos = {};
+      }
+
       pontos.forEach((ponto, idx) => {
         const velocidade = ponto.velocidade || 0;
 
-        // Detectar excesso de velocidade
+        // Detectar excesso de velocidade (com agrupamento)
         if (velocidade > LIMITE_VELOCIDADE) {
-          if (!excessoAtual) {
-            excessoAtual = {
+          if (!excessoEmAndamento) {
+            // Início de novo período de excesso
+            excessoEmAndamento = {
               lat: ponto.latitude,
               lng: ponto.longitude,
               velocidadeMax: velocidade,
-              horario: ponto.timestamp
+              velocidadeSoma: velocidade,
+              contagem: 1,
+              limite: LIMITE_VELOCIDADE,
+              horarioInicio: ponto.timestamp,
+              horarioFim: ponto.timestamp
             };
-          } else if (velocidade > excessoAtual.velocidadeMax) {
-            excessoAtual.velocidadeMax = velocidade;
-            excessoAtual.lat = ponto.latitude;
-            excessoAtual.lng = ponto.longitude;
+          } else {
+            // Continua o período de excesso
+            excessoEmAndamento.velocidadeSoma += velocidade;
+            excessoEmAndamento.contagem++;
+            excessoEmAndamento.horarioFim = ponto.timestamp;
+            if (velocidade > excessoEmAndamento.velocidadeMax) {
+              excessoEmAndamento.velocidadeMax = velocidade;
+              excessoEmAndamento.lat = ponto.latitude;
+              excessoEmAndamento.lng = ponto.longitude;
+            }
           }
-        } else if (excessoAtual) {
-          excessos.push(excessoAtual);
-          excessoAtual = null;
+        } else if (excessoEmAndamento) {
+          // Fim do período de excesso - calcular estatísticas
+          const duracaoMs = new Date(excessoEmAndamento.horarioFim) - new Date(excessoEmAndamento.horarioInicio);
+          const duracaoSeg = Math.round(duracaoMs / 1000);
+          const velocidadeMedia = Math.round(excessoEmAndamento.velocidadeSoma / excessoEmAndamento.contagem);
+
+          excessos.push({
+            lat: excessoEmAndamento.lat,
+            lng: excessoEmAndamento.lng,
+            velocidade: velocidadeMedia,
+            velocidadeMax: excessoEmAndamento.velocidadeMax,
+            limite: LIMITE_VELOCIDADE,
+            excesso: velocidadeMedia - LIMITE_VELOCIDADE,
+            horario: excessoEmAndamento.horarioInicio,
+            duracao: duracaoSeg >= 60 ? `${Math.floor(duracaoSeg / 60)}min ${duracaoSeg % 60}s` : `${duracaoSeg}s`
+          });
+          excessoEmAndamento = null;
         }
 
         // Detectar parada (velocidade 0 por mais de X segundos)
@@ -17045,8 +17075,25 @@
         }
       });
 
-      // Salvar último excesso/parada
-      if (excessoAtual) excessos.push(excessoAtual);
+      // Salvar último excesso em andamento (se trajeto terminou em excesso)
+      if (excessoEmAndamento) {
+        const duracaoMs = new Date(excessoEmAndamento.horarioFim) - new Date(excessoEmAndamento.horarioInicio);
+        const duracaoSeg = Math.round(duracaoMs / 1000);
+        const velocidadeMedia = Math.round(excessoEmAndamento.velocidadeSoma / excessoEmAndamento.contagem);
+
+        excessos.push({
+          lat: excessoEmAndamento.lat,
+          lng: excessoEmAndamento.lng,
+          velocidade: velocidadeMedia,
+          velocidadeMax: excessoEmAndamento.velocidadeMax,
+          limite: LIMITE_VELOCIDADE,
+          excesso: velocidadeMedia - LIMITE_VELOCIDADE,
+          horario: excessoEmAndamento.horarioInicio,
+          duracao: duracaoSeg >= 60 ? `${Math.floor(duracaoSeg / 60)}min ${duracaoSeg % 60}s` : `${duracaoSeg}s`
+        });
+      }
+
+      // Salvar última parada
       if (paradaAtual) {
         const duracaoSeg = (new Date(paradaAtual.fim) - new Date(paradaAtual.inicio)) / 1000;
         if (duracaoSeg >= PARADA_MIN_SEGUNDOS) {
@@ -17055,27 +17102,55 @@
         }
       }
 
-      // Desenhar rota animada com ant-path
+      // Desenhar rota animada com ant-path (preto igual veiculo-detalhes)
       if (typeof L.polyline.antPath === 'function') {
         const antPath = L.polyline.antPath(coords, {
-          color: '#1a1a1a',
+          color: '#333333',
           weight: 5,
           opacity: 0.9,
-          pulseColor: '#3FCFD5',
+          lineCap: 'round',
+          lineJoin: 'round',
           delay: 1200,
           dashArray: [10, 20],
-          lineCap: 'round',
-          lineJoin: 'round'
+          pulseColor: '#666666',
+          paused: false,
+          reverse: false
         });
         trajetosRouteLayer.addLayer(antPath);
       } else {
         // Fallback para polyline normal
         const polyline = L.polyline(coords, {
-          color: '#3FCFD5',
+          color: '#333333',
           weight: 5,
           opacity: 0.9
         });
         trajetosRouteLayer.addLayer(polyline);
+      }
+
+      // Adicionar carrinhos de direção ao longo da rota (igual veiculo-detalhes)
+      const intervaloCarros = Math.max(Math.floor(pontos.length / 8), 5);
+      for (let i = intervaloCarros; i < pontos.length - intervaloCarros; i += intervaloCarros) {
+        const ponto = pontos[i];
+        const pontoAnterior = pontos[i - 1];
+
+        // Calcular ângulo de direção
+        const deltaLat = ponto.latitude - pontoAnterior.latitude;
+        const deltaLng = ponto.longitude - pontoAnterior.longitude;
+        const angulo = Math.atan2(deltaLng, deltaLat) * (180 / Math.PI);
+
+        const carroMarker = L.marker([ponto.latitude, ponto.longitude], {
+          icon: L.divIcon({
+            className: 'direcao-marker',
+            html: `<div style="transform: rotate(${angulo - 90}deg); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#6b7280">
+                <path d="M5 11l1.5-4.5h11L19 11m-1.5 5a1.5 1.5 0 01-1.5-1.5 1.5 1.5 0 011.5-1.5 1.5 1.5 0 011.5 1.5 1.5 1.5 0 01-1.5 1.5m-11 0A1.5 1.5 0 015 14.5 1.5 1.5 0 016.5 13 1.5 1.5 0 018 14.5 1.5 1.5 0 016.5 16M18.92 6c-.2-.58-.76-1-1.42-1h-11c-.66 0-1.22.42-1.42 1L3 12v8a1 1 0 001 1h1a1 1 0 001-1v-1h12v1a1 1 0 001 1h1a1 1 0 001-1v-8l-2.08-6z"/>
+              </svg>
+            </div>`,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          })
+        });
+        trajetosMarkersLayer.addLayer(carroMarker);
       }
 
       // Marcador de INÍCIO (círculo preto com play) - igual veiculo-detalhes
@@ -17191,19 +17266,55 @@
             </div>
             <div style="padding: 14px 16px; margin: 0 -20px -13px; background: #fafafa;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                <span style="font-weight: 500; color: #555;">Velocidade:</span>
+                <span style="font-weight: 500; color: #555;">Velocidade média:</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="#555"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                <span style="font-weight: 700; color: #111;">${Math.round(exc.velocidadeMax)} km/h</span>
+                <span style="font-weight: 700; color: #111;">${exc.velocidade || Math.round(exc.velocidadeMax)} km/h</span>
                 <span style="background: ${bgColor}; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${badgeText}</span>
               </div>
               <div style="font-size: 13px; color: #555; line-height: 1.8;">
-                <div><strong>Excesso:</strong> +${Math.round(excessoKmh)} km/h</div>
+                <div><strong>Duração:</strong> ${exc.duracao || '—'}</div>
                 <div><strong>Data:</strong> ${dataFormatada} às ${horaExcesso}</div>
+                <div id="trajetos-endereco-exc-${idx}" style="margin-top: 4px;"><strong>Endereço:</strong> <span style="color: #999;">Carregando...</span></div>
                 ${motoristaPeriodo ? `<div style="margin-top: 4px;"><strong>Motorista:</strong> ${motoristaPeriodo}</div>` : ''}
               </div>
             </div>
           </div>
         `, { maxWidth: 320, className: 'popup-excesso' });
+
+        // Buscar endereço quando popup abrir
+        marker.on('popupopen', async function() {
+          const el = document.getElementById(`trajetos-endereco-exc-${idx}`);
+          if (!el || el.dataset.loaded === 'true') return;
+
+          const cacheKey = `${exc.lat.toFixed(4)},${exc.lng.toFixed(4)}`;
+          if (window.trajetosCacheEnderecos[cacheKey]) {
+            el.innerHTML = `<strong>Endereço:</strong> ${window.trajetosCacheEnderecos[cacheKey]}`;
+            el.dataset.loaded = 'true';
+            return;
+          }
+
+          try {
+            const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${exc.lat}&lon=${exc.lng}&zoom=18&addressdetails=1`, {
+              headers: { 'Accept-Language': 'pt-BR' }
+            });
+            const geoData = await geoRes.json();
+            let endereco = `${exc.lat.toFixed(5)}, ${exc.lng.toFixed(5)}`;
+            if (geoData.address) {
+              const parts = [];
+              if (geoData.address.road) parts.push(geoData.address.road);
+              if (geoData.address.house_number && parts.length) parts[parts.length - 1] += `, ${geoData.address.house_number}`;
+              if (geoData.address.suburb || geoData.address.neighbourhood) parts.push(geoData.address.suburb || geoData.address.neighbourhood);
+              if (geoData.address.city || geoData.address.town || geoData.address.village) parts.push(geoData.address.city || geoData.address.town || geoData.address.village);
+              if (parts.length > 0) endereco = parts.join(' - ');
+            }
+            window.trajetosCacheEnderecos[cacheKey] = endereco;
+            el.innerHTML = `<strong>Endereço:</strong> ${endereco}`;
+            el.dataset.loaded = 'true';
+          } catch (e) {
+            el.innerHTML = `<strong>Endereço:</strong> ${exc.lat.toFixed(5)}, ${exc.lng.toFixed(5)}`;
+          }
+        });
+
         trajetosMarkersLayer.addLayer(marker);
       });
 
@@ -17257,10 +17368,48 @@
                 <span style="font-weight: 700; color: #111;">${horaInicio} às ${horaFim}</span>
                 <span style="background: #DC2626; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;">${duracaoLonga}</span>
               </div>
-              ${motoristaPeriodo ? `<div style="font-size: 13px; color: #555;"><strong>Motorista:</strong> ${motoristaPeriodo}</div>` : ''}
+              <div style="font-size: 13px; color: #555; line-height: 1.8;">
+                <div id="trajetos-endereco-parada-${numero}"><strong>Endereço:</strong> <span style="color: #999;">Carregando...</span></div>
+                ${motoristaPeriodo ? `<div style="margin-top: 4px;"><strong>Motorista:</strong> ${motoristaPeriodo}</div>` : ''}
+              </div>
             </div>
           </div>
         `, { maxWidth: 320, className: 'popup-parada' });
+
+        // Buscar endereço quando popup abrir
+        marker.on('popupopen', async function() {
+          const el = document.getElementById(`trajetos-endereco-parada-${numero}`);
+          if (!el || el.dataset.loaded === 'true') return;
+
+          const cacheKey = `${parada.lat.toFixed(4)},${parada.lng.toFixed(4)}`;
+          if (window.trajetosCacheEnderecos[cacheKey]) {
+            el.innerHTML = `<strong>Endereço:</strong> ${window.trajetosCacheEnderecos[cacheKey]}`;
+            el.dataset.loaded = 'true';
+            return;
+          }
+
+          try {
+            const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${parada.lat}&lon=${parada.lng}&zoom=18&addressdetails=1`, {
+              headers: { 'Accept-Language': 'pt-BR' }
+            });
+            const geoData = await geoRes.json();
+            let endereco = `${parada.lat.toFixed(5)}, ${parada.lng.toFixed(5)}`;
+            if (geoData.address) {
+              const parts = [];
+              if (geoData.address.road) parts.push(geoData.address.road);
+              if (geoData.address.house_number && parts.length) parts[parts.length - 1] += `, ${geoData.address.house_number}`;
+              if (geoData.address.suburb || geoData.address.neighbourhood) parts.push(geoData.address.suburb || geoData.address.neighbourhood);
+              if (geoData.address.city || geoData.address.town || geoData.address.village) parts.push(geoData.address.city || geoData.address.town || geoData.address.village);
+              if (parts.length > 0) endereco = parts.join(' - ');
+            }
+            window.trajetosCacheEnderecos[cacheKey] = endereco;
+            el.innerHTML = `<strong>Endereço:</strong> ${endereco}`;
+            el.dataset.loaded = 'true';
+          } catch (e) {
+            el.innerHTML = `<strong>Endereço:</strong> ${parada.lat.toFixed(5)}, ${parada.lng.toFixed(5)}`;
+          }
+        });
+
         trajetosMarkersLayer.addLayer(marker);
       });
 
