@@ -60,6 +60,114 @@ function formatarTempo(minutos) {
   return `${mins} min`;
 }
 
+/**
+ * Busca motoristas vinculados a um dispositivo em um período específico
+ * Retorna array com info de cada motorista e seu período de vinculação
+ */
+async function buscarMotoristasNoPeriodo(dispositivoId, inicio, fim) {
+  try {
+    // Buscar do histórico de motoristas
+    const historicoMotoristas = await prisma.historicoMotorista.findMany({
+      where: {
+        dispositivo_id: dispositivoId,
+        // Motorista que estava vinculado durante o período:
+        // inicio do vínculo <= fim do relatório E (fim do vínculo >= início do relatório OU ainda vinculado)
+        inicio: { lte: fim },
+        OR: [
+          { fim: { gte: inicio } },
+          { fim: null } // Ainda vinculado
+        ]
+      },
+      include: {
+        motorista: {
+          select: {
+            id: true,
+            nome: true,
+            cpf: true,
+            telefone: true,
+            cnh_numero: true
+          }
+        }
+      },
+      orderBy: { inicio: 'asc' }
+    });
+
+    // Também buscar motorista atualmente vinculado ao dispositivo
+    const dispositivo = await prisma.dispositivo.findUnique({
+      where: { id: dispositivoId },
+      include: {
+        motorista: {
+          select: {
+            id: true,
+            nome: true,
+            cpf: true,
+            telefone: true,
+            cnh_numero: true
+          }
+        }
+      }
+    });
+
+    // Consolidar motoristas únicos
+    const motoristasMap = new Map();
+
+    for (const h of historicoMotoristas) {
+      if (h.motorista) {
+        const existente = motoristasMap.get(h.motorista.id);
+        if (existente) {
+          // Expandir período se necessário
+          if (new Date(h.inicio) < new Date(existente.periodo_inicio)) {
+            existente.periodo_inicio = h.inicio;
+          }
+          if (!h.fim || !existente.periodo_fim || new Date(h.fim) > new Date(existente.periodo_fim)) {
+            existente.periodo_fim = h.fim;
+          }
+        } else {
+          motoristasMap.set(h.motorista.id, {
+            ...h.motorista,
+            periodo_inicio: h.inicio,
+            periodo_fim: h.fim
+          });
+        }
+      }
+    }
+
+    // Incluir motorista atual se não estiver no histórico
+    if (dispositivo?.motorista && !motoristasMap.has(dispositivo.motorista.id)) {
+      motoristasMap.set(dispositivo.motorista.id, {
+        ...dispositivo.motorista,
+        periodo_inicio: null,
+        periodo_fim: null,
+        atual: true
+      });
+    }
+
+    return Array.from(motoristasMap.values());
+  } catch (error) {
+    console.error('[buscarMotoristasNoPeriodo] Erro:', error);
+    return [];
+  }
+}
+
+/**
+ * Formata lista de motoristas para exibição
+ */
+function formatarMotoristasParaExibicao(motoristas) {
+  if (!motoristas || motoristas.length === 0) {
+    return 'Nenhum motorista vinculado';
+  }
+  return motoristas.map(m => {
+    let info = m.nome;
+    if (m.periodo_inicio || m.periodo_fim) {
+      const periodoStr = `${m.periodo_inicio ? formatDateTime(m.periodo_inicio).split(' ')[0] : '?'} - ${m.periodo_fim ? formatDateTime(m.periodo_fim).split(' ')[0] : 'atual'}`;
+      info += ` (${periodoStr})`;
+    } else if (m.atual) {
+      info += ' (atual)';
+    }
+    return info;
+  }).join(', ');
+}
+
 // ============ RELATÓRIO DE EXCESSOS DE VELOCIDADE ============
 
 /**
@@ -108,6 +216,10 @@ router.get('/velocidade/:imei', verificarDispositivoTenant, async (req, res) => 
         mensagem: 'Nenhum registro encontrado no período selecionado'
       });
     }
+
+    // Buscar motoristas vinculados no período
+    const motoristas = await buscarMotoristasNoPeriodo(dispositivo.id, inicio, fim);
+    const motoristasTexto = formatarMotoristasParaExibicao(motoristas);
 
     // Cache persistente: primeira consulta é lenta, próximas são instantâneas do banco
     console.log(`[Relatório Velocidade] Processando ${localizacoes.length} pontos com cache persistente...`);
@@ -232,8 +344,7 @@ router.get('/velocidade/:imei', verificarDispositivoTenant, async (req, res) => 
       doc.moveDown(0.3);
 
       const infoBoxY = doc.y;
-      doc.rect(50, infoBoxY, 240, 65).fillAndStroke('#f5f5f5', '#ddd');
-      doc.rect(300, infoBoxY, 245, 65).fillAndStroke('#f5f5f5', '#ddd');
+      doc.rect(50, infoBoxY, 495, 80).fillAndStroke('#f5f5f5', '#ddd');
 
       doc.fillColor('#333').fontSize(9).font('Helvetica');
       doc.text('Veículo:', 60, infoBoxY + 8);
@@ -250,7 +361,17 @@ router.get('/velocidade/:imei', verificarDispositivoTenant, async (req, res) => 
       doc.font('Helvetica').text('Registros GPS:', 310, infoBoxY + 36);
       doc.font('Helvetica-Bold').text(estatisticas.totalRegistros.toLocaleString('pt-BR'), 390, infoBoxY + 36);
 
-      doc.y = infoBoxY + 75;
+      // Motoristas vinculados no período
+      doc.font('Helvetica').text('Motorista(s):', 60, infoBoxY + 50);
+      const motoristasResumo = motoristas.length > 0
+        ? motoristas.map(m => m.nome).join(', ')
+        : 'Nenhum vinculado';
+      doc.font('Helvetica-Bold').text(motoristasResumo.substring(0, 80), 130, infoBoxY + 50, { width: 400 });
+      if (motoristas.length > 1) {
+        doc.font('Helvetica').fontSize(8).fillColor('#666').text(`(${motoristas.length} motoristas no período)`, 60, infoBoxY + 64);
+      }
+
+      doc.y = infoBoxY + 90;
 
       // ===== RESUMO GERAL =====
       doc.fillColor('#000').fontSize(14).font('Helvetica-Bold').text('Resumo Geral');
@@ -484,6 +605,7 @@ router.get('/velocidade/:imei', verificarDispositivoTenant, async (req, res) => 
 Veículo: ${dispositivo.veiculo || 'N/A'}
 Placa: ${dispositivo.placa || 'N/A'}
 IMEI: ${dispositivo.imei}
+Motorista(s): ${motoristasTexto}
 Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
 Gerado em: ${formatDateTime(new Date())}
 
@@ -560,6 +682,10 @@ router.get('/ocioso/:imei', verificarDispositivoTenant, async (req, res) => {
         mensagem: 'Nenhum registro encontrado no período selecionado'
       });
     }
+
+    // Buscar motoristas vinculados no período
+    const motoristas = await buscarMotoristasNoPeriodo(dispositivo.id, inicio, fim);
+    const motoristasTexto = formatarMotoristasParaExibicao(motoristas);
 
     // Identificar períodos ociosos
     const periodosOciosos = [];
@@ -659,6 +785,7 @@ router.get('/ocioso/:imei', verificarDispositivoTenant, async (req, res) => {
       doc.text(`Veículo: ${dispositivo.veiculo || 'N/A'}`);
       doc.text(`Placa: ${dispositivo.placa || 'N/A'}`);
       doc.text(`IMEI: ${dispositivo.imei}`);
+      doc.text(`Motorista(s): ${motoristas.length > 0 ? motoristas.map(m => m.nome).join(', ') : 'Nenhum vinculado'}`);
       doc.text(`Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`);
       doc.text(`Tempo mínimo considerado: ${tempoMinimoMin} minutos`);
       doc.moveDown();
@@ -738,6 +865,7 @@ router.get('/ocioso/:imei', verificarDispositivoTenant, async (req, res) => {
 Veículo: ${dispositivo.veiculo || 'N/A'}
 Placa: ${dispositivo.placa || 'N/A'}
 IMEI: ${dispositivo.imei}
+Motorista(s): ${motoristasTexto}
 Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
 Tempo mínimo considerado: ${tempoMinimoMin} minutos
 Gerado em: ${formatDateTime(new Date())}
@@ -811,6 +939,10 @@ router.get('/quilometragem/:imei', verificarDispositivoTenant, async (req, res) 
         mensagem: 'Nenhum registro encontrado no período selecionado'
       });
     }
+
+    // Buscar motoristas vinculados no período
+    const motoristas = await buscarMotoristasNoPeriodo(dispositivo.id, inicio, fim);
+    const motoristasTexto = formatarMotoristasParaExibicao(motoristas);
 
     // Agrupar por dia
     const quilometragemPorDia = {};
@@ -890,6 +1022,7 @@ router.get('/quilometragem/:imei', verificarDispositivoTenant, async (req, res) 
       doc.text(`Veículo: ${dispositivo.veiculo || 'N/A'}`);
       doc.text(`Placa: ${dispositivo.placa || 'N/A'}`);
       doc.text(`IMEI: ${dispositivo.imei}`);
+      doc.text(`Motorista(s): ${motoristas.length > 0 ? motoristas.map(m => m.nome).join(', ') : 'Nenhum vinculado'}`);
       doc.text(`Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`);
       doc.moveDown();
 
@@ -977,6 +1110,7 @@ router.get('/quilometragem/:imei', verificarDispositivoTenant, async (req, res) 
 Veículo: ${dispositivo.veiculo || 'N/A'}
 Placa: ${dispositivo.placa || 'N/A'}
 IMEI: ${dispositivo.imei}
+Motorista(s): ${motoristasTexto}
 Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
 Gerado em: ${formatDateTime(new Date())}
 
@@ -1121,10 +1255,15 @@ router.get('/frota', async (req, res) => {
         }
       }
 
+      // Buscar motoristas vinculados no período
+      const motoristas = await buscarMotoristasNoPeriodo(dispositivo.id, inicio, fim);
+
       return {
         placa: dispositivo.placa || 'N/A',
         veiculo: dispositivo.veiculo || 'N/A',
         imei: dispositivo.imei,
+        motorista: motoristas.length > 0 ? motoristas[motoristas.length - 1].nome : 'N/A',
+        motoristas: motoristas.map(m => m.nome).join(', ') || 'Nenhum',
         status: dispositivo.status || 'offline',
         distanciaTotal: distanciaMovimento.toFixed(2),
         tempoMovimento: formatarTempo(tempoMovimento),
@@ -1215,19 +1354,19 @@ router.get('/frota', async (req, res) => {
       doc.moveDown(0.5);
 
       const tableTop = doc.y;
-      const colWidths = [70, 100, 60, 60, 60, 60, 50];
-      const headers = ['Placa', 'Veículo', 'Distância', 'Mov.', 'Ocioso', 'Vel. Máx', 'Reg.'];
+      const colWidths = [55, 75, 75, 50, 50, 50, 50, 50];
+      const headers = ['Placa', 'Veículo', 'Motorista', 'Dist.', 'Mov.', 'Ocioso', 'V.Máx', 'Reg.'];
 
-      doc.fontSize(7).font('Helvetica-Bold').fillColor('#fff');
+      doc.fontSize(6).font('Helvetica-Bold').fillColor('#fff');
       doc.rect(50, tableTop, 495, 15).fill('#3f51b5');
 
-      let xPos = 55;
+      let xPos = 52;
       headers.forEach((header, i) => {
         doc.text(header, xPos, tableTop + 4, { width: colWidths[i], align: 'left' });
         xPos += colWidths[i];
       });
 
-      doc.fillColor('#000').font('Helvetica').fontSize(7);
+      doc.fillColor('#000').font('Helvetica').fontSize(6);
       let yPos = tableTop + 18;
 
       for (const veiculo of resumoFrota) {
@@ -1244,11 +1383,12 @@ router.get('/frota', async (req, res) => {
         xPos = 55;
         const rowData = [
           veiculo.placa,
-          (veiculo.veiculo || '').substring(0, 18),
-          `${veiculo.distanciaTotal} km`,
+          (veiculo.veiculo || '').substring(0, 12),
+          (veiculo.motorista || 'N/A').substring(0, 12),
+          `${veiculo.distanciaTotal}`,
           veiculo.tempoMovimento,
           veiculo.tempoOcioso,
-          `${veiculo.velocidadeMax} km/h`,
+          `${veiculo.velocidadeMax}`,
           veiculo.totalRegistros.toString()
         ];
 
@@ -1279,11 +1419,11 @@ Distância Total da Frota: ${estatisticas.distanciaTotalFrota} km
 Média por Veículo: ${estatisticas.mediaKmVeiculo} km
 
 === DETALHAMENTO POR VEÍCULO ===
-Placa,Veículo,IMEI,Status,Distância (km),Tempo Movimento,Tempo Ocioso,Velocidade Máxima (km/h),Total Registros
+Placa,Veículo,Motorista(s),IMEI,Status,Distância (km),Tempo Movimento,Tempo Ocioso,Velocidade Máxima (km/h),Total Registros
 `;
 
       for (const veiculo of resumoFrota) {
-        csvContent += `${veiculo.placa},"${veiculo.veiculo}",${veiculo.imei},${veiculo.status},${veiculo.distanciaTotal},"${veiculo.tempoMovimento}","${veiculo.tempoOcioso}",${veiculo.velocidadeMax},${veiculo.totalRegistros}\n`;
+        csvContent += `${veiculo.placa},"${veiculo.veiculo}","${veiculo.motoristas}",${veiculo.imei},${veiculo.status},${veiculo.distanciaTotal},"${veiculo.tempoMovimento}","${veiculo.tempoOcioso}",${veiculo.velocidadeMax},${veiculo.totalRegistros}\n`;
       }
 
       const filename = `resumo_frota_${formatDateForFilename(new Date())}.csv`;
@@ -1341,6 +1481,10 @@ router.get('/operacao/:imei', verificarDispositivoTenant, async (req, res) => {
         mensagem: 'Nenhum registro encontrado no período selecionado'
       });
     }
+
+    // Buscar motoristas vinculados no período
+    const motoristas = await buscarMotoristasNoPeriodo(dispositivo.id, inicio, fim);
+    const motoristasTexto = formatarMotoristasParaExibicao(motoristas);
 
     // Agrupar por dia e calcular tempo de operação
     const operacaoPorDia = {};
@@ -1416,6 +1560,7 @@ router.get('/operacao/:imei', verificarDispositivoTenant, async (req, res) => {
       doc.fontSize(12).font('Helvetica-Bold').text('Informações do Veículo');
       doc.fontSize(10).font('Helvetica');
       doc.text(`Veículo: ${dispositivo.veiculo || 'N/A'} | Placa: ${dispositivo.placa || 'N/A'}`);
+      doc.text(`Motorista(s): ${motoristas.length > 0 ? motoristas.map(m => m.nome).join(', ') : 'Nenhum vinculado'}`);
       doc.text(`Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`);
       doc.moveDown();
 
@@ -1473,6 +1618,7 @@ router.get('/operacao/:imei', verificarDispositivoTenant, async (req, res) => {
       let csvContent = `RELATÓRIO DE TEMPO DE OPERAÇÃO
 Veículo: ${dispositivo.veiculo || 'N/A'}
 Placa: ${dispositivo.placa || 'N/A'}
+Motorista(s): ${motoristasTexto}
 Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
 
 === RESUMO ===
@@ -1534,6 +1680,10 @@ router.get('/paradas/:imei', verificarDispositivoTenant, async (req, res) => {
     if (localizacoes.length === 0) {
       return res.status(404).json({ sucesso: false, mensagem: 'Nenhum registro encontrado' });
     }
+
+    // Buscar motoristas vinculados no período
+    const motoristas = await buscarMotoristasNoPeriodo(dispositivo.id, inicio, fim);
+    const motoristasTexto = formatarMotoristasParaExibicao(motoristas);
 
     // Identificar paradas longas
     const paradas = [];
@@ -1603,6 +1753,7 @@ router.get('/paradas/:imei', verificarDispositivoTenant, async (req, res) => {
 
       doc.fontSize(10).font('Helvetica');
       doc.text(`Veículo: ${dispositivo.veiculo || 'N/A'} | Placa: ${dispositivo.placa || 'N/A'}`);
+      doc.text(`Motorista(s): ${motoristas.length > 0 ? motoristas.map(m => m.nome).join(', ') : 'Nenhum vinculado'}`);
       doc.text(`Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`);
       doc.text(`Tempo mínimo considerado: ${tempoMinimoMin} minutos`);
       doc.moveDown();
@@ -1655,6 +1806,7 @@ router.get('/paradas/:imei', verificarDispositivoTenant, async (req, res) => {
       let csvContent = `RELATÓRIO DE PARADAS LONGAS
 Veículo: ${dispositivo.veiculo || 'N/A'}
 Placa: ${dispositivo.placa || 'N/A'}
+Motorista(s): ${motoristasTexto}
 Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
 Tempo mínimo considerado: ${tempoMinimoMin} minutos
 
@@ -1733,6 +1885,10 @@ router.get('/ranking', async (req, res) => {
         }
       }
 
+      // Buscar motoristas vinculados no período
+      const motoristas = await buscarMotoristasNoPeriodo(dispositivo.id, inicio, fim);
+      const motoristaAtual = motoristas.length > 0 ? motoristas[motoristas.length - 1].nome : null;
+
       // Pontuação: mais km = melhor, menos excessos = melhor, menos ocioso = melhor
       const eficiencia = (tempoMovimento + tempoOcioso) > 0 ? (tempoMovimento / (tempoMovimento + tempoOcioso)) * 100 : 0;
       const pontuacao = Math.max(0, 100 - (excessos * 2) + (eficiencia * 0.5) + (km * 0.1));
@@ -1741,6 +1897,8 @@ router.get('/ranking', async (req, res) => {
         placa: dispositivo.placa || 'N/A',
         veiculo: dispositivo.veiculo || 'N/A',
         imei: dispositivo.imei,
+        motorista: motoristaAtual || 'N/A',
+        motoristas: motoristas.map(m => m.nome).join(', ') || 'Nenhum',
         km: km.toFixed(2),
         tempoMovimento: formatarTempo(tempoMovimento),
         tempoOcioso: formatarTempo(tempoOcioso),
@@ -1773,15 +1931,15 @@ router.get('/ranking', async (req, res) => {
       doc.moveDown();
 
       const tableTop = doc.y;
-      const colWidths = [30, 70, 90, 55, 55, 55, 55, 50, 35];
-      const headers = ['#', 'Placa', 'Veículo', 'Km', 'Mov.', 'Efic.', 'Excessos', 'V.Máx', 'Pts'];
+      const colWidths = [25, 50, 85, 85, 45, 45, 45, 40, 35, 30];
+      const headers = ['#', 'Placa', 'Veículo', 'Motorista', 'Km', 'Mov.', 'Efic.', 'Exc.', 'Máx', 'Pts'];
 
-      doc.fontSize(7).font('Helvetica-Bold').fillColor('#fff');
+      doc.fontSize(6).font('Helvetica-Bold').fillColor('#fff');
       doc.rect(50, tableTop, 495, 15).fill('#4caf50');
-      let xPos = 55;
+      let xPos = 52;
       headers.forEach((h, i) => { doc.text(h, xPos, tableTop + 4, { width: colWidths[i] }); xPos += colWidths[i]; });
 
-      doc.fillColor('#000').font('Helvetica').fontSize(7);
+      doc.fillColor('#000').font('Helvetica').fontSize(6);
       let yPos = tableTop + 18;
 
       for (const r of rankings) {
@@ -1796,11 +1954,12 @@ router.get('/ranking', async (req, res) => {
         doc.rect(50, yPos - 2, 495, 12).fill(bgColor);
         doc.fillColor('#000');
 
-        xPos = 55;
+        xPos = 52;
         [
           r.posicao.toString(),
           r.placa,
-          (r.veiculo || '').substring(0, 15),
+          (r.veiculo || '').substring(0, 14),
+          (r.motorista || 'N/A').substring(0, 14),
           r.km,
           r.tempoMovimento,
           `${r.eficiencia}%`,
@@ -1817,10 +1976,10 @@ router.get('/ranking', async (req, res) => {
       let csvContent = `RANKING DE CONDUTORES
 Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
 
-Posição,Placa,Veículo,Km,Tempo Movimento,Tempo Ocioso,Eficiência (%),Excessos,Vel. Máxima,Pontuação
+Posição,Placa,Veículo,Motorista(s),Km,Tempo Movimento,Tempo Ocioso,Eficiência (%),Excessos,Vel. Máxima,Pontuação
 `;
       for (const r of rankings) {
-        csvContent += `${r.posicao},${r.placa},"${r.veiculo}",${r.km},"${r.tempoMovimento}","${r.tempoOcioso}",${r.eficiencia},${r.excessos},${r.velMax},${r.pontuacao}\n`;
+        csvContent += `${r.posicao},${r.placa},"${r.veiculo}","${r.motoristas}",${r.km},"${r.tempoMovimento}","${r.tempoOcioso}",${r.eficiencia},${r.excessos},${r.velMax},${r.pontuacao}\n`;
       }
 
       const filename = `ranking_condutores_${formatDateForFilename(new Date())}.csv`;
@@ -1868,6 +2027,10 @@ router.get('/consumo/:imei', verificarDispositivoTenant, async (req, res) => {
     if (localizacoes.length === 0) {
       return res.status(404).json({ sucesso: false, mensagem: 'Nenhum registro encontrado' });
     }
+
+    // Buscar motoristas vinculados no período
+    const motoristas = await buscarMotoristasNoPeriodo(dispositivo.id, inicio, fim);
+    const motoristasTexto = formatarMotoristasParaExibicao(motoristas);
 
     // Agrupar por dia
     const consumoPorDia = {};
@@ -1920,6 +2083,7 @@ router.get('/consumo/:imei', verificarDispositivoTenant, async (req, res) => {
 
       doc.fontSize(10).font('Helvetica');
       doc.text(`Veículo: ${dispositivo.veiculo || 'N/A'} | Placa: ${dispositivo.placa || 'N/A'}`);
+      doc.text(`Motorista(s): ${motoristas.length > 0 ? motoristas.map(m => m.nome).join(', ') : 'Nenhum vinculado'}`);
       doc.text(`Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`);
       doc.text(`Consumo médio considerado: ${kmPorLitro} km/L`);
       doc.moveDown();
@@ -1971,6 +2135,7 @@ router.get('/consumo/:imei', verificarDispositivoTenant, async (req, res) => {
       let csvContent = `RELATÓRIO DE CONSUMO ESTIMADO
 Veículo: ${dispositivo.veiculo || 'N/A'}
 Placa: ${dispositivo.placa || 'N/A'}
+Motorista(s): ${motoristasTexto}
 Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
 Consumo médio considerado: ${kmPorLitro} km/L
 
