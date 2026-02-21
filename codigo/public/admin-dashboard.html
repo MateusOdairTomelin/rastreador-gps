@@ -2928,19 +2928,27 @@
     }
 
     .notification-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
       flex-shrink: 0;
+      margin-top: 5px;
     }
 
-    .notification-icon.geofence { background: rgba(59, 130, 246, 0.15); }
-    .notification-icon.velocidade { background: rgba(239, 68, 68, 0.15); }
-    .notification-icon.info { background: rgba(16, 185, 129, 0.15); }
+    .notification-icon.geofence { background: #3b82f6; }
+    .notification-icon.velocidade { background: #ef4444; }
+    .notification-icon.info { background: #10b981; }
+
+    /* Indicador de toast */
+    .toast-indicator {
+      width: 4px;
+      height: 100%;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .toast-indicator.danger { background: #ef4444; }
+    .toast-indicator.warning { background: #f59e0b; }
+    .toast-indicator.info { background: #06b6d4; }
 
     .notification-content {
       flex: 1;
@@ -9599,13 +9607,12 @@
 
       lista.innerHTML = notificacoes.map(n => {
         const iconClass = n.tipo.includes('geofence') ? 'geofence' : n.tipo === 'excesso_velocidade' ? 'velocidade' : 'info';
-        const icon = n.tipo.includes('geofence') ? '📍' : n.tipo === 'excesso_velocidade' ? '🚨' : 'ℹ️';
         const unreadClass = !n.lida ? 'unread' : '';
         const tempo = formatarTempoRelativo(n.created_at);
 
         return `
           <div class="notification-item ${unreadClass}" onclick="marcarComoLida(${n.id})">
-            <div class="notification-icon ${iconClass}">${icon}</div>
+            <div class="notification-icon ${iconClass}"></div>
             <div class="notification-content">
               <div class="notification-title">${escapeHtml(n.titulo)}</div>
               <div class="notification-message">${escapeHtml(n.mensagem)}</div>
@@ -9672,12 +9679,11 @@
 
       const severityClass = notificacao.severidade === 'danger' || notificacao.severidade === 'critical' ? 'danger' :
                             notificacao.severidade === 'warning' ? 'warning' : 'info';
-      const icon = notificacao.tipo.includes('geofence') ? '📍' : notificacao.tipo === 'excesso_velocidade' ? '🚨' : 'ℹ️';
 
       const toast = document.createElement('div');
       toast.className = `toast ${severityClass}`;
       toast.innerHTML = `
-        <span class="toast-icon">${icon}</span>
+        <span class="toast-indicator ${severityClass}"></span>
         <div class="toast-content">
           <div class="toast-title">${escapeHtml(notificacao.titulo)}</div>
           <div class="toast-message">${escapeHtml(notificacao.mensagem)}</div>
@@ -9893,14 +9899,13 @@
           }
 
           container.innerHTML = dados.map(n => {
-            const icon = n.tipo.includes('geofence') ? '📍' : n.tipo === 'excesso_velocidade' ? '🚨' : 'ℹ️';
-            const severityColor = n.severidade === 'danger' || n.severidade === 'critical' ? 'var(--danger)' :
-                                  n.severidade === 'warning' ? 'var(--warning)' : 'var(--accent)';
+            const severityColor = n.severidade === 'danger' || n.severidade === 'critical' ? '#ef4444' :
+                                  n.severidade === 'warning' ? '#f59e0b' : '#06b6d4';
             const data = new Date(n.created_at).toLocaleString('pt-BR');
 
             return `
               <div style="display: flex; gap: 12px; padding: 12px; border-bottom: 1px solid var(--border); ${!n.lida ? 'background: rgba(6, 182, 212, 0.05);' : ''}">
-                <span style="font-size: 24px;">${icon}</span>
+                <span style="width: 10px; height: 10px; border-radius: 50%; background: ${severityColor}; margin-top: 6px; flex-shrink: 0;"></span>
                 <div style="flex: 1;">
                   <div style="font-weight: 600; color: var(--text);">${escapeHtml(n.titulo)}</div>
                   <div style="font-size: 13px; color: var(--text-light);">${escapeHtml(n.mensagem)}</div>
