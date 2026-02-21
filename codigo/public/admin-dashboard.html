@@ -16007,12 +16007,35 @@
     }
 
     // Exportar relatório individual
+    // Flag para evitar múltiplos downloads simultâneos
+    let downloadEmAndamento = false;
+
     async function exportarRelatorioIndividual(imei, formato) {
       console.log('[Relatório] Exportando:', imei, formato);
+
+      // Evitar cliques múltiplos
+      if (downloadEmAndamento) {
+        toastWarning('Aguarde o download atual terminar antes de iniciar outro.');
+        return;
+      }
+      downloadEmAndamento = true;
+
+      // Desabilitar botões de download
+      document.querySelectorAll('.btn-pdf, .btn-csv, [onclick*="exportar"]').forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'wait';
+      });
 
       try {
         const periodo = obterPeriodoRelatorio();
         const tipoRelatorio = document.getElementById('rel-filtro-tipo')?.value || 'geral';
+
+        // Calcular dias do período para mostrar aviso
+        const diasPeriodo = Math.ceil((periodo.fim - periodo.inicio) / (1000 * 60 * 60 * 24));
+        if (diasPeriodo > 7) {
+          toastInfo(`Gerando relatório de ${diasPeriodo} dias. Isso pode levar alguns minutos...`);
+        }
 
         let url;
         const params = new URLSearchParams({
@@ -16085,6 +16108,14 @@
         // Atualizar toast para erro
         ocultarLoadingExportacao(false, error.message);
         toastError('Erro ao gerar relatório: ' + error.message);
+      } finally {
+        // Reabilitar botões de download
+        downloadEmAndamento = false;
+        document.querySelectorAll('.btn-pdf, .btn-csv, [onclick*="exportar"]').forEach(btn => {
+          btn.disabled = false;
+          btn.style.opacity = '';
+          btn.style.cursor = '';
+        });
       }
     }
 
