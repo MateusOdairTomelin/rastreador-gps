@@ -18004,7 +18004,7 @@
         });
       }
 
-      // Desenhar rota animada com ant-path (cor teal/cyan)
+      // Desenhar rota animada com ant-path (cor teal/cyan) - animação lenta
       if (typeof L.polyline.antPath === 'function') {
         const antPath = L.polyline.antPath(coords, {
           color: '#0d9488',
@@ -18012,7 +18012,7 @@
           opacity: 0.9,
           lineCap: 'round',
           lineJoin: 'round',
-          delay: 800,
+          delay: 3000,
           dashArray: [15, 30],
           pulseColor: '#3FCFD5',
           paused: false,
@@ -18029,33 +18029,7 @@
         trajetosRouteLayer.addLayer(polyline);
       }
 
-      // Adicionar carrinhos de direção ao longo da rota (igual veiculo-detalhes)
-      const intervaloCarros = Math.max(Math.floor(pontos.length / 8), 5);
-      for (let i = intervaloCarros; i < pontos.length - intervaloCarros; i += intervaloCarros) {
-        const ponto = pontos[i];
-        const pontoAnterior = pontos[i - 1];
-
-        // Calcular ângulo de direção
-        const deltaLat = ponto.latitude - pontoAnterior.latitude;
-        const deltaLng = ponto.longitude - pontoAnterior.longitude;
-        const angulo = Math.atan2(deltaLng, deltaLat) * (180 / Math.PI);
-
-        const carroMarker = L.marker([ponto.latitude, ponto.longitude], {
-          icon: L.divIcon({
-            className: 'direcao-marker',
-            html: `<div style="transform: rotate(${angulo - 90}deg); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="#6b7280">
-                <path d="M5 11l1.5-4.5h11L19 11m-1.5 5a1.5 1.5 0 01-1.5-1.5 1.5 1.5 0 011.5-1.5 1.5 1.5 0 011.5 1.5 1.5 1.5 0 01-1.5 1.5m-11 0A1.5 1.5 0 015 14.5 1.5 1.5 0 016.5 13 1.5 1.5 0 018 14.5 1.5 1.5 0 016.5 16M18.92 6c-.2-.58-.76-1-1.42-1h-11c-.66 0-1.22.42-1.42 1L3 12v8a1 1 0 001 1h1a1 1 0 001-1v-1h12v1a1 1 0 001 1h1a1 1 0 001-1v-8l-2.08-6z"/>
-              </svg>
-            </div>`,
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-          })
-        });
-        trajetosMarkersLayer.addLayer(carroMarker);
-      }
-
-      // Marcador de INÍCIO (círculo preto com play) - igual veiculo-detalhes
+      // Marcador de INÍCIO (círculo preto com play)
       const startMarker = L.marker(coords[0], {
         icon: L.divIcon({
           className: 'start-marker',
