@@ -3909,7 +3909,7 @@
       border: 1px solid var(--border, #3a3a5a);
       border-radius: 8px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.8);
-      max-height: 300px;
+      max-height: 350px;
       overflow-y: auto;
       z-index: 99999;
       display: none;
@@ -3919,6 +3919,22 @@
 
     .veiculo-sugestoes.show {
       display: block;
+    }
+
+    /* Barra de rolagem visível no dropdown */
+    .veiculo-sugestoes::-webkit-scrollbar {
+      width: 8px;
+    }
+    .veiculo-sugestoes::-webkit-scrollbar-track {
+      background: #2a2a3e;
+      border-radius: 4px;
+    }
+    .veiculo-sugestoes::-webkit-scrollbar-thumb {
+      background: #4a4a6a;
+      border-radius: 4px;
+    }
+    .veiculo-sugestoes::-webkit-scrollbar-thumb:hover {
+      background: #5a5a7a;
     }
 
     /* Filtro de Veículos - Botões de Seleção */
@@ -14896,7 +14912,7 @@
     }
 
     // Buscar veículos para autocomplete (instantâneo se cache já carregado)
-    async function buscarVeiculoAutocomplete(termo) {
+    async function buscarVeiculoAutocomplete(termo, mostrarTodos = false) {
       // Carregar cache se ainda não foi carregado
       if (veiculosAutocompleteCache.length === 0 && !autocompleteCacheCarregado) {
         await precarregarCacheVeiculos();
@@ -14906,15 +14922,13 @@
       const termoLower = termo.toLowerCase().trim();
       const container = getDropdownAutocomplete();
 
-      if (termoLower.length < 1) {
-        container.classList.remove('show');
-        return;
-      }
-
-      // Filtrar por placa, nome do veículo ou modelo
-      const sugestoes = veiculosAutocompleteCache.filter(v => {
+      // Filtrar por placa, nome do veículo ou modelo (ou mostrar todos se mostrarTodos=true)
+      let sugestoes = veiculosAutocompleteCache.filter(v => {
         // Não mostrar veículos já selecionados
         if (veiculosFiltroSelecionados.some(sel => sel.imei === v.imei)) return false;
+
+        // Se mostrarTodos ou termo vazio, mostrar todos
+        if (mostrarTodos || termoLower.length < 1) return true;
 
         const placa = (v.placa || '').toLowerCase();
         const nome = (v.veiculo || '').toLowerCase();
@@ -14925,7 +14939,10 @@
                nome.includes(termoLower) ||
                modelo.includes(termoLower) ||
                marca.includes(termoLower);
-      }).slice(0, 10);
+      });
+
+      // Limitar a 50 veículos para performance (com scroll)
+      sugestoes = sugestoes.slice(0, 50);
 
       if (sugestoes.length === 0) {
         container.innerHTML = '<div class="veiculo-sugestao" style="color: var(--text-light); cursor: default;">Nenhum veículo encontrado</div>';
@@ -14960,12 +14977,11 @@
       container.style.width = Math.max(rect.width, 300) + 'px';
     }
 
-    // Mostrar sugestões ao focar no campo
+    // Mostrar sugestões ao focar no campo (mostra todos os veículos)
     function mostrarSugestoesVeiculo() {
       const input = document.getElementById('rel-busca-veiculo');
-      if (input.value.trim().length >= 1) {
-        buscarVeiculoAutocomplete(input.value);
-      }
+      // Mostrar todos os veículos ao focar, mesmo sem digitar nada
+      buscarVeiculoAutocomplete(input.value, true);
     }
 
     // Selecionar veículo do autocomplete (adiciona à lista)
