@@ -254,7 +254,8 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
                 velocidade: velocidade,
                 limite: limiteVia,
                 excesso: excedeValor,
-                nomeVia: nomeVia
+                nomeVia: nomeVia,
+                motorista: encontrarMotoristaPorTimestampCSV(loc.timestamp) // ✅ Motorista no momento do excesso
               });
             }
 
@@ -313,12 +314,14 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
             csvContent += `Total de Excessos: ${excessosDetalhados.length}\n`;
             csvContent += `Maior Excesso: +${Math.max(...excessosDetalhados.map(e => e.excesso))} km/h\n`;
             csvContent += `Velocidade Máxima Registrada: ${Math.max(...excessosDetalhados.map(e => e.velocidade))} km/h\n\n`;
-            csvContent += 'Data/Hora,Via,Velocidade (km/h),Limite (km/h),Excesso (km/h),Latitude,Longitude\n';
+            // ✅ Adicionada coluna Motorista para identificar condutor no momento do excesso
+            csvContent += 'Data/Hora,Via,Motorista,Velocidade (km/h),Limite (km/h),Excesso (km/h),Latitude,Longitude\n';
 
             // Ordenar por excesso (maior primeiro)
             const excessosOrdenados = [...excessosDetalhados].sort((a, b) => b.excesso - a.excesso);
             for (const exc of excessosOrdenados) {
-              csvContent += `${formatDateTime(exc.timestamp)},${exc.nomeVia},${exc.velocidade},${exc.limite},+${exc.excesso},${exc.latitude},${exc.longitude}\n`;
+              const motoristaCSV = exc.motorista || 'N/I'; // N/I = Não Identificado
+              csvContent += `${formatDateTime(exc.timestamp)},${exc.nomeVia},${motoristaCSV},${exc.velocidade},${exc.limite},+${exc.excesso},${exc.latitude},${exc.longitude}\n`;
             }
             csvContent += '\n';
           }
@@ -621,6 +624,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
 
     // ============ BUSCAR MOTORISTA(S) VINCULADO(S) NO PERÍODO (CSV) ============
     let motoristasTextoCSV = 'Não identificado no período';
+    let motoristasVinculadosCSV = []; // ✅ Para função helper
     try {
       const historicoMotoristas = await prisma.historicoMotorista.findMany({
         where: {
@@ -658,7 +662,9 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
         }
       });
 
-      const motoristas = Array.from(motoristasMap.values());
+      const motoristas = Array.from(motoristasMap.values())
+        .sort((a, b) => new Date(a.periodoInicio) - new Date(b.periodoInicio));
+      motoristasVinculadosCSV = motoristas; // ✅ Guardar para função helper
       if (motoristas.length === 1) {
         const m = motoristas[0];
         motoristasTextoCSV = `${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''}`;
@@ -672,6 +678,19 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     } catch (e) {
       console.log('[CSV] Erro ao buscar motoristas:', e.message);
     }
+
+    // ✅ Função helper para encontrar motorista em um timestamp específico (CSV)
+    const encontrarMotoristaPorTimestampCSV = (timestamp) => {
+      const ts = new Date(timestamp);
+      for (const m of motoristasVinculadosCSV) {
+        const inicio = new Date(m.periodoInicio);
+        const fim = m.periodoFim ? new Date(m.periodoFim) : new Date();
+        if (ts >= inicio && ts <= fim) {
+          return m.nome;
+        }
+      }
+      return null;
+    };
 
     // ============ CALCULAR MÉTRICAS ADICIONAIS (CSV) ============
     // Km por dia
@@ -923,6 +942,19 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       console.log('[PDF] Erro ao buscar motoristas:', e.message);
     }
 
+    // ✅ Função helper para encontrar motorista em um timestamp específico
+    const encontrarMotoristaPorTimestamp = (timestamp) => {
+      const ts = new Date(timestamp);
+      for (const m of motoristasVinculados) {
+        const inicio = new Date(m.periodoInicio);
+        const fim = m.periodoFim ? new Date(m.periodoFim) : new Date(); // Se não tem fim, ainda está ativo
+        if (ts >= inicio && ts <= fim) {
+          return m.nome;
+        }
+      }
+      return null; // Não identificado
+    };
+
     // Informações do veículo
     doc.fontSize(12).font('Helvetica-Bold').text('Informações do Veículo');
     doc.fontSize(10).font('Helvetica');
@@ -1141,7 +1173,8 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
                 velocidade: loc.velocidade,
                 limite: infoVia.limite,
                 excesso: loc.velocidade - infoVia.limite,
-                nomeVia: infoVia.nome || ''
+                nomeVia: infoVia.nome || '',
+                motorista: encontrarMotoristaPorTimestamp(loc.timestamp) // ✅ Motorista no momento do excesso
               });
             }
           } else if (motorLigado) {
@@ -1410,18 +1443,21 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
 
         // ✅ LEGENDA DE CORES DA TABELA
         const legendaExcY = doc.y;
-        doc.rect(50, legendaExcY, 495, 18).fill('#f5f5f5');
+        doc.rect(50, legendaExcY, 495, 28).fill('#f5f5f5');
         doc.fontSize(7).font('Helvetica-Bold').fillColor('#333');
         doc.text('LEGENDA:', 55, legendaExcY + 5);
         doc.rect(110, legendaExcY + 3, 12, 10).fill('#ffcdd2');
         doc.fillColor('#333').font('Helvetica').text('Excesso grave (>20 km/h)', 125, legendaExcY + 5);
         doc.rect(250, legendaExcY + 3, 12, 10).fill('#fff8e1');
         doc.fillColor('#333').text('Excesso moderado', 265, legendaExcY + 5);
+        doc.fontSize(6).fillColor('#666');
+        doc.text('Motorista: Nome do condutor vinculado no momento do excesso | N/I = Não Identificado (sem motorista vinculado no horário)', 55, legendaExcY + 17);
         doc.moveDown(0.5);
 
         const excTableY = doc.y;
-        const excColWidths = [75, 140, 50, 45, 45, 130];
-        const excHeaders = ['Data/Hora', 'Via', 'Vel.', 'Limite', 'Excesso', 'Coordenadas'];
+        // ✅ Adicionada coluna Motorista para identificar condutor no momento do excesso
+        const excColWidths = [70, 95, 75, 35, 35, 35, 150];
+        const excHeaders = ['Data/Hora', 'Via', 'Motorista', 'Vel.', 'Lim.', 'Exc.', 'Coordenadas'];
 
         doc.fontSize(7).font('Helvetica-Bold').fillColor('#fff');
         doc.rect(50, excTableY, 495, 13).fill('#c62828');
@@ -1470,13 +1506,19 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
           doc.fillColor('#333');
 
           const nomeVia = exc.nomeVia && exc.nomeVia !== '' && exc.nomeVia !== 'N/A'
-            ? (exc.nomeVia.length > 28 ? exc.nomeVia.substring(0, 25) + '...' : exc.nomeVia)
-            : 'Via não identificada';
+            ? (exc.nomeVia.length > 18 ? exc.nomeVia.substring(0, 15) + '...' : exc.nomeVia)
+            : 'Via não identif.';
+
+          // ✅ Motorista no momento do excesso
+          const motoristaExc = exc.motorista
+            ? (exc.motorista.length > 14 ? exc.motorista.substring(0, 11) + '...' : exc.motorista)
+            : 'N/I';
 
           xPos = 53;
           const excRowData = [
             formatDateTime(exc.timestamp),
             nomeVia,
+            motoristaExc,
             `${exc.velocidade}`,
             `${exc.limite}`,
             `+${exc.excesso}`,
@@ -1485,11 +1527,11 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
 
           excRowData.forEach((data, idx) => {
             // Destacar excesso em vermelho
-            if (idx === 4 && exc.excesso > 20) {
+            if (idx === 5 && exc.excesso > 20) {
               doc.fillColor('#c62828').font('Helvetica-Bold');
             }
             doc.text(data, xPos, yPos + 1, { width: excColWidths[idx], align: 'left' });
-            if (idx === 4) {
+            if (idx === 5) {
               doc.fillColor('#333').font('Helvetica');
             }
             xPos += excColWidths[idx];
