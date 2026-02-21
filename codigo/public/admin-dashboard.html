@@ -518,7 +518,7 @@
     }
 
     [data-theme="dark"] .veiculo-sugestoes {
-      background: var(--card-bg);
+      background: #1e1e2e; /* Fundo sólido escuro - sem transparência */
       border-color: var(--border);
     }
 
@@ -3905,15 +3905,16 @@
     /* Autocomplete de veículos */
     .veiculo-sugestoes {
       position: fixed;
-      background: var(--card-bg, #1a1a2e);
+      background: #1e1e2e; /* Fundo sólido escuro */
       border: 1px solid var(--border, #3a3a5a);
       border-radius: 8px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.8);
       max-height: 300px;
       overflow-y: auto;
       z-index: 99999;
       display: none;
       min-width: 280px;
+      backdrop-filter: none; /* Remove qualquer transparência */
     }
 
     .veiculo-sugestoes.show {
@@ -4008,6 +4009,7 @@
       gap: 10px;
       border-bottom: 1px solid var(--border);
       transition: background 0.15s;
+      background: #1e1e2e; /* Fundo sólido para cada item */
     }
 
     .veiculo-sugestao:last-child {
@@ -4016,7 +4018,7 @@
 
     .veiculo-sugestao:hover,
     .veiculo-sugestao.selected {
-      background: var(--bg);
+      background: #2a2a3e; /* Fundo sólido no hover */
     }
 
     .veiculo-sugestao-icon {
