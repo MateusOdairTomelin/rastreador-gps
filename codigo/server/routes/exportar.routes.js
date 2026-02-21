@@ -619,12 +619,105 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     if (filtrarSoExcessos) filtrosTexto.push('Apenas excessos');
     if (tipoAlarme) filtrosTexto.push(`Alarme: ${tipoAlarme}`);
 
+    // ============ BUSCAR MOTORISTA(S) VINCULADO(S) NO PERÍODO (CSV) ============
+    let motoristasTextoCSV = 'Não identificado no período';
+    try {
+      const historicoMotoristas = await prisma.historicoMotorista.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          OR: [{ fim: null }, { fim: { gte: inicio } }],
+          inicio: { lte: fim }
+        },
+        include: { motorista: { select: { id: true, nome: true, cnh_categoria: true } } },
+        orderBy: { inicio: 'asc' }
+      });
+
+      const viagensComMotorista = await prisma.viagem.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          inicio: { gte: inicio },
+          fim: { lte: fim },
+          motorista_id: { not: null }
+        },
+        include: { motorista: { select: { id: true, nome: true, cnh_categoria: true } } },
+        orderBy: { inicio: 'asc' }
+      });
+
+      const motoristasMap = new Map();
+      historicoMotoristas.forEach(h => {
+        if (h.motorista) {
+          const key = h.motorista.id;
+          if (!motoristasMap.has(key)) {
+            motoristasMap.set(key, { ...h.motorista, periodoInicio: h.inicio, periodoFim: h.fim });
+          }
+        }
+      });
+      viagensComMotorista.forEach(v => {
+        if (v.motorista && !motoristasMap.has(v.motorista.id)) {
+          motoristasMap.set(v.motorista.id, { ...v.motorista, periodoInicio: v.inicio, periodoFim: v.fim });
+        }
+      });
+
+      const motoristas = Array.from(motoristasMap.values());
+      if (motoristas.length === 1) {
+        const m = motoristas[0];
+        motoristasTextoCSV = `${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''}`;
+      } else if (motoristas.length > 1) {
+        motoristasTextoCSV = motoristas.map(m => {
+          const periodo = m.periodoInicio ?
+            `${formatDateTime(m.periodoInicio).split(',')[0]}${m.periodoFim ? `-${formatDateTime(m.periodoFim).split(',')[0]}` : ''}` : '';
+          return `${m.nome}${periodo ? ` [${periodo}]` : ''}`;
+        }).join('; ');
+      }
+    } catch (e) {
+      console.log('[CSV] Erro ao buscar motoristas:', e.message);
+    }
+
+    // ============ CALCULAR MÉTRICAS ADICIONAIS (CSV) ============
+    // Km por dia
+    const kmPorDiaCSV = new Map();
+    if (todasLocalizacoes.length > 1) {
+      for (let i = 1; i < todasLocalizacoes.length; i++) {
+        const loc = todasLocalizacoes[i];
+        const locAnterior = todasLocalizacoes[i - 1];
+        const dist = calcularDistancia(locAnterior.latitude, locAnterior.longitude, loc.latitude, loc.longitude);
+        const dia = new Date(loc.timestamp).toLocaleDateString('pt-BR');
+        kmPorDiaCSV.set(dia, (kmPorDiaCSV.get(dia) || 0) + dist);
+      }
+    }
+
+    // Score de Condução
+    let scoreConducaoCSV = 100;
+    if (todasLocalizacoes.length > 0) {
+      const penalizacaoExcessos = Math.min(40, excessosVelocidade * 1);
+      scoreConducaoCSV -= penalizacaoExcessos;
+      const velocidadeMediaCSV = todasLocalizacoes.filter(l => l.velocidade > 0).length > 0 ?
+        Math.round(todasLocalizacoes.filter(l => l.velocidade > 0).reduce((a, l) => a + l.velocidade, 0) / todasLocalizacoes.filter(l => l.velocidade > 0).length) : 0;
+      if (velocidadeMediaCSV > 100) scoreConducaoCSV -= 15;
+      else if (velocidadeMediaCSV > 90) scoreConducaoCSV -= 10;
+      else if (velocidadeMediaCSV > 80) scoreConducaoCSV -= 5;
+      const tempoTotal = tempoMovimentoTotal + tempoOciosoTotal + tempoParadoTotal;
+      if (tempoTotal > 0 && (tempoOciosoTotal / tempoTotal) > 0.5) scoreConducaoCSV -= 10;
+      else if (tempoTotal > 0 && (tempoOciosoTotal / tempoTotal) > 0.3) scoreConducaoCSV -= 5;
+      scoreConducaoCSV = Math.max(0, Math.min(100, scoreConducaoCSV));
+    }
+    const scoreTextoCSV = scoreConducaoCSV >= 80 ? 'BOM' : scoreConducaoCSV >= 60 ? 'REGULAR' : 'ATENCAO';
+
+    // Consumo estimado
+    const consumoMedioCSV = 10; // L/100km
+    const consumoEstimadoCSV = (distanciaTotal * consumoMedioCSV) / 100;
+
+    // Média diária
+    const diasComMovimento = kmPorDiaCSV.size;
+    const mediaDiariaCSV = diasComMovimento > 0 ? distanciaTotal / diasComMovimento : 0;
+
     // Adicionar cabeçalho do relatório com estatísticas
     const header = `RELATÓRIO DE HISTÓRICO DO VEÍCULO
 Veículo: ${dispositivo.veiculo || 'N/A'}
 Placa: ${dispositivo.placa || 'N/A'}
 IMEI: ${dispositivo.imei}
 Tipo: ${dispositivo.tipo || 'N/A'}
+Motorista(s): ${motoristasTextoCSV}
 Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
 Total de Registros: ${totalRegistros}
 Gerado em: ${formatDateTime(new Date())}
@@ -633,12 +726,24 @@ ${filtrosTexto.length > 0 ? `Filtros: ${filtrosTexto.join(' | ')}` : 'Filtros: N
 === RESUMO ESTATÍSTICO ===
 Distância Total: ${distanciaTotal.toFixed(2)} km
 Distância em Movimento: ${distanciaMovimento.toFixed(2)} km
+Média Diária: ${mediaDiariaCSV.toFixed(2)} km/dia
 Tempo em Movimento: ${formatarTempoCSV(tempoMovimentoTotal)}
 Tempo Ocioso: ${formatarTempoCSV(tempoOciosoTotal)}
 Tempo Parado: ${formatarTempoCSV(tempoParadoTotal)}
 Velocidade Máxima: ${maxVelocidadeRota} km/h
 Limite de Velocidade: Dinâmico por via (baseado em OpenStreetMap)
 Excessos de Velocidade: ${excessosVelocidade} ocorrências
+
+=== SCORE DE CONDUÇÃO ===
+Pontuação: ${scoreConducaoCSV}/100 (${scoreTextoCSV})
+Penalizações: Excessos (-${Math.min(40, excessosVelocidade)}pts)${tempoOciosoTotal / (tempoMovimentoTotal + tempoOciosoTotal + tempoParadoTotal) > 0.3 ? ', Tempo ocioso elevado (-5 a -10pts)' : ''}
+
+=== CONSUMO ESTIMADO ===
+Consumo Médio Considerado: ${consumoMedioCSV} L/100km
+Consumo Estimado Total: ${consumoEstimadoCSV.toFixed(1)} litros
+
+=== RESUMO POR DIA ===
+${Array.from(kmPorDiaCSV.entries()).map(([dia, km]) => `${dia}: ${km.toFixed(2)} km`).join('\n') || 'Sem dados de movimento'}
 
 `;
 
