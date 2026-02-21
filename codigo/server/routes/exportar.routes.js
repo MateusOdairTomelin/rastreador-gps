@@ -95,6 +95,86 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       return `${mins} min`;
     };
 
+    // ============ BUSCAR MOTORISTA(S) VINCULADO(S) NO PERÍODO (CSV) ============
+    // ✅ IMPORTANTE: Esta busca precisa estar ANTES do loop de localizações para a função helper funcionar
+    let motoristasTextoCSV = 'Não identificado no período';
+    let motoristasVinculadosCSV = [];
+    try {
+      const historicoMotoristasCSV = await prisma.historicoMotorista.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          OR: [{ fim: null }, { fim: { gte: inicio } }],
+          inicio: { lte: fim }
+        },
+        include: { motorista: { select: { id: true, nome: true, cnh_categoria: true } } },
+        orderBy: { inicio: 'asc' }
+      });
+
+      const viagensComMotoristaCSV = await prisma.viagem.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          inicio: { gte: inicio },
+          fim: { lte: fim },
+          motorista_id: { not: null }
+        },
+        include: { motorista: { select: { id: true, nome: true, cnh_categoria: true } } },
+        orderBy: { inicio: 'asc' }
+      });
+
+      const motoristasMapCSV = new Map();
+      historicoMotoristasCSV.forEach(h => {
+        if (h.motorista) {
+          const key = h.motorista.id;
+          if (!motoristasMapCSV.has(key)) {
+            motoristasMapCSV.set(key, { ...h.motorista, periodoInicio: h.inicio, periodoFim: h.fim });
+          }
+        }
+      });
+      viagensComMotoristaCSV.forEach(v => {
+        if (v.motorista && !motoristasMapCSV.has(v.motorista.id)) {
+          motoristasMapCSV.set(v.motorista.id, { ...v.motorista, periodoInicio: v.inicio, periodoFim: v.fim });
+        }
+      });
+
+      motoristasVinculadosCSV = Array.from(motoristasMapCSV.values())
+        .sort((a, b) => new Date(a.periodoInicio) - new Date(b.periodoInicio));
+
+      // Função para formatar período com DATA + HORA precisa
+      const formatarPeriodoCSV = (data) => {
+        if (!data) return '';
+        const d = new Date(data);
+        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      };
+
+      if (motoristasVinculadosCSV.length === 1) {
+        const m = motoristasVinculadosCSV[0];
+        const inicioStr = formatarPeriodoCSV(m.periodoInicio);
+        const fimStr = m.periodoFim ? formatarPeriodoCSV(m.periodoFim) : 'atual';
+        motoristasTextoCSV = `${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''} [${inicioStr} até ${fimStr}]`;
+      } else if (motoristasVinculadosCSV.length > 1) {
+        motoristasTextoCSV = motoristasVinculadosCSV.map(m => {
+          const inicioStr = formatarPeriodoCSV(m.periodoInicio);
+          const fimStr = m.periodoFim ? formatarPeriodoCSV(m.periodoFim) : 'atual';
+          return `${m.nome} [${inicioStr} até ${fimStr}]`;
+        }).join('; ');
+      }
+    } catch (e) {
+      console.log('[CSV] Erro ao buscar motoristas:', e.message);
+    }
+
+    // ✅ Função helper para encontrar motorista em um timestamp específico (CSV)
+    const encontrarMotoristaPorTimestampCSV = (timestamp) => {
+      const ts = new Date(timestamp);
+      for (const m of motoristasVinculadosCSV) {
+        const inicio = new Date(m.periodoInicio);
+        const fim = m.periodoFim ? new Date(m.periodoFim) : new Date();
+        if (ts >= inicio && ts <= fim) {
+          return m.nome;
+        }
+      }
+      return null;
+    };
+
     // ============ LOCALIZAÇÕES ============
     if (incluirLocalizacoes === 'true') {
       let localizacoes = await prisma.localizacao.findMany({
@@ -621,85 +701,6 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     if (velocidadeMax !== null) filtrosTexto.push(`Vel. Máx: ${velocidadeMax} km/h`);
     if (filtrarSoExcessos) filtrosTexto.push('Apenas excessos');
     if (tipoAlarme) filtrosTexto.push(`Alarme: ${tipoAlarme}`);
-
-    // ============ BUSCAR MOTORISTA(S) VINCULADO(S) NO PERÍODO (CSV) ============
-    let motoristasTextoCSV = 'Não identificado no período';
-    let motoristasVinculadosCSV = []; // ✅ Para função helper
-    try {
-      const historicoMotoristas = await prisma.historicoMotorista.findMany({
-        where: {
-          dispositivo_id: dispositivo.id,
-          OR: [{ fim: null }, { fim: { gte: inicio } }],
-          inicio: { lte: fim }
-        },
-        include: { motorista: { select: { id: true, nome: true, cnh_categoria: true } } },
-        orderBy: { inicio: 'asc' }
-      });
-
-      const viagensComMotorista = await prisma.viagem.findMany({
-        where: {
-          dispositivo_id: dispositivo.id,
-          inicio: { gte: inicio },
-          fim: { lte: fim },
-          motorista_id: { not: null }
-        },
-        include: { motorista: { select: { id: true, nome: true, cnh_categoria: true } } },
-        orderBy: { inicio: 'asc' }
-      });
-
-      const motoristasMap = new Map();
-      historicoMotoristas.forEach(h => {
-        if (h.motorista) {
-          const key = h.motorista.id;
-          if (!motoristasMap.has(key)) {
-            motoristasMap.set(key, { ...h.motorista, periodoInicio: h.inicio, periodoFim: h.fim });
-          }
-        }
-      });
-      viagensComMotorista.forEach(v => {
-        if (v.motorista && !motoristasMap.has(v.motorista.id)) {
-          motoristasMap.set(v.motorista.id, { ...v.motorista, periodoInicio: v.inicio, periodoFim: v.fim });
-        }
-      });
-
-      const motoristas = Array.from(motoristasMap.values())
-        .sort((a, b) => new Date(a.periodoInicio) - new Date(b.periodoInicio));
-      motoristasVinculadosCSV = motoristas; // ✅ Guardar para função helper
-      // ✅ Função para formatar período com DATA + HORA precisa
-      const formatarPeriodoCSV = (data) => {
-        if (!data) return '';
-        const d = new Date(data);
-        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      };
-
-      if (motoristas.length === 1) {
-        const m = motoristas[0];
-        const inicioStr = formatarPeriodoCSV(m.periodoInicio);
-        const fimStr = m.periodoFim ? formatarPeriodoCSV(m.periodoFim) : 'atual';
-        motoristasTextoCSV = `${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''} [${inicioStr} até ${fimStr}]`;
-      } else if (motoristas.length > 1) {
-        motoristasTextoCSV = motoristas.map(m => {
-          const inicioStr = formatarPeriodoCSV(m.periodoInicio);
-          const fimStr = m.periodoFim ? formatarPeriodoCSV(m.periodoFim) : 'atual';
-          return `${m.nome} [${inicioStr} até ${fimStr}]`;
-        }).join('; ');
-      }
-    } catch (e) {
-      console.log('[CSV] Erro ao buscar motoristas:', e.message);
-    }
-
-    // ✅ Função helper para encontrar motorista em um timestamp específico (CSV)
-    const encontrarMotoristaPorTimestampCSV = (timestamp) => {
-      const ts = new Date(timestamp);
-      for (const m of motoristasVinculadosCSV) {
-        const inicio = new Date(m.periodoInicio);
-        const fim = m.periodoFim ? new Date(m.periodoFim) : new Date();
-        if (ts >= inicio && ts <= fim) {
-          return m.nome;
-        }
-      }
-      return null;
-    };
 
     // ============ CALCULAR MÉTRICAS ADICIONAIS (CSV) ============
     // Km por dia
