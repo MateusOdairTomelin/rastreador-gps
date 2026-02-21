@@ -665,14 +665,23 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       const motoristas = Array.from(motoristasMap.values())
         .sort((a, b) => new Date(a.periodoInicio) - new Date(b.periodoInicio));
       motoristasVinculadosCSV = motoristas; // ✅ Guardar para função helper
+      // ✅ Função para formatar período com DATA + HORA precisa
+      const formatarPeriodoCSV = (data) => {
+        if (!data) return '';
+        const d = new Date(data);
+        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      };
+
       if (motoristas.length === 1) {
         const m = motoristas[0];
-        motoristasTextoCSV = `${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''}`;
+        const inicioStr = formatarPeriodoCSV(m.periodoInicio);
+        const fimStr = m.periodoFim ? formatarPeriodoCSV(m.periodoFim) : 'atual';
+        motoristasTextoCSV = `${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''} [${inicioStr} até ${fimStr}]`;
       } else if (motoristas.length > 1) {
         motoristasTextoCSV = motoristas.map(m => {
-          const periodo = m.periodoInicio ?
-            `${formatDateTime(m.periodoInicio).split(',')[0]}${m.periodoFim ? `-${formatDateTime(m.periodoFim).split(',')[0]}` : ''}` : '';
-          return `${m.nome}${periodo ? ` [${periodo}]` : ''}`;
+          const inicioStr = formatarPeriodoCSV(m.periodoInicio);
+          const fimStr = m.periodoFim ? formatarPeriodoCSV(m.periodoFim) : 'atual';
+          return `${m.nome} [${inicioStr} até ${fimStr}]`;
         }).join('; ');
       }
     } catch (e) {
@@ -972,13 +981,19 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         const m = motoristasVinculados[0];
         doc.text(`Motorista: ${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''}`);
       } else {
-        // Múltiplos motoristas - mostrar com período de cada
+        // Múltiplos motoristas - mostrar com período COMPLETO (data + hora) de cada
         doc.text(`Motorista(s) no período: ${motoristasVinculados.length}`);
-        doc.font('Helvetica').fillColor('#333').fontSize(9);
+        doc.font('Helvetica').fillColor('#333').fontSize(8);
         motoristasVinculados.forEach(m => {
-          const periodoStr = m.periodoInicio ?
-            `${formatDateTime(m.periodoInicio).split(',')[0]}${m.periodoFim ? ` - ${formatDateTime(m.periodoFim).split(',')[0]}` : ' (atual)'}` :
-            '';
+          // ✅ Formato completo: DD/MM/AAAA HH:MM para identificar precisamente quem estava no veículo
+          const formatarPeriodo = (data) => {
+            if (!data) return '';
+            const d = new Date(data);
+            return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          };
+          const inicioStr = formatarPeriodo(m.periodoInicio);
+          const fimStr = m.periodoFim ? formatarPeriodo(m.periodoFim) : 'atual';
+          const periodoStr = inicioStr ? `${inicioStr} até ${fimStr}` : '';
           doc.text(`  • ${m.nome}${m.cnh_categoria ? ` (${m.cnh_categoria})` : ''}${periodoStr ? ` [${periodoStr}]` : ''}`);
         });
       }
