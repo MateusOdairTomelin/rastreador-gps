@@ -6,6 +6,22 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 ---
 
+## [2.2.0] - 2026-02-21
+
+### Adicionado
+- **Novos tipos de relatório**:
+  - Tempo de Operação - tempo com motor ligado por dia
+  - Paradas Longas - paradas superiores a 30 minutos
+  - Ranking de Condutores - pontuação baseada em eficiência e excessos
+  - Consumo Estimado - estimativa de combustível por quilometragem
+- **Flatpickr na seção Relatórios** - Mesmo calendário com range da seção Trajetos
+
+### Alterado
+- **Filtro de período em Relatórios** - Substituído dropdown por Flatpickr (calendário com seleção de range)
+- Tipos de relatório expandidos de 4 para 9 opções
+
+---
+
 ## [2.1.0] - 2026-02-21
 
 ### Adicionado
@@ -24,6 +40,7 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 ### Removido
 - Carrinhos cinzas de direção ao longo da rota (mantidos apenas marcadores de início/fim)
 - Seletor dropdown de período (substituído por calendário)
+- Aba duplicada de Trajetos na seção Relatórios
 
 ### Corrigido
 - Data inicial e final não eram setadas corretamente

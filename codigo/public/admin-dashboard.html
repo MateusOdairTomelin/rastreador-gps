@@ -7058,20 +7058,9 @@
             <div class="filtros-grid">
               <div class="filtro-item">
                 <label class="icon-with-text"><i data-lucide="calendar" class="lucide-icon sm"></i> Período</label>
-                <select id="rel-filtro-periodo" onchange="toggleDataPersonalizada()">
-                  <option value="hoje">Hoje</option>
-                  <option value="ontem">Ontem</option>
-                  <option value="7dias" selected>Últimos 7 dias</option>
-                  <option value="30dias">Últimos 30 dias</option>
-                  <option value="personalizado">Personalizado</option>
-                </select>
-              </div>
-              <div class="filtro-item filtro-datas" id="filtro-datas-container" style="display:none;">
-                <label>De - Até</label>
-                <div style="display:flex; gap:8px;">
-                  <input type="date" id="rel-data-inicio">
-                  <input type="date" id="rel-data-fim">
-                </div>
+                <input type="text" id="rel-periodo-range" placeholder="Selecione o período" readonly style="cursor:pointer;">
+                <input type="hidden" id="rel-data-inicio">
+                <input type="hidden" id="rel-data-fim">
               </div>
               <div class="filtro-item">
                 <label class="icon-with-text"><i data-lucide="activity" class="lucide-icon sm"></i> Status</label>
@@ -7090,6 +7079,11 @@
                   <option value="menos-rodados">Menos Rodados (- km)</option>
                   <option value="velocidade">Excessos de Velocidade</option>
                   <option value="ocioso">Tempo Ocioso</option>
+                  <option value="quilometragem">Quilometragem Detalhada</option>
+                  <option value="operacao">Tempo de Operação</option>
+                  <option value="paradas">Paradas Longas</option>
+                  <option value="ranking">Ranking de Condutores</option>
+                  <option value="consumo">Consumo Estimado</option>
                 </select>
               </div>
               <div class="filtro-item" style="position: relative;">
@@ -14783,6 +14777,8 @@
     let relatoriosCarregados = false; // Flag para saber se já buscou dados
 
     // Inicializar seção de relatórios (SEM carregar dados)
+    let relatoriosFlatpickr = null;
+
     function inicializarSecaoRelatorios() {
       // Pré-carregar cache de veículos para autocomplete instantâneo
       precarregarCacheVeiculos();
@@ -14791,6 +14787,9 @@
       if (typeof lucide !== 'undefined') {
         lucide.createIcons();
       }
+
+      // Inicializar Flatpickr para seleção de período
+      inicializarRelatoriosFlatpickr();
 
       if (relatoriosCarregados) {
         // Se já carregou antes, apenas mostrar os dados
@@ -14806,7 +14805,7 @@
             <td colspan="10" style="text-align:center; padding:60px; color:var(--text-secondary);">
               <div style="font-size:48px; margin-bottom:16px;">📊</div>
               <div style="font-size:18px; font-weight:500; margin-bottom:8px;">Selecione os filtros desejados</div>
-              <div style="font-size:14px; color:var(--text-muted);">Clique em <strong>"🔍 Buscar"</strong> para carregar os relatórios</div>
+              <div style="font-size:14px; color:var(--text-muted);">Clique em <strong>"Buscar"</strong> para carregar os relatórios</div>
             </td>
           </tr>
         `;
@@ -14823,11 +14822,43 @@
       if (kpiExcessos) kpiExcessos.textContent = '-';
     }
 
-    // Toggle exibição de datas personalizadas
-    function toggleDataPersonalizada() {
-      const periodo = document.getElementById('rel-filtro-periodo').value;
-      const container = document.getElementById('filtro-datas-container');
-      container.style.display = periodo === 'personalizado' ? 'block' : 'none';
+    // Inicializar Flatpickr para período dos relatórios
+    function inicializarRelatoriosFlatpickr() {
+      const inputRange = document.getElementById('rel-periodo-range');
+      const dataInicio = document.getElementById('rel-data-inicio');
+      const dataFim = document.getElementById('rel-data-fim');
+
+      if (inputRange && typeof flatpickr !== 'undefined' && !relatoriosFlatpickr) {
+        // Configurar período padrão: últimos 7 dias
+        const hoje = new Date();
+        const seteDiasAtras = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        relatoriosFlatpickr = flatpickr(inputRange, {
+          mode: 'range',
+          dateFormat: 'd/m/Y',
+          defaultDate: [seteDiasAtras, hoje],
+          locale: 'pt',
+          theme: 'dark',
+          allowInput: false,
+          disableMobile: true,
+          onChange: function(selectedDates, dateStr) {
+            if (selectedDates.length === 2) {
+              const inicio = selectedDates[0].toISOString().split('T')[0];
+              const fim = selectedDates[1].toISOString().split('T')[0];
+              if (dataInicio) dataInicio.value = inicio;
+              if (dataFim) dataFim.value = fim;
+            } else if (selectedDates.length === 1) {
+              const data = selectedDates[0].toISOString().split('T')[0];
+              if (dataInicio) dataInicio.value = data;
+              if (dataFim) dataFim.value = data;
+            }
+          }
+        });
+
+        // Inicializar valores hidden
+        if (dataInicio) dataInicio.value = seteDiasAtras.toISOString().split('T')[0];
+        if (dataFim) dataFim.value = hoje.toISOString().split('T')[0];
+      }
     }
 
     // ============ AUTOCOMPLETE DE VEÍCULOS (MÚLTIPLA SELEÇÃO) ============
@@ -15652,30 +15683,26 @@
 
     // Obter período do filtro
     function obterPeriodoRelatorio() {
-      const periodo = document.getElementById('rel-filtro-periodo').value;
+      const dataInicioInput = document.getElementById('rel-data-inicio');
+      const dataFimInput = document.getElementById('rel-data-fim');
       const agora = new Date();
-      let inicio, fim = agora;
 
-      switch (periodo) {
-        case 'hoje':
-          inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
-          break;
-        case 'ontem':
-          inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 1);
-          fim = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
-          break;
-        case '7dias':
-          inicio = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case '30dias':
-          inicio = new Date(agora.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case 'personalizado':
-          inicio = new Date(document.getElementById('rel-data-inicio').value || agora);
-          fim = new Date(document.getElementById('rel-data-fim').value || agora);
-          break;
-        default:
-          inicio = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+      let inicio, fim;
+
+      // Ler das inputs hidden controladas pelo Flatpickr
+      if (dataInicioInput && dataInicioInput.value) {
+        inicio = new Date(dataInicioInput.value);
+      } else {
+        // Fallback: últimos 7 dias
+        inicio = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+      }
+
+      if (dataFimInput && dataFimInput.value) {
+        fim = new Date(dataFimInput.value);
+        // Ajustar para final do dia
+        fim.setHours(23, 59, 59, 999);
+      } else {
+        fim = agora;
       }
 
       return { inicio, fim };
@@ -15853,11 +15880,18 @@
 
     async function limparFiltrosRelatorios() {
       // Resetar filtros para valores padrão
-      document.getElementById('rel-filtro-periodo').value = '7dias';
       document.getElementById('rel-filtro-status').value = 'todos';
       document.getElementById('rel-filtro-tipo').value = 'geral';
       document.getElementById('rel-busca-veiculo').value = '';
-      document.getElementById('filtro-datas-container').style.display = 'none';
+
+      // Resetar Flatpickr para últimos 7 dias
+      const hoje = new Date();
+      const seteDiasAtras = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+      if (relatoriosFlatpickr) {
+        relatoriosFlatpickr.setDate([seteDiasAtras, hoje]);
+      }
+      document.getElementById('rel-data-inicio').value = seteDiasAtras.toISOString().split('T')[0];
+      document.getElementById('rel-data-fim').value = hoje.toISOString().split('T')[0];
 
       // Limpar veículos do filtro
       limparVeiculosFiltro();
@@ -15997,8 +16031,20 @@
           case 'quilometragem':
             url = `${API_URL}/relatorios/quilometragem/${imei}?${params.toString()}`;
             break;
+          case 'operacao':
+            url = `${API_URL}/relatorios/operacao/${imei}?${params.toString()}`;
+            break;
+          case 'paradas':
+            url = `${API_URL}/relatorios/paradas/${imei}?${params.toString()}`;
+            break;
+          case 'ranking':
+            url = `${API_URL}/relatorios/ranking?${params.toString()}`;
+            break;
+          case 'consumo':
+            url = `${API_URL}/relatorios/consumo/${imei}?${params.toString()}`;
+            break;
           default:
-            // Histórico completo - usa rota de exportar
+            // Histórico completo (geral, menos-rodados) - usa rota de exportar
             url = `${API_URL}/exportar/${imei}/${formato}?${params.toString()}`;
         }
 

@@ -1298,4 +1298,704 @@ Placa,Veículo,IMEI,Status,Distância (km),Tempo Movimento,Tempo Ocioso,Velocida
   }
 });
 
+// ============ RELATÓRIO DE TEMPO DE OPERAÇÃO ============
+
+/**
+ * GET /api/relatorios/operacao/:imei
+ * Relatório de tempo de operação do veículo (motor ligado)
+ */
+router.get('/operacao/:imei', verificarDispositivoTenant, async (req, res) => {
+  try {
+    const { imei } = req.params;
+    const {
+      dataInicio,
+      dataFim,
+      formato = 'csv'
+    } = req.query;
+
+    // Buscar dispositivo
+    const dispositivo = await prisma.dispositivo.findUnique({
+      where: { imei }
+    });
+
+    if (!dispositivo) {
+      return res.status(404).json({ sucesso: false, mensagem: 'Dispositivo não encontrado' });
+    }
+
+    // Configurar período
+    const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const fim = dataFim ? new Date(dataFim) : new Date();
+
+    // Buscar localizações
+    const localizacoes = await prisma.localizacao.findMany({
+      where: {
+        dispositivo_id: dispositivo.id,
+        timestamp: { gte: inicio, lte: fim }
+      },
+      orderBy: { timestamp: 'asc' }
+    });
+
+    if (localizacoes.length === 0) {
+      return res.status(404).json({
+        sucesso: false,
+        mensagem: 'Nenhum registro encontrado no período selecionado'
+      });
+    }
+
+    // Agrupar por dia e calcular tempo de operação
+    const operacaoPorDia = {};
+    let tempoTotalOperacao = 0;
+    let tempoTotalMovimento = 0;
+    let tempoTotalOcioso = 0;
+
+    for (let i = 1; i < localizacoes.length; i++) {
+      const loc = localizacoes[i];
+      const locAnterior = localizacoes[i - 1];
+
+      const tempoMinutos = (new Date(loc.timestamp) - new Date(locAnterior.timestamp)) / (1000 * 60);
+
+      // Ignorar gaps muito grandes (> 30 min)
+      if (tempoMinutos > 30) continue;
+
+      const dia = new Date(loc.timestamp).toISOString().split('T')[0];
+
+      if (!operacaoPorDia[dia]) {
+        operacaoPorDia[dia] = {
+          data: dia,
+          tempoOperacao: 0,
+          tempoMovimento: 0,
+          tempoOcioso: 0,
+          primeiraLoc: locAnterior.timestamp,
+          ultimaLoc: loc.timestamp
+        };
+      }
+
+      // Motor ligado = em operação
+      if (loc.ignicao === true || loc.velocidade > 0) {
+        operacaoPorDia[dia].tempoOperacao += tempoMinutos;
+        tempoTotalOperacao += tempoMinutos;
+
+        if (loc.velocidade > 0) {
+          operacaoPorDia[dia].tempoMovimento += tempoMinutos;
+          tempoTotalMovimento += tempoMinutos;
+        } else {
+          operacaoPorDia[dia].tempoOcioso += tempoMinutos;
+          tempoTotalOcioso += tempoMinutos;
+        }
+      }
+
+      operacaoPorDia[dia].ultimaLoc = loc.timestamp;
+    }
+
+    const diasComDados = Object.values(operacaoPorDia).sort((a, b) => a.data.localeCompare(b.data));
+
+    // Estatísticas
+    const estatisticas = {
+      tempoTotalOperacao: formatarTempo(tempoTotalOperacao),
+      tempoTotalMovimento: formatarTempo(tempoTotalMovimento),
+      tempoTotalOcioso: formatarTempo(tempoTotalOcioso),
+      diasComDados: diasComDados.length,
+      mediaOperacaoDia: formatarTempo(diasComDados.length > 0 ? tempoTotalOperacao / diasComDados.length : 0),
+      eficiencia: tempoTotalOperacao > 0 ? ((tempoTotalMovimento / tempoTotalOperacao) * 100).toFixed(1) : '0'
+    };
+
+    if (formato === 'pdf') {
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const filename = `tempo_operacao_${dispositivo.placa || imei}_${formatDateForFilename(new Date())}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      doc.pipe(res);
+
+      // Cabeçalho
+      doc.fontSize(18).font('Helvetica-Bold').text('RELATÓRIO DE TEMPO DE OPERAÇÃO', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#667eea');
+      doc.moveDown(0.5);
+
+      // Info veículo
+      doc.fontSize(12).font('Helvetica-Bold').text('Informações do Veículo');
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Veículo: ${dispositivo.veiculo || 'N/A'} | Placa: ${dispositivo.placa || 'N/A'}`);
+      doc.text(`Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`);
+      doc.moveDown();
+
+      // Estatísticas
+      doc.fontSize(12).font('Helvetica-Bold').text('Resumo');
+      const statsY = doc.y;
+      doc.rect(50, statsY, 495, 70).fillAndStroke('#e3f2fd', '#2196f3');
+      doc.fillColor('#000').fontSize(10).font('Helvetica');
+      doc.text(`Tempo Total de Operação: ${estatisticas.tempoTotalOperacao}`, 60, statsY + 10);
+      doc.text(`Tempo em Movimento: ${estatisticas.tempoTotalMovimento}`, 60, statsY + 25);
+      doc.text(`Tempo Ocioso: ${estatisticas.tempoTotalOcioso}`, 60, statsY + 40);
+      doc.text(`Média Diária: ${estatisticas.mediaOperacaoDia}`, 300, statsY + 10);
+      doc.text(`Eficiência: ${estatisticas.eficiencia}%`, 300, statsY + 25);
+      doc.y = statsY + 80;
+      doc.moveDown();
+
+      // Tabela
+      if (diasComDados.length > 0) {
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#000').text('Detalhamento Diário');
+        doc.moveDown(0.5);
+        const tableTop = doc.y;
+        const colWidths = [100, 100, 100, 100, 95];
+        const headers = ['Data', 'Operação', 'Movimento', 'Ocioso', 'Eficiência'];
+
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#fff');
+        doc.rect(50, tableTop, 495, 15).fill('#2196f3');
+        let xPos = 55;
+        headers.forEach((h, i) => { doc.text(h, xPos, tableTop + 4, { width: colWidths[i] }); xPos += colWidths[i]; });
+
+        doc.fillColor('#000').font('Helvetica').fontSize(8);
+        let yPos = tableTop + 18;
+
+        for (const dia of diasComDados) {
+          if (yPos > 750) { doc.addPage(); yPos = 50; }
+          if (diasComDados.indexOf(dia) % 2 === 0) {
+            doc.rect(50, yPos - 2, 495, 12).fill('#e3f2fd');
+            doc.fillColor('#000');
+          }
+          const eficienciaDia = dia.tempoOperacao > 0 ? ((dia.tempoMovimento / dia.tempoOperacao) * 100).toFixed(0) : '0';
+          xPos = 55;
+          [
+            new Date(dia.data + 'T12:00:00').toLocaleDateString('pt-BR'),
+            formatarTempo(dia.tempoOperacao),
+            formatarTempo(dia.tempoMovimento),
+            formatarTempo(dia.tempoOcioso),
+            `${eficienciaDia}%`
+          ].forEach((d, i) => { doc.text(d, xPos, yPos, { width: colWidths[i] }); xPos += colWidths[i]; });
+          yPos += 12;
+        }
+      }
+
+      doc.fontSize(8).fillColor('#999').text('Sistema de Rastreamento Veicular', 50, 780, { align: 'center', width: 495 });
+      doc.end();
+    } else {
+      let csvContent = `RELATÓRIO DE TEMPO DE OPERAÇÃO
+Veículo: ${dispositivo.veiculo || 'N/A'}
+Placa: ${dispositivo.placa || 'N/A'}
+Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
+
+=== RESUMO ===
+Tempo Total de Operação: ${estatisticas.tempoTotalOperacao}
+Tempo em Movimento: ${estatisticas.tempoTotalMovimento}
+Tempo Ocioso: ${estatisticas.tempoTotalOcioso}
+Eficiência: ${estatisticas.eficiencia}%
+
+=== DETALHAMENTO DIÁRIO ===
+Data,Tempo Operação (min),Tempo Movimento (min),Tempo Ocioso (min),Eficiência (%)
+`;
+      for (const dia of diasComDados) {
+        const eficienciaDia = dia.tempoOperacao > 0 ? ((dia.tempoMovimento / dia.tempoOperacao) * 100).toFixed(1) : '0';
+        csvContent += `${dia.data},${dia.tempoOperacao.toFixed(0)},${dia.tempoMovimento.toFixed(0)},${dia.tempoOcioso.toFixed(0)},${eficienciaDia}\n`;
+      }
+
+      const filename = `tempo_operacao_${dispositivo.placa || imei}_${formatDateForFilename(new Date())}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send('\ufeff' + csvContent);
+    }
+  } catch (error) {
+    console.error('[Relatório Operação] Erro:', error);
+    res.status(500).json({ sucesso: false, mensagem: 'Erro ao gerar relatório', erro: error.message });
+  }
+});
+
+// ============ RELATÓRIO DE PARADAS LONGAS ============
+
+/**
+ * GET /api/relatorios/paradas/:imei
+ * Relatório de paradas longas (veículo parado por mais de X minutos)
+ */
+router.get('/paradas/:imei', verificarDispositivoTenant, async (req, res) => {
+  try {
+    const { imei } = req.params;
+    const {
+      dataInicio,
+      dataFim,
+      formato = 'csv',
+      tempoMinimo = '30' // Tempo mínimo em minutos para considerar parada longa
+    } = req.query;
+
+    const tempoMinimoMin = parseInt(tempoMinimo) || 30;
+
+    const dispositivo = await prisma.dispositivo.findUnique({ where: { imei } });
+    if (!dispositivo) {
+      return res.status(404).json({ sucesso: false, mensagem: 'Dispositivo não encontrado' });
+    }
+
+    const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const fim = dataFim ? new Date(dataFim) : new Date();
+
+    const localizacoes = await prisma.localizacao.findMany({
+      where: { dispositivo_id: dispositivo.id, timestamp: { gte: inicio, lte: fim } },
+      orderBy: { timestamp: 'asc' }
+    });
+
+    if (localizacoes.length === 0) {
+      return res.status(404).json({ sucesso: false, mensagem: 'Nenhum registro encontrado' });
+    }
+
+    // Identificar paradas longas
+    const paradas = [];
+    let inicioParada = null;
+    let latParada = null, lonParada = null;
+
+    for (let i = 0; i < localizacoes.length; i++) {
+      const loc = localizacoes[i];
+      const velocidade = loc.velocidade || 0;
+      const estaParado = velocidade === 0;
+
+      if (estaParado && !inicioParada) {
+        inicioParada = loc.timestamp;
+        latParada = loc.latitude;
+        lonParada = loc.longitude;
+      } else if (!estaParado && inicioParada) {
+        const duracao = (new Date(loc.timestamp) - new Date(inicioParada)) / (1000 * 60);
+        if (duracao >= tempoMinimoMin) {
+          paradas.push({
+            inicio: inicioParada,
+            fim: loc.timestamp,
+            duracao,
+            latitude: latParada,
+            longitude: lonParada,
+            motorLigado: loc.ignicao === true
+          });
+        }
+        inicioParada = null;
+      }
+    }
+
+    // Verificar parada em andamento
+    if (inicioParada) {
+      const ultimaLoc = localizacoes[localizacoes.length - 1];
+      const duracao = (new Date(ultimaLoc.timestamp) - new Date(inicioParada)) / (1000 * 60);
+      if (duracao >= tempoMinimoMin) {
+        paradas.push({
+          inicio: inicioParada,
+          fim: ultimaLoc.timestamp,
+          duracao,
+          latitude: latParada,
+          longitude: lonParada,
+          emAndamento: true
+        });
+      }
+    }
+
+    const tempoTotalParado = paradas.reduce((s, p) => s + p.duracao, 0);
+    const estatisticas = {
+      totalParadas: paradas.length,
+      tempoTotalParado: formatarTempo(tempoTotalParado),
+      mediaParada: formatarTempo(paradas.length > 0 ? tempoTotalParado / paradas.length : 0),
+      maiorParada: formatarTempo(paradas.length > 0 ? Math.max(...paradas.map(p => p.duracao)) : 0)
+    };
+
+    if (formato === 'pdf') {
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const filename = `paradas_longas_${dispositivo.placa || imei}_${formatDateForFilename(new Date())}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      doc.pipe(res);
+
+      doc.fontSize(18).font('Helvetica-Bold').text('RELATÓRIO DE PARADAS LONGAS', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#ff9800');
+      doc.moveDown(0.5);
+
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Veículo: ${dispositivo.veiculo || 'N/A'} | Placa: ${dispositivo.placa || 'N/A'}`);
+      doc.text(`Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`);
+      doc.text(`Tempo mínimo considerado: ${tempoMinimoMin} minutos`);
+      doc.moveDown();
+
+      const statsY = doc.y;
+      doc.rect(50, statsY, 495, 55).fillAndStroke('#fff3e0', '#ff9800');
+      doc.fillColor('#000').fontSize(10).font('Helvetica');
+      doc.text(`Total de Paradas: ${estatisticas.totalParadas}`, 60, statsY + 10);
+      doc.text(`Tempo Total Parado: ${estatisticas.tempoTotalParado}`, 60, statsY + 25);
+      doc.text(`Média por Parada: ${estatisticas.mediaParada}`, 300, statsY + 10);
+      doc.text(`Maior Parada: ${estatisticas.maiorParada}`, 300, statsY + 25);
+      doc.y = statsY + 65;
+      doc.moveDown();
+
+      if (paradas.length > 0) {
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#000').text('Detalhamento das Paradas');
+        doc.moveDown(0.5);
+        const tableTop = doc.y;
+        const colWidths = [120, 120, 80, 175];
+        const headers = ['Início', 'Fim', 'Duração', 'Localização'];
+
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#fff');
+        doc.rect(50, tableTop, 495, 15).fill('#ff9800');
+        let xPos = 55;
+        headers.forEach((h, i) => { doc.text(h, xPos, tableTop + 4, { width: colWidths[i] }); xPos += colWidths[i]; });
+
+        doc.fillColor('#000').font('Helvetica').fontSize(8);
+        let yPos = tableTop + 18;
+
+        for (const parada of paradas) {
+          if (yPos > 750) { doc.addPage(); yPos = 50; }
+          if (paradas.indexOf(parada) % 2 === 0) {
+            doc.rect(50, yPos - 2, 495, 12).fill('#fff3e0');
+            doc.fillColor('#000');
+          }
+          xPos = 55;
+          [
+            formatDateTime(parada.inicio),
+            parada.emAndamento ? 'Em andamento' : formatDateTime(parada.fim),
+            formatarTempo(parada.duracao),
+            `${parada.latitude.toFixed(5)}, ${parada.longitude.toFixed(5)}`
+          ].forEach((d, i) => { doc.text(d, xPos, yPos, { width: colWidths[i] }); xPos += colWidths[i]; });
+          yPos += 12;
+        }
+      }
+
+      doc.fontSize(8).fillColor('#999').text('Sistema de Rastreamento Veicular', 50, 780, { align: 'center', width: 495 });
+      doc.end();
+    } else {
+      let csvContent = `RELATÓRIO DE PARADAS LONGAS
+Veículo: ${dispositivo.veiculo || 'N/A'}
+Placa: ${dispositivo.placa || 'N/A'}
+Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
+Tempo mínimo considerado: ${tempoMinimoMin} minutos
+
+=== RESUMO ===
+Total de Paradas: ${estatisticas.totalParadas}
+Tempo Total Parado: ${estatisticas.tempoTotalParado}
+Média por Parada: ${estatisticas.mediaParada}
+Maior Parada: ${estatisticas.maiorParada}
+
+=== DETALHAMENTO ===
+Início,Fim,Duração (min),Latitude,Longitude,Em Andamento
+`;
+      for (const p of paradas) {
+        csvContent += `${formatDateTime(p.inicio)},${p.emAndamento ? 'Em andamento' : formatDateTime(p.fim)},${p.duracao.toFixed(0)},${p.latitude},${p.longitude},${p.emAndamento ? 'Sim' : 'Não'}\n`;
+      }
+
+      const filename = `paradas_longas_${dispositivo.placa || imei}_${formatDateForFilename(new Date())}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send('\ufeff' + csvContent);
+    }
+  } catch (error) {
+    console.error('[Relatório Paradas] Erro:', error);
+    res.status(500).json({ sucesso: false, mensagem: 'Erro ao gerar relatório', erro: error.message });
+  }
+});
+
+// ============ RANKING DE CONDUTORES ============
+
+/**
+ * GET /api/relatorios/ranking
+ * Ranking dos condutores/veículos por performance
+ */
+router.get('/ranking', async (req, res) => {
+  try {
+    const {
+      dataInicio,
+      dataFim,
+      formato = 'csv'
+    } = req.query;
+
+    const tenantFilter = req.tenantFilter || {};
+    const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const fim = dataFim ? new Date(dataFim) : new Date();
+
+    const dispositivos = await prisma.dispositivo.findMany({ where: tenantFilter });
+    if (dispositivos.length === 0) {
+      return res.status(404).json({ sucesso: false, mensagem: 'Nenhum dispositivo encontrado' });
+    }
+
+    // Calcular métricas para cada veículo
+    const rankings = await Promise.all(dispositivos.map(async (dispositivo) => {
+      const localizacoes = await prisma.localizacao.findMany({
+        where: { dispositivo_id: dispositivo.id, timestamp: { gte: inicio, lte: fim } },
+        orderBy: { timestamp: 'asc' },
+        take: 2000
+      });
+
+      let km = 0, tempoMovimento = 0, tempoOcioso = 0, excessos = 0, velMax = 0;
+
+      for (let i = 1; i < localizacoes.length; i++) {
+        const loc = localizacoes[i];
+        const anterior = localizacoes[i - 1];
+        const tempo = (new Date(loc.timestamp) - new Date(anterior.timestamp)) / (1000 * 60);
+
+        if (tempo > 30) continue;
+
+        if (loc.velocidade > 0) {
+          const dist = calcularDistancia(anterior.latitude, anterior.longitude, loc.latitude, loc.longitude);
+          if (dist < 5) km += dist;
+          tempoMovimento += tempo;
+          if (loc.velocidade > velMax) velMax = loc.velocidade;
+          if (loc.velocidade > 80) excessos++;
+        } else if (loc.ignicao) {
+          tempoOcioso += tempo;
+        }
+      }
+
+      // Pontuação: mais km = melhor, menos excessos = melhor, menos ocioso = melhor
+      const eficiencia = (tempoMovimento + tempoOcioso) > 0 ? (tempoMovimento / (tempoMovimento + tempoOcioso)) * 100 : 0;
+      const pontuacao = Math.max(0, 100 - (excessos * 2) + (eficiencia * 0.5) + (km * 0.1));
+
+      return {
+        placa: dispositivo.placa || 'N/A',
+        veiculo: dispositivo.veiculo || 'N/A',
+        imei: dispositivo.imei,
+        km: km.toFixed(2),
+        tempoMovimento: formatarTempo(tempoMovimento),
+        tempoOcioso: formatarTempo(tempoOcioso),
+        eficiencia: eficiencia.toFixed(1),
+        excessos,
+        velMax,
+        pontuacao: pontuacao.toFixed(0)
+      };
+    }));
+
+    rankings.sort((a, b) => parseFloat(b.pontuacao) - parseFloat(a.pontuacao));
+
+    // Adicionar posição
+    rankings.forEach((r, i) => r.posicao = i + 1);
+
+    if (formato === 'pdf') {
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const filename = `ranking_condutores_${formatDateForFilename(new Date())}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      doc.pipe(res);
+
+      doc.fontSize(18).font('Helvetica-Bold').text('RANKING DE CONDUTORES', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#4caf50');
+      doc.moveDown(0.5);
+
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`);
+      doc.moveDown();
+
+      const tableTop = doc.y;
+      const colWidths = [30, 70, 90, 55, 55, 55, 55, 50, 35];
+      const headers = ['#', 'Placa', 'Veículo', 'Km', 'Mov.', 'Efic.', 'Excessos', 'V.Máx', 'Pts'];
+
+      doc.fontSize(7).font('Helvetica-Bold').fillColor('#fff');
+      doc.rect(50, tableTop, 495, 15).fill('#4caf50');
+      let xPos = 55;
+      headers.forEach((h, i) => { doc.text(h, xPos, tableTop + 4, { width: colWidths[i] }); xPos += colWidths[i]; });
+
+      doc.fillColor('#000').font('Helvetica').fontSize(7);
+      let yPos = tableTop + 18;
+
+      for (const r of rankings) {
+        if (yPos > 750) { doc.addPage(); yPos = 50; }
+
+        let bgColor = '#fff';
+        if (r.posicao === 1) bgColor = '#ffd700';
+        else if (r.posicao === 2) bgColor = '#c0c0c0';
+        else if (r.posicao === 3) bgColor = '#cd7f32';
+        else if (r.posicao % 2 === 0) bgColor = '#e8f5e9';
+
+        doc.rect(50, yPos - 2, 495, 12).fill(bgColor);
+        doc.fillColor('#000');
+
+        xPos = 55;
+        [
+          r.posicao.toString(),
+          r.placa,
+          (r.veiculo || '').substring(0, 15),
+          r.km,
+          r.tempoMovimento,
+          `${r.eficiencia}%`,
+          r.excessos.toString(),
+          `${r.velMax}`,
+          r.pontuacao
+        ].forEach((d, i) => { doc.text(d, xPos, yPos, { width: colWidths[i] }); xPos += colWidths[i]; });
+        yPos += 12;
+      }
+
+      doc.fontSize(8).fillColor('#999').text('Sistema de Rastreamento Veicular', 50, 780, { align: 'center', width: 495 });
+      doc.end();
+    } else {
+      let csvContent = `RANKING DE CONDUTORES
+Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
+
+Posição,Placa,Veículo,Km,Tempo Movimento,Tempo Ocioso,Eficiência (%),Excessos,Vel. Máxima,Pontuação
+`;
+      for (const r of rankings) {
+        csvContent += `${r.posicao},${r.placa},"${r.veiculo}",${r.km},"${r.tempoMovimento}","${r.tempoOcioso}",${r.eficiencia},${r.excessos},${r.velMax},${r.pontuacao}\n`;
+      }
+
+      const filename = `ranking_condutores_${formatDateForFilename(new Date())}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send('\ufeff' + csvContent);
+    }
+  } catch (error) {
+    console.error('[Relatório Ranking] Erro:', error);
+    res.status(500).json({ sucesso: false, mensagem: 'Erro ao gerar relatório', erro: error.message });
+  }
+});
+
+// ============ RELATÓRIO DE CONSUMO ESTIMADO ============
+
+/**
+ * GET /api/relatorios/consumo/:imei
+ * Relatório de consumo estimado de combustível
+ */
+router.get('/consumo/:imei', verificarDispositivoTenant, async (req, res) => {
+  try {
+    const { imei } = req.params;
+    const {
+      dataInicio,
+      dataFim,
+      formato = 'csv',
+      consumoMedio = '10' // km/L padrão
+    } = req.query;
+
+    const kmPorLitro = parseFloat(consumoMedio) || 10;
+
+    const dispositivo = await prisma.dispositivo.findUnique({ where: { imei } });
+    if (!dispositivo) {
+      return res.status(404).json({ sucesso: false, mensagem: 'Dispositivo não encontrado' });
+    }
+
+    const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const fim = dataFim ? new Date(dataFim) : new Date();
+
+    const localizacoes = await prisma.localizacao.findMany({
+      where: { dispositivo_id: dispositivo.id, timestamp: { gte: inicio, lte: fim } },
+      orderBy: { timestamp: 'asc' }
+    });
+
+    if (localizacoes.length === 0) {
+      return res.status(404).json({ sucesso: false, mensagem: 'Nenhum registro encontrado' });
+    }
+
+    // Agrupar por dia
+    const consumoPorDia = {};
+    let kmTotal = 0;
+
+    for (let i = 1; i < localizacoes.length; i++) {
+      const loc = localizacoes[i];
+      const anterior = localizacoes[i - 1];
+
+      if (loc.velocidade > 0) {
+        const dist = calcularDistancia(anterior.latitude, anterior.longitude, loc.latitude, loc.longitude);
+        if (dist < 50) {
+          const dia = new Date(loc.timestamp).toISOString().split('T')[0];
+          if (!consumoPorDia[dia]) {
+            consumoPorDia[dia] = { data: dia, km: 0, litros: 0 };
+          }
+          consumoPorDia[dia].km += dist;
+          kmTotal += dist;
+        }
+      }
+    }
+
+    // Calcular litros estimados
+    for (const dia of Object.values(consumoPorDia)) {
+      dia.litros = dia.km / kmPorLitro;
+    }
+
+    const diasComDados = Object.values(consumoPorDia).sort((a, b) => a.data.localeCompare(b.data));
+    const litrosTotal = kmTotal / kmPorLitro;
+
+    const estatisticas = {
+      kmTotal: kmTotal.toFixed(2),
+      litrosTotal: litrosTotal.toFixed(2),
+      mediaKmDia: (diasComDados.length > 0 ? kmTotal / diasComDados.length : 0).toFixed(2),
+      mediaLitrosDia: (diasComDados.length > 0 ? litrosTotal / diasComDados.length : 0).toFixed(2),
+      consumoMedio: kmPorLitro
+    };
+
+    if (formato === 'pdf') {
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const filename = `consumo_${dispositivo.placa || imei}_${formatDateForFilename(new Date())}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      doc.pipe(res);
+
+      doc.fontSize(18).font('Helvetica-Bold').text('RELATÓRIO DE CONSUMO ESTIMADO', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#9c27b0');
+      doc.moveDown(0.5);
+
+      doc.fontSize(10).font('Helvetica');
+      doc.text(`Veículo: ${dispositivo.veiculo || 'N/A'} | Placa: ${dispositivo.placa || 'N/A'}`);
+      doc.text(`Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`);
+      doc.text(`Consumo médio considerado: ${kmPorLitro} km/L`);
+      doc.moveDown();
+
+      const statsY = doc.y;
+      doc.rect(50, statsY, 495, 70).fillAndStroke('#f3e5f5', '#9c27b0');
+      doc.fillColor('#000').fontSize(10).font('Helvetica');
+      doc.text(`Quilometragem Total: ${estatisticas.kmTotal} km`, 60, statsY + 10);
+      doc.text(`Consumo Total Estimado: ${estatisticas.litrosTotal} L`, 60, statsY + 25);
+      doc.text(`Média Diária (km): ${estatisticas.mediaKmDia} km`, 300, statsY + 10);
+      doc.text(`Média Diária (L): ${estatisticas.mediaLitrosDia} L`, 300, statsY + 25);
+      doc.y = statsY + 80;
+      doc.moveDown();
+
+      if (diasComDados.length > 0) {
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#000').text('Consumo Diário');
+        doc.moveDown(0.5);
+        const tableTop = doc.y;
+        const colWidths = [150, 170, 175];
+        const headers = ['Data', 'Quilometragem (km)', 'Consumo Estimado (L)'];
+
+        doc.fontSize(8).font('Helvetica-Bold').fillColor('#fff');
+        doc.rect(50, tableTop, 495, 15).fill('#9c27b0');
+        let xPos = 55;
+        headers.forEach((h, i) => { doc.text(h, xPos, tableTop + 4, { width: colWidths[i] }); xPos += colWidths[i]; });
+
+        doc.fillColor('#000').font('Helvetica').fontSize(8);
+        let yPos = tableTop + 18;
+
+        for (const dia of diasComDados) {
+          if (yPos > 750) { doc.addPage(); yPos = 50; }
+          if (diasComDados.indexOf(dia) % 2 === 0) {
+            doc.rect(50, yPos - 2, 495, 12).fill('#f3e5f5');
+            doc.fillColor('#000');
+          }
+          xPos = 55;
+          [
+            new Date(dia.data + 'T12:00:00').toLocaleDateString('pt-BR'),
+            dia.km.toFixed(2),
+            dia.litros.toFixed(2)
+          ].forEach((d, i) => { doc.text(d, xPos, yPos, { width: colWidths[i] }); xPos += colWidths[i]; });
+          yPos += 12;
+        }
+      }
+
+      doc.fontSize(8).fillColor('#999').text('Sistema de Rastreamento Veicular', 50, 780, { align: 'center', width: 495 });
+      doc.end();
+    } else {
+      let csvContent = `RELATÓRIO DE CONSUMO ESTIMADO
+Veículo: ${dispositivo.veiculo || 'N/A'}
+Placa: ${dispositivo.placa || 'N/A'}
+Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
+Consumo médio considerado: ${kmPorLitro} km/L
+
+=== RESUMO ===
+Quilometragem Total: ${estatisticas.kmTotal} km
+Consumo Total Estimado: ${estatisticas.litrosTotal} L
+Média Diária (km): ${estatisticas.mediaKmDia} km
+Média Diária (L): ${estatisticas.mediaLitrosDia} L
+
+=== CONSUMO DIÁRIO ===
+Data,Quilometragem (km),Consumo Estimado (L)
+`;
+      for (const dia of diasComDados) {
+        csvContent += `${dia.data},${dia.km.toFixed(2)},${dia.litros.toFixed(2)}\n`;
+      }
+
+      const filename = `consumo_${dispositivo.placa || imei}_${formatDateForFilename(new Date())}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send('\ufeff' + csvContent);
+    }
+  } catch (error) {
+    console.error('[Relatório Consumo] Erro:', error);
+    res.status(500).json({ sucesso: false, mensagem: 'Erro ao gerar relatório', erro: error.message });
+  }
+});
+
 module.exports = router;
