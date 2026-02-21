@@ -736,6 +736,88 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#667eea');
     doc.moveDown(0.5);
 
+    // ============ BUSCAR MOTORISTA(S) VINCULADO(S) NO PERÍODO ============
+    // Guarda info de motoristas com períodos para mostrar corretamente
+    let motoristasVinculados = [];
+    try {
+      // Buscar do histórico de vinculações COM período
+      const historicoMotoristas = await prisma.historicoMotorista.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          OR: [
+            { fim: null },
+            { fim: { gte: inicio } }
+          ],
+          inicio: { lte: fim }
+        },
+        include: {
+          motorista: {
+            select: { id: true, nome: true, cnh_categoria: true }
+          }
+        },
+        orderBy: { inicio: 'asc' }
+      });
+
+      // Buscar também de viagens do período (com período de uso)
+      const viagensComMotorista = await prisma.viagem.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          inicio: { gte: inicio },
+          fim: { lte: fim },
+          motorista_id: { not: null }
+        },
+        include: {
+          motorista: {
+            select: { id: true, nome: true, cnh_categoria: true }
+          }
+        },
+        orderBy: { inicio: 'asc' }
+      });
+
+      // Combinar e manter os períodos de cada motorista
+      const motoristasMap = new Map();
+      historicoMotoristas.forEach(h => {
+        if (h.motorista) {
+          const key = h.motorista.id;
+          if (!motoristasMap.has(key)) {
+            motoristasMap.set(key, {
+              ...h.motorista,
+              periodoInicio: h.inicio,
+              periodoFim: h.fim,
+              fonte: 'vinculacao'
+            });
+          } else {
+            // Expandir período se já existe
+            const existing = motoristasMap.get(key);
+            if (h.inicio < existing.periodoInicio) existing.periodoInicio = h.inicio;
+            if (h.fim && (!existing.periodoFim || h.fim > existing.periodoFim)) existing.periodoFim = h.fim;
+          }
+        }
+      });
+      viagensComMotorista.forEach(v => {
+        if (v.motorista) {
+          const key = v.motorista.id;
+          if (!motoristasMap.has(key)) {
+            motoristasMap.set(key, {
+              ...v.motorista,
+              periodoInicio: v.inicio,
+              periodoFim: v.fim,
+              fonte: 'viagem'
+            });
+          } else {
+            // Expandir período se já existe
+            const existing = motoristasMap.get(key);
+            if (v.inicio < existing.periodoInicio) existing.periodoInicio = v.inicio;
+            if (v.fim && (!existing.periodoFim || v.fim > existing.periodoFim)) existing.periodoFim = v.fim;
+          }
+        }
+      });
+      motoristasVinculados = Array.from(motoristasMap.values())
+        .sort((a, b) => new Date(a.periodoInicio) - new Date(b.periodoInicio));
+    } catch (e) {
+      console.log('[PDF] Erro ao buscar motoristas:', e.message);
+    }
+
     // Informações do veículo
     doc.fontSize(12).font('Helvetica-Bold').text('Informações do Veículo');
     doc.fontSize(10).font('Helvetica');
@@ -744,6 +826,31 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     doc.text(`IMEI: ${dispositivo.imei}`);
     doc.text(`Tipo: ${dispositivo.tipo || 'N/A'}`);
     doc.text(`Status: ${dispositivo.status === 'online' ? 'Online' : 'Offline'}`);
+
+    // ✅ Mostrar motorista(s) vinculado(s) com período
+    if (motoristasVinculados.length > 0) {
+      doc.font('Helvetica-Bold').fillColor('#1565c0');
+      if (motoristasVinculados.length === 1) {
+        // Um único motorista - formato simples
+        const m = motoristasVinculados[0];
+        doc.text(`Motorista: ${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''}`);
+      } else {
+        // Múltiplos motoristas - mostrar com período de cada
+        doc.text(`Motorista(s) no período: ${motoristasVinculados.length}`);
+        doc.font('Helvetica').fillColor('#333').fontSize(9);
+        motoristasVinculados.forEach(m => {
+          const periodoStr = m.periodoInicio ?
+            `${formatDateTime(m.periodoInicio).split(',')[0]}${m.periodoFim ? ` - ${formatDateTime(m.periodoFim).split(',')[0]}` : ' (atual)'}` :
+            '';
+          doc.text(`  • ${m.nome}${m.cnh_categoria ? ` (${m.cnh_categoria})` : ''}${periodoStr ? ` [${periodoStr}]` : ''}`);
+        });
+      }
+      doc.font('Helvetica').fillColor('#000').fontSize(10);
+    } else {
+      doc.fillColor('#999').text('Motorista: Não identificado no período');
+      doc.fillColor('#000');
+    }
+
     doc.moveDown(0.5);
 
     doc.fontSize(10).font('Helvetica-Oblique').fillColor('#666');
@@ -1052,6 +1159,107 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       doc.y = statsY + 135;
       doc.moveDown();
 
+      // ============ RESUMO POR DIA + SCORE DE CONDUÇÃO + CONSUMO ============
+      // Calcular km por dia
+      const kmPorDia = new Map();
+      if (localizacoes.length > 1) {
+        for (let i = 1; i < localizacoes.length; i++) {
+          const loc = localizacoes[i];
+          const locAnterior = localizacoes[i - 1];
+          const dist = calcularDistancia(
+            locAnterior.latitude, locAnterior.longitude,
+            loc.latitude, loc.longitude
+          );
+          const dia = new Date(loc.timestamp).toLocaleDateString('pt-BR');
+          kmPorDia.set(dia, (kmPorDia.get(dia) || 0) + dist);
+        }
+      }
+
+      // Calcular Score de Condução (0-100)
+      // Fatores: excessos de velocidade, velocidade média, tempo ocioso
+      let scoreConducao = 100;
+      const totalPontos = localizacoes.length;
+      if (totalPontos > 0) {
+        // Penalizar excessos (cada excesso = -1 ponto, max -40)
+        const penalizacaoExcessos = Math.min(40, excessosVelocidade * 1);
+        scoreConducao -= penalizacaoExcessos;
+
+        // Penalizar velocidade alta (média > 80 = penalização)
+        if (velocidadeMedia > 100) scoreConducao -= 15;
+        else if (velocidadeMedia > 90) scoreConducao -= 10;
+        else if (velocidadeMedia > 80) scoreConducao -= 5;
+
+        // Penalizar muito tempo ocioso (> 30% do tempo total = penalização)
+        const tempoTotal = tempoMovimentoTotal + tempoOciosoTotal + tempoParadoTotal;
+        if (tempoTotal > 0) {
+          const percentualOcioso = (tempoOciosoTotal / tempoTotal) * 100;
+          if (percentualOcioso > 50) scoreConducao -= 10;
+          else if (percentualOcioso > 30) scoreConducao -= 5;
+        }
+
+        scoreConducao = Math.max(0, Math.min(100, scoreConducao));
+      }
+
+      // Estimar consumo (L/100km médio por tipo de veículo)
+      // Pode ser melhorado com dados reais do OBD2
+      const consumoMedio = 10; // L/100km (média de veículo leve)
+      const consumoEstimadoLitros = (distanciaTotal * consumoMedio) / 100;
+
+      // Box de métricas adicionais
+      if (kmPorDia.size > 0 || scoreConducao < 100) {
+        doc.fontSize(11).font('Helvetica-Bold').fillColor('#333').text('Métricas Adicionais');
+        doc.moveDown(0.3);
+
+        const metricasY = doc.y;
+        doc.rect(50, metricasY, 495, 85).fillAndStroke('#f0f7ff', '#667eea');
+
+        // Score de Condução com cor
+        const scoreColor = scoreConducao >= 80 ? '#4caf50' :
+                          scoreConducao >= 60 ? '#ff9800' : '#f44336';
+        const scoreTexto = scoreConducao >= 80 ? 'BOM' :
+                          scoreConducao >= 60 ? 'REGULAR' : 'ATENÇÃO';
+
+        doc.fontSize(20).font('Helvetica-Bold').fillColor(scoreColor);
+        doc.text(`${scoreConducao}`, 60, metricasY + 8, { width: 80, align: 'center' });
+        doc.fontSize(9).font('Helvetica').fillColor('#333');
+        doc.text(`Score (${scoreTexto})`, 60, metricasY + 32, { width: 80, align: 'center' });
+
+        // Consumo Estimado
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('#1565c0');
+        doc.text(`${consumoEstimadoLitros.toFixed(1)}L`, 150, metricasY + 8, { width: 80, align: 'center' });
+        doc.fontSize(9).font('Helvetica').fillColor('#333');
+        doc.text('Consumo Est.', 150, metricasY + 32, { width: 80, align: 'center' });
+
+        // Média diária
+        const diasComMovimento = kmPorDia.size;
+        const mediaDiaria = diasComMovimento > 0 ? distanciaTotal / diasComMovimento : 0;
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('#667eea');
+        doc.text(`${mediaDiaria.toFixed(1)}`, 240, metricasY + 8, { width: 80, align: 'center' });
+        doc.fontSize(9).font('Helvetica').fillColor('#333');
+        doc.text('km/dia (média)', 240, metricasY + 32, { width: 80, align: 'center' });
+
+        // Resumo por dia (tabela compacta)
+        if (kmPorDia.size > 0 && kmPorDia.size <= 10) {
+          doc.fontSize(9).font('Helvetica-Bold').fillColor('#333');
+          doc.text('Resumo por Dia:', 340, metricasY + 8);
+          doc.fontSize(7).font('Helvetica').fillColor('#555');
+          let diaY = metricasY + 20;
+          const diasOrdenados = Array.from(kmPorDia.entries()).sort((a, b) =>
+            new Date(a[0].split('/').reverse().join('-')) - new Date(b[0].split('/').reverse().join('-'))
+          );
+          for (const [dia, km] of diasOrdenados.slice(0, 5)) {
+            doc.text(`${dia}: ${km.toFixed(1)} km`, 340, diaY);
+            diaY += 10;
+          }
+          if (diasOrdenados.length > 5) {
+            doc.text(`... +${diasOrdenados.length - 5} dias`, 340, diaY);
+          }
+        }
+
+        doc.y = metricasY + 95;
+        doc.moveDown(0.5);
+      }
+
       // ============ DETALHAMENTO DOS EXCESSOS DE VELOCIDADE ============
       console.log(`[PDF Excessos] Total de excessos detectados: ${detalhesExcessos ? detalhesExcessos.length : 0}`);
       if (detalhesExcessos && detalhesExcessos.length > 0) {
@@ -1094,6 +1302,17 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         doc.fontSize(8).fillColor('#666').font('Helvetica')
           .text('(Coordenadas incluídas para identificação de radares/multas)');
         doc.moveDown(0.3);
+
+        // ✅ LEGENDA DE CORES DA TABELA
+        const legendaExcY = doc.y;
+        doc.rect(50, legendaExcY, 495, 18).fill('#f5f5f5');
+        doc.fontSize(7).font('Helvetica-Bold').fillColor('#333');
+        doc.text('LEGENDA:', 55, legendaExcY + 5);
+        doc.rect(110, legendaExcY + 3, 12, 10).fill('#ffcdd2');
+        doc.fillColor('#333').font('Helvetica').text('Excesso grave (>20 km/h)', 125, legendaExcY + 5);
+        doc.rect(250, legendaExcY + 3, 12, 10).fill('#fff8e1');
+        doc.fillColor('#333').text('Excesso moderado', 265, legendaExcY + 5);
+        doc.moveDown(0.5);
 
         const excTableY = doc.y;
         const excColWidths = [75, 140, 50, 45, 45, 130];
@@ -1236,6 +1455,17 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         doc.fontSize(8).fillColor('#666').font('Helvetica')
           .text('(Locais onde o veículo permaneceu parado por tempo significativo)');
         doc.moveDown(0.3);
+
+        // ✅ LEGENDA DE CORES DA TABELA DE PARADAS
+        const legendaParY = doc.y;
+        doc.rect(50, legendaParY, 495, 18).fill('#f5f5f5');
+        doc.fontSize(7).font('Helvetica-Bold').fillColor('#333');
+        doc.text('LEGENDA:', 55, legendaParY + 5);
+        doc.rect(110, legendaParY + 3, 12, 10).fill('#bbdefb');
+        doc.fillColor('#333').font('Helvetica').text('Parada longa (>30 min)', 125, legendaParY + 5);
+        doc.rect(260, legendaParY + 3, 12, 10).fill('#f5f5f5');
+        doc.fillColor('#333').text('Parada normal', 275, legendaParY + 5);
+        doc.moveDown(0.5);
 
         const parTableY = doc.y;
         const parColWidths = [30, 70, 70, 55, 150, 115];
@@ -1642,6 +1872,19 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       if (localizacoes.length > 0) {
         doc.addPage();
         doc.fontSize(12).font('Helvetica-Bold').text(`Histórico de Localizações (${localizacoes.length} registros)`);
+        doc.moveDown(0.3);
+
+        // ✅ LEGENDA DE CORES DA TABELA DE LOCALIZAÇÕES
+        const legendaLocY = doc.y;
+        doc.rect(50, legendaLocY, 495, 22).fill('#f5f5f5');
+        doc.fontSize(7).font('Helvetica-Bold').fillColor('#333');
+        doc.text('LEGENDA:', 55, legendaLocY + 4);
+        doc.rect(110, legendaLocY + 2, 12, 10).fill('#ffe6e6');
+        doc.fillColor('#333').font('Helvetica').text('Excesso de velocidade', 125, legendaLocY + 4);
+        doc.rect(240, legendaLocY + 2, 12, 10).fill('#f7fafc');
+        doc.fillColor('#333').text('Linha alternada', 255, legendaLocY + 4);
+        doc.fontSize(6).fillColor('#666');
+        doc.text('Estados: MOV = Em movimento | OCIOSO = Motor ligado, parado | OFF = Motor desligado', 55, legendaLocY + 14);
         doc.moveDown(0.5);
 
         // Cache persistente: consulta limites com precisão do banco
