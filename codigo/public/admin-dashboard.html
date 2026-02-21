@@ -6801,16 +6801,25 @@
                   <select id="trajetos-veiculo-select" style="display: none;" onchange="trajetosOnVeiculoChange()"></select>
                 </div>
 
-                <!-- Datas em linha -->
+                <!-- Seletor de Período -->
                 <div style="padding: 10px 12px; border-bottom: 1px solid var(--border);">
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                  <select id="trajetos-periodo" onchange="trajetosAtualizarPeriodo()" style="width: 100%; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9em; margin-bottom: 8px;">
+                    <option value="hoje">Hoje</option>
+                    <option value="ontem">Ontem</option>
+                    <option value="7dias">Últimos 7 dias</option>
+                    <option value="15dias">Últimos 15 dias</option>
+                    <option value="30dias">Últimos 30 dias</option>
+                    <option value="mes">Este mês</option>
+                    <option value="personalizado">Personalizado...</option>
+                  </select>
+                  <div id="trajetos-datas-custom" style="display: none; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
                     <div onclick="document.getElementById('trajetos-data').showPicker()" style="cursor: pointer;">
-                      <label style="font-size: 10px; color: var(--text-light); display: block; margin-bottom: 4px; cursor: pointer;">Data Início</label>
-                      <input type="date" id="trajetos-data" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.9em; color-scheme: dark; cursor: pointer;">
+                      <label style="font-size: 10px; color: var(--text-light); display: block; margin-bottom: 4px;">Início</label>
+                      <input type="date" id="trajetos-data" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.85em; color-scheme: dark; cursor: pointer;">
                     </div>
                     <div onclick="document.getElementById('trajetos-data-fim').showPicker()" style="cursor: pointer;">
-                      <label style="font-size: 10px; color: var(--text-light); display: block; margin-bottom: 4px; cursor: pointer;">Data Fim</label>
-                      <input type="date" id="trajetos-data-fim" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.9em; color-scheme: dark; cursor: pointer;">
+                      <label style="font-size: 10px; color: var(--text-light); display: block; margin-bottom: 4px;">Fim</label>
+                      <input type="date" id="trajetos-data-fim" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 0.85em; color-scheme: dark; cursor: pointer;">
                     </div>
                   </div>
                   <!-- Botão Buscar -->
@@ -17532,8 +17541,57 @@
 
     // Inicializar Datas
     function trajetosInitDatas() {
-      const hoje = new Date().toISOString().split('T')[0];
-      document.getElementById('trajetos-data').value = hoje;
+      trajetosAtualizarPeriodo(); // Usa o período selecionado (default: hoje)
+    }
+
+    // Atualizar período baseado no seletor
+    function trajetosAtualizarPeriodo() {
+      const periodo = document.getElementById('trajetos-periodo').value;
+      const customDiv = document.getElementById('trajetos-datas-custom');
+      const dataInicio = document.getElementById('trajetos-data');
+      const dataFim = document.getElementById('trajetos-data-fim');
+
+      const hoje = new Date();
+      let inicio = new Date();
+      let fim = new Date();
+
+      switch (periodo) {
+        case 'hoje':
+          inicio = hoje;
+          fim = hoje;
+          break;
+        case 'ontem':
+          inicio = new Date(hoje);
+          inicio.setDate(inicio.getDate() - 1);
+          fim = inicio;
+          break;
+        case '7dias':
+          inicio = new Date(hoje);
+          inicio.setDate(inicio.getDate() - 6);
+          fim = hoje;
+          break;
+        case '15dias':
+          inicio = new Date(hoje);
+          inicio.setDate(inicio.getDate() - 14);
+          fim = hoje;
+          break;
+        case '30dias':
+          inicio = new Date(hoje);
+          inicio.setDate(inicio.getDate() - 29);
+          fim = hoje;
+          break;
+        case 'mes':
+          inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+          fim = hoje;
+          break;
+        case 'personalizado':
+          if (customDiv) customDiv.style.display = 'grid';
+          return;
+      }
+
+      if (customDiv) customDiv.style.display = 'none';
+      if (dataInicio) dataInicio.value = inicio.toISOString().split('T')[0];
+      if (dataFim) dataFim.value = fim.toISOString().split('T')[0];
     }
 
     // Armazenar veículos para busca
@@ -18836,7 +18894,7 @@
     window.trajetosInit = trajetosInit;
     window.trajetosOnVeiculoChange = trajetosOnVeiculoChange;
     window.trajetosOnVeiculoInputChange = trajetosOnVeiculoInputChange;
-    window.toggleTrajetosSidebar = toggleTrajetosSidebar;
+    window.trajetosAtualizarPeriodo = trajetosAtualizarPeriodo;
     window.trajetosBuscarViagens = trajetosBuscarViagens;
     window.trajetosSelecionarViagem = trajetosSelecionarViagem;
     window.trajetosFocarEvento = trajetosFocarEvento;
