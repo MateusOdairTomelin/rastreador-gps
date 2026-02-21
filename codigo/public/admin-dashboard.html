@@ -14933,7 +14933,6 @@
 
       container.innerHTML = sugestoes.map(v => `
         <div class="veiculo-sugestao" onclick="selecionarVeiculoAutocomplete('${v.imei}')">
-          <span class="veiculo-sugestao-icon">🚗</span>
           <div class="veiculo-sugestao-info">
             <div class="veiculo-sugestao-placa">${v.placa || 'Sem placa'}</div>
             <div class="veiculo-sugestao-nome">${v.veiculo || v.modelo || 'Sem nome'}</div>
@@ -15010,7 +15009,7 @@
 
       tagsContainer.innerHTML = veiculosFiltroSelecionados.map(v => `
         <span class="veiculo-selecionado-tag">
-          🚗 ${v.placa}
+          ${v.placa}
           <button onclick="removerVeiculoFiltro('${v.imei}')" title="Remover">×</button>
         </span>
       `).join('');
