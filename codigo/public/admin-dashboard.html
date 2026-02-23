@@ -9365,6 +9365,10 @@
               });
               marker.setIcon(carIcon);
 
+              // ✅ CORREÇÃO: Registrar timestamp da atualização WebSocket
+              // Isso evita que dados antigos da API sobrescrevam esta posição
+              wsUpdateTimestamps[data.imei] = Date.now();
+
               // Se seguindo este veículo, centralizar mapa
               if (window.followingVehicle === data.imei) {
                 map.setView([lat, lng], map.getZoom());
@@ -11290,6 +11294,10 @@
     let mapMarkers = {};
     let markerClusterGroup = null; // Grupo de clusters para agrupamento de marcadores
 
+    // ✅ CORREÇÃO: Rastrear última atualização WebSocket por IMEI para evitar rollback
+    // Quando WebSocket atualiza, dados da API mais antigos são ignorados
+    const wsUpdateTimestamps = {};
+
     function initMap() {
       const container = document.getElementById('map');
       if (!container) return;
@@ -11497,11 +11505,19 @@
 
             // Se marcador já existe, apenas atualizar posição e ícone
             if (mapMarkers[d.imei]) {
-              mapMarkers[d.imei].setLatLng([lat, lng]);
-              mapMarkers[d.imei].setIcon(carIcon);
+              // ✅ CORREÇÃO: Evitar rollback - não sobrescrever se WebSocket atualizou recentemente
+              const wsLastUpdate = wsUpdateTimestamps[d.imei] || 0;
+              const protectionWindow = 10000; // 10 segundos de proteção
+              const isProtected = (Date.now() - wsLastUpdate) < protectionWindow;
+
+              if (!isProtected) {
+                // Atualizar posição apenas se não foi atualizado por WebSocket recentemente
+                mapMarkers[d.imei].setLatLng([lat, lng]);
+                mapMarkers[d.imei].setIcon(carIcon);
+              }
               // ✅ Cache da placa para atualizações via WebSocket
               mapMarkers[d.imei]._placaCache = placaDisplay;
-              // Atualizar popup
+              // Atualizar popup (sempre, não afeta posição)
               mapMarkers[d.imei].setPopupContent(gerarPopupVeiculo(d));
             } else {
               // Criar novo marcador
