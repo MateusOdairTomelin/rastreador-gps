@@ -1605,6 +1605,40 @@
       box-shadow: 0 12px 30px rgba(239, 68, 68, 0.35);
     }
 
+    .btn-success {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: white;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.25);
+    }
+
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(16, 185, 129, 0.35);
+    }
+
+    /* LGPD Tabs */
+    .lgpd-tab {
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 6px;
+      font-weight: 500;
+      color: var(--text-light);
+      transition: all 0.2s;
+    }
+
+    .lgpd-tab.active {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+    }
+
+    .lgpd-tab:hover:not(.active) {
+      background: rgba(6, 182, 212, 0.1);
+      color: var(--text);
+    }
+
     .btn-group {
       display: flex;
       gap: 12px;
@@ -4868,10 +4902,10 @@
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></span>
           <span>Multas</span>
         </button>
-        <a href="lgpd.html" class="nav-item" id="nav-lgpd">
+        <button class="nav-item" id="nav-lgpd" onclick="switchSection('lgpd')">
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span>
           <span>LGPD / Privacidade</span>
-        </a>
+        </button>
         <button class="nav-item" id="nav-auditoria" onclick="switchSection('auditoria')">
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span>
           <span>Auditoria</span>
@@ -6370,6 +6404,180 @@
               </table>
             </div>
             <div id="multas-pagination" style="display: flex; justify-content: center; gap: 5px; padding: 20px;"></div>
+          </div>
+        </section>
+
+        <!-- LGPD SECTION -->
+        <section class="section" id="section-lgpd">
+          <!-- Tabs internas -->
+          <div style="display: flex; gap: 4px; background: var(--bg-card); padding: 4px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--border);">
+            <button class="lgpd-tab active" data-tab="meus-dados" onclick="switchLgpdTab('meus-dados')">Meus Dados</button>
+            <button class="lgpd-tab" data-tab="admin" id="lgpd-tab-admin" onclick="switchLgpdTab('admin')" style="display: none;">Administração</button>
+            <button class="lgpd-tab" data-tab="super-admin" id="lgpd-tab-super" onclick="switchLgpdTab('super-admin')" style="display: none;">Super Admin</button>
+          </div>
+
+          <!-- TAB: MEUS DADOS -->
+          <div id="lgpd-meus-dados" class="lgpd-content">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+              <!-- Consentimentos -->
+              <div class="card">
+                <h3 style="color: var(--primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  Status dos Consentimentos
+                </h3>
+                <div id="lgpd-consent-status">
+                  <div style="text-align: center; padding: 20px; color: var(--text-light);">Carregando...</div>
+                </div>
+              </div>
+
+              <!-- Ações -->
+              <div class="card">
+                <h3 style="color: var(--primary); margin-bottom: 16px;">Ações de Consentimento</h3>
+                <p style="color: var(--text-light); margin-bottom: 16px; font-size: 14px;">
+                  Você pode aceitar ou revogar seus consentimentos a qualquer momento.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <button class="btn btn-success" onclick="lgpdAceitarConsentimentos()" id="lgpd-btn-aceitar">
+                    Aceitar Todos os Consentimentos
+                  </button>
+                  <button class="btn" style="background: var(--bg); border: 1px solid var(--border);" onclick="window.open('/politica-privacidade.html', '_blank')">
+                    Ver Política de Privacidade
+                  </button>
+                  <button class="btn" style="background: var(--bg); border: 1px solid var(--border);" onclick="window.open('/termos-uso.html', '_blank')">
+                    Ver Termos de Uso
+                  </button>
+                </div>
+              </div>
+
+              <!-- Exportar Dados -->
+              <div class="card">
+                <h3 style="color: var(--primary); margin-bottom: 16px;">Exportar Meus Dados (Portabilidade)</h3>
+                <p style="color: var(--text-light); margin-bottom: 16px; font-size: 14px;">
+                  Conforme a LGPD, você tem direito de exportar todos os seus dados pessoais em formato JSON.
+                </p>
+                <button class="btn btn-primary" onclick="lgpdExportarDados()" id="lgpd-btn-exportar">
+                  Exportar Meus Dados
+                </button>
+              </div>
+
+              <!-- Exclusão -->
+              <div class="card">
+                <h3 style="color: var(--primary); margin-bottom: 16px;">Solicitar Exclusão de Dados</h3>
+                <p style="color: var(--text-light); margin-bottom: 16px; font-size: 14px;">
+                  Você pode solicitar a exclusão de seus dados pessoais. A solicitação será analisada em até 15 dias úteis.
+                </p>
+                <button class="btn btn-danger" onclick="lgpdAbrirModalExclusao()">
+                  Solicitar Exclusão
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: ADMIN -->
+          <div id="lgpd-admin" class="lgpd-content" style="display: none;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+              <!-- Usuários da Organização -->
+              <div class="card" style="grid-column: 1 / -1;">
+                <h3 style="color: var(--primary); margin-bottom: 16px;">Usuários e Status de Consentimento</h3>
+                <div id="lgpd-org-users" style="overflow-x: auto;">
+                  <div style="text-align: center; padding: 20px; color: var(--text-light);">Carregando...</div>
+                </div>
+              </div>
+
+              <!-- Motoristas -->
+              <div class="card" style="grid-column: 1 / -1;">
+                <h3 style="color: var(--primary); margin-bottom: 16px;">Motoristas e Status de Consentimento</h3>
+                <p style="color: var(--text-light); margin-bottom: 16px; font-size: 14px;">
+                  Motoristas precisam aceitar os termos no APP antes de vincular veículos.
+                </p>
+                <div id="lgpd-motoristas" style="overflow-x: auto;">
+                  <div style="text-align: center; padding: 20px; color: var(--text-light);">Carregando...</div>
+                </div>
+              </div>
+
+              <!-- Políticas de Retenção -->
+              <div class="card">
+                <h3 style="color: var(--primary); margin-bottom: 16px;">Políticas de Retenção</h3>
+                <div id="lgpd-politicas">
+                  <div style="text-align: center; padding: 20px; color: var(--text-light);">Carregando...</div>
+                </div>
+              </div>
+
+              <!-- Estimativa de Limpeza -->
+              <div class="card">
+                <h3 style="color: var(--primary); margin-bottom: 16px;">Estimativa de Limpeza</h3>
+                <div id="lgpd-estimativa">
+                  <div style="text-align: center; padding: 20px; color: var(--text-light);">Carregando...</div>
+                </div>
+              </div>
+
+              <!-- Solicitações Pendentes -->
+              <div class="card" style="grid-column: 1 / -1;">
+                <h3 style="color: var(--primary); margin-bottom: 16px;">Solicitações de Exclusão Pendentes</h3>
+                <div id="lgpd-solicitacoes" style="overflow-x: auto;">
+                  <div style="text-align: center; padding: 20px; color: var(--text-light);">Carregando...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: SUPER ADMIN -->
+          <div id="lgpd-super-admin" class="lgpd-content" style="display: none;">
+            <!-- Estatísticas Gerais -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px;">
+              <div class="card" style="padding: 20px; text-align: center; background: linear-gradient(135deg, var(--primary), var(--accent));">
+                <div style="font-size: 2rem; font-weight: 700; color: white;" id="lgpd-stat-usuarios">-</div>
+                <div style="color: rgba(255,255,255,0.9); font-size: 0.9rem;">Total Usuários</div>
+                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 5px;"><span id="lgpd-stat-usuarios-ok">0</span> conformes</div>
+              </div>
+              <div class="card" style="padding: 20px; text-align: center; background: linear-gradient(135deg, #00A2FF, #212492);">
+                <div style="font-size: 2rem; font-weight: 700; color: white;" id="lgpd-stat-motoristas">-</div>
+                <div style="color: rgba(255,255,255,0.9); font-size: 0.9rem;">Total Motoristas</div>
+                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 5px;"><span id="lgpd-stat-motoristas-ok">0</span> conformes</div>
+              </div>
+              <div class="card" style="padding: 20px; text-align: center; background: linear-gradient(135deg, #F59E0B, #D97706);">
+                <div style="font-size: 2rem; font-weight: 700; color: white;" id="lgpd-stat-pendentes">-</div>
+                <div style="color: rgba(255,255,255,0.9); font-size: 0.9rem;">Solicitações Pendentes</div>
+              </div>
+              <div class="card" style="padding: 20px; text-align: center; background: linear-gradient(135deg, #10B981, #059669);">
+                <div style="font-size: 2rem; font-weight: 700; color: white;" id="lgpd-stat-processadas">-</div>
+                <div style="color: rgba(255,255,255,0.9); font-size: 0.9rem;">Processadas</div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+              <!-- Organizações -->
+              <div class="card" style="grid-column: 1 / -1;">
+                <h3 style="color: var(--primary); margin-bottom: 16px;">Conformidade por Organização</h3>
+                <div id="lgpd-organizacoes">
+                  <div style="text-align: center; padding: 20px; color: var(--text-light);">Carregando...</div>
+                </div>
+              </div>
+
+              <!-- Status Limpeza -->
+              <div class="card">
+                <h3 style="color: var(--primary); margin-bottom: 16px;">Status da Última Limpeza</h3>
+                <div id="lgpd-cleanup-status">
+                  <div style="text-align: center; padding: 20px; color: var(--text-light);">Carregando...</div>
+                </div>
+              </div>
+
+              <!-- Executar Limpeza -->
+              <div class="card">
+                <h3 style="color: var(--primary); margin-bottom: 16px;">Executar Limpeza</h3>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <button class="btn btn-primary" onclick="lgpdCarregarDadosSuperAdmin()">
+                    Atualizar Todos os Dados
+                  </button>
+                  <button class="btn btn-danger" onclick="lgpdExecutarLimpeza()" id="lgpd-btn-limpeza">
+                    Executar Limpeza Manual
+                  </button>
+                  <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 10px;">
+                    A limpeza manual exclui permanentemente dados conforme as políticas de retenção.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -10979,7 +11187,8 @@
       motoristas: '👤',
       veiculos: '🚗',
       'info-veiculo': '🚗',
-      trajetos: '◇'
+      trajetos: '◇',
+      lgpd: '🛡'
     };
 
     const sectionTitles = {
@@ -11002,7 +11211,8 @@
       motoristas: 'Motoristas',
       veiculos: 'Veículos',
       'info-veiculo': 'Info Veículo',
-      trajetos: 'Trajetos'
+      trajetos: 'Trajetos',
+      lgpd: 'LGPD / Privacidade'
     };
 
     function switchSection(name, updateHash = true) {
@@ -11082,6 +11292,8 @@
         if (typeof carregarEstatisticasMultas === 'function') carregarEstatisticasMultas();
       } else if (name === 'motoristas') {
         if (typeof carregarMotoristasSecao === 'function') carregarMotoristasSecao();
+      } else if (name === 'lgpd') {
+        if (typeof initLgpd === 'function') initLgpd();
       } else if (name === 'veiculos') {
         if (typeof carregarVeiculosSecao === 'function') carregarVeiculosSecao();
       } else if (name === 'trajetos') {
@@ -16734,6 +16946,461 @@
     window.registrarPagamentoMulta = registrarPagamentoMulta;
 
     // =============================================
+    // =============================================
+    // LGPD - Privacidade e Dados
+    // =============================================
+
+    let lgpdInitialized = false;
+
+    function switchLgpdTab(tabName) {
+      // Atualizar botões
+      document.querySelectorAll('.lgpd-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.lgpd-tab[data-tab="${tabName}"]`)?.classList.add('active');
+
+      // Mostrar/ocultar conteúdos
+      document.querySelectorAll('.lgpd-content').forEach(c => c.style.display = 'none');
+      document.getElementById(`lgpd-${tabName}`).style.display = 'block';
+    }
+
+    async function initLgpd() {
+      if (lgpdInitialized) return;
+      lgpdInitialized = true;
+
+      // Mostrar tabs baseado no role
+      const isAdmin = usuarioRole === 'admin' || usuarioRole === 'super_admin';
+      const isSuperAdmin = usuarioRole === 'super_admin';
+
+      if (isAdmin) {
+        document.getElementById('lgpd-tab-admin').style.display = 'block';
+      }
+      if (isSuperAdmin) {
+        document.getElementById('lgpd-tab-super').style.display = 'block';
+      }
+
+      // Carregar dados iniciais
+      await lgpdCarregarConsentimentos();
+
+      if (isAdmin) {
+        lgpdCarregarDadosAdmin();
+      }
+      if (isSuperAdmin) {
+        lgpdCarregarDadosSuperAdmin();
+      }
+    }
+
+    async function lgpdCarregarConsentimentos() {
+      try {
+        const response = await authFetch(`${API_URL}/lgpd/verificar`);
+        const data = await response.json();
+
+        const container = document.getElementById('lgpd-consent-status');
+
+        if (data.consentimentosValidos) {
+          container.innerHTML = `
+            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 16px; color: var(--success);">
+              <strong>Todos os consentimentos estão válidos!</strong><br>
+              <span style="font-size: 13px; opacity: 0.9;">Você aceitou a Política de Privacidade e os Termos de Uso.</span>
+            </div>
+          `;
+          document.getElementById('lgpd-btn-aceitar').disabled = true;
+          document.getElementById('lgpd-btn-aceitar').textContent = 'Consentimentos Aceitos';
+        } else {
+          let html = `
+            <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 16px; color: #D97706; margin-bottom: 16px;">
+              <strong>Consentimentos pendentes!</strong><br>
+              <span style="font-size: 13px;">Por favor, aceite os termos para continuar.</span>
+            </div>
+          `;
+
+          if (data.pendentes) {
+            data.pendentes.forEach(p => {
+              const titulo = p.tipo === 'privacidade' ? 'Política de Privacidade' : 'Termos de Uso';
+              html += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg); border-radius: 8px; margin-bottom: 8px;">
+                  <div>
+                    <div style="font-weight: 500;">${titulo}</div>
+                    <div style="font-size: 12px; color: var(--text-light);">Versão ${p.versao}</div>
+                  </div>
+                  <span style="background: rgba(245, 158, 11, 0.2); color: #D97706; padding: 4px 10px; border-radius: 12px; font-size: 12px;">Pendente</span>
+                </div>
+              `;
+            });
+          }
+
+          container.innerHTML = html;
+        }
+      } catch (error) {
+        console.error('Erro ao carregar consentimentos:', error);
+        document.getElementById('lgpd-consent-status').innerHTML = `
+          <div style="color: var(--danger);">Erro ao carregar consentimentos</div>
+        `;
+      }
+    }
+
+    async function lgpdAceitarConsentimentos() {
+      try {
+        const btn = document.getElementById('lgpd-btn-aceitar');
+        btn.disabled = true;
+        btn.textContent = 'Processando...';
+
+        const response = await authFetch(`${API_URL}/lgpd/consentimento/inicial`, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.sucesso) {
+          showToast('Consentimentos registrados com sucesso!', 'success');
+          await lgpdCarregarConsentimentos();
+        } else {
+          throw new Error(data.mensagem);
+        }
+      } catch (error) {
+        console.error('Erro ao aceitar consentimentos:', error);
+        showToast('Erro ao registrar consentimentos: ' + error.message, 'error');
+        document.getElementById('lgpd-btn-aceitar').disabled = false;
+        document.getElementById('lgpd-btn-aceitar').textContent = 'Aceitar Todos os Consentimentos';
+      }
+    }
+
+    async function lgpdExportarDados() {
+      try {
+        const btn = document.getElementById('lgpd-btn-exportar');
+        btn.disabled = true;
+        btn.textContent = 'Exportando...';
+
+        const response = await authFetch(`${API_URL}/lgpd/meus-dados`);
+        const data = await response.json();
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `meus-dados-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast('Dados exportados com sucesso!', 'success');
+      } catch (error) {
+        console.error('Erro ao exportar dados:', error);
+        showToast('Erro ao exportar dados', 'error');
+      } finally {
+        document.getElementById('lgpd-btn-exportar').disabled = false;
+        document.getElementById('lgpd-btn-exportar').textContent = 'Exportar Meus Dados';
+      }
+    }
+
+    function lgpdAbrirModalExclusao() {
+      // Usar modal simples
+      const confirmed = confirm('Você deseja solicitar a exclusão dos seus dados pessoais?\n\nEsta ação não pode ser desfeita. Seus dados serão permanentemente excluídos após aprovação.');
+      if (confirmed) {
+        lgpdSolicitarExclusao();
+      }
+    }
+
+    async function lgpdSolicitarExclusao() {
+      try {
+        const response = await authFetch(`${API_URL}/lgpd/solicitar-exclusao`, {
+          method: 'POST',
+          body: JSON.stringify({ tipo: 'meus_dados', motivo: 'Solicitação via dashboard' })
+        });
+        const data = await response.json();
+
+        if (data.sucesso) {
+          showToast('Solicitação de exclusão registrada. Será processada em até 15 dias úteis.', 'success');
+        } else {
+          throw new Error(data.mensagem);
+        }
+      } catch (error) {
+        console.error('Erro ao solicitar exclusão:', error);
+        showToast('Erro ao solicitar exclusão: ' + error.message, 'error');
+      }
+    }
+
+    // LGPD Admin
+    async function lgpdCarregarDadosAdmin() {
+      await Promise.all([
+        lgpdCarregarUsuariosOrg(),
+        lgpdCarregarMotoristasOrg(),
+        lgpdCarregarPoliticas(),
+        lgpdCarregarEstimativa(),
+        lgpdCarregarSolicitacoes()
+      ]);
+    }
+
+    async function lgpdCarregarUsuariosOrg() {
+      try {
+        const response = await authFetch(`${API_URL}/lgpd/admin/usuarios-organizacao`);
+        const data = await response.json();
+
+        if (!data.usuarios || data.usuarios.length === 0) {
+          document.getElementById('lgpd-org-users').innerHTML = `<div style="color: var(--text-light);">Nenhum usuário encontrado.</div>`;
+          return;
+        }
+
+        let html = `<table class="data-table"><thead><tr><th>Nome</th><th>Email</th><th>Papel</th><th>Privacidade</th><th>Termos</th></tr></thead><tbody>`;
+        for (const u of data.usuarios) {
+          const privBadge = u.consentimentos.privacidade
+            ? '<span style="background: rgba(16,185,129,0.2); color: #10B981; padding: 2px 8px; border-radius: 10px; font-size: 11px;">OK</span>'
+            : '<span style="background: rgba(239,68,68,0.2); color: #EF4444; padding: 2px 8px; border-radius: 10px; font-size: 11px;">Pendente</span>';
+          const termosBadge = u.consentimentos.termos_uso
+            ? '<span style="background: rgba(16,185,129,0.2); color: #10B981; padding: 2px 8px; border-radius: 10px; font-size: 11px;">OK</span>'
+            : '<span style="background: rgba(239,68,68,0.2); color: #EF4444; padding: 2px 8px; border-radius: 10px; font-size: 11px;">Pendente</span>';
+          html += `<tr><td><strong>${u.nome}</strong></td><td>${u.email}</td><td>${u.role}</td><td>${privBadge}</td><td>${termosBadge}</td></tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('lgpd-org-users').innerHTML = html;
+      } catch (error) {
+        document.getElementById('lgpd-org-users').innerHTML = `<div style="color: var(--danger);">Erro ao carregar usuários</div>`;
+      }
+    }
+
+    async function lgpdCarregarMotoristasOrg() {
+      try {
+        const response = await authFetch(`${API_URL}/lgpd/admin/motoristas`);
+        const data = await response.json();
+
+        if (!data.motoristas || data.motoristas.length === 0) {
+          document.getElementById('lgpd-motoristas').innerHTML = `<div style="color: var(--text-light);">Nenhum motorista cadastrado.</div>`;
+          return;
+        }
+
+        let html = `<table class="data-table"><thead><tr><th>Nome</th><th>CPF</th><th>Privacidade</th><th>Termos</th></tr></thead><tbody>`;
+        for (const m of data.motoristas) {
+          const privBadge = m.consentimentos.privacidade
+            ? '<span style="background: rgba(16,185,129,0.2); color: #10B981; padding: 2px 8px; border-radius: 10px; font-size: 11px;">OK</span>'
+            : '<span style="background: rgba(245,158,11,0.2); color: #D97706; padding: 2px 8px; border-radius: 10px; font-size: 11px;">Pendente (APP)</span>';
+          const termosBadge = m.consentimentos.termos_uso
+            ? '<span style="background: rgba(16,185,129,0.2); color: #10B981; padding: 2px 8px; border-radius: 10px; font-size: 11px;">OK</span>'
+            : '<span style="background: rgba(245,158,11,0.2); color: #D97706; padding: 2px 8px; border-radius: 10px; font-size: 11px;">Pendente (APP)</span>';
+          html += `<tr><td><strong>${m.nome}</strong></td><td>${m.cpf || '-'}</td><td>${privBadge}</td><td>${termosBadge}</td></tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('lgpd-motoristas').innerHTML = html;
+      } catch (error) {
+        document.getElementById('lgpd-motoristas').innerHTML = `<div style="color: var(--danger);">Erro ao carregar motoristas</div>`;
+      }
+    }
+
+    async function lgpdCarregarPoliticas() {
+      try {
+        const response = await authFetch(`${API_URL}/lgpd/retencao/politicas`);
+        const data = await response.json();
+
+        let html = '<table class="data-table"><thead><tr><th>Tipo de Dado</th><th>Retenção</th></tr></thead><tbody>';
+        for (const [key, value] of Object.entries(data.politicas || {})) {
+          const desc = data.descricao?.[key] || key;
+          html += `<tr><td>${desc}</td><td>${value} dias</td></tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('lgpd-politicas').innerHTML = html;
+      } catch (error) {
+        document.getElementById('lgpd-politicas').innerHTML = `<div style="color: var(--danger);">Erro ao carregar políticas</div>`;
+      }
+    }
+
+    async function lgpdCarregarEstimativa() {
+      try {
+        const response = await authFetch(`${API_URL}/lgpd/retencao/estimativa`);
+        const data = await response.json();
+
+        let html = '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">';
+        let total = 0;
+
+        for (const [key, value] of Object.entries(data.estimativa || {})) {
+          total += value.count || 0;
+          html += `
+            <div style="background: var(--bg); padding: 8px; border-radius: 4px; text-align: center;">
+              <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">${(value.count || 0).toLocaleString()}</div>
+              <div style="font-size: 0.7rem; color: var(--text-light);">${key}</div>
+            </div>
+          `;
+        }
+        html += '</div>';
+        html += `<p style="margin-top: 12px; text-align: center; font-size: 0.85rem; color: var(--text-light);">Total a excluir: <strong>${total.toLocaleString()}</strong> registros</p>`;
+        document.getElementById('lgpd-estimativa').innerHTML = html;
+      } catch (error) {
+        document.getElementById('lgpd-estimativa').innerHTML = `<div style="color: var(--danger);">Erro ao carregar estimativa</div>`;
+      }
+    }
+
+    async function lgpdCarregarSolicitacoes() {
+      try {
+        const response = await authFetch(`${API_URL}/lgpd/solicitacoes-exclusao?status=pendente`);
+        const data = await response.json();
+
+        if (!data.solicitacoes || data.solicitacoes.length === 0) {
+          document.getElementById('lgpd-solicitacoes').innerHTML = `<div style="color: var(--text-light);">Nenhuma solicitação pendente.</div>`;
+          return;
+        }
+
+        let html = '<table class="data-table"><thead><tr><th>ID</th><th>Tipo</th><th>Usuário</th><th>Data</th><th>Ações</th></tr></thead><tbody>';
+        for (const s of data.solicitacoes) {
+          html += `
+            <tr>
+              <td>#${s.id}</td>
+              <td>${s.tipo}</td>
+              <td>ID: ${s.usuario_id}</td>
+              <td>${new Date(s.created_at).toLocaleString('pt-BR')}</td>
+              <td>
+                <button class="btn btn-success" style="padding: 4px 10px; font-size: 12px;" onclick="lgpdProcessarExclusao(${s.id}, true)">Aprovar</button>
+                <button class="btn btn-danger" style="padding: 4px 10px; font-size: 12px;" onclick="lgpdProcessarExclusao(${s.id}, false)">Recusar</button>
+              </td>
+            </tr>
+          `;
+        }
+        html += '</tbody></table>';
+        document.getElementById('lgpd-solicitacoes').innerHTML = html;
+      } catch (error) {
+        document.getElementById('lgpd-solicitacoes').innerHTML = `<div style="color: var(--danger);">Erro ao carregar solicitações</div>`;
+      }
+    }
+
+    async function lgpdProcessarExclusao(id, aprovar) {
+      const confirmed = confirm(`Tem certeza que deseja ${aprovar ? 'APROVAR' : 'RECUSAR'} esta solicitação?`);
+      if (!confirmed) return;
+
+      try {
+        const response = await authFetch(`${API_URL}/lgpd/processar-exclusao/${id}`, {
+          method: 'POST',
+          body: JSON.stringify({ aprovar })
+        });
+        const data = await response.json();
+
+        if (data.sucesso) {
+          showToast(`Solicitação ${aprovar ? 'aprovada' : 'recusada'} com sucesso!`, 'success');
+          await lgpdCarregarSolicitacoes();
+        } else {
+          throw new Error(data.mensagem);
+        }
+      } catch (error) {
+        showToast('Erro ao processar solicitação: ' + error.message, 'error');
+      }
+    }
+
+    // LGPD Super Admin
+    async function lgpdCarregarDadosSuperAdmin() {
+      await Promise.all([
+        lgpdCarregarEstatisticas(),
+        lgpdCarregarOrganizacoes(),
+        lgpdCarregarStatusLimpeza()
+      ]);
+    }
+
+    async function lgpdCarregarEstatisticas() {
+      try {
+        const response = await authFetch(`${API_URL}/lgpd/admin/estatisticas`);
+        const data = await response.json();
+
+        if (data.sucesso) {
+          const stats = data.estatisticas;
+          document.getElementById('lgpd-stat-usuarios').textContent = stats.usuarios.total;
+          document.getElementById('lgpd-stat-usuarios-ok').textContent = stats.usuarios.com_consentimento;
+          document.getElementById('lgpd-stat-motoristas').textContent = stats.motoristas.total;
+          document.getElementById('lgpd-stat-motoristas-ok').textContent = stats.motoristas.com_consentimento;
+          document.getElementById('lgpd-stat-pendentes').textContent = stats.solicitacoes_exclusao.pendentes;
+          document.getElementById('lgpd-stat-processadas').textContent = stats.solicitacoes_exclusao.processadas;
+        }
+      } catch (error) {
+        console.error('Erro ao carregar estatísticas LGPD:', error);
+      }
+    }
+
+    async function lgpdCarregarOrganizacoes() {
+      try {
+        const response = await authFetch(`${API_URL}/lgpd/admin/organizacoes`);
+        const data = await response.json();
+
+        if (!data.organizacoes || data.organizacoes.length === 0) {
+          document.getElementById('lgpd-organizacoes').innerHTML = `<div style="color: var(--text-light);">Nenhuma organização encontrada.</div>`;
+          return;
+        }
+
+        let html = '<div style="display: grid; gap: 12px;">';
+        for (const org of data.organizacoes) {
+          const taxaUsuarios = org.usuarios > 0 ? Math.round((org.conformidade.usuarios / org.usuarios) * 100) : 100;
+          const taxaMotoristas = org.motoristas > 0 ? Math.round((org.conformidade.motoristas / org.motoristas) * 100) : 100;
+          const conformeBadge = (taxaUsuarios >= 100 && taxaMotoristas >= 100)
+            ? '<span style="background: rgba(16,185,129,0.2); color: #10B981; padding: 4px 10px; border-radius: 12px; font-size: 11px;">100% Conforme</span>'
+            : '<span style="background: rgba(245,158,11,0.2); color: #D97706; padding: 4px 10px; border-radius: 12px; font-size: 11px;">Pendências</span>';
+
+          html += `
+            <div style="background: var(--bg); padding: 16px; border-radius: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="font-weight: 600; font-size: 1.1rem;">${org.nome}</span>
+                ${conformeBadge}
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center;">
+                <div>
+                  <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">${org.usuarios}</div>
+                  <div style="font-size: 0.75rem; color: var(--text-light);">Usuários (${org.conformidade.usuarios} OK)</div>
+                </div>
+                <div>
+                  <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">${org.motoristas}</div>
+                  <div style="font-size: 0.75rem; color: var(--text-light);">Motoristas (${org.conformidade.motoristas} OK)</div>
+                </div>
+                <div>
+                  <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">${org.dispositivos}</div>
+                  <div style="font-size: 0.75rem; color: var(--text-light);">Dispositivos</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+        html += '</div>';
+        document.getElementById('lgpd-organizacoes').innerHTML = html;
+      } catch (error) {
+        document.getElementById('lgpd-organizacoes').innerHTML = `<div style="color: var(--danger);">Erro ao carregar organizações</div>`;
+      }
+    }
+
+    async function lgpdCarregarStatusLimpeza() {
+      try {
+        const response = await authFetch(`${API_URL}/lgpd/retencao/status`);
+        const data = await response.json();
+
+        let html = '';
+        if (data.ultimaExecucao) {
+          const dataExec = new Date(data.ultimaExecucao);
+          html = `
+            <div style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+              <strong style="color: var(--success);">Última execução:</strong> ${dataExec.toLocaleString('pt-BR')}
+            </div>
+          `;
+        } else {
+          html = `<div style="color: var(--text-light);">Nenhuma limpeza executada ainda.</div>`;
+        }
+        document.getElementById('lgpd-cleanup-status').innerHTML = html;
+      } catch (error) {
+        document.getElementById('lgpd-cleanup-status').innerHTML = `<div style="color: var(--danger);">Erro ao carregar status</div>`;
+      }
+    }
+
+    async function lgpdExecutarLimpeza() {
+      const confirmed = confirm('Esta ação excluirá permanentemente dados antigos conforme as políticas de retenção. Deseja continuar?');
+      if (!confirmed) return;
+
+      try {
+        const btn = document.getElementById('lgpd-btn-limpeza');
+        btn.disabled = true;
+        btn.textContent = 'Executando...';
+
+        const response = await authFetch(`${API_URL}/lgpd/retencao/executar`, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.sucesso) {
+          showToast('Limpeza executada com sucesso!', 'success');
+          await lgpdCarregarDadosSuperAdmin();
+        } else {
+          throw new Error(data.mensagem);
+        }
+      } catch (error) {
+        showToast('Erro ao executar limpeza: ' + error.message, 'error');
+      } finally {
+        document.getElementById('lgpd-btn-limpeza').disabled = false;
+        document.getElementById('lgpd-btn-limpeza').textContent = 'Executar Limpeza Manual';
+      }
+    }
+
     // MOTORISTAS - Gestão de Motoristas
     // =============================================
 
