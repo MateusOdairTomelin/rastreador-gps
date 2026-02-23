@@ -5262,7 +5262,7 @@
 
         <!-- DIAGNÓSTICO SECTION -->
         <section class="section" id="section-diagnostico">
-          <div class="section-title">Status dos Serviços</div>
+          <div class="section-title">Status do Sistema</div>
 
           <div class="status-grid">
             <div class="status-item" id="status-http-box">
@@ -8648,16 +8648,16 @@
 
         // Atualizar status dos servicos
         const httpEl = document.getElementById('status-http');
-        if (httpEl) httpEl.textContent = '✅';
+        if (httpEl) httpEl.textContent = 'Online';
         const tcpEl = document.getElementById('status-tcp');
-        if (tcpEl) tcpEl.textContent = '✅';
+        if (tcpEl) tcpEl.textContent = 'Online';
         const dbEl = document.getElementById('status-db');
-        if (dbEl) dbEl.textContent = '✅';
+        if (dbEl) dbEl.textContent = 'Online';
 
       } catch (error) {
         console.error('Erro ao carregar metricas do sistema:', error);
         const httpEl = document.getElementById('status-http');
-        if (httpEl) httpEl.textContent = '❌';
+        if (httpEl) httpEl.textContent = 'Offline';
       }
     }
 
