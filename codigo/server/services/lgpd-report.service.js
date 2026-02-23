@@ -4,7 +4,7 @@
  */
 
 const PDFDocument = require('pdfkit');
-const prisma = require('../prisma');
+const prisma = require('../db/prisma');
 
 class LgpdReportService {
 
