@@ -45,10 +45,15 @@ const stats = {
 
 // ============ RECONFIGURAÇÃO DE DISPOSITIVOS ============
 // IMEIs que precisam receber comandos de configuração na próxima conexão
-// Adicione IMEIs aqui quando precisar reconfigurar um dispositivo
+// Adicione IMEIs aqui quando precisar reconfigurar um dispositivo específico
 const IMEIS_RECONFIGURAR = new Set([
   // '356354871416435', // QIK8A12 - RECONFIGURADO em 06/02/2026
 ]);
+
+// ✅ AUTO-CONFIG: Enviar comandos de timezone para TODOS os dispositivos ao conectar
+// Isso garante que todos usem UTC e evita problemas de delay
+const AUTO_CONFIG_TODOS = process.env.AUTO_CONFIG_TODOS === 'true';
+const AUTO_CONFIG_TIMEZONE = process.env.AUTO_CONFIG_TIMEZONE !== 'false'; // true por padrão
 
 /**
  * Constrói pacote de comando no formato Protocolo 0x80
@@ -96,22 +101,37 @@ function buildCommandPacket(comando, serialNumber = 1) {
  * Envia comandos de reconfiguração para dispositivo
  */
 async function enviarComandosReconfig(imei, socket) {
-  if (!IMEIS_RECONFIGURAR.has(imei)) return;
+  const deveReconfigurar = IMEIS_RECONFIGURAR.has(imei) || AUTO_CONFIG_TODOS;
+  const deveConfigTimezone = AUTO_CONFIG_TIMEZONE;
 
-  console.log(`🔧 [Gateway:${GATEWAY_ID}] RECONFIGURANDO ${imei} - ativando transmissão em tempo real...`);
+  // Se não precisa fazer nada, retorna
+  if (!deveReconfigurar && !deveConfigTimezone) return;
 
-  const comandos = [
+  // Comandos completos de reconfiguração
+  const comandosCompletos = [
+    { cmd: '#55555#TIMEZONE,E,0#', desc: 'Timezone UTC+0' },  // ✅ CRÍTICO: Evita delay de 1.8h
     { cmd: '#55555#YUP#10#', desc: 'Intervalo 10s' },
     { cmd: '#55555#YGPS#1#', desc: 'Ativar GPS' },
     { cmd: '#55555#YONLINE#1#', desc: 'Modo online' },
     { cmd: 'SETLOCX22#', desc: 'Protocolo 0x22' },
   ];
 
+  // Apenas timezone (para todos os dispositivos)
+  const comandosTimezone = [
+    { cmd: '#55555#TIMEZONE,E,0#', desc: 'Timezone UTC+0' },
+  ];
+
+  // Seleciona quais comandos enviar
+  const comandos = deveReconfigurar ? comandosCompletos : comandosTimezone;
+  const tipoConfig = deveReconfigurar ? 'RECONFIGURAÇÃO COMPLETA' : 'TIMEZONE';
+
+  console.log(`🔧 [Gateway:${GATEWAY_ID}] ${imei}: ${tipoConfig}`);
+
   let serial = 1;
   for (const { cmd, desc } of comandos) {
     try {
       if (socket.destroyed) {
-        console.log(`⚠️ [Gateway:${GATEWAY_ID}] ${imei}: Socket fechado, abortando reconfig`);
+        console.log(`⚠️ [Gateway:${GATEWAY_ID}] ${imei}: Socket fechado, abortando config`);
         break;
       }
       const packet = buildCommandPacket(cmd, serial++);
@@ -123,7 +143,7 @@ async function enviarComandosReconfig(imei, socket) {
     }
   }
 
-  console.log(`✅ [Gateway:${GATEWAY_ID}] ${imei}: Comandos de reconfiguração enviados!`);
+  console.log(`✅ [Gateway:${GATEWAY_ID}] ${imei}: Configuração enviada!`);
 }
 
 // ============ RATE LIMITING ============
