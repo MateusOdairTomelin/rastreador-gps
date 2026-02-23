@@ -7716,6 +7716,13 @@
   <script>
     const API_URL = '/api';
 
+    // ============ DECLARAÇÕES GLOBAIS DE CACHE ============
+    // Declarar variáveis no início para evitar TDZ (Temporal Dead Zone)
+    let veiculosSecaoCache = [];
+    let veiculosSecaoFiltrados = [];
+    let dispositivosDisponiveis = [];
+    let trajetosVeiculos = [];
+
     // ============ SISTEMA DE NOTIFICAÇÕES TOAST ============
     // Container de toasts
     (function() {
@@ -17024,9 +17031,7 @@
     // VEICULOS - Gestão de Veículos
     // =============================================
 
-    let veiculosSecaoCache = [];
-    let veiculosSecaoFiltrados = [];
-    let dispositivosDisponiveis = [];
+    // Variáveis já declaradas no início do script
 
     async function carregarVeiculosSecao() {
       try {
