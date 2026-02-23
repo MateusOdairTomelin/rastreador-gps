@@ -205,16 +205,22 @@ class LgpdReportService {
     if (dataInicio) where.data_aceite = { gte: dataInicio };
     if (dataFim) where.data_aceite = { ...where.data_aceite, lte: dataFim };
 
+    // Buscar consentimentos apenas de usuários que ainda existem
+    where.usuario = { isNot: null };
+
     const consentimentos = await prisma.consentimento.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        tipo: true,
+        aceito: true,
+        versao_documento: true,
+        data_aceite: true,
+        usuario_id: true,
         usuario: {
           select: {
             nome: true,
-            email: true,
-            organizacoes: organizacao_id ? {
-              where: { organizacao_id }
-            } : false
+            email: true
           }
         }
       },
@@ -224,9 +230,16 @@ class LgpdReportService {
 
     // Filtrar por organização se necessário
     if (organizacao_id) {
-      return consentimentos.filter(c =>
-        c.usuario?.organizacoes?.length > 0
-      );
+      const usuarioIds = consentimentos.map(c => c.usuario_id);
+      const usuariosOrg = await prisma.usuarioOrganizacao.findMany({
+        where: {
+          usuario_id: { in: usuarioIds },
+          organizacao_id
+        },
+        select: { usuario_id: true }
+      });
+      const usuarioIdsOrg = new Set(usuariosOrg.map(u => u.usuario_id));
+      return consentimentos.filter(c => usuarioIdsOrg.has(c.usuario_id));
     }
 
     return consentimentos;
