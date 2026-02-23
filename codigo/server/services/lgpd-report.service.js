@@ -52,7 +52,7 @@ class LgpdReportService {
 
   async obterEstatisticas(organizacao_id) {
     const whereUsuarios = organizacao_id ? {
-      usuario_organizacoes: { some: { organizacao_id } }
+      organizacoes: { some: { organizacao_id } }
     } : {};
 
     const whereMotoristas = organizacao_id ? { organizacao_id } : {};
@@ -87,7 +87,7 @@ class LgpdReportService {
       where: {
         ...whereMotoristas,
         ativo: true,
-        consentimentos: {
+        consentimentos_motorista: {
           some: {
             tipo: 'privacidade',
             aceito: true,
@@ -126,7 +126,7 @@ class LgpdReportService {
 
   async obterUsuariosPendentes(organizacao_id) {
     const where = organizacao_id ? {
-      usuario_organizacoes: { some: { organizacao_id } }
+      organizacoes: { some: { organizacao_id } }
     } : {};
 
     return prisma.usuario.findMany({
@@ -156,8 +156,8 @@ class LgpdReportService {
         ...where,
         ativo: true,
         OR: [
-          { consentimentos: { none: { tipo: 'privacidade', aceito: true, data_revogacao: null } } },
-          { consentimentos: { none: { tipo: 'termos_uso', aceito: true, data_revogacao: null } } }
+          { consentimentos_motorista: { none: { tipo: 'privacidade', aceito: true, data_revogacao: null } } },
+          { consentimentos_motorista: { none: { tipo: 'termos_uso', aceito: true, data_revogacao: null } } }
         ]
       },
       select: {
@@ -198,7 +198,7 @@ class LgpdReportService {
           select: {
             nome: true,
             email: true,
-            usuario_organizacoes: organizacao_id ? {
+            organizacoes: organizacao_id ? {
               where: { organizacao_id }
             } : false
           }
@@ -211,7 +211,7 @@ class LgpdReportService {
     // Filtrar por organização se necessário
     if (organizacao_id) {
       return consentimentos.filter(c =>
-        c.usuario?.usuario_organizacoes?.length > 0
+        c.usuario?.organizacoes?.length > 0
       );
     }
 
