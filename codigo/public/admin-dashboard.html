@@ -7731,6 +7731,7 @@
     let trajetosImeiAtual = null;
     let trajetosInitialized = false;
     let trajetosVeiculosLista = [];
+    let trajetosFlatpickr = null;
 
     // ============ SISTEMA DE NOTIFICAÇÕES TOAST ============
     // Container de toasts
@@ -17470,36 +17471,61 @@
 
     // Inicializar seção de trajetos
     async function trajetosInit() {
-      if (!trajetosInitialized) {
-        trajetosInitDatas();
-        trajetosAtualizarSlider();
-        await trajetosCarregarVeiculos();
-        setTimeout(trajetosInitMap, 200);
-        trajetosInitialized = true;
-      } else if (trajetosMap) {
-        setTimeout(() => trajetosMap.invalidateSize(), 100);
+      console.log('[Trajetos] Iniciando trajetosInit...');
+      try {
+        if (!trajetosInitialized) {
+          console.log('[Trajetos] Primeira inicialização');
+          trajetosInitDatas();
+          trajetosAtualizarSlider();
+          await trajetosCarregarVeiculos();
+          console.log('[Trajetos] Veículos carregados, iniciando mapa...');
+          setTimeout(trajetosInitMap, 200);
+          trajetosInitialized = true;
+        } else if (trajetosMap) {
+          console.log('[Trajetos] Já inicializado, ajustando tamanho do mapa');
+          setTimeout(() => trajetosMap.invalidateSize(), 100);
+        }
+        console.log('[Trajetos] Inicialização concluída');
+      } catch (error) {
+        console.error('[Trajetos] ERRO na inicialização:', error);
       }
     }
 
     // Inicializar Mapa de Trajetos
     function trajetosInitMap() {
+      console.log('[Trajetos] trajetosInitMap chamado');
       const mapContainer = document.getElementById('trajetos-map');
-      if (!mapContainer || trajetosMap) return;
+      console.log('[Trajetos] mapContainer:', mapContainer);
+      console.log('[Trajetos] trajetosMap existente:', trajetosMap);
 
-      trajetosMap = L.map('trajetos-map').setView([-26.9, -49.1], 12);
+      if (!mapContainer) {
+        console.error('[Trajetos] ERRO: Container do mapa não encontrado!');
+        return;
+      }
+      if (trajetosMap) {
+        console.log('[Trajetos] Mapa já existe, ignorando');
+        return;
+      }
 
-      L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-        maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-        attribution: '&copy; Google Maps'
-      }).addTo(trajetosMap);
+      try {
+        console.log('[Trajetos] Criando mapa Leaflet...');
+        trajetosMap = L.map('trajetos-map').setView([-26.9, -49.1], 12);
 
-      trajetosRouteLayer = L.layerGroup().addTo(trajetosMap);
-      trajetosMarkersLayer = L.layerGroup().addTo(trajetosMap);
+        L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+          maxZoom: 20,
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+          attribution: '&copy; Google Maps'
+        }).addTo(trajetosMap);
+
+        trajetosRouteLayer = L.layerGroup().addTo(trajetosMap);
+        trajetosMarkersLayer = L.layerGroup().addTo(trajetosMap);
+        console.log('[Trajetos] Mapa criado com sucesso!');
+      } catch (error) {
+        console.error('[Trajetos] ERRO ao criar mapa:', error);
+      }
     }
 
-    // Flatpickr instance
-    let trajetosFlatpickr = null;
+    // Flatpickr instance - variável já declarada no início do script
 
     // Inicializar Datas com Flatpickr (calendário com range)
     function trajetosInitDatas() {
