@@ -175,15 +175,29 @@ class LgpdReportService {
     if (dataInicio) where.created_at = { gte: dataInicio };
     if (dataFim) where.created_at = { ...where.created_at, lte: dataFim };
 
-    return prisma.solicitacaoExclusao.findMany({
+    const solicitacoes = await prisma.solicitacaoExclusao.findMany({
       where,
-      include: {
-        usuario: { select: { nome: true, email: true } },
-        processado_por_usuario: { select: { nome: true } }
-      },
       orderBy: { created_at: 'desc' },
       take: 100
     });
+
+    // Buscar nomes dos usuários relacionados
+    const usuarioIds = [...new Set(solicitacoes.map(s => s.usuario_id).filter(Boolean))];
+    const processadorIds = [...new Set(solicitacoes.map(s => s.processado_por).filter(Boolean))];
+    const todosIds = [...new Set([...usuarioIds, ...processadorIds])];
+
+    const usuarios = todosIds.length > 0 ? await prisma.usuario.findMany({
+      where: { id: { in: todosIds } },
+      select: { id: true, nome: true, email: true }
+    }) : [];
+
+    const usuarioMap = new Map(usuarios.map(u => [u.id, u]));
+
+    return solicitacoes.map(s => ({
+      ...s,
+      usuario: usuarioMap.get(s.usuario_id) || null,
+      processado_por_usuario: usuarioMap.get(s.processado_por) || null
+    }));
   }
 
   async obterConsentimentosRecentes(organizacao_id, dataInicio, dataFim) {
