@@ -5111,9 +5111,11 @@
 
             <!-- Alertas de Velocidade -->
             <div id="speed-alerts" style="margin-top: 15px; display: none;">
-              <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 10px;">
-                <strong style="color: #856404;">Alertas de Velocidade:</strong>
-                <div id="speed-alert-list" style="margin-top: 8px; font-size: 13px; color: #856404;"></div>
+              <div style="background: linear-gradient(135deg, #dc2626, #b91c1c); border: 2px solid #fbbf24; border-radius: 8px; padding: 12px; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);">
+                <strong style="color: #ffffff; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 18px;">⚠️</span> Alertas de Velocidade
+                </strong>
+                <div id="speed-alert-list" style="margin-top: 10px; font-size: 14px; color: #ffffff;"></div>
               </div>
             </div>
           </div>
@@ -12172,9 +12174,9 @@
             speedAlertHistory[alertKey] = true;
             saveSpeedAlert(d, speed, roadLimit.limite, 'via');
           }
-          alerts.push(`<div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f0d78e;">
-            <span><strong>${d.veiculo || d.placa || d.imei}</strong>: ${speed} km/h (via: ${roadLimit.via} - limite: ${roadLimit.limite} km/h)</span>
-            <a href="#" onclick="abrirInfoVeiculo('${d.imei}'); return false;" style="color: #0066cc; text-decoration: none; font-size: 12px; white-space: nowrap;">Ver no mapa</a>
+          alerts.push(`<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; margin-bottom: 6px; background: rgba(255,255,255,0.15); border-radius: 6px; border-left: 4px solid #fbbf24;">
+            <span style="color: #ffffff;"><strong style="color: #fbbf24;">${d.veiculo || d.placa || d.imei}</strong>: <span style="font-size: 16px; font-weight: bold;">${speed} km/h</span> (via: ${roadLimit.via} - limite: ${roadLimit.limite} km/h)</span>
+            <a href="#" onclick="abrirInfoVeiculo('${d.imei}'); return false;" style="color: #fbbf24; text-decoration: none; font-size: 12px; white-space: nowrap; font-weight: bold; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">Ver no mapa</a>
           </div>`);
         }
 
@@ -12185,9 +12187,9 @@
             speedAlertHistory[alertKey] = true;
             saveSpeedAlert(d, speed, userSpeedLimit, 'usuario');
           }
-          alerts.push(`<div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f0d78e;">
-            <span><strong>${d.veiculo || d.placa || d.imei}</strong>: ${speed} km/h (limite configurado: ${userSpeedLimit} km/h)</span>
-            <a href="#" onclick="abrirInfoVeiculo('${d.imei}'); return false;" style="color: #0066cc; text-decoration: none; font-size: 12px; white-space: nowrap;">Ver no mapa</a>
+          alerts.push(`<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; margin-bottom: 6px; background: rgba(255,255,255,0.15); border-radius: 6px; border-left: 4px solid #fbbf24;">
+            <span style="color: #ffffff;"><strong style="color: #fbbf24;">${d.veiculo || d.placa || d.imei}</strong>: <span style="font-size: 16px; font-weight: bold;">${speed} km/h</span> (limite configurado: ${userSpeedLimit} km/h)</span>
+            <a href="#" onclick="abrirInfoVeiculo('${d.imei}'); return false;" style="color: #fbbf24; text-decoration: none; font-size: 12px; white-space: nowrap; font-weight: bold; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">Ver no mapa</a>
           </div>`);
         }
       });
