@@ -1761,38 +1761,29 @@
       margin-bottom: 8px;
     }
 
-    .status-check {
-      font-size: 42px;
+    .status-indicator-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       margin-bottom: 12px;
+    }
+
+    .status-icon {
+      font-size: 24px;
       line-height: 1;
     }
 
-    .status-item.online .status-check {
-      filter: none;
-    }
-
-    .status-item.offline .status-check {
-      filter: grayscale(100%);
-      opacity: 0.5;
-    }
-
-    .status-item.offline .status-check::after {
-      content: '❌';
-      position: absolute;
-      font-size: 42px;
-    }
-
-    .status-subtitle {
-      font-size: 12px;
+    .status-label {
+      font-size: 13px;
       color: var(--text-secondary);
       text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 12px;
+      letter-spacing: 0.5px;
       font-weight: 600;
     }
 
     .status-text {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: var(--success);
       padding: 6px 16px;
@@ -5289,30 +5280,38 @@
 
           <div class="status-grid">
             <div class="status-item" id="status-http-box">
-              <div class="status-check" id="status-http-check">✅</div>
               <div class="status-name">API Server</div>
-              <div class="status-subtitle">HTTPS</div>
+              <div class="status-indicator-row">
+                <span class="status-icon" id="status-http-check">✅</span>
+                <span class="status-label">HTTPS</span>
+              </div>
               <div class="status-text" id="status-http-text">Verificando...</div>
             </div>
 
             <div class="status-item" id="status-tcp-box">
-              <div class="status-check" id="status-tcp-check">✅</div>
               <div class="status-name">TCP Rastreador</div>
-              <div class="status-subtitle">Porta 8877</div>
+              <div class="status-indicator-row">
+                <span class="status-icon" id="status-tcp-check">✅</span>
+                <span class="status-label">Porta 8877</span>
+              </div>
               <div class="status-text" id="status-tcp-text">Verificando...</div>
             </div>
 
             <div class="status-item" id="status-ws-box">
-              <div class="status-check" id="status-ws-check">✅</div>
               <div class="status-name">WebSocket</div>
-              <div class="status-subtitle">Tempo Real</div>
+              <div class="status-indicator-row">
+                <span class="status-icon" id="status-ws-check">✅</span>
+                <span class="status-label">Tempo Real</span>
+              </div>
               <div class="status-text" id="status-ws-text">Verificando...</div>
             </div>
 
             <div class="status-item" id="status-db-box">
-              <div class="status-check" id="status-db-check">✅</div>
               <div class="status-name">PostgreSQL</div>
-              <div class="status-subtitle">Database</div>
+              <div class="status-indicator-row">
+                <span class="status-icon" id="status-db-check">✅</span>
+                <span class="status-label">Database</span>
+              </div>
               <div class="status-text" id="status-db-text">Verificando...</div>
             </div>
           </div>
@@ -12777,18 +12776,18 @@
     function updateStatusBox(service, online, text) {
       const box = document.getElementById(`status-${service}-box`);
       const textEl = document.getElementById(`status-${service}-text`);
-      const checkEl = document.getElementById(`status-${service}-check`);
+      const iconEl = document.getElementById(`status-${service}-check`);
 
       if (!box || !textEl) return;
 
       if (online) {
         box.classList.remove('offline');
         box.classList.add('online');
-        if (checkEl) checkEl.textContent = '✅';
+        if (iconEl) iconEl.textContent = '✅';
       } else {
         box.classList.remove('online');
         box.classList.add('offline');
-        if (checkEl) checkEl.textContent = '❌';
+        if (iconEl) iconEl.textContent = '❌';
       }
       textEl.textContent = text;
     }
