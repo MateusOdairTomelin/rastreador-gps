@@ -7721,7 +7721,16 @@
     let veiculosSecaoCache = [];
     let veiculosSecaoFiltrados = [];
     let dispositivosDisponiveis = [];
-    let trajetosVeiculos = [];
+    // Trajetos
+    let trajetosMap = null;
+    let trajetosRouteLayer = null;
+    let trajetosMarkersLayer = null;
+    let trajetosViagens = [];
+    let trajetosViagensOriginal = [];
+    let trajetosViagemAtual = null;
+    let trajetosImeiAtual = null;
+    let trajetosInitialized = false;
+    let trajetosVeiculosLista = [];
 
     // ============ SISTEMA DE NOTIFICAÇÕES TOAST ============
     // Container de toasts
@@ -17457,14 +17466,7 @@
     window.desvincularDispositivoSecao = desvincularDispositivoSecao;
 
     // ============ TRAJETOS SECTION ============
-    let trajetosMap = null;
-    let trajetosRouteLayer = null;
-    let trajetosMarkersLayer = null;
-    let trajetosViagens = [];
-    let trajetosViagensOriginal = [];
-    let trajetosViagemAtual = null;
-    let trajetosImeiAtual = null;
-    let trajetosInitialized = false;
+    // Variáveis já declaradas no início do script
 
     // Inicializar seção de trajetos
     async function trajetosInit() {
@@ -17536,8 +17538,7 @@
       }
     }
 
-    // Armazenar veículos para busca
-    let trajetosVeiculosLista = [];
+    // Variável trajetosVeiculosLista já declarada no início do script
 
     // Carregar Veículos
     async function trajetosCarregarVeiculos() {
