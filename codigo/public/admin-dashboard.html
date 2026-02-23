@@ -1762,39 +1762,25 @@
     }
 
     .status-indicator-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
-    .status-icon {
-      font-size: 24px;
-      line-height: 1;
-    }
-
-    .status-label {
-      font-size: 13px;
-      color: var(--text-secondary);
+    .status-state {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--success);
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      font-weight: 600;
+    }
+
+    .status-item.offline .status-state {
+      color: var(--danger);
     }
 
     .status-text {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--success);
-      padding: 6px 16px;
-      background: rgba(16, 185, 129, 0.1);
-      border-radius: 20px;
-      display: inline-block;
-    }
-
-    .status-item.offline .status-text {
-      color: var(--danger);
-      background: rgba(239, 68, 68, 0.1);
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
     }
 
     /* ====== RESPONSIVE - MOBILE FIRST ====== */
@@ -5282,37 +5268,33 @@
             <div class="status-item" id="status-http-box">
               <div class="status-name">API Server</div>
               <div class="status-indicator-row">
-                <span class="status-icon" id="status-http-check">✅</span>
-                <span class="status-label">HTTPS</span>
+                <span class="status-state" id="status-http-state">Verificando</span>
               </div>
-              <div class="status-text" id="status-http-text">Verificando...</div>
+              <div class="status-text" id="status-http-text">HTTPS</div>
             </div>
 
             <div class="status-item" id="status-tcp-box">
               <div class="status-name">TCP Rastreador</div>
               <div class="status-indicator-row">
-                <span class="status-icon" id="status-tcp-check">✅</span>
-                <span class="status-label">Porta 8877</span>
+                <span class="status-state" id="status-tcp-state">Verificando</span>
               </div>
-              <div class="status-text" id="status-tcp-text">Verificando...</div>
+              <div class="status-text" id="status-tcp-text">Porta 8877</div>
             </div>
 
             <div class="status-item" id="status-ws-box">
               <div class="status-name">WebSocket</div>
               <div class="status-indicator-row">
-                <span class="status-icon" id="status-ws-check">✅</span>
-                <span class="status-label">Tempo Real</span>
+                <span class="status-state" id="status-ws-state">Verificando</span>
               </div>
-              <div class="status-text" id="status-ws-text">Verificando...</div>
+              <div class="status-text" id="status-ws-text">Tempo Real</div>
             </div>
 
             <div class="status-item" id="status-db-box">
               <div class="status-name">PostgreSQL</div>
               <div class="status-indicator-row">
-                <span class="status-icon" id="status-db-check">✅</span>
-                <span class="status-label">Database</span>
+                <span class="status-state" id="status-db-state">Verificando</span>
               </div>
-              <div class="status-text" id="status-db-text">Verificando...</div>
+              <div class="status-text" id="status-db-text">Database</div>
             </div>
           </div>
 
@@ -12775,21 +12757,19 @@
 
     function updateStatusBox(service, online, text) {
       const box = document.getElementById(`status-${service}-box`);
-      const textEl = document.getElementById(`status-${service}-text`);
-      const iconEl = document.getElementById(`status-${service}-check`);
+      const stateEl = document.getElementById(`status-${service}-state`);
 
-      if (!box || !textEl) return;
+      if (!box) return;
 
       if (online) {
         box.classList.remove('offline');
         box.classList.add('online');
-        if (iconEl) iconEl.textContent = '✅';
+        if (stateEl) stateEl.textContent = text || 'Online';
       } else {
         box.classList.remove('online');
         box.classList.add('offline');
-        if (iconEl) iconEl.textContent = '❌';
+        if (stateEl) stateEl.textContent = text || 'Offline';
       }
-      textEl.textContent = text;
     }
 
     function addLog(message, type = 'info') {
