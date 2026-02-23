@@ -11529,6 +11529,14 @@
                 </div>
               `);
 
+              // Hover: trazer marcador pra frente
+              marker.on('mouseover', function() {
+                this.setZIndexOffset(1000);
+              });
+              marker.on('mouseout', function() {
+                this.setZIndexOffset(0);
+              });
+
               // Adicionar ao cluster group (ou mapa se cluster não existir)
               if (markerClusterGroup) {
                 markerClusterGroup.addLayer(marker);
