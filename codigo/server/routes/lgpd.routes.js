@@ -15,6 +15,7 @@ const express = require('express');
 const router = express.Router();
 const lgpdService = require('../services/lgpd.service');
 const dataRetentionService = require('../services/data-retention.service');
+const lgpdReportService = require('../services/lgpd-report.service');
 const { autenticar, apenasAdmin, apenasSuperAdmin } = require('../middleware/auth.middleware');
 const { exportacaoDadosLimiter, exclusaoDadosLimiter } = require('../middleware/rate-limit.middleware');
 
@@ -442,6 +443,100 @@ router.post('/retencao/executar', autenticar, apenasSuperAdmin, async (req, res)
 });
 
 // ============ ENDPOINTS ADMINISTRATIVOS (SUPER_ADMIN) ============
+
+/**
+ * GET /api/lgpd/admin/relatorio-pdf
+ * Gerar relatório de conformidade LGPD em PDF (super admin)
+ */
+router.get('/admin/relatorio-pdf', autenticar, apenasSuperAdmin, async (req, res) => {
+  try {
+    const { organizacao_id, data_inicio, data_fim } = req.query;
+
+    const options = {};
+    if (organizacao_id) options.organizacao_id = parseInt(organizacao_id);
+    if (data_inicio) options.dataInicio = new Date(data_inicio);
+    if (data_fim) options.dataFim = new Date(data_fim);
+
+    console.log(`[LGPD] Gerando relatório PDF por ${req.usuario.email}`);
+
+    const pdfBuffer = await lgpdReportService.gerarRelatorioConformidade(options);
+
+    const filename = `relatorio-lgpd-${new Date().toISOString().split('T')[0]}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('[LGPD] Erro ao gerar relatório PDF:', error);
+    res.status(500).json({
+      erro: true,
+      mensagem: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/lgpd/admin/pendentes-notificar
+ * Obter usuários/motoristas pendentes para notificação (admin)
+ */
+router.get('/admin/pendentes-notificar', autenticar, apenasAdmin, async (req, res) => {
+  try {
+    const organizacaoId = req.usuario.role === 'super_admin'
+      ? (req.query.organizacao_id ? parseInt(req.query.organizacao_id) : null)
+      : req.usuario.organizacao_id;
+
+    const [usuariosPendentes, motoristasPendentes] = await Promise.all([
+      lgpdService.listarUsuariosPendentes(organizacaoId),
+      lgpdService.listarMotoristasPendentes(organizacaoId)
+    ]);
+
+    res.json({
+      sucesso: true,
+      usuarios: usuariosPendentes,
+      motoristas: motoristasPendentes,
+      total: usuariosPendentes.length + motoristasPendentes.length
+    });
+  } catch (error) {
+    console.error('[LGPD] Erro ao listar pendentes:', error);
+    res.status(500).json({
+      erro: true,
+      mensagem: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/lgpd/admin/logs-acesso
+ * Obter logs de acesso a dados pessoais (super admin)
+ */
+router.get('/admin/logs-acesso', autenticar, apenasSuperAdmin, async (req, res) => {
+  try {
+    const { usuario_id, data_inicio, data_fim, limit = 100 } = req.query;
+
+    const where = {
+      acao: { in: ['lgpd_exportar_dados', 'lgpd_visualizar_dados', 'lgpd_solicitar_exclusao', 'login', 'logout'] }
+    };
+
+    if (usuario_id) where.usuario_id = parseInt(usuario_id);
+    if (data_inicio) where.created_at = { gte: new Date(data_inicio) };
+    if (data_fim) where.created_at = { ...where.created_at, lte: new Date(data_fim) };
+
+    const logs = await lgpdService.obterLogsAcesso(where, parseInt(limit));
+
+    res.json({
+      sucesso: true,
+      logs,
+      total: logs.length
+    });
+  } catch (error) {
+    console.error('[LGPD] Erro ao obter logs de acesso:', error);
+    res.status(500).json({
+      erro: true,
+      mensagem: error.message
+    });
+  }
+});
 
 /**
  * GET /api/lgpd/admin/estatisticas

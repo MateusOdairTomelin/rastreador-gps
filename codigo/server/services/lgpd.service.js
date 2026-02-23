@@ -766,6 +766,85 @@ class LGPDService {
   }
 
   /**
+   * Listar usuários com consentimento pendente
+   */
+  async listarUsuariosPendentes(organizacaoId) {
+    const where = organizacaoId ? {
+      usuario_organizacoes: { some: { organizacao_id: organizacaoId } }
+    } : {};
+
+    return prisma.usuario.findMany({
+      where: {
+        ...where,
+        ativo: true,
+        OR: [
+          { consentimentos: { none: { tipo: 'privacidade', aceito: true, data_revogacao: null } } },
+          { consentimentos: { none: { tipo: 'termos_uso', aceito: true, data_revogacao: null } } }
+        ]
+      },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        created_at: true,
+        consentimentos: {
+          where: { aceito: true, data_revogacao: null },
+          select: { tipo: true, data_aceite: true }
+        }
+      },
+      orderBy: { created_at: 'desc' },
+      take: 100
+    });
+  }
+
+  /**
+   * Listar motoristas com consentimento pendente
+   */
+  async listarMotoristasPendentes(organizacaoId) {
+    const where = organizacaoId ? { organizacao_id: organizacaoId } : {};
+
+    return prisma.motorista.findMany({
+      where: {
+        ...where,
+        ativo: true,
+        OR: [
+          { consentimentos_motorista: { none: { tipo: 'privacidade', aceito: true, data_revogacao: null } } },
+          { consentimentos_motorista: { none: { tipo: 'termos_uso', aceito: true, data_revogacao: null } } }
+        ]
+      },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        telefone: true,
+        created_at: true,
+        consentimentos_motorista: {
+          where: { aceito: true, data_revogacao: null },
+          select: { tipo: true, data_aceite: true }
+        }
+      },
+      orderBy: { created_at: 'desc' },
+      take: 100
+    });
+  }
+
+  /**
+   * Obter logs de acesso a dados pessoais
+   */
+  async obterLogsAcesso(where = {}, limit = 100) {
+    return prisma.auditLog.findMany({
+      where,
+      include: {
+        usuario: {
+          select: { id: true, nome: true, email: true }
+        }
+      },
+      orderBy: { created_at: 'desc' },
+      take: limit
+    });
+  }
+
+  /**
    * Listar todas as organizações com status LGPD (super_admin)
    */
   async listarOrganizacoesComStatusLGPD() {

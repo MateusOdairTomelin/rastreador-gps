@@ -6545,11 +6545,53 @@
               </div>
             </div>
 
+            <!-- Ações Rápidas -->
+            <div class="card" style="margin-bottom: 20px;">
+              <h3 style="color: var(--primary); margin-bottom: 16px;">Ações Rápidas</h3>
+              <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <button class="btn btn-primary" onclick="lgpdBaixarRelatorioPDF()" id="lgpd-btn-pdf">
+                  Baixar Relatório PDF
+                </button>
+                <button class="btn btn-primary" onclick="lgpdCarregarDadosSuperAdmin()">
+                  Atualizar Todos os Dados
+                </button>
+                <button class="btn btn-danger" onclick="lgpdExecutarLimpeza()" id="lgpd-btn-limpeza">
+                  Executar Limpeza Manual
+                </button>
+              </div>
+            </div>
+
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
               <!-- Organizações -->
               <div class="card" style="grid-column: 1 / -1;">
                 <h3 style="color: var(--primary); margin-bottom: 16px;">Conformidade por Organização</h3>
                 <div id="lgpd-organizacoes">
+                  <div style="text-align: center; padding: 20px; color: var(--text-light);">Carregando...</div>
+                </div>
+              </div>
+
+              <!-- Notificações Pendentes -->
+              <div class="card" style="grid-column: 1 / -1;">
+                <h3 style="color: var(--warning); margin-bottom: 16px;">Consentimentos Pendentes</h3>
+                <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 16px;">
+                  Usuários e motoristas que ainda não aceitaram os termos de uso ou política de privacidade.
+                </p>
+                <div id="lgpd-pendentes-notificar">
+                  <div style="text-align: center; padding: 20px; color: var(--text-light);">Carregando...</div>
+                </div>
+              </div>
+
+              <!-- Logs de Acesso -->
+              <div class="card" style="grid-column: 1 / -1;">
+                <h3 style="color: var(--primary); margin-bottom: 16px;">Logs de Acesso a Dados Pessoais</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+                  <input type="date" id="lgpd-logs-data-inicio" style="padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);">
+                  <input type="date" id="lgpd-logs-data-fim" style="padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text);">
+                  <button class="btn btn-primary" onclick="lgpdCarregarLogsAcesso()" style="padding: 8px 16px;">
+                    Filtrar
+                  </button>
+                </div>
+                <div id="lgpd-logs-acesso" style="overflow-x: auto;">
                   <div style="text-align: center; padding: 20px; color: var(--text-light);">Carregando...</div>
                 </div>
               </div>
@@ -6560,22 +6602,9 @@
                 <div id="lgpd-cleanup-status">
                   <div style="text-align: center; padding: 20px; color: var(--text-light);">Carregando...</div>
                 </div>
-              </div>
-
-              <!-- Executar Limpeza -->
-              <div class="card">
-                <h3 style="color: var(--primary); margin-bottom: 16px;">Executar Limpeza</h3>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                  <button class="btn btn-primary" onclick="lgpdCarregarDadosSuperAdmin()">
-                    Atualizar Todos os Dados
-                  </button>
-                  <button class="btn btn-danger" onclick="lgpdExecutarLimpeza()" id="lgpd-btn-limpeza">
-                    Executar Limpeza Manual
-                  </button>
-                  <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 10px;">
-                    A limpeza manual exclui permanentemente dados conforme as políticas de retenção.
-                  </p>
-                </div>
+                <p style="font-size: 0.85rem; color: var(--text-light); margin-top: 10px;">
+                  A limpeza manual exclui permanentemente dados conforme as políticas de retenção.
+                </p>
               </div>
             </div>
           </div>
@@ -17287,7 +17316,9 @@
       await Promise.all([
         lgpdCarregarEstatisticas(),
         lgpdCarregarOrganizacoes(),
-        lgpdCarregarStatusLimpeza()
+        lgpdCarregarStatusLimpeza(),
+        lgpdCarregarPendentesNotificar(),
+        lgpdCarregarLogsAcesso()
       ]);
     }
 
@@ -17403,6 +17434,181 @@
       } finally {
         document.getElementById('lgpd-btn-limpeza').disabled = false;
         document.getElementById('lgpd-btn-limpeza').textContent = 'Executar Limpeza Manual';
+      }
+    }
+
+    async function lgpdBaixarRelatorioPDF() {
+      try {
+        const btn = document.getElementById('lgpd-btn-pdf');
+        btn.disabled = true;
+        btn.textContent = 'Gerando PDF...';
+
+        const response = await authFetch(`${API_URL}/lgpd/admin/relatorio-pdf`);
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.mensagem || 'Erro ao gerar relatório');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `relatorio-lgpd-${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        showToast('Relatório PDF gerado com sucesso!', 'success');
+      } catch (error) {
+        showToast('Erro ao gerar PDF: ' + error.message, 'error');
+      } finally {
+        const btn = document.getElementById('lgpd-btn-pdf');
+        btn.disabled = false;
+        btn.textContent = 'Baixar Relatório PDF';
+      }
+    }
+
+    async function lgpdCarregarPendentesNotificar() {
+      try {
+        const container = document.getElementById('lgpd-pendentes-notificar');
+        const response = await authFetch(`${API_URL}/lgpd/admin/pendentes-notificar`);
+        const data = await response.json();
+
+        if (!data.sucesso) throw new Error(data.mensagem);
+
+        if (data.total === 0) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: var(--success);">
+              Todos os usuários e motoristas estão em conformidade!
+            </div>`;
+          return;
+        }
+
+        let html = '';
+
+        if (data.usuarios.length > 0) {
+          html += `<h4 style="color: var(--warning); margin-bottom: 10px;">Usuários Pendentes (${data.usuarios.length})</h4>`;
+          html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;"><thead>
+            <tr style="background: var(--surface-hover);">
+              <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border);">Nome</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border);">Email</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border);">Cadastro</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 1px solid var(--border);">Status</th>
+            </tr>
+          </thead><tbody>`;
+
+          for (const u of data.usuarios.slice(0, 20)) {
+            const temPriv = u.consentimentos?.some(c => c.tipo === 'privacidade');
+            const temTermos = u.consentimentos?.some(c => c.tipo === 'termos_uso');
+            html += `<tr>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border);">${u.nome || '-'}</td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border);">${u.email || '-'}</td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border);">${new Date(u.created_at).toLocaleDateString('pt-BR')}</td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border); text-align: center;">
+                <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; background: ${temPriv ? 'var(--success)' : 'var(--danger)'}; color: white;">Priv</span>
+                <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; background: ${temTermos ? 'var(--success)' : 'var(--danger)'}; color: white;">Termos</span>
+              </td>
+            </tr>`;
+          }
+          html += '</tbody></table>';
+          if (data.usuarios.length > 20) {
+            html += `<p style="color: var(--text-light); font-size: 0.85rem;">... e mais ${data.usuarios.length - 20} usuários</p>`;
+          }
+        }
+
+        if (data.motoristas.length > 0) {
+          html += `<h4 style="color: var(--warning); margin-bottom: 10px;">Motoristas Pendentes (${data.motoristas.length})</h4>`;
+          html += `<table style="width: 100%; border-collapse: collapse;"><thead>
+            <tr style="background: var(--surface-hover);">
+              <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border);">Nome</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border);">Telefone</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border);">Cadastro</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 1px solid var(--border);">Status</th>
+            </tr>
+          </thead><tbody>`;
+
+          for (const m of data.motoristas.slice(0, 20)) {
+            const temPriv = m.consentimentos_motorista?.some(c => c.tipo === 'privacidade');
+            const temTermos = m.consentimentos_motorista?.some(c => c.tipo === 'termos_uso');
+            html += `<tr>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border);">${m.nome || '-'}</td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border);">${m.telefone || '-'}</td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border);">${new Date(m.created_at).toLocaleDateString('pt-BR')}</td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border); text-align: center;">
+                <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; background: ${temPriv ? 'var(--success)' : 'var(--danger)'}; color: white;">Priv</span>
+                <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; background: ${temTermos ? 'var(--success)' : 'var(--danger)'}; color: white;">Termos</span>
+              </td>
+            </tr>`;
+          }
+          html += '</tbody></table>';
+          if (data.motoristas.length > 20) {
+            html += `<p style="color: var(--text-light); font-size: 0.85rem;">... e mais ${data.motoristas.length - 20} motoristas</p>`;
+          }
+        }
+
+        container.innerHTML = html;
+      } catch (error) {
+        document.getElementById('lgpd-pendentes-notificar').innerHTML = `
+          <div style="color: var(--danger);">Erro ao carregar pendentes: ${error.message}</div>`;
+      }
+    }
+
+    async function lgpdCarregarLogsAcesso() {
+      try {
+        const container = document.getElementById('lgpd-logs-acesso');
+        const dataInicio = document.getElementById('lgpd-logs-data-inicio').value;
+        const dataFim = document.getElementById('lgpd-logs-data-fim').value;
+
+        let url = `${API_URL}/lgpd/admin/logs-acesso?limit=50`;
+        if (dataInicio) url += `&data_inicio=${dataInicio}`;
+        if (dataFim) url += `&data_fim=${dataFim}`;
+
+        const response = await authFetch(url);
+        const data = await response.json();
+
+        if (!data.sucesso) throw new Error(data.mensagem);
+
+        if (data.logs.length === 0) {
+          container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-light);">Nenhum log encontrado para o período selecionado.</div>`;
+          return;
+        }
+
+        const formatarAcao = (acao) => {
+          const acoes = {
+            'lgpd_exportar_dados': 'Exportou dados pessoais',
+            'lgpd_visualizar_dados': 'Visualizou dados pessoais',
+            'lgpd_solicitar_exclusao': 'Solicitou exclusão',
+            'login': 'Login realizado',
+            'logout': 'Logout realizado'
+          };
+          return acoes[acao] || acao;
+        };
+
+        let html = `<table style="width: 100%; border-collapse: collapse;"><thead>
+          <tr style="background: var(--surface-hover);">
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border);">Data/Hora</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border);">Usuário</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border);">Ação</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border);">Recurso</th>
+          </tr>
+        </thead><tbody>`;
+
+        for (const log of data.logs) {
+          html += `<tr>
+            <td style="padding: 10px; border-bottom: 1px solid var(--border); white-space: nowrap;">${new Date(log.created_at).toLocaleString('pt-BR')}</td>
+            <td style="padding: 10px; border-bottom: 1px solid var(--border);">${log.usuario?.nome || log.usuario?.email || '-'}</td>
+            <td style="padding: 10px; border-bottom: 1px solid var(--border);">${formatarAcao(log.acao)}</td>
+            <td style="padding: 10px; border-bottom: 1px solid var(--border);">${log.recurso || '-'}</td>
+          </tr>`;
+        }
+        html += '</tbody></table>';
+
+        container.innerHTML = html;
+      } catch (error) {
+        document.getElementById('lgpd-logs-acesso').innerHTML = `
+          <div style="color: var(--danger);">Erro ao carregar logs: ${error.message}</div>`;
       }
     }
 
