@@ -16966,7 +16966,9 @@
       if (lgpdInitialized) return;
       lgpdInitialized = true;
 
-      // Mostrar tabs baseado no role
+      // Obter usuario do localStorage (mesmo padrão usado em outras funções)
+      const usuarioStr = localStorage.getItem('usuario') || sessionStorage.getItem('usuario');
+      const usuario = usuarioStr ? JSON.parse(usuarioStr) : null;
       const userRole = usuario?.role || '';
       const isAdmin = userRole === 'admin' || userRole === 'super_admin';
       const isSuperAdmin = userRole === 'super_admin';
