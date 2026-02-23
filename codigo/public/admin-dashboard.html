@@ -16967,8 +16967,11 @@
       lgpdInitialized = true;
 
       // Mostrar tabs baseado no role
-      const isAdmin = usuarioRole === 'admin' || usuarioRole === 'super_admin';
-      const isSuperAdmin = usuarioRole === 'super_admin';
+      const userRole = usuario?.role || '';
+      const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+      const isSuperAdmin = userRole === 'super_admin';
+
+      console.log('[LGPD] Inicializando - Role:', userRole, 'isAdmin:', isAdmin, 'isSuperAdmin:', isSuperAdmin);
 
       if (isAdmin) {
         document.getElementById('lgpd-tab-admin').style.display = 'block';
