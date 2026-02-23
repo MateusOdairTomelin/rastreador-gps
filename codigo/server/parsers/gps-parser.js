@@ -200,18 +200,25 @@ class GPSParser {
       const second = buffer.readUInt8(offset + 5);
       offset += 6;
 
-      // Timestamp raw do GPS (pode estar em UTC ou GMT-3 dependendo da config do dispositivo)
+      // Timestamp raw do GPS - dispositivos no Brasil enviam em hora LOCAL (UTC-3)
+      // Brasil NÃO tem horário de verão desde 2019, então sempre UTC-3
       let timestamp = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
-
-      // ✅ AUTO-CORREÇÃO DE TIMEZONE: Detecta e corrige automaticamente
-      // Se timestamp estiver mais de 2 horas no passado, provavelmente está em GMT-3
       const now = new Date();
-      const diffHours = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
 
-      if (diffHours > 2 && diffHours < 5) {
-        // Dispositivo provavelmente configurado em GMT-3, corrigir para UTC
-        timestamp = new Date(timestamp.getTime() + (3 * 60 * 60 * 1000));
-        console.log(`[GPS Parser] ⚠️ Auto-correção timezone: +3h aplicado (diff era ${diffHours.toFixed(1)}h)`);
+      // ✅ CORREÇÃO TIMEZONE BRASIL: Dispositivos enviam hora local (UTC-3)
+      // Estratégia: Testar se timestamp faz mais sentido como UTC-3 ou UTC puro
+      const diffAsUTC = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
+      const timestampAsUTC3 = new Date(timestamp.getTime() + (3 * 60 * 60 * 1000));
+      const diffAsUTC3 = (now.getTime() - timestampAsUTC3.getTime()) / (1000 * 60 * 60);
+
+      // Se interpretar como UTC-3 resulta em timestamp mais próximo do presente (±30min)
+      // então o dispositivo está enviando hora local Brasil
+      if (Math.abs(diffAsUTC3) < Math.abs(diffAsUTC) && diffAsUTC > 1) {
+        timestamp = timestampAsUTC3;
+        // Log apenas se diferença era significativa (evita spam)
+        if (diffAsUTC > 2) {
+          console.log(`[GPS Parser] 🇧🇷 Timezone Brasil: +3h aplicado (era ${diffAsUTC.toFixed(1)}h atrás)`);
+        }
       }
 
       // ✅ VALIDAÇÃO DE TIMESTAMP: Se timestamp inválido, usar hora do servidor
@@ -493,12 +500,14 @@ class GPSParser {
       let timestamp = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
       offset += 6;
 
-      // ✅ AUTO-CORREÇÃO DE TIMEZONE: Detecta e corrige automaticamente
+      // ✅ CORREÇÃO TIMEZONE BRASIL: Dispositivos enviam hora local (UTC-3)
       const now = new Date();
-      const diffHours = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
-      if (diffHours > 2 && diffHours < 5) {
-        timestamp = new Date(timestamp.getTime() + (3 * 60 * 60 * 1000));
-        console.log(`[GPS Parser] ⚠️ Alarm auto-correção timezone: +3h aplicado`);
+      const diffAsUTC = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
+      const timestampAsUTC3 = new Date(timestamp.getTime() + (3 * 60 * 60 * 1000));
+      const diffAsUTC3 = (now.getTime() - timestampAsUTC3.getTime()) / (1000 * 60 * 60);
+
+      if (Math.abs(diffAsUTC3) < Math.abs(diffAsUTC) && diffAsUTC > 1) {
+        timestamp = timestampAsUTC3;
       }
 
       // ✅ VALIDAÇÃO DE TIMESTAMP: Se timestamp inválido, usar hora do servidor
