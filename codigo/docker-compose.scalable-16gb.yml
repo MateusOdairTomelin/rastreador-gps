@@ -59,6 +59,10 @@ services:
   # =============================================================================
   # TCP GATEWAYS - Separados por Protocolo
   # =============================================================================
+  # IMPORTANTE: Ao adicionar novos gateways, sempre incluir:
+  #   - AUTO_CONFIG_TIMEZONE=true  (evita delay de timezone)
+  #   - AUTO_CONFIG_TODOS=true     (configura intervalo de upload 10s)
+  # =============================================================================
 
   # -----------------------------------------------------------------------------
   # XT40 Gateways (porta 8877) - Rastreadores XT40_4F
