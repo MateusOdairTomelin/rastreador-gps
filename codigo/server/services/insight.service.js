@@ -822,7 +822,7 @@ class InsightService {
         motorista: { select: { id: true, nome: true } },
         dispositivo: {
           include: {
-            veiculo: { select: { id: true, placa: true } }
+            veiculo_rel: { select: { id: true, placa: true } }
           }
         }
       }
@@ -839,7 +839,7 @@ class InsightService {
 
     if (viagensLongas.length > 0) {
       const maiorViagem = viagensLongas.sort((a, b) => (b.distancia_km || 0) - (a.distancia_km || 0))[0];
-      const placa = maiorViagem.dispositivo?.veiculo?.placa || 'N/A';
+      const placa = maiorViagem.dispositivo?.veiculo_rel?.placa || 'N/A';
       const motorista = maiorViagem.motorista?.nome || 'Não identificado';
 
       insights.push({
@@ -848,7 +848,7 @@ class InsightService {
         titulo: `Viagem atípica: ${Math.round(maiorViagem.distancia_km)} km`,
         descricao: `O veículo ${placa} (motorista: ${motorista}) realizou uma viagem de ${Math.round(maiorViagem.distancia_km)} km, muito acima da média de ${Math.round(mediaKm)} km. Verifique se a rota foi adequada.`,
         acao_recomendada: 'Analise o trajeto no mapa e verifique se havia uma rota mais curta disponível.',
-        veiculo_id: maiorViagem.dispositivo?.veiculo?.id,
+        veiculo_id: maiorViagem.dispositivo?.veiculo_rel?.id,
         motorista_id: maiorViagem.motorista?.id,
         valor_depois: maiorViagem.distancia_km,
         score: 55,
