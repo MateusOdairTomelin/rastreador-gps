@@ -2509,9 +2509,11 @@
       font-weight: 700;
     }
 
-    .car-marker-overspeed .car-label-speed,
+    .car-marker-overspeed .car-label-speed {
+      color: #F97316; /* Laranja vivo - excesso velocidade */
+    }
     .car-marker-road-alert .car-label-speed {
-      color: #EF4444;
+      color: #F59E0B; /* Amarelo - acima limite via */
     }
 
     /* Badge de velocidade (legado - manter para compatibilidade) */
@@ -2557,10 +2559,9 @@
       animation: markerPulse 0.8s ease-in-out infinite;
     }
 
-    /* Badge de velocidade - cor vermelha para excesso */
-    .car-marker-overspeed .speed-badge,
-    .car-marker-road-alert .speed-badge {
-      background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%) !important;
+    /* Badge de velocidade - cor laranja para excesso */
+    .car-marker-overspeed .speed-badge {
+      background: linear-gradient(135deg, #F97316 0%, #EA580C 100%) !important;
       border-color: rgba(255,255,255,0.5) !important;
     }
 
@@ -9564,8 +9565,8 @@
               let markerClass, statusColor, statusGlow;
               if (isOverSpeed) {
                 markerClass = 'car-marker-overspeed';
-                statusColor = '#EF4444';
-                statusGlow = 'rgba(239, 68, 68, 0.6)';
+                statusColor = '#F97316'; // Laranja vivo - excesso velocidade
+                statusGlow = 'rgba(249, 115, 22, 0.6)';
               } else if (isMoving) {
                 markerClass = 'car-marker-moving';
                 statusColor = '#3B82F6';
@@ -11706,8 +11707,8 @@
             let markerClass, statusColor, statusGlow;
             if (isOverSpeed) {
               markerClass = 'car-marker-overspeed';
-              statusColor = '#EF4444';
-              statusGlow = 'rgba(239, 68, 68, 0.6)';
+              statusColor = '#F97316'; // Laranja vivo - excesso velocidade
+              statusGlow = 'rgba(249, 115, 22, 0.6)';
             } else if (!isOnline) {
               markerClass = 'car-marker-offline';
               statusColor = '#EF4444';
@@ -11881,8 +11882,8 @@
         statusGlow = 'rgba(245, 158, 11, 0.5)';
       } else if (isAboveUserLimit) {
         markerClass = 'car-marker-overspeed';
-        statusColor = '#EF4444';
-        statusGlow = 'rgba(239, 68, 68, 0.6)';
+        statusColor = '#F97316'; // Laranja vivo - excesso velocidade
+        statusGlow = 'rgba(249, 115, 22, 0.6)';
       } else if (!isOnline) {
         markerClass = 'car-marker-offline';
         statusColor = '#EF4444';
