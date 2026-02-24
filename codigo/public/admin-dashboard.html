@@ -13616,8 +13616,10 @@
             <td style="padding: 12px;">${org._count?.dispositivos || 0} / ${org.plano?.max_dispositivos || '∞'}</td>
             <td style="padding: 12px;">${org._count?.usuarios || 0} / ${org.plano?.max_usuarios || '∞'}</td>
             <td style="padding: 12px;"><span style="padding: 4px 12px; border-radius: 20px; font-size: 12px; background: var(--${statusInfo.class}); color: white;">${statusInfo.icon} ${statusInfo.text}</span></td>
-            <td style="padding: 12px;">
+            <td style="padding: 12px; white-space: nowrap;">
               <button onclick="editarOrg(${org.id})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Editar">✏️</button>
+              <button onclick="transferirOrg(${org.id}, '${nomeSeguro}')" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Transferir para outro pai">🔀</button>
+              <button onclick="absorverOrg(${org.id}, '${nomeSeguro}')" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Absorver (migrar dados)">📥</button>
               <button onclick="excluirOrg(${org.id})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Excluir">🗑️</button>
             </td>
           </tr>
@@ -14154,6 +14156,126 @@
         carregarOrganizacoes();
       } catch (error) {
         console.error('Erro ao excluir organização:', error);
+        toastError(error.message);
+      }
+    }
+
+    // Transferir organização para outro pai
+    async function transferirOrg(orgId, orgNome) {
+      // Criar modal de seleção de novo pai
+      const outrasOrgs = organizacoesCache.filter(o => o.id !== orgId);
+
+      if (outrasOrgs.length === 0) {
+        toastError('Não há outras organizações para transferir');
+        return;
+      }
+
+      const opcoes = '<option value="">Tornar organização raiz (sem pai)</option>' +
+        outrasOrgs.map(o => '<option value="' + o.id + '">' + escapeHtml(o.nome) + ' (Nível ' + (o.nivel || 0) + ')</option>').join('');
+
+      const modal = document.createElement('div');
+      modal.innerHTML = '<div style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10000;">' +
+        '<div style="background: var(--surface); padding: 24px; border-radius: 12px; max-width: 450px; width: 90%;">' +
+          '<h3 style="margin: 0 0 16px 0; color: var(--text);">🔀 Transferir Organização</h3>' +
+          '<p style="color: var(--text-light); margin-bottom: 16px;">Transferir <strong>' + escapeHtml(orgNome) + '</strong> para:</p>' +
+          '<select id="novo-pai-select" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); margin-bottom: 16px;">' + opcoes + '</select>' +
+          '<div style="display: flex; gap: 12px; justify-content: flex-end;">' +
+            '<button onclick="this.closest(\'div[style*=fixed]\').parentElement.remove()" style="padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text); cursor: pointer;">Cancelar</button>' +
+            '<button onclick="confirmarTransferencia(' + orgId + ')" style="padding: 10px 20px; border: none; border-radius: 8px; background: var(--accent); color: white; cursor: pointer; font-weight: 600;">Transferir</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+      document.body.appendChild(modal);
+    }
+
+    async function confirmarTransferencia(orgId) {
+      const select = document.getElementById('novo-pai-select');
+      const novoPaiId = select.value ? parseInt(select.value) : null;
+
+      try {
+        const response = await authFetch(API_URL + '/organizacoes/' + orgId + '/transferir', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ novo_parent_id: novoPaiId })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.erro || 'Erro ao transferir');
+
+        document.querySelector('div[style*="position: fixed"][style*="inset: 0"]').parentElement.remove();
+        toastSuccess('Organização transferida! ' + data.filhos_afetados + ' sub-orgs afetadas.');
+        carregarOrganizacoes();
+      } catch (error) {
+        console.error('Erro ao transferir:', error);
+        toastError(error.message);
+      }
+    }
+
+    // Absorver organização (migrar todos dados para outra)
+    async function absorverOrg(orgId, orgNome) {
+      const outrasOrgs = organizacoesCache.filter(o => o.id !== orgId);
+
+      if (outrasOrgs.length === 0) {
+        toastError('Não há outras organizações para absorver');
+        return;
+      }
+
+      const opcoes = outrasOrgs.map(o => '<option value="' + o.id + '">' + escapeHtml(o.nome) + '</option>').join('');
+
+      const modal = document.createElement('div');
+      modal.innerHTML = '<div style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10000;">' +
+        '<div style="background: var(--surface); padding: 24px; border-radius: 12px; max-width: 500px; width: 90%;">' +
+          '<h3 style="margin: 0 0 16px 0; color: var(--danger);">📥 Absorver Organização</h3>' +
+          '<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); border-radius: 8px; padding: 12px; margin-bottom: 16px;">' +
+            '<strong style="color: var(--danger);">⚠️ ATENÇÃO:</strong>' +
+            '<ul style="margin: 8px 0 0 0; padding-left: 20px; color: var(--text-light);">' +
+              '<li>Esta ação é <strong>IRREVERSÍVEL</strong></li>' +
+              '<li>A organização <strong>' + escapeHtml(orgNome) + '</strong> será <strong>DELETADA</strong></li>' +
+              '<li>Todos os dados serão movidos para a organização destino</li>' +
+            '</ul>' +
+          '</div>' +
+          '<p style="color: var(--text-light); margin-bottom: 8px;">Mover todos os recursos para:</p>' +
+          '<select id="destino-absorver-select" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); margin-bottom: 16px;">' + opcoes + '</select>' +
+          '<div style="display: flex; gap: 12px; justify-content: flex-end;">' +
+            '<button onclick="this.closest(\'div[style*=fixed]\').parentElement.remove()" style="padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text); cursor: pointer;">Cancelar</button>' +
+            '<button onclick="confirmarAbsorcao(' + orgId + ', \'' + escapeHtml(orgNome).replace(/'/g, "\\'") + '\')" style="padding: 10px 20px; border: none; border-radius: 8px; background: var(--danger); color: white; cursor: pointer; font-weight: 600;">Absorver e Deletar</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+      document.body.appendChild(modal);
+    }
+
+    async function confirmarAbsorcao(orgId, orgNome) {
+      const select = document.getElementById('destino-absorver-select');
+      const destinoId = parseInt(select.value);
+
+      if (!destinoId) {
+        toastError('Selecione uma organização destino');
+        return;
+      }
+
+      // Confirmação extra
+      if (!confirm('CONFIRMA absorver "' + orgNome + '"? Esta ação NÃO pode ser desfeita!')) {
+        return;
+      }
+
+      try {
+        const response = await authFetch(API_URL + '/organizacoes/' + orgId + '/absorver', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ destino_id: destinoId })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.erro || 'Erro ao absorver');
+
+        document.querySelector('div[style*="position: fixed"][style*="inset: 0"]').parentElement.remove();
+
+        const t = data.transferidos;
+        toastSuccess('Organização absorvida! Transferidos: ' + t.veiculos + ' veículos, ' + t.dispositivos + ' dispositivos, ' + t.motoristas + ' motoristas');
+        carregarOrganizacoes();
+      } catch (error) {
+        console.error('Erro ao absorver:', error);
         toastError(error.message);
       }
     }
