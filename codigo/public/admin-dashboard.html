@@ -17426,10 +17426,43 @@
     }
 
     async function lgpdRevogarConsentimento(id, tipo, nome) {
-      if (!confirm(`Tem certeza que deseja REVOGAR os consentimentos de "${nome}"?\n\nIsso fará com que o ${tipo === 'usuario' ? 'usuário' : 'motorista'} tenha que aceitar os termos novamente ao acessar o sistema.`)) {
-        return;
-      }
+      // Criar modal de confirmação bonito
+      const tipoLabel = tipo === 'usuario' ? 'usuário' : 'motorista';
+      const modal = document.createElement('div');
+      modal.id = 'modal-revogar-lgpd';
+      modal.innerHTML = `
+        <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+          <div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95)); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 16px; padding: 32px; max-width: 420px; width: 90%; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
+            <div style="width: 60px; height: 60px; background: rgba(239, 68, 68, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <h3 style="color: #EF4444; margin: 0 0 12px; font-size: 1.3em;">Revogar Consentimentos</h3>
+            <p style="color: var(--text); margin: 0 0 8px; font-size: 1em;"><strong>${nome}</strong></p>
+            <p style="color: var(--text-light); margin: 0 0 24px; font-size: 0.9em; line-height: 1.5;">
+              O ${tipoLabel} terá que aceitar os termos LGPD novamente ao acessar o sistema.
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+              <button id="btn-cancelar-revogar" style="flex: 1; padding: 12px 24px; background: rgba(100, 116, 139, 0.2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.95em;">
+                Cancelar
+              </button>
+              <button id="btn-confirmar-revogar" style="flex: 1; padding: 12px 24px; background: linear-gradient(135deg, #EF4444, #DC2626); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.95em;">
+                Revogar
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
 
+      // Handlers dos botões
+      document.getElementById('btn-cancelar-revogar').onclick = () => modal.remove();
+      document.getElementById('btn-confirmar-revogar').onclick = async () => {
+        modal.remove();
+        await executarRevogacao(id, tipo, nome);
+      };
+    }
+
+    async function executarRevogacao(id, tipo, nome) {
       try {
         const endpoint = tipo === 'usuario'
           ? `${API_URL}/lgpd/admin/revogar-usuario/${id}`
@@ -17440,7 +17473,6 @@
 
         if (data.sucesso) {
           showToast(`Consentimentos de "${nome}" revogados com sucesso!`, 'success');
-          // Recarregar dados
           lgpdCarregarDadosAdmin();
         } else {
           showToast(data.mensagem || 'Erro ao revogar consentimentos', 'error');

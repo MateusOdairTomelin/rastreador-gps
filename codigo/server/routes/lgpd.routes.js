@@ -13,6 +13,7 @@
 
 const express = require('express');
 const router = express.Router();
+const prisma = require('../db/prisma');
 const lgpdService = require('../services/lgpd.service');
 const dataRetentionService = require('../services/data-retention.service');
 const lgpdReportService = require('../services/lgpd-report.service');
