@@ -14248,16 +14248,24 @@
     async function confirmarAbsorcao(orgId, orgNome) {
       const select = document.getElementById('destino-absorver-select');
       const destinoId = parseInt(select.value);
+      const destinoNome = select.options[select.selectedIndex].text;
 
       if (!destinoId) {
         toastError('Selecione uma organização destino');
         return;
       }
 
-      // Confirmação extra
-      if (!confirm('CONFIRMA absorver "' + orgNome + '"? Esta ação NÃO pode ser desfeita!')) {
-        return;
-      }
+      // Fechar modal de seleção
+      const modalSelecao = document.querySelector('div[style*="position: fixed"][style*="inset: 0"]');
+      if (modalSelecao) modalSelecao.parentElement.remove();
+
+      // Confirmação extra com modal customizado
+      const confirmado = await showConfirm(
+        'Todos os dados de "' + orgNome + '" serão movidos para "' + destinoNome + '" e a organização será DELETADA permanentemente.',
+        { title: 'Confirmar Absorção?', type: 'danger', confirmText: 'Sim, Absorver' }
+      );
+
+      if (!confirmado) return;
 
       try {
         const response = await authFetch(API_URL + '/organizacoes/' + orgId + '/absorver', {
@@ -14268,8 +14276,6 @@
 
         const data = await response.json();
         if (!response.ok) throw new Error(data.erro || 'Erro ao absorver');
-
-        document.querySelector('div[style*="position: fixed"][style*="inset: 0"]').parentElement.remove();
 
         const t = data.transferidos;
         toastSuccess('Organização absorvida! Transferidos: ' + t.veiculos + ' veículos, ' + t.dispositivos + ' dispositivos, ' + t.motoristas + ' motoristas');

@@ -1432,8 +1432,8 @@ class OrganizacaoService {
       data: { organizacao_id: orgDestinoId }
     });
 
-    // Transferir cercas virtuais
-    const cercasTransferidas = await prisma.cercaVirtual.updateMany({
+    // Transferir cercas virtuais (geofences)
+    const cercasTransferidas = await prisma.geofence.updateMany({
       where: { organizacao_id: orgOrigemId },
       data: { organizacao_id: orgDestinoId }
     });
