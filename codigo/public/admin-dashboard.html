@@ -4255,6 +4255,264 @@
       margin-top: 4px;
     }
 
+    /* ========== RELATÓRIOS UNIFICADO ========== */
+    .relatorios-unificado {
+      overflow: visible !important;
+    }
+
+    .rel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .rel-header h3 {
+      margin: 0;
+      font-size: 16px;
+      color: var(--text);
+    }
+
+    .rel-header-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Barra de Filtros Compacta */
+    .rel-filtros-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 12px;
+      padding: 14px 20px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .rel-filtro-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .rel-filtro-item label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .rel-filtro-item input[type="text"] {
+      padding: 8px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .rel-filtro-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      min-width: 100px;
+    }
+
+    .rel-filtro-btn:hover {
+      border-color: var(--primary);
+      background: var(--bg);
+    }
+
+    .dropdown-arrow {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    /* KPIs Inline */
+    .rel-kpis-inline {
+      display: flex;
+      gap: 16px;
+      padding: 6px 12px;
+      background: var(--bg-card);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .kpi-inline {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .kpi-inline-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .kpi-inline-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .kpi-inline.kpi-success .kpi-inline-value { color: var(--success); }
+    .kpi-inline.kpi-warning .kpi-inline-value { color: var(--warning); }
+    .kpi-inline.kpi-danger .kpi-inline-value { color: var(--danger); }
+
+    /* Barra de ações da tabela */
+    .rel-table-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-white);
+    }
+
+    .rel-table-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .rel-table-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-ghost:hover {
+      background: var(--bg);
+      border-color: var(--primary);
+    }
+
+    .btn-xs {
+      padding: 4px 10px;
+      font-size: 11px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .btn-xs:hover {
+      background: var(--bg);
+    }
+
+    .col-toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      border-radius: 4px;
+    }
+
+    .col-toggle-label:hover {
+      background: var(--bg-card);
+    }
+
+    /* Filtros avançados - categorias */
+    .filtro-categoria {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filtro-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      padding: 4px 0;
+    }
+
+    .filtro-check:hover {
+      color: var(--primary);
+    }
+
+    /* Tags inline */
+    .tag-chip-filter {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text);
+      transition: all 0.15s;
+    }
+
+    .tag-chip-filter:hover {
+      border-color: var(--primary);
+    }
+
+    .tag-chip-filter.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* Responsivo */
+    @media (max-width: 1024px) {
+      .rel-filtros-bar {
+        gap: 10px;
+      }
+
+      .rel-kpis-inline {
+        display: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .rel-filtros-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .rel-filtro-item {
+        width: 100%;
+      }
+
+      .rel-filtro-btn {
+        width: 100%;
+      }
+
+      #mais-filtros-dropdown {
+        min-width: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+      }
+
+      #mais-filtros-dropdown > div:first-child {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
     .relatorios-filtros {
       margin-bottom: 24px;
       overflow: visible !important;
@@ -8064,18 +8322,8 @@
           </div>
         </section>
 
-        <!-- RELATÓRIOS SECTION - Central de Relatórios -->
+        <!-- RELATÓRIOS SECTION - Central de Relatórios (Unificado) -->
         <section class="section" id="section-relatorios">
-          <!-- Tabs de navegação -->
-          <div class="relatorios-tabs">
-            <button class="rel-tab active" data-tab="frota" onclick="switchRelatorioTab('frota')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8c-.1.2-.1.5-.1.7v4.6c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
-              Frota
-            </button>
-          </div>
-
-          <!-- TAB: FROTA -->
-          <div class="rel-tab-content active" id="tab-frota">
           <!-- Dashboard KPIs -->
           <div class="relatorios-kpis">
             <div class="kpi-card kpi-primary">
@@ -8089,7 +8337,7 @@
               <div class="kpi-icon"><i data-lucide="route" class="kpi-icon-lucide"></i></div>
               <div class="kpi-content">
                 <div class="kpi-value" id="kpi-km-total">0 km</div>
-                <div class="kpi-label">Km Hoje</div>
+                <div class="kpi-label">Km no Período</div>
               </div>
             </div>
             <div class="kpi-card kpi-warning">
@@ -8115,144 +8363,165 @@
             </div>
           </div>
 
-          <!-- Filtros -->
-          <div class="relatorios-filtros card">
-            <div class="filtros-header">
-              <h3 class="section-title-icon"><i data-lucide="sliders-horizontal" class="lucide-icon"></i> Filtros</h3>
-              <button class="btn btn-secondary btn-sm" onclick="limparFiltrosRelatorios()">Limpar Filtros</button>
+          <!-- Card Único Unificado -->
+          <div class="rel-tab-content active" id="tab-frota">
+          <div class="relatorios-unificado card">
+            <!-- Header com título e exportação -->
+            <div class="rel-header">
+              <h3 class="section-title-icon"><i data-lucide="bar-chart-3" class="lucide-icon"></i> Relatórios da Frota</h3>
+              <div class="rel-header-actions">
+                <div class="rel-export-dropdown" style="position: relative;">
+                  <button class="btn btn-primary btn-sm" onclick="toggleExportDropdown()">
+                    ↓ Exportar <span style="font-size: 0.7rem;">▾</span>
+                  </button>
+                  <div id="export-dropdown" style="display: none; position: absolute; top: 100%; right: 0; min-width: 140px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 6px;">
+                    <div onclick="exportarRelatorioLote('csv')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">≡ CSV</div>
+                    <div onclick="exportarRelatorioLote('pdf')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">☰ PDF</div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="filtros-grid">
-              <div class="filtro-item">
-                <label class="icon-with-text"><i data-lucide="calendar" class="lucide-icon sm"></i> Período</label>
-                <input type="text" id="rel-periodo-range" placeholder="Selecione o período" readonly style="cursor:pointer;">
+
+            <!-- Barra de Filtros Compacta -->
+            <div class="rel-filtros-bar">
+              <!-- Período -->
+              <div class="rel-filtro-item">
+                <label>Período</label>
+                <input type="text" id="rel-periodo-range" placeholder="Selecione..." readonly style="cursor:pointer; width: 180px;">
                 <input type="hidden" id="rel-data-inicio">
                 <input type="hidden" id="rel-data-fim">
               </div>
-              <div class="filtro-item" style="position: relative;">
-                <label class="icon-with-text"><i data-lucide="activity" class="lucide-icon sm"></i> Status</label>
+
+              <!-- Veículos -->
+              <div class="rel-filtro-item" style="position: relative;">
+                <label>Veículos</label>
+                <input type="hidden" id="rel-todos-veiculos" value="true">
+                <button type="button" onclick="toggleVeiculosDropdown()" class="rel-filtro-btn">
+                  <span id="veiculos-label">Todos</span>
+                  <span class="dropdown-arrow">▾</span>
+                </button>
+                <div id="veiculos-dropdown" style="display: none; position: absolute; top: 100%; left: 0; min-width: 280px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
+                  <div style="padding: 8px; border-bottom: 1px solid var(--border);">
+                    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                      <button type="button" class="filtro-tipo-btn active" id="btn-filtro-todos" onclick="selecionarFiltroTodos()" style="flex:1; padding: 6px 10px; font-size: 0.85rem;">Todos</button>
+                      <button type="button" class="filtro-tipo-btn" id="btn-filtro-especifico" onclick="selecionarFiltroEspecifico()" style="flex:1; padding: 6px 10px; font-size: 0.85rem;">Específico</button>
+                    </div>
+                    <input type="text" id="rel-busca-veiculo" placeholder="Buscar placa, nome..." oninput="buscarVeiculoAutocomplete(this.value)" onfocus="mostrarSugestoesVeiculo()" autocomplete="off" disabled style="width: 100%; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 0.9rem;">
+                  </div>
+                  <div id="veiculos-selecionados-list" style="padding: 8px; max-height: 150px; overflow-y: auto; font-size: 0.85rem; color: var(--text-muted);">
+                    Todos os veículos selecionados
+                  </div>
+                </div>
+              </div>
+
+              <!-- Status -->
+              <div class="rel-filtro-item" style="position: relative;">
+                <label>Status</label>
                 <input type="hidden" id="rel-filtro-status" value="todos">
-                <button type="button" onclick="toggleStatusDropdown()" style="background: transparent; border: none; padding: 8px 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
-                  <span id="status-label" style="color: var(--primary); font-weight: 500;">Todos</span>
-                  <span style="font-size: 0.7rem; color: var(--text-muted);">▾</span>
+                <button type="button" onclick="toggleStatusDropdown()" class="rel-filtro-btn">
+                  <span id="status-label">Todos</span>
+                  <span class="dropdown-arrow">▾</span>
                 </button>
                 <div id="status-dropdown" style="display: none; position: absolute; top: 100%; left: 0; min-width: 150px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 6px;">
                   <div onclick="selecionarStatus('todos', 'Todos')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'"><span style="width: 8px; height: 8px; border-radius: 50%; background: #6b7280;"></span> Todos</div>
-                  <div onclick="selecionarStatus('movimento', 'Em Movimento')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'"><span style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></span> Em Movimento</div>
+                  <div onclick="selecionarStatus('movimento', 'Movimento')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'"><span style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></span> Em Movimento</div>
                   <div onclick="selecionarStatus('ocioso', 'Ocioso')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'"><span style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span> Ocioso</div>
                   <div onclick="selecionarStatus('parado', 'Parado')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'"><span style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></span> Parado</div>
                   <div onclick="selecionarStatus('offline', 'Offline')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'"><span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span> Offline</div>
                 </div>
               </div>
-              <div class="filtro-item" style="position: relative;">
-                <label class="icon-with-text"><i data-lucide="tag" class="lucide-icon sm"></i> Tags</label>
-                <button type="button" id="btn-filtro-tags" onclick="toggleTagsDropdown()" style="background: transparent; border: none; padding: 8px 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
-                  <span id="tags-selecionadas-label" style="color: var(--primary); font-weight: 500;">Todas</span>
-                  <span style="font-size: 0.7rem; color: var(--text-muted);">▾</span>
-                </button>
-                <div id="tags-dropdown" style="display: none; position: absolute; top: 100%; left: 0; min-width: 250px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
-                  <div style="padding: 8px;">
-                    <input type="text" id="tags-search" placeholder="Buscar tag..." oninput="filtrarTagsDropdown()" style="width: 100%; background: var(--bg-card); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 4px; font-size: 0.9rem;">
-                  </div>
-                  <div id="tags-checkbox-list" style="padding: 6px 8px; max-height: 220px; overflow-y: auto;">
-                    <div style="color: var(--text-muted); padding: 12px; text-align: center; font-size: 0.85rem;">Carregando...</div>
-                  </div>
-                  <div style="padding: 8px; border-top: 1px solid var(--border); display: flex; gap: 8px;">
-                    <button onclick="limparTagsSelecionadas()" style="flex: 1; background: var(--bg-card); color: var(--text-muted); border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Limpar</button>
-                    <button onclick="toggleTagsDropdown()" style="flex: 1; background: var(--primary); color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">OK</button>
-                  </div>
-                </div>
-              </div>
-              <div class="filtro-item" style="position: relative;">
-                <label class="icon-with-text"><i data-lucide="bar-chart-3" class="lucide-icon sm"></i> Tipo</label>
-                <input type="hidden" id="rel-filtro-tipo" value="geral">
-                <button type="button" onclick="toggleTipoDropdown()" style="background: transparent; border: none; padding: 8px 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
-                  <span id="tipo-label" style="color: var(--primary); font-weight: 500;">Visão Geral</span>
-                  <span style="font-size: 0.7rem; color: var(--text-muted);">▾</span>
-                </button>
-                <div id="tipo-dropdown" style="display: none; position: absolute; top: 100%; left: 0; min-width: 190px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 6px;">
-                  <div onclick="selecionarTipo('geral', 'Visão Geral')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'"><span style="width: 16px; text-align: center; opacity: 0.7;">◉</span> Visão Geral</div>
-                  <div onclick="selecionarTipo('velocidade', 'Excessos')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'"><span style="width: 16px; text-align: center; opacity: 0.7;">↑</span> Excessos Velocidade</div>
-                  <div onclick="selecionarTipo('ocioso', 'Tempo Ocioso')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'"><span style="width: 16px; text-align: center; opacity: 0.7;">◷</span> Tempo Ocioso</div>
-                  <div onclick="selecionarTipo('quilometragem', 'Quilometragem')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'"><span style="width: 16px; text-align: center; opacity: 0.7;">→</span> Quilometragem</div>
-                  <div onclick="selecionarTipo('ranking', 'Ranking')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'"><span style="width: 16px; text-align: center; opacity: 0.7;">▲</span> Ranking Condutores</div>
-                  <div onclick="selecionarTipo('consumo', 'Consumo')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'"><span style="width: 16px; text-align: center; opacity: 0.7;">◇</span> Consumo Estimado</div>
-                </div>
-              </div>
-              <div class="filtro-item" style="position: relative;">
-                <label class="icon-with-text"><i data-lucide="search" class="lucide-icon sm"></i> Filtrar Veículos</label>
-                <input type="hidden" id="rel-todos-veiculos" value="true">
-                <div class="filtro-tipo-selecao">
-                  <button type="button" class="filtro-tipo-btn active" id="btn-filtro-todos" onclick="selecionarFiltroTodos()">
-                    <i data-lucide="list" class="lucide-icon sm"></i> Todos
-                  </button>
-                  <button type="button" class="filtro-tipo-btn" id="btn-filtro-especifico" onclick="selecionarFiltroEspecifico()">
-                    <i data-lucide="crosshair" class="lucide-icon sm"></i> Específico
-                  </button>
-                </div>
-                <input type="text" id="rel-busca-veiculo" placeholder="Digite placa, nome ou modelo..."
-                       oninput="buscarVeiculoAutocomplete(this.value)"
-                       onfocus="mostrarSugestoesVeiculo()"
-                       autocomplete="off"
-                       disabled
-                       style="display:none;">
-              </div>
-              <div class="filtro-item filtro-acoes">
-                <label>&nbsp;</label>
-                <div style="display:flex; gap:8px;">
-                  <button class="btn btn-success icon-with-text" onclick="buscarRelatorios()" style="font-weight:bold;"><i data-lucide="search" class="lucide-icon sm"></i> Buscar</button>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <!-- Lista de Veículos -->
-          <div class="relatorios-lista card">
-            <div class="lista-header">
-              <h3 class="section-title-icon"><i data-lucide="car" class="lucide-icon"></i> Veículos da Frota</h3>
-              <div class="lista-actions">
-                <!-- Botão Configurar Colunas -->
+              <!-- Mais Filtros -->
+              <div class="rel-filtro-item" style="position: relative;">
+                <label>Filtros</label>
+                <button type="button" onclick="toggleMaisFiltrosDropdown()" class="rel-filtro-btn">
+                  <span id="mais-filtros-label">+ Mais</span>
+                  <span class="dropdown-arrow">▾</span>
+                </button>
+                <div id="mais-filtros-dropdown" style="display: none; position: absolute; top: 100%; left: 0; min-width: 400px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
+                  <div style="padding: 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                    <!-- Coluna 1: Velocidade -->
+                    <div class="filtro-categoria">
+                      <h5 style="font-size: 11px; color: var(--primary); margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">↑ Velocidade</h5>
+                      <label class="filtro-check"><input type="checkbox" id="filtro-excessos" onchange="aplicarFiltrosAvancados()"> Com excessos</label>
+                      <label class="filtro-check"><input type="checkbox" id="filtro-vel-alta" onchange="aplicarFiltrosAvancados()"> Vel. &gt; 100 km/h</label>
+                      <label class="filtro-check"><input type="checkbox" id="filtro-vel-media" onchange="aplicarFiltrosAvancados()"> Média &gt; 60 km/h</label>
+                    </div>
+                    <!-- Coluna 2: Tempo -->
+                    <div class="filtro-categoria">
+                      <h5 style="font-size: 11px; color: var(--warning); margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">◷ Tempo</h5>
+                      <label class="filtro-check"><input type="checkbox" id="filtro-muito-ocioso" onchange="aplicarFiltrosAvancados()"> Ocioso &gt; 2h</label>
+                      <label class="filtro-check"><input type="checkbox" id="filtro-pouco-movimento" onchange="aplicarFiltrosAvancados()"> Movimento &lt; 1h</label>
+                      <label class="filtro-check"><input type="checkbox" id="filtro-muito-parado" onchange="aplicarFiltrosAvancados()"> Parado &gt; 24h</label>
+                    </div>
+                    <!-- Coluna 3: Quilometragem -->
+                    <div class="filtro-categoria">
+                      <h5 style="font-size: 11px; color: var(--success); margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">→ Quilometragem</h5>
+                      <label class="filtro-check"><input type="checkbox" id="filtro-km-alto" onchange="aplicarFiltrosAvancados()"> Km &gt; 200/dia</label>
+                      <label class="filtro-check"><input type="checkbox" id="filtro-km-baixo" onchange="aplicarFiltrosAvancados()"> Km &lt; 10/dia</label>
+                      <label class="filtro-check"><input type="checkbox" id="filtro-sem-km" onchange="aplicarFiltrosAvancados()"> Sem km registrado</label>
+                    </div>
+                  </div>
+                  <!-- Tags -->
+                  <div style="padding: 12px; border-top: 1px solid var(--border);">
+                    <h5 style="font-size: 11px; color: var(--text-muted); margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">◉ Tags</h5>
+                    <div id="tags-checkbox-list" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 80px; overflow-y: auto;">
+                      <span style="color: var(--text-muted); font-size: 0.85rem;">Carregando tags...</span>
+                    </div>
+                  </div>
+                  <!-- Ações -->
+                  <div style="padding: 10px 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <button onclick="limparFiltrosAvancados()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.85rem;">Limpar filtros</button>
+                    <button onclick="toggleMaisFiltrosDropdown()" class="btn btn-sm btn-primary">Aplicar</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Buscar -->
+              <div class="rel-filtro-item">
+                <label>&nbsp;</label>
+                <button class="btn btn-success" onclick="buscarRelatorios()" style="font-weight: 600; padding: 8px 20px;">
+                  Buscar
+                </button>
+              </div>
+
+            </div>
+
+            <!-- Barra de ações da tabela -->
+            <div class="rel-table-actions">
+              <div class="rel-table-left">
+                <input type="checkbox" id="check-all-veiculos" onchange="toggleSelecionarTodos()">
+                <span class="selecionados-count" id="selecionados-count">0 selecionados</span>
+              </div>
+              <div class="rel-table-right">
+                <!-- Colunas -->
                 <div style="position: relative;">
-                  <button class="btn btn-sm" onclick="toggleColunasDropdown()" id="btn-config-colunas" title="Configurar colunas visíveis">
+                  <button class="btn btn-sm btn-ghost" onclick="toggleColunasDropdown()" id="btn-config-colunas">
                     ☰ Colunas
                   </button>
                   <div id="colunas-dropdown" style="display: none; position: absolute; top: 100%; right: 0; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 8px;">
-                    <div style="padding: 4px 8px; font-size: 0.8rem; color: var(--text-muted); border-bottom: 1px solid var(--border); margin-bottom: 6px;">Selecione as colunas:</div>
-                    <label style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
-                      <input type="checkbox" class="col-toggle" data-col="status" checked onchange="toggleColuna('status')"> Status
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
-                      <input type="checkbox" class="col-toggle" data-col="km" checked onchange="toggleColuna('km')"> Quilometragem
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
-                      <input type="checkbox" class="col-toggle" data-col="movimento" checked onchange="toggleColuna('movimento')"> Tempo Movimento
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
-                      <input type="checkbox" class="col-toggle" data-col="ocioso" checked onchange="toggleColuna('ocioso')"> Tempo Ocioso
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
-                      <input type="checkbox" class="col-toggle" data-col="excessos" checked onchange="toggleColuna('excessos')"> Excessos Velocidade
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
-                      <input type="checkbox" class="col-toggle" data-col="grafico" checked onchange="toggleColuna('grafico')"> Gráfico Atividade
-                    </label>
+                    <div style="padding: 4px 8px; font-size: 0.8rem; color: var(--text-muted); border-bottom: 1px solid var(--border); margin-bottom: 6px;">Colunas visíveis:</div>
+                    <label class="col-toggle-label"><input type="checkbox" class="col-toggle" data-col="status" checked onchange="toggleColuna('status')"> Status</label>
+                    <label class="col-toggle-label"><input type="checkbox" class="col-toggle" data-col="km" checked onchange="toggleColuna('km')"> Quilometragem</label>
+                    <label class="col-toggle-label"><input type="checkbox" class="col-toggle" data-col="movimento" checked onchange="toggleColuna('movimento')"> Tempo Movimento</label>
+                    <label class="col-toggle-label"><input type="checkbox" class="col-toggle" data-col="ocioso" checked onchange="toggleColuna('ocioso')"> Tempo Ocioso</label>
+                    <label class="col-toggle-label"><input type="checkbox" class="col-toggle" data-col="excessos" checked onchange="toggleColuna('excessos')"> Excessos</label>
+                    <label class="col-toggle-label"><input type="checkbox" class="col-toggle" data-col="grafico" checked onchange="toggleColuna('grafico')"> Gráfico</label>
                     <div style="padding: 6px 8px; border-top: 1px solid var(--border); margin-top: 6px; display: flex; gap: 6px;">
-                      <button onclick="mostrarTodasColunas()" style="flex:1; padding: 4px 8px; font-size: 0.75rem; background: var(--bg-card); border: none; border-radius: 4px; cursor: pointer; color: var(--text);">Todas</button>
-                      <button onclick="resetarColunas()" style="flex:1; padding: 4px 8px; font-size: 0.75rem; background: var(--bg-card); border: none; border-radius: 4px; cursor: pointer; color: var(--text);">Resetar</button>
+                      <button onclick="mostrarTodasColunas()" class="btn btn-xs">Todas</button>
+                      <button onclick="resetarColunas()" class="btn btn-xs">Resetar</button>
                     </div>
                   </div>
                 </div>
-                <button class="btn btn-sm" onclick="selecionarTodosVeiculos()" id="btn-selecionar-todos">☑ Selecionar Todos</button>
-                <span class="selecionados-count" id="selecionados-count">0 selecionados</span>
-                <button class="btn btn-primary btn-sm" onclick="abrirRelatorioPersonalizado()" style="margin-left: auto;">
-                  ☰ Relatório Personalizado
-                </button>
               </div>
             </div>
+
+            <!-- Tabela de Veículos -->
             <div class="veiculos-table-container">
               <table class="veiculos-relatorio-table">
                 <thead>
                   <tr>
-                    <th class="col-check"><input type="checkbox" id="check-all-veiculos" onchange="toggleSelecionarTodos()"></th>
+                    <th class="col-check" style="width: 40px;"></th>
                     <th class="col-veiculo">Veículo</th>
                     <th class="col-status">Status</th>
                     <th class="col-km">Km</th>
@@ -8266,8 +8535,8 @@
                 <tbody id="relatorios-veiculos-tbody">
                   <tr>
                     <td colspan="9" style="text-align:center; padding:40px; color:var(--text-light);">
-                      <div style="font-size:32px; margin-bottom:8px; color: var(--text-muted);">☰</div>
-                      Carregando dados dos veículos...
+                      <div style="font-size:28px; margin-bottom:8px; color: var(--text-muted);">☰</div>
+                      Selecione os filtros e clique em <strong>Buscar</strong>
                     </td>
                   </tr>
                 </tbody>
@@ -8318,184 +8587,6 @@
                   Exportar PDF
                 </button>
                 <button class="btn btn-secondary" onclick="fecharTrajetoModal()">Fechar</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Modal de Relatório Personalizado -->
-          <div class="relatorio-personalizado-modal" id="relatorio-personalizado-modal" style="display:none;">
-            <div class="modal-overlay" onclick="fecharRelatorioPersonalizado()"></div>
-            <div class="modal-content-personalizado">
-              <div class="modal-header-personalizado">
-                <h3>☰ Relatório Personalizado</h3>
-                <button onclick="fecharRelatorioPersonalizado()" class="btn-fechar">&times;</button>
-              </div>
-              <div class="modal-body-personalizado">
-                <!-- Sidebar de configuração -->
-                <div class="config-sidebar">
-                  <!-- Templates -->
-                  <div class="config-section">
-                    <h4>◇ Templates Salvos</h4>
-                    <div class="templates-list" id="templates-list">
-                      <div class="template-empty">Nenhum template salvo</div>
-                    </div>
-                    <div class="template-actions">
-                      <button class="btn btn-sm btn-success" onclick="salvarTemplate()">+ Salvar Atual</button>
-                    </div>
-                  </div>
-
-                  <!-- Colunas -->
-                  <div class="config-section">
-                    <h4>☰ Colunas do Relatório</h4>
-                    <div class="colunas-list" id="colunas-personalizado-list">
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="placa" checked> Placa
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="veiculo" checked> Veículo/Modelo
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="motorista" checked> Motorista
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="status" checked> Status
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="km_total" checked> Km Total
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="km_media" checked> Km Média/Dia
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="tempo_movimento"> Tempo Movimento
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="tempo_ocioso"> Tempo Ocioso
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="tempo_parado"> Tempo Parado
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="excessos" checked> Excessos Vel.
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="vel_maxima"> Vel. Máxima
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="vel_media"> Vel. Média
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="consumo"> Consumo Est.
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="viagens"> Nº Viagens
-                      </label>
-                      <label class="coluna-item">
-                        <input type="checkbox" data-col="tags"> Tags
-                      </label>
-                    </div>
-                    <div class="colunas-actions">
-                      <button class="btn btn-xs" onclick="marcarTodasColunas(true)">Todas</button>
-                      <button class="btn btn-xs" onclick="marcarTodasColunas(false)">Nenhuma</button>
-                    </div>
-                  </div>
-
-                  <!-- Filtros -->
-                  <div class="config-section">
-                    <h4>▽ Filtros</h4>
-                    <div class="filtro-config">
-                      <label>Período:</label>
-                      <input type="text" id="rp-periodo" placeholder="Selecione..." readonly style="cursor:pointer;">
-                      <input type="hidden" id="rp-data-inicio">
-                      <input type="hidden" id="rp-data-fim">
-                    </div>
-                    <div class="filtro-config">
-                      <label>Veículos:</label>
-                      <select id="rp-veiculos-filtro" multiple style="height: 80px;">
-                        <option value="todos" selected>Todos os veículos</option>
-                      </select>
-                    </div>
-                    <div class="filtro-config">
-                      <label>Tags:</label>
-                      <select id="rp-tags-filtro" multiple style="height: 60px;">
-                        <option value="todos" selected>Todas as tags</option>
-                      </select>
-                    </div>
-                    <div class="filtro-config">
-                      <label>Status:</label>
-                      <select id="rp-status-filtro">
-                        <option value="todos">Todos</option>
-                        <option value="online">Online</option>
-                        <option value="offline">Offline</option>
-                        <option value="movimento">Em Movimento</option>
-                        <option value="ocioso">Ocioso</option>
-                        <option value="parado">Parado</option>
-                      </select>
-                    </div>
-                    <div class="filtro-config">
-                      <label>Ordenar por:</label>
-                      <select id="rp-ordenar">
-                        <option value="placa_asc">Placa (A-Z)</option>
-                        <option value="placa_desc">Placa (Z-A)</option>
-                        <option value="km_desc" selected>Maior Km</option>
-                        <option value="km_asc">Menor Km</option>
-                        <option value="excessos_desc">Mais Excessos</option>
-                        <option value="vel_desc">Maior Velocidade</option>
-                      </select>
-                    </div>
-                    <div class="filtro-config">
-                      <label>Agrupar por:</label>
-                      <select id="rp-agrupar">
-                        <option value="nenhum" selected>Sem agrupamento</option>
-                        <option value="dia">Por Dia</option>
-                        <option value="semana">Por Semana</option>
-                        <option value="tag">Por Tag</option>
-                        <option value="motorista">Por Motorista</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Preview do relatório -->
-                <div class="preview-area">
-                  <div class="preview-header">
-                    <h4>Pré-visualização</h4>
-                    <div class="preview-actions">
-                      <button class="btn btn-sm" onclick="atualizarPreviewRelatorio()">↻ Atualizar</button>
-                      <span class="preview-count" id="rp-preview-count">0 registros</span>
-                    </div>
-                  </div>
-                  <div class="preview-table-container" id="rp-preview-container">
-                    <table class="preview-table" id="rp-preview-table">
-                      <thead id="rp-preview-thead">
-                        <tr>
-                          <th>Carregando...</th>
-                        </tr>
-                      </thead>
-                      <tbody id="rp-preview-tbody">
-                        <tr>
-                          <td style="text-align:center; padding:40px; color:var(--text-muted);">
-                            Configure as opções e clique em "Atualizar" para ver a prévia
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-              <div class="modal-footer-personalizado">
-                <div class="footer-left">
-                  <span class="footer-info" id="rp-footer-info">Selecione as colunas e filtros desejados</span>
-                </div>
-                <div class="footer-right">
-                  <button class="btn btn-secondary" onclick="fecharRelatorioPersonalizado()">Cancelar</button>
-                  <button class="btn btn-success" onclick="exportarRelatorioPersonalizadoFormato('csv')">
-                    ≡ Exportar CSV
-                  </button>
-                  <button class="btn btn-danger" onclick="exportarRelatorioPersonalizadoFormato('pdf')">
-                    ☰ Exportar PDF
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -18383,6 +18474,9 @@
             checkbox.addEventListener('change', updateCheck);
             updateCheck();
           });
+
+          // Também renderizar tags como chips no dropdown de mais filtros
+          renderizarTagsChips();
         }
       } catch (error) {
         console.error('[Relatórios] Erro ao carregar tags:', error);
@@ -18408,7 +18502,7 @@
     }
 
     function closeAllDropdowns(except = null) {
-      ['tags-dropdown', 'status-dropdown', 'tipo-dropdown'].forEach(id => {
+      ['tags-dropdown', 'status-dropdown', 'tipo-dropdown', 'veiculos-dropdown', 'mais-filtros-dropdown', 'export-dropdown', 'colunas-dropdown'].forEach(id => {
         if (id !== except) {
           const el = document.getElementById(id);
           if (el) el.style.display = 'none';
@@ -18418,7 +18512,7 @@
 
     // Fechar dropdowns ao clicar fora
     document.addEventListener('click', (e) => {
-      const isDropdownClick = e.target.closest('#tags-dropdown, #status-dropdown, #tipo-dropdown, [onclick*="toggle"]');
+      const isDropdownClick = e.target.closest('#tags-dropdown, #status-dropdown, #tipo-dropdown, #veiculos-dropdown, #mais-filtros-dropdown, #export-dropdown, #colunas-dropdown, [onclick*="toggle"]');
       if (!isDropdownClick) {
         closeAllDropdowns();
       }
@@ -18435,6 +18529,179 @@
       document.getElementById('tipo-label').textContent = texto;
       document.getElementById('tipo-dropdown').style.display = 'none';
     }
+
+    // ============ NOVOS DROPDOWNS UNIFICADOS ============
+
+    function toggleVeiculosDropdown() {
+      closeAllDropdowns('veiculos-dropdown');
+      const dropdown = document.getElementById('veiculos-dropdown');
+      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+    window.toggleVeiculosDropdown = toggleVeiculosDropdown;
+
+    function toggleMaisFiltrosDropdown() {
+      closeAllDropdowns('mais-filtros-dropdown');
+      const dropdown = document.getElementById('mais-filtros-dropdown');
+      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+    window.toggleMaisFiltrosDropdown = toggleMaisFiltrosDropdown;
+
+    function toggleExportDropdown() {
+      closeAllDropdowns('export-dropdown');
+      const dropdown = document.getElementById('export-dropdown');
+      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+    window.toggleExportDropdown = toggleExportDropdown;
+
+    // Filtros avançados
+    let filtrosAvancadosAtivos = [];
+
+    function aplicarFiltrosAvancados() {
+      filtrosAvancadosAtivos = [];
+
+      // Velocidade
+      if (document.getElementById('filtro-excessos')?.checked) filtrosAvancadosAtivos.push('excessos');
+      if (document.getElementById('filtro-vel-alta')?.checked) filtrosAvancadosAtivos.push('vel-alta');
+      if (document.getElementById('filtro-vel-media')?.checked) filtrosAvancadosAtivos.push('vel-media');
+
+      // Tempo
+      if (document.getElementById('filtro-muito-ocioso')?.checked) filtrosAvancadosAtivos.push('muito-ocioso');
+      if (document.getElementById('filtro-pouco-movimento')?.checked) filtrosAvancadosAtivos.push('pouco-movimento');
+      if (document.getElementById('filtro-muito-parado')?.checked) filtrosAvancadosAtivos.push('muito-parado');
+
+      // Quilometragem
+      if (document.getElementById('filtro-km-alto')?.checked) filtrosAvancadosAtivos.push('km-alto');
+      if (document.getElementById('filtro-km-baixo')?.checked) filtrosAvancadosAtivos.push('km-baixo');
+      if (document.getElementById('filtro-sem-km')?.checked) filtrosAvancadosAtivos.push('sem-km');
+
+      // Atualizar label
+      const label = document.getElementById('mais-filtros-label');
+      if (filtrosAvancadosAtivos.length > 0) {
+        label.textContent = `${filtrosAvancadosAtivos.length} filtros`;
+        label.style.color = 'var(--primary)';
+      } else {
+        label.textContent = '+ Mais';
+        label.style.color = '';
+      }
+    }
+    window.aplicarFiltrosAvancados = aplicarFiltrosAvancados;
+
+    function limparFiltrosAvancados() {
+      // Desmarcar todos os checkboxes
+      document.querySelectorAll('#mais-filtros-dropdown input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+      });
+
+      // Limpar tags
+      document.querySelectorAll('.tag-chip-filter').forEach(chip => {
+        chip.classList.remove('active');
+      });
+
+      filtrosAvancadosAtivos = [];
+      document.getElementById('mais-filtros-label').textContent = '+ Mais';
+      document.getElementById('mais-filtros-label').style.color = '';
+    }
+    window.limparFiltrosAvancados = limparFiltrosAvancados;
+
+    // Aplicar filtros avançados aos dados
+    function filtrarDadosAvancados(dados) {
+      if (filtrosAvancadosAtivos.length === 0) return dados;
+
+      return dados.filter(v => {
+        const stats = v.stats || {};
+
+        for (const filtro of filtrosAvancadosAtivos) {
+          switch (filtro) {
+            case 'excessos':
+              if ((stats.excessosVelocidade || 0) === 0) return false;
+              break;
+            case 'vel-alta':
+              if ((stats.velocidadeMaxima || 0) <= 100) return false;
+              break;
+            case 'vel-media':
+              if ((stats.velocidadeMedia || 0) <= 60) return false;
+              break;
+            case 'muito-ocioso':
+              if ((stats.tempoOcioso || 0) <= 120) return false;
+              break;
+            case 'pouco-movimento':
+              if ((stats.tempoMovimento || 0) >= 60) return false;
+              break;
+            case 'muito-parado':
+              if ((stats.tempoParado || 0) <= 1440) return false;
+              break;
+            case 'km-alto':
+              if ((stats.kmTotal || 0) <= 200) return false;
+              break;
+            case 'km-baixo':
+              if ((stats.kmTotal || 0) >= 10) return false;
+              break;
+            case 'sem-km':
+              if ((stats.kmTotal || 0) > 0) return false;
+              break;
+          }
+        }
+
+        return true;
+      });
+    }
+
+    // Atualizar lista de veículos selecionados
+    function atualizarListaVeiculosSelecionados() {
+      const container = document.getElementById('veiculos-selecionados-list');
+      const label = document.getElementById('veiculos-label');
+
+      if (veiculosFiltroSelecionados.length === 0) {
+        container.innerHTML = '<span style="color: var(--text-muted);">Todos os veículos selecionados</span>';
+        label.textContent = 'Todos';
+      } else {
+        container.innerHTML = veiculosFiltroSelecionados.map(v => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; background: var(--bg); border-radius: 4px; margin-bottom: 4px;">
+            <span>${v.placa || v.imei}</span>
+            <button onclick="removerVeiculoFiltro('${v.imei}')" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 2px 6px;">×</button>
+          </div>
+        `).join('');
+        label.textContent = veiculosFiltroSelecionados.length === 1
+          ? veiculosFiltroSelecionados[0].placa || '1 veículo'
+          : `${veiculosFiltroSelecionados.length} veículos`;
+      }
+    }
+
+    function removerVeiculoFiltro(imei) {
+      veiculosFiltroSelecionados = veiculosFiltroSelecionados.filter(v => v.imei !== imei);
+      atualizarListaVeiculosSelecionados();
+    }
+    window.removerVeiculoFiltro = removerVeiculoFiltro;
+
+    // Renderizar tags como chips no dropdown de mais filtros
+    function renderizarTagsChips() {
+      const container = document.getElementById('tags-checkbox-list');
+      if (!container || !relatorioTagsCache) return;
+
+      if (relatorioTagsCache.length === 0) {
+        container.innerHTML = '<span style="color: var(--text-muted); font-size: 0.85rem;">Nenhuma tag cadastrada</span>';
+        return;
+      }
+
+      container.innerHTML = relatorioTagsCache.map(tag => `
+        <span class="tag-chip-filter" data-tag-id="${tag.id}" onclick="toggleTagChip(this, ${tag.id})" style="background: ${tag.cor || '#6b7280'}20; border-color: ${tag.cor || '#6b7280'};">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: ${tag.cor || '#6b7280'};"></span>
+          ${escapeHtml(tag.nome)}
+        </span>
+      `).join('');
+    }
+
+    function toggleTagChip(element, tagId) {
+      element.classList.toggle('active');
+    }
+    window.toggleTagChip = toggleTagChip;
+
+    function getTagsSelecionadasChips() {
+      const chips = document.querySelectorAll('.tag-chip-filter.active');
+      return Array.from(chips).map(chip => chip.dataset.tagId);
+    }
+
+    // ============ FIM NOVOS DROPDOWNS ============
 
     function limparTagsSelecionadas() {
       document.querySelectorAll('.tag-checkbox').forEach(cb => cb.checked = false);
