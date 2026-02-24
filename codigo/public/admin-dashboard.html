@@ -8820,6 +8820,7 @@
                   <tr>
                     <th class="col-check" style="width: 40px;"></th>
                     <th class="col-veiculo">Veículo</th>
+                    <th class="col-motorista">Motorista</th>
                     <th class="col-status">Status</th>
                     <th class="col-km">Km</th>
                     <th class="col-movimento">Movimento</th>
@@ -8831,7 +8832,7 @@
                 </thead>
                 <tbody id="relatorios-veiculos-tbody">
                   <tr>
-                    <td colspan="9" style="text-align:center; padding:40px; color:var(--text-light);">
+                    <td colspan="10" style="text-align:center; padding:40px; color:var(--text-light);">
                       <div style="font-size:28px; margin-bottom:8px; color: var(--text-muted);">☰</div>
                       Selecione os filtros e clique em <strong>Buscar</strong>
                     </td>
@@ -19327,6 +19328,7 @@
               imei: v.imei,
               placa: v.placa,
               veiculo: v.veiculo,
+              motorista: v.motorista || v.motoristas || '-',
               status: v.status,
               statusAtual: v.status === 'online' ? 'parado' : 'offline',
               stats: {
@@ -19438,19 +19440,30 @@
 
       // Ler das inputs hidden controladas pelo Flatpickr
       if (dataInicioInput && dataInicioInput.value) {
-        inicio = new Date(dataInicioInput.value);
+        // Parse da data no formato YYYY-MM-DD e criar em horário LOCAL (início do dia)
+        const [y, m, d] = dataInicioInput.value.split('-').map(Number);
+        inicio = new Date(y, m - 1, d, 0, 0, 0, 0);
       } else {
         // Fallback: últimos 7 dias
         inicio = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+        inicio.setHours(0, 0, 0, 0);
       }
 
       if (dataFimInput && dataFimInput.value) {
-        fim = new Date(dataFimInput.value);
-        // Ajustar para final do dia
-        fim.setHours(23, 59, 59, 999);
+        // Parse da data no formato YYYY-MM-DD e criar em horário LOCAL (final do dia)
+        const [y, m, d] = dataFimInput.value.split('-').map(Number);
+        fim = new Date(y, m - 1, d, 23, 59, 59, 999);
       } else {
         fim = agora;
       }
+
+      // Debug para verificar datas
+      console.log('[Relatórios] Período:', {
+        inicioLocal: inicio.toLocaleString('pt-BR'),
+        inicioUTC: inicio.toISOString(),
+        fimLocal: fim.toLocaleString('pt-BR'),
+        fimUTC: fim.toISOString()
+      });
 
       return { inicio, fim };
     }
@@ -19533,6 +19546,9 @@
                 <span class="veiculo-placa">${veiculo.placa || 'Sem Placa'}</span>
                 <span class="veiculo-nome">${veiculo.veiculo || veiculo.imei?.slice(-8) || 'N/A'}</span>
               </div>
+            </td>
+            <td class="col-motorista">
+              <span class="motorista-nome" title="${veiculo.motorista || 'Sem motorista'}">${veiculo.motorista || '-'}</span>
             </td>
             <td class="col-status">
               <span class="status-badge ${status.class}">
