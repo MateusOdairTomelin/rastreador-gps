@@ -4566,6 +4566,24 @@
       opacity: 0.9;
     }
 
+    /* Botão Limpar Filtros */
+    .btn-limpar-filtros {
+      padding: 10px 16px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-limpar-filtros:hover {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
     /* Botão Buscar */
     .btn-buscar-cobli {
       padding: 10px 24px;
@@ -8743,6 +8761,11 @@
 
                 <!-- Spacer -->
                 <div style="flex: 1;"></div>
+
+                <!-- Botão Limpar Filtros -->
+                <button class="btn-limpar-filtros" onclick="limparTodosFiltros()" title="Limpar todos os filtros">
+                  ✕ Limpar
+                </button>
 
                 <!-- Botão Buscar -->
                 <button class="btn-buscar-cobli" onclick="buscarRelatorios()">
@@ -18609,26 +18632,31 @@
           `;
         }
 
-        // Verificar se deve filtrar por veículos específicos
+        // Verificar se deve filtrar por veículos específicos ou por tags
         const filtroTodosEl = document.getElementById('rel-todos-veiculos');
         const todosVeiculosMarcado = filtroTodosEl ? filtroTodosEl.value === 'true' : true;
         const filtrandoPorVeiculos = !todosVeiculosMarcado && veiculosFiltroSelecionados.length > 0;
+        const tagsSelecionadas = getTagsSelecionadasRelatorio();
+        const filtrandoPorTags = tagsSelecionadas.length > 0;
 
-        console.log('[Relatórios] Todos marcado:', todosVeiculosMarcado, 'Filtrados:', veiculosFiltroSelecionados.length, 'Filtrando:', filtrandoPorVeiculos);
+        // Se tem qualquer filtro (veículos OU tags), os dados virão direto da API de frota
+        const temFiltroAtivo = filtrandoPorVeiculos || filtrandoPorTags;
 
-        if (!filtrandoPorVeiculos) {
-          // Buscar todos os dispositivos (checkbox marcado ou nenhum selecionado)
+        console.log('[Relatórios] Todos marcado:', todosVeiculosMarcado, 'Filtrados:', veiculosFiltroSelecionados.length, 'Tags:', tagsSelecionadas.length, 'Tem filtro:', temFiltroAtivo);
+
+        if (!temFiltroAtivo) {
+          // Buscar todos os dispositivos (nenhum filtro ativo)
           const response = await authFetch(`${API_URL}/dispositivos`);
           if (!response.ok) throw new Error('Erro ao buscar dispositivos');
           const data = await response.json();
           relatoriosVeiculos = data.dados || [];
         }
-        // Se está filtrando por veículos específicos, os dados virão da API de frota
+        // Se está filtrando (por veículos OU tags), os dados virão da API de frota
 
         relatoriosCarregados = true;
 
         // Calcular estatísticas (passando flag de filtro)
-        await calcularEstatisticasVeiculos(filtrandoPorVeiculos);
+        await calcularEstatisticasVeiculos(temFiltroAtivo);
 
       } catch (error) {
         console.error('Erro ao buscar relatórios:', error);
@@ -18903,6 +18931,53 @@
     }
     window.aplicarVeiculosSelecionados = aplicarVeiculosSelecionados;
 
+    // ============ LIMPAR TODOS OS FILTROS ============
+
+    function limparTodosFiltros() {
+      // Limpar veículos
+      document.querySelectorAll('.veiculo-checkbox').forEach(cb => cb.checked = false);
+      veiculosCheckboxSelecionados.clear();
+      veiculosFiltroSelecionados = [];
+      document.getElementById('veiculos-label').textContent = 'Veículos';
+      document.getElementById('rel-todos-veiculos').value = 'true';
+      const buscaVeiculo = document.getElementById('rel-busca-veiculo');
+      if (buscaVeiculo) buscaVeiculo.value = '';
+
+      // Limpar status
+      document.querySelectorAll('.status-checkbox').forEach(cb => cb.checked = false);
+      statusCheckboxSelecionados.clear();
+      document.getElementById('status-label').textContent = 'Status';
+      document.getElementById('rel-filtro-status').value = 'todos';
+
+      // Limpar tags
+      document.querySelectorAll('.tag-checkbox').forEach(cb => cb.checked = false);
+      document.getElementById('tags-selecionadas-label').textContent = 'Tags';
+      const buscaTags = document.getElementById('tags-search');
+      if (buscaTags) buscaTags.value = '';
+
+      // Limpar motoristas
+      document.querySelectorAll('.motorista-checkbox').forEach(cb => cb.checked = false);
+      motoristasCheckboxSelecionados.clear();
+      document.getElementById('motoristas-label').textContent = 'Motoristas';
+      filtroMotoristaAtual = 'todos';
+      motoristaSelecionadoId = null;
+      const buscaMotorista = document.getElementById('motoristas-search');
+      if (buscaMotorista) buscaMotorista.value = '';
+
+      // Resetar período para últimos 7 dias
+      if (relatoriosFlatpickr) {
+        const hoje = new Date();
+        const seteDiasAtras = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+        relatoriosFlatpickr.setDate([seteDiasAtras, hoje]);
+      }
+
+      // Fechar todos os dropdowns
+      closeAllDropdowns();
+
+      console.log('[Filtros] Todos os filtros foram limpos');
+    }
+    window.limparTodosFiltros = limparTodosFiltros;
+
     // ============ STATUS DROPDOWN ============
 
     function atualizarStatusSelecionados() {
@@ -19149,7 +19224,8 @@
     }
 
     // Calcular estatísticas para cada veículo (busca da API real)
-    async function calcularEstatisticasVeiculos(filtrandoPorVeiculos = false) {
+    // temFiltroAtivo = true quando filtrando por veículos específicos OU por tags
+    async function calcularEstatisticasVeiculos(temFiltroAtivo = false) {
       const periodo = obterPeriodoRelatorio();
 
       try {
@@ -19172,7 +19248,7 @@
         });
 
         // Se há veículos selecionados no filtro, passar IMEIs para filtrar na API
-        if (filtrandoPorVeiculos && veiculosFiltroSelecionados.length > 0) {
+        if (veiculosFiltroSelecionados.length > 0) {
           veiculosFiltroSelecionados.forEach(v => params.append('imei', v.imei));
           console.log('[Relatórios] Filtrando por IMEIs:', veiculosFiltroSelecionados.map(v => v.imei));
         }
@@ -19193,11 +19269,11 @@
         }
 
         const data = await response.json();
-        console.log('[Relatórios] API retornou:', data.veiculos?.length, 'veículos', 'filtrandoPorVeiculos:', filtrandoPorVeiculos);
+        console.log('[Relatórios] API retornou:', data.veiculos?.length, 'veículos, temFiltroAtivo:', temFiltroAtivo);
 
         if (data.sucesso && data.veiculos) {
-          // Se está filtrando por veículos, usar dados diretamente da API de frota
-          if (filtrandoPorVeiculos) {
+          // Se está filtrando (por veículos OU tags), usar dados diretamente da API de frota
+          if (temFiltroAtivo) {
             // Converter dados da API para o formato do frontend
             relatoriosVeiculos = data.veiculos.map(v => ({
               imei: v.imei,
