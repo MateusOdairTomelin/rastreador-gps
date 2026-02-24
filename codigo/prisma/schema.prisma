@@ -1194,6 +1194,8 @@ model InsightIA {
   // Conteúdo do insight
   titulo          String    @db.VarChar(255)
   descricao       String    @db.Text
+  acao_recomendada String?  @db.Text          // Ação sugerida para resolver o insight
+  acao_url        String?   @db.VarChar(255)  // URL para ação (ex: link para relatório)
   dados           String?   @db.Text          // JSON com dados de suporte (métricas, gráficos)
 
   // Métricas do insight
