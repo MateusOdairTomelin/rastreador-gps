@@ -28,7 +28,7 @@ class InsightsJob {
     try {
       // Buscar todas as organizações ativas
       const organizacoes = await prisma.organizacao.findMany({
-        where: { ativo: true },
+        where: { status: 'ativo' },
         select: { id: true, nome: true }
       });
 
