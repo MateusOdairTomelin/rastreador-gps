@@ -9,7 +9,7 @@
  */
 
 const insightService = require('../services/insight.service');
-const prisma = require('../db');
+const prisma = require('../db/prisma');
 
 class InsightsJob {
   constructor() {
