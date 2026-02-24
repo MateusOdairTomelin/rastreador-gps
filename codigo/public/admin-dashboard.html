@@ -7675,11 +7675,23 @@
                   <option value="offline">Offline</option>
                 </select>
               </div>
-              <div class="filtro-item">
+              <div class="filtro-item" style="position: relative;">
                 <label class="icon-with-text"><i data-lucide="tag" class="lucide-icon sm"></i> Tags</label>
-                <select id="rel-filtro-tags" multiple style="min-height: 38px; max-height: 100px;">
-                  <option value="">Carregando...</option>
-                </select>
+                <button type="button" id="btn-filtro-tags" onclick="toggleTagsDropdown()" style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px;">
+                  🏷️ <span id="tags-selecionadas-label">Todas</span>
+                  <span style="margin-left: auto;">▼</span>
+                </button>
+                <div id="tags-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; z-index: 100; max-height: 250px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                  <div style="padding: 8px; border-bottom: 1px solid var(--border);">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+                      <input type="checkbox" id="tag-todas" checked onchange="toggleTodasTags()" style="width: 16px; height: 16px; accent-color: var(--primary);">
+                      <span style="font-weight: 600;">Todas as tags</span>
+                    </label>
+                  </div>
+                  <div id="tags-checkbox-list" style="padding: 8px;">
+                    <div style="color: var(--text-muted); padding: 12px; text-align: center;">Carregando tags...</div>
+                  </div>
+                </div>
               </div>
               <div class="filtro-item">
                 <label class="icon-with-text"><i data-lucide="bar-chart-3" class="lucide-icon sm"></i> Tipo de Relatório</label>
@@ -16741,9 +16753,8 @@
       const busca = (document.getElementById('rel-busca-veiculo')?.value || '').toLowerCase();
       const status = document.getElementById('rel-filtro-status')?.value || 'todos';
 
-      // Pegar tags selecionadas
-      const tagsSelect = document.getElementById('rel-filtro-tags');
-      const tagsSelecionadas = tagsSelect ? Array.from(tagsSelect.selectedOptions).map(o => parseInt(o.value)) : [];
+      // Pegar tags selecionadas (do dropdown de checkboxes)
+      const tagsSelecionadas = getTagsSelecionadasRelatorio().map(id => parseInt(id));
 
       relatoriosVeiculosFiltrados = relatoriosVeiculos.filter(v => {
         // Filtro de busca
@@ -16782,27 +16793,86 @@
     }
 
     // Carregar tags no select de filtro de relatórios
+    // Cache de tags para relatórios
+    let relatorioTagsCache = [];
+
     async function carregarTagsRelatorios() {
       try {
-        const select = document.getElementById('rel-filtro-tags');
-        if (!select) return;
+        const container = document.getElementById('tags-checkbox-list');
+        if (!container) return;
 
         const response = await authFetch(`${API_URL}/tags`);
         const data = await response.json();
 
         if (data.sucesso && data.tags) {
-          select.innerHTML = data.tags.map(tag =>
-            `<option value="${tag.id}" style="padding: 4px;">${escapeHtml(tag.nome)}</option>`
-          ).join('');
+          relatorioTagsCache = data.tags;
 
-          // Se não há tags, mostrar mensagem
           if (data.tags.length === 0) {
-            select.innerHTML = '<option value="" disabled>Nenhuma tag criada</option>';
+            container.innerHTML = '<div style="color: var(--text-muted); padding: 12px; text-align: center;">Nenhuma tag criada</div>';
+            return;
           }
+
+          container.innerHTML = data.tags.map(tag => `
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+              <input type="checkbox" class="tag-checkbox" value="${tag.id}" onchange="atualizarTagsSelecionadas()" style="width: 16px; height: 16px; accent-color: var(--primary);">
+              <div style="width: 10px; height: 10px; border-radius: 2px; background: ${tag.cor || '#3B82F6'};"></div>
+              <span>${escapeHtml(tag.nome)}</span>
+            </label>
+          `).join('');
         }
       } catch (error) {
         console.error('[Relatórios] Erro ao carregar tags:', error);
       }
+    }
+
+    function toggleTagsDropdown() {
+      const dropdown = document.getElementById('tags-dropdown');
+      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Fechar dropdown ao clicar fora
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('tags-dropdown');
+      const btn = document.getElementById('btn-filtro-tags');
+      if (dropdown && btn && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    });
+
+    function toggleTodasTags() {
+      const todasCheckbox = document.getElementById('tag-todas');
+      const checkboxes = document.querySelectorAll('.tag-checkbox');
+
+      if (todasCheckbox.checked) {
+        // Desmarcar todas as tags individuais
+        checkboxes.forEach(cb => cb.checked = false);
+      }
+      atualizarTagsSelecionadas();
+    }
+
+    function atualizarTagsSelecionadas() {
+      const todasCheckbox = document.getElementById('tag-todas');
+      const checkboxes = document.querySelectorAll('.tag-checkbox:checked');
+      const label = document.getElementById('tags-selecionadas-label');
+
+      if (checkboxes.length === 0) {
+        todasCheckbox.checked = true;
+        label.textContent = 'Todas';
+      } else {
+        todasCheckbox.checked = false;
+        if (checkboxes.length === 1) {
+          const tagId = parseInt(checkboxes[0].value);
+          const tag = relatorioTagsCache.find(t => t.id === tagId);
+          label.textContent = tag ? tag.nome : '1 selecionada';
+        } else {
+          label.textContent = `${checkboxes.length} selecionadas`;
+        }
+      }
+    }
+
+    function getTagsSelecionadasRelatorio() {
+      const checkboxes = document.querySelectorAll('.tag-checkbox:checked');
+      return Array.from(checkboxes).map(cb => cb.value);
     }
 
     // Calcular estatísticas para cada veículo (busca da API real)
@@ -16834,14 +16904,11 @@
           console.log('[Relatórios] Filtrando por IMEIs:', veiculosFiltroSelecionados.map(v => v.imei));
         }
 
-        // Filtrar por tags selecionadas
-        const tagsSelect = document.getElementById('rel-filtro-tags');
-        if (tagsSelect) {
-          const tagsSelecionadas = Array.from(tagsSelect.selectedOptions).map(o => o.value).filter(v => v);
-          tagsSelecionadas.forEach(tagId => params.append('tags', tagId));
-          if (tagsSelecionadas.length > 0) {
-            console.log('[Relatórios] Filtrando por tags:', tagsSelecionadas);
-          }
+        // Filtrar por tags selecionadas (do dropdown de checkboxes)
+        const tagsSelecionadas = getTagsSelecionadasRelatorio();
+        tagsSelecionadas.forEach(tagId => params.append('tags', tagId));
+        if (tagsSelecionadas.length > 0) {
+          console.log('[Relatórios] Filtrando por tags:', tagsSelecionadas);
         }
 
         const urlFinal = `${API_URL}/relatorios/frota?${params.toString()}`;
