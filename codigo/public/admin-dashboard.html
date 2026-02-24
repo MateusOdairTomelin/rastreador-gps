@@ -8565,6 +8565,87 @@
       return showConfirm(message, { title, type: 'warning' });
     }
 
+    // ============ MODAL GENÉRICO ============
+    let activeModal = null;
+
+    function showModal(title, content) {
+      // Remover modal existente se houver
+      fecharModal();
+
+      const overlay = document.createElement('div');
+      overlay.id = 'generic-modal-overlay';
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        z-index: 999998;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: confirmFadeIn 0.2s ease;
+      `;
+
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 16px;
+        padding: 24px;
+        max-width: 450px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+        animation: confirmFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      `;
+
+      modal.innerHTML = content;
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+
+      activeModal = overlay;
+
+      // Fechar ao clicar no overlay
+      overlay.onclick = (e) => {
+        if (e.target === overlay) fecharModal();
+      };
+
+      // Fechar com ESC
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          fecharModal();
+          document.removeEventListener('keydown', escHandler);
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+
+      // Focar no primeiro input
+      setTimeout(() => {
+        const input = modal.querySelector('input, textarea');
+        if (input) input.focus();
+      }, 100);
+    }
+
+    function fecharModal() {
+      const overlay = document.getElementById('generic-modal-overlay');
+      if (overlay) {
+        overlay.style.animation = 'confirmFadeIn 0.2s ease reverse';
+        setTimeout(() => {
+          overlay.remove();
+          document.body.style.overflow = '';
+        }, 200);
+      }
+      activeModal = null;
+    }
+
+    window.showModal = showModal;
+    window.fecharModal = fecharModal;
+
     // ============ SEGURANÇA: SANITIZAÇÃO XSS ============
     // Função para sanitizar HTML e prevenir ataques XSS
     function sanitize(dirty) {
