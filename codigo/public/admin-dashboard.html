@@ -4256,6 +4256,14 @@
     }
 
     /* ========== RELATÓRIOS UNIFICADO ========== */
+    #section-relatorios {
+      overflow: visible !important;
+    }
+
+    #section-relatorios .rel-tab-content {
+      overflow: visible !important;
+    }
+
     .relatorios-unificado {
       overflow: visible !important;
     }
@@ -4284,6 +4292,7 @@
       padding: 16px 20px;
       background: var(--bg-white);
       border-bottom: 1px solid var(--border);
+      overflow: visible; /* Permite dropdown aparecer fora da barra */
     }
 
     .filtros-linha-1 {
@@ -5073,6 +5082,7 @@
 
     .veiculos-table-container {
       overflow-x: auto;
+      min-height: 350px; /* Espaço mínimo para dropdowns dos filtros */
     }
 
     .veiculos-relatorio-table {
