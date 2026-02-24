@@ -52,6 +52,15 @@ model Organizacao {
   email           String    @db.VarChar(255)
   telefone        String?   @db.VarChar(20)
 
+  // Endereço
+  cep             String?   @db.VarChar(10)
+  logradouro      String?   @db.VarChar(200)
+  numero          String?   @db.VarChar(20)
+  complemento     String?   @db.VarChar(100)
+  bairro          String?   @db.VarChar(100)
+  cidade          String?   @db.VarChar(100)
+  estado          String?   @db.VarChar(2)
+
   // Configurações visuais
   logo_url        String?   @db.Text  // Suporta URLs longas e data URLs (base64)
   cor_primaria    String?   @default("#3FCFD5") @db.VarChar(7)
