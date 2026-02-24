@@ -2849,6 +2849,177 @@
       animation: bellRing 0.5s ease;
     }
 
+    /* Insights Button na Topbar */
+    .insights-btn {
+      position: relative;
+      cursor: pointer;
+      padding: 10px;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      background: transparent;
+      border: none;
+      margin-right: 4px;
+    }
+
+    .insights-btn:hover {
+      background: rgba(124, 58, 237, 0.15);
+    }
+
+    .insights-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: none;
+      stroke: #A855F7;
+      stroke-width: 2;
+      transition: all 0.3s ease;
+    }
+
+    .insights-btn:hover svg {
+      stroke: #C084FC;
+    }
+
+    .insights-btn .insights-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: linear-gradient(135deg, #7C3AED, #A855F7);
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+    }
+
+    .insights-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 420px;
+      max-height: 500px;
+      background: rgba(15, 23, 42, 0.98);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(124, 58, 237, 0.2);
+      z-index: 1001;
+      display: none;
+      overflow: hidden;
+    }
+
+    .insights-dropdown.show {
+      display: block;
+      animation: dropdownSlide 0.2s ease;
+    }
+
+    .insights-dropdown-header {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(168, 85, 247, 0.1));
+      border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .insights-dropdown-header h4 {
+      margin: 0;
+      color: #C084FC;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .insights-dropdown-body {
+      max-height: 380px;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .insight-item {
+      padding: 14px;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .insight-item:hover {
+      transform: translateX(4px);
+    }
+
+    .insight-item.critica {
+      background: rgba(239, 68, 68, 0.15);
+      border-left: 3px solid #EF4444;
+    }
+
+    .insight-item.alta {
+      background: rgba(249, 115, 22, 0.15);
+      border-left: 3px solid #F97316;
+    }
+
+    .insight-item.normal {
+      background: rgba(59, 130, 246, 0.15);
+      border-left: 3px solid #3B82F6;
+    }
+
+    .insight-item.baixa {
+      background: rgba(107, 114, 128, 0.15);
+      border-left: 3px solid #6B7280;
+    }
+
+    .insight-item.unread {
+      border-left-width: 4px;
+    }
+
+    .insight-item .insight-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+
+    .insight-item .insight-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .insight-item .insight-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .insights-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .insights-dropdown-footer {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(124, 58, 237, 0.2);
+      display: flex;
+      gap: 8px;
+    }
+
+    .insights-dropdown-footer button {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
     @keyframes bellRing {
       0%, 100% { transform: rotate(0); }
       25% { transform: rotate(15deg); }
@@ -4916,11 +5087,6 @@
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
           <span>Tags</span>
         </button>
-        <button class="nav-item" id="nav-insights" onclick="switchSection('insights')">
-          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span>
-          <span>Insights IA</span>
-          <span id="badge-insights" style="display:none; background:#7C3AED; color:white; font-size:10px; padding:2px 6px; border-radius:10px; margin-left:auto;"></span>
-        </button>
         <button class="nav-item" id="nav-trajetos" onclick="switchSection('trajetos')">
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></span>
           <span>Trajetos</span>
@@ -5055,6 +5221,34 @@
           <span>Mapa</span>
         </div>
         <div class="topbar-actions">
+          <!-- Botão de Insights IA -->
+          <div class="insights-btn" id="insights-btn" onclick="toggleInsightsDropdown(event)" title="Insights de IA">
+            <svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            <span class="insights-badge" id="insights-badge" style="display: none;">0</span>
+          </div>
+          <!-- Dropdown de Insights -->
+          <div class="insights-dropdown" id="insights-dropdown">
+            <div class="insights-dropdown-header">
+              <h4>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                Insights de IA
+              </h4>
+              <button onclick="gerarInsightsTopbar()" style="background: linear-gradient(135deg, #7C3AED, #A855F7); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Gerar
+              </button>
+            </div>
+            <div class="insights-dropdown-body" id="insights-dropdown-body">
+              <div class="insights-empty">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; opacity: 0.4;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                <p>Carregando insights...</p>
+              </div>
+            </div>
+            <div class="insights-dropdown-footer">
+              <button onclick="marcarTodosInsightsLidosTopbar()" style="background: rgba(255,255,255,0.1); color: var(--text); border: 1px solid var(--border);">Marcar lidos</button>
+              <button onclick="verTodosInsights()" style="background: linear-gradient(135deg, #7C3AED, #A855F7); color: white; border: none;">Ver todos</button>
+            </div>
+          </div>
           <!-- Sino de Notificações -->
           <div class="notification-bell" id="notification-bell" onclick="toggleNotificationDropdown(event)">
             <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
@@ -6847,74 +7041,6 @@
             <!-- Lista de Tags -->
             <div id="tags-lista" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
               <div style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando tags...</div>
-            </div>
-          </div>
-        </section>
-
-        <!-- INSIGHTS SECTION -->
-        <section class="section" id="section-insights">
-          <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-              <div>
-                <h2 style="color: var(--primary); font-size: 1.3rem; display: flex; align-items: center; gap: 10px;">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-                  Insights de IA
-                </h2>
-                <p style="color: var(--text-muted); margin-top: 8px;">Analise automatica de padroes e tendencias da sua frota</p>
-              </div>
-              <div style="display: flex; gap: 10px;">
-                <button onclick="marcarTodosInsightsLidos()" style="background: var(--bg-card); color: var(--text); border: 1px solid var(--border); padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
-                  Marcar todos como lidos
-                </button>
-                <button onclick="gerarInsights()" style="background: linear-gradient(135deg, #7C3AED, #A855F7); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                  Gerar Insights
-                </button>
-              </div>
-            </div>
-
-            <!-- Resumo de Insights -->
-            <div id="insights-resumo" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px;">
-              <div class="stat-card" style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(168, 85, 247, 0.1)); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; padding: 16px; text-align: center;">
-                <div style="font-size: 2rem; font-weight: 700; color: #A855F7;" id="stat-insights-nao-lidos">0</div>
-                <div style="color: var(--text-muted); font-size: 0.85rem;">Nao Lidos</div>
-              </div>
-              <div class="stat-card" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(248, 113, 113, 0.1)); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 16px; text-align: center;">
-                <div style="font-size: 2rem; font-weight: 700; color: #EF4444;" id="stat-insights-criticos">0</div>
-                <div style="color: var(--text-muted); font-size: 0.85rem;">Criticos</div>
-              </div>
-              <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 16px; text-align: center;">
-                <div style="font-size: 0.9rem; color: var(--text-muted);" id="stat-ultimo-gerado">-</div>
-                <div style="color: var(--text-muted); font-size: 0.85rem;">Ultima Geracao</div>
-              </div>
-            </div>
-
-            <!-- Filtros -->
-            <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
-              <select id="filtro-insight-tipo" onchange="carregarInsights()" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px;">
-                <option value="">Todos os tipos</option>
-                <option value="motorista">Motorista</option>
-                <option value="veiculo">Veiculo</option>
-                <option value="frota">Frota</option>
-                <option value="seguranca">Seguranca</option>
-                <option value="custo">Custo</option>
-              </select>
-              <select id="filtro-insight-prioridade" onchange="carregarInsights()" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px;">
-                <option value="">Todas prioridades</option>
-                <option value="critica">Critica</option>
-                <option value="alta">Alta</option>
-                <option value="normal">Normal</option>
-                <option value="baixa">Baixa</option>
-              </select>
-              <label style="display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.9rem;">
-                <input type="checkbox" id="filtro-insight-nao-lidos" onchange="carregarInsights()">
-                Apenas nao lidos
-              </label>
-            </div>
-
-            <!-- Lista de Insights -->
-            <div id="insights-lista" style="display: flex; flex-direction: column; gap: 12px;">
-              <div style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando insights...</div>
             </div>
           </div>
         </section>
@@ -11613,7 +11739,6 @@
       motoristas: '👤',
       veiculos: '🚗',
       tags: '🏷️',
-      insights: '📊',
       'info-veiculo': '🚗',
       trajetos: '◇',
       lgpd: '🛡'
@@ -11639,7 +11764,6 @@
       motoristas: 'Motoristas',
       veiculos: 'Veículos',
       tags: 'Tags de Veículos',
-      insights: 'Insights de IA',
       'info-veiculo': 'Info Veículo',
       trajetos: 'Trajetos',
       lgpd: 'LGPD / Privacidade'
@@ -11728,8 +11852,6 @@
         if (typeof carregarVeiculosSecao === 'function') carregarVeiculosSecao();
       } else if (name === 'tags') {
         if (typeof carregarTags === 'function') carregarTags();
-      } else if (name === 'insights') {
-        if (typeof carregarInsights === 'function') carregarInsights();
       } else if (name === 'trajetos') {
         if (typeof trajetosInit === 'function') trajetosInit();
       }
@@ -19261,110 +19383,93 @@
     window.excluirTag = excluirTag;
     window.verVeiculosTag = verVeiculosTag;
 
-    // ============ INSIGHTS SECTION ============
+    // ============ INSIGHTS TOPBAR ============
     let insightsCache = [];
 
-    async function carregarInsights() {
-      try {
-        const tipo = document.getElementById('filtro-insight-tipo')?.value || '';
-        const prioridade = document.getElementById('filtro-insight-prioridade')?.value || '';
-        const naoLidos = document.getElementById('filtro-insight-nao-lidos')?.checked;
+    // Toggle dropdown de insights
+    function toggleInsightsDropdown(event) {
+      event.stopPropagation();
+      const dropdown = document.getElementById('insights-dropdown');
+      const notifDropdown = document.getElementById('notification-dropdown');
 
-        let url = `${API_URL}/insights?limit=50`;
-        if (tipo) url += `&tipo=${tipo}`;
-        if (prioridade) url += `&prioridade=${prioridade}`;
-        if (naoLidos) url += `&lido=false`;
+      // Fechar notificações se estiver aberto
+      if (notifDropdown) notifDropdown.classList.remove('show');
 
-        const response = await authFetch(url);
-        if (!response.ok) throw new Error('Erro ao carregar insights');
+      dropdown.classList.toggle('show');
 
-        const data = await response.json();
-        if (data.sucesso) {
-          insightsCache = data.insights || [];
-          renderizarInsights();
-          document.getElementById('stat-insights-nao-lidos').textContent = data.naoLidos || 0;
-
-          // Atualizar badge no menu
-          const badge = document.getElementById('badge-insights');
-          if (data.naoLidos > 0) {
-            badge.textContent = data.naoLidos;
-            badge.style.display = 'inline';
-          } else {
-            badge.style.display = 'none';
-          }
-        }
-
-        // Carregar resumo
-        const resumoRes = await authFetch(`${API_URL}/insights/resumo`);
-        const resumoData = await resumoRes.json();
-        if (resumoData.sucesso) {
-          document.getElementById('stat-insights-criticos').textContent = resumoData.criticos || 0;
-          if (resumoData.ultimoGerado) {
-            const data = new Date(resumoData.ultimoGerado);
-            document.getElementById('stat-ultimo-gerado').textContent = data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-          }
-        }
-      } catch (error) {
-        console.error('[Insights] Erro ao carregar:', error);
-        document.getElementById('insights-lista').innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">Erro ao carregar insights: ${error.message}</div>`;
+      // Carregar insights se abrir
+      if (dropdown.classList.contains('show')) {
+        carregarInsightsTopbar();
       }
     }
 
-    function renderizarInsights() {
-      const container = document.getElementById('insights-lista');
+    // Fechar dropdown ao clicar fora
+    document.addEventListener('click', (e) => {
+      const btn = document.getElementById('insights-btn');
+      const dropdown = document.getElementById('insights-dropdown');
+      if (btn && dropdown && !btn.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('show');
+      }
+    });
+
+    async function carregarInsightsTopbar() {
+      const container = document.getElementById('insights-dropdown-body');
+      const badge = document.getElementById('insights-badge');
+
+      try {
+        const response = await authFetch(`${API_URL}/insights?limit=10&lido=false`);
+        if (!response.ok) throw new Error('Erro ao carregar');
+
+        const data = await response.json();
+        insightsCache = data.insights || [];
+        const naoLidos = data.naoLidos || 0;
+
+        // Atualizar badge
+        if (naoLidos > 0) {
+          badge.textContent = naoLidos > 9 ? '9+' : naoLidos;
+          badge.style.display = 'flex';
+        } else {
+          badge.style.display = 'none';
+        }
+
+        renderizarInsightsTopbar();
+      } catch (error) {
+        console.error('[Insights] Erro:', error);
+        container.innerHTML = `<div class="insights-empty"><p style="color: #ef4444;">Erro ao carregar</p></div>`;
+      }
+    }
+
+    function renderizarInsightsTopbar() {
+      const container = document.getElementById('insights-dropdown-body');
 
       if (insightsCache.length === 0) {
         container.innerHTML = `
-          <div style="text-align: center; padding: 60px; color: var(--text-muted);">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 16px; opacity: 0.5;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-            <p>Nenhum insight encontrado</p>
-            <p style="font-size: 0.85rem; margin-top: 8px;">Clique em "Gerar Insights" para analisar os dados da sua frota</p>
+          <div class="insights-empty">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; opacity: 0.4;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            <p>Nenhum insight pendente</p>
+            <p style="font-size: 0.8rem; margin-top: 4px;">Clique em "Gerar" para analisar a frota</p>
           </div>`;
         return;
       }
 
-      const prioridadeCores = {
-        critica: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)', icon: '🔴' },
-        alta: { bg: 'rgba(249, 115, 22, 0.15)', border: 'rgba(249, 115, 22, 0.4)', icon: '🟠' },
-        normal: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.4)', icon: '🔵' },
-        baixa: { bg: 'rgba(107, 114, 128, 0.15)', border: 'rgba(107, 114, 128, 0.4)', icon: '⚪' }
-      };
+      const tipoIcones = { motorista: '👤', veiculo: '🚗', frota: '🚚', seguranca: '⚠️', custo: '💰' };
 
-      const tipoIcones = {
-        motorista: '👤',
-        veiculo: '🚗',
-        frota: '🚚',
-        seguranca: '⚠️',
-        custo: '💰'
-      };
-
-      container.innerHTML = insightsCache.map(insight => {
-        const cor = prioridadeCores[insight.prioridade] || prioridadeCores.normal;
+      container.innerHTML = insightsCache.slice(0, 8).map(insight => {
         const icone = tipoIcones[insight.tipo] || '📊';
         const dataInsight = new Date(insight.created_at);
+        const prioridadeClass = insight.prioridade || 'normal';
 
         return `
-          <div style="background: ${cor.bg}; border: 1px solid ${cor.border}; border-radius: 12px; padding: 16px; ${!insight.lido ? 'border-left: 4px solid #7C3AED;' : ''}" onclick="marcarInsightLido(${insight.id})">
-            <div style="display: flex; align-items: flex-start; gap: 12px;">
-              <span style="font-size: 1.5rem;">${icone}</span>
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                  <h4 style="margin: 0; font-size: 1rem; ${!insight.lido ? 'font-weight: 700;' : ''}">${escapeHtml(insight.titulo)}</h4>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 0.8rem; color: var(--text-muted);">${dataInsight.toLocaleDateString('pt-BR')}</span>
-                    <span>${cor.icon}</span>
-                  </div>
+          <div class="insight-item ${prioridadeClass} ${!insight.lido ? 'unread' : ''}" onclick="marcarInsightLidoTopbar(${insight.id})">
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+              <span style="font-size: 1.2rem;">${icone}</span>
+              <div style="flex: 1; min-width: 0;">
+                <div class="insight-title">${escapeHtml(insight.titulo)}</div>
+                <div class="insight-desc">${escapeHtml(insight.descricao.substring(0, 80))}${insight.descricao.length > 80 ? '...' : ''}</div>
+                <div class="insight-meta">
+                  <span>${dataInsight.toLocaleDateString('pt-BR')}</span>
+                  ${insight.variacao_pct !== null ? `<span style="color: ${insight.variacao_pct > 0 ? '#22c55e' : '#ef4444'};">${insight.variacao_pct > 0 ? '+' : ''}${Math.round(insight.variacao_pct)}%</span>` : ''}
                 </div>
-                <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">${escapeHtml(insight.descricao)}</p>
-                ${insight.variacao_pct !== null ? `
-                  <div style="margin-top: 12px; display: flex; gap: 16px;">
-                    ${insight.valor_antes !== null ? `<span style="font-size: 0.85rem; color: var(--text-muted);">Antes: <strong>${Math.round(insight.valor_antes)}</strong></span>` : ''}
-                    ${insight.valor_depois !== null ? `<span style="font-size: 0.85rem; color: var(--text-muted);">Depois: <strong>${Math.round(insight.valor_depois)}</strong></span>` : ''}
-                    <span style="font-size: 0.85rem; color: ${insight.variacao_pct > 0 ? '#22c55e' : '#ef4444'}; font-weight: 600;">
-                      ${insight.variacao_pct > 0 ? '+' : ''}${Math.round(insight.variacao_pct)}%
-                    </span>
-                  </div>
-                ` : ''}
               </div>
             </div>
           </div>
@@ -19372,53 +19477,58 @@
       }).join('');
     }
 
-    async function gerarInsights() {
+    async function gerarInsightsTopbar() {
       try {
-        showToast('Gerando insights... Isso pode levar alguns segundos.', 'info');
-
+        showToast('Gerando insights...', 'info');
         const response = await authFetch(`${API_URL}/insights/gerar`, { method: 'POST' });
         const data = await response.json();
 
         if (data.sucesso) {
           showToast(`${data.gerados} insights gerados!`, 'success');
-          carregarInsights();
+          carregarInsightsTopbar();
         } else {
-          throw new Error(data.erro || 'Erro ao gerar insights');
+          throw new Error(data.erro || 'Erro');
         }
       } catch (error) {
         showToast(error.message, 'error');
       }
     }
 
-    async function marcarInsightLido(insightId) {
+    async function marcarInsightLidoTopbar(insightId) {
       try {
         await authFetch(`${API_URL}/insights/${insightId}/lido`, { method: 'POST' });
-        // Atualizar localmente
         const insight = insightsCache.find(i => i.id === insightId);
         if (insight) insight.lido = true;
-        renderizarInsights();
+        carregarInsightsTopbar();
       } catch (error) {
-        console.error('[Insights] Erro ao marcar como lido:', error);
+        console.error('[Insights] Erro:', error);
       }
     }
 
-    async function marcarTodosInsightsLidos() {
+    async function marcarTodosInsightsLidosTopbar() {
       try {
-        const response = await authFetch(`${API_URL}/insights/marcar-todos-lidos`, { method: 'POST' });
-        const data = await response.json();
-        if (data.sucesso) {
-          showToast('Todos marcados como lidos!', 'success');
-          carregarInsights();
-        }
+        await authFetch(`${API_URL}/insights/marcar-todos-lidos`, { method: 'POST' });
+        showToast('Todos marcados como lidos!', 'success');
+        carregarInsightsTopbar();
       } catch (error) {
         showToast(error.message, 'error');
       }
     }
 
-    window.carregarInsights = carregarInsights;
-    window.gerarInsights = gerarInsights;
-    window.marcarInsightLido = marcarInsightLido;
-    window.marcarTodosInsightsLidos = marcarTodosInsightsLidos;
+    function verTodosInsights() {
+      document.getElementById('insights-dropdown').classList.remove('show');
+      showToast('Funcionalidade em desenvolvimento', 'info');
+    }
+
+    // Carregar insights ao iniciar
+    setTimeout(carregarInsightsTopbar, 3000);
+
+    window.toggleInsightsDropdown = toggleInsightsDropdown;
+    window.carregarInsightsTopbar = carregarInsightsTopbar;
+    window.gerarInsightsTopbar = gerarInsightsTopbar;
+    window.marcarInsightLidoTopbar = marcarInsightLidoTopbar;
+    window.marcarTodosInsightsLidosTopbar = marcarTodosInsightsLidosTopbar;
+    window.verTodosInsights = verTodosInsights;
 
     // ============ TRAJETOS SECTION ============
     // Variáveis já declaradas no início do script
