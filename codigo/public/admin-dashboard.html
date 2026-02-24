@@ -7669,22 +7669,20 @@
                 <label class="icon-with-text"><i data-lucide="activity" class="lucide-icon sm"></i> Status</label>
                 <input type="hidden" id="rel-filtro-status" value="todos">
                 <button type="button" onclick="toggleStatusDropdown()" style="background: transparent; border: none; padding: 8px 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
-                  <span style="font-size: 1rem;">📊</span>
                   <span id="status-label" style="color: var(--primary); font-weight: 500;">Todos</span>
                   <span style="font-size: 0.7rem; color: var(--text-muted);">▾</span>
                 </button>
-                <div id="status-dropdown" style="display: none; position: absolute; top: 100%; left: 0; min-width: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 6px;">
+                <div id="status-dropdown" style="display: none; position: absolute; top: 100%; left: 0; min-width: 140px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 6px;">
                   <div onclick="selecionarStatus('todos', 'Todos')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Todos</div>
-                  <div onclick="selecionarStatus('movimento', '🚗 Movimento')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">🚗 Em Movimento</div>
-                  <div onclick="selecionarStatus('ocioso', '⏸️ Ocioso')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">⏸️ Ocioso</div>
-                  <div onclick="selecionarStatus('parado', '🅿️ Parado')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">🅿️ Parado</div>
-                  <div onclick="selecionarStatus('offline', '📴 Offline')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">📴 Offline</div>
+                  <div onclick="selecionarStatus('movimento', 'Em Movimento')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Em Movimento</div>
+                  <div onclick="selecionarStatus('ocioso', 'Ocioso')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Ocioso</div>
+                  <div onclick="selecionarStatus('parado', 'Parado')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Parado</div>
+                  <div onclick="selecionarStatus('offline', 'Offline')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Offline</div>
                 </div>
               </div>
               <div class="filtro-item" style="position: relative;">
                 <label class="icon-with-text"><i data-lucide="tag" class="lucide-icon sm"></i> Tags</label>
                 <button type="button" id="btn-filtro-tags" onclick="toggleTagsDropdown()" style="background: transparent; border: none; padding: 8px 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
-                  <span style="font-size: 1rem;">🏷️</span>
                   <span id="tags-selecionadas-label" style="color: var(--primary); font-weight: 500;">Todas</span>
                   <span style="font-size: 0.7rem; color: var(--text-muted);">▾</span>
                 </button>
@@ -7705,17 +7703,16 @@
                 <label class="icon-with-text"><i data-lucide="bar-chart-3" class="lucide-icon sm"></i> Tipo</label>
                 <input type="hidden" id="rel-filtro-tipo" value="geral">
                 <button type="button" onclick="toggleTipoDropdown()" style="background: transparent; border: none; padding: 8px 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
-                  <span style="font-size: 1rem;">📈</span>
                   <span id="tipo-label" style="color: var(--primary); font-weight: 500;">Visão Geral</span>
                   <span style="font-size: 0.7rem; color: var(--text-muted);">▾</span>
                 </button>
-                <div id="tipo-dropdown" style="display: none; position: absolute; top: 100%; left: 0; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 6px;">
-                  <div onclick="selecionarTipo('geral', '📈 Visão Geral')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">📈 Visão Geral</div>
-                  <div onclick="selecionarTipo('velocidade', '⚡ Excessos')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">⚡ Excessos de Velocidade</div>
-                  <div onclick="selecionarTipo('ocioso', '⏸️ Tempo Ocioso')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">⏸️ Tempo Ocioso</div>
-                  <div onclick="selecionarTipo('quilometragem', '🛣️ Quilometragem')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">🛣️ Quilometragem</div>
-                  <div onclick="selecionarTipo('ranking', '🏆 Ranking')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">🏆 Ranking Condutores</div>
-                  <div onclick="selecionarTipo('consumo', '⛽ Consumo')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">⛽ Consumo Estimado</div>
+                <div id="tipo-dropdown" style="display: none; position: absolute; top: 100%; left: 0; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 6px;">
+                  <div onclick="selecionarTipo('geral', 'Visão Geral')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Visão Geral</div>
+                  <div onclick="selecionarTipo('velocidade', 'Excessos Velocidade')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Excessos de Velocidade</div>
+                  <div onclick="selecionarTipo('ocioso', 'Tempo Ocioso')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Tempo Ocioso</div>
+                  <div onclick="selecionarTipo('quilometragem', 'Quilometragem')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Quilometragem</div>
+                  <div onclick="selecionarTipo('ranking', 'Ranking Condutores')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Ranking Condutores</div>
+                  <div onclick="selecionarTipo('consumo', 'Consumo Estimado')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Consumo Estimado</div>
                 </div>
               </div>
               <div class="filtro-item" style="position: relative;">
