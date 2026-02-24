@@ -2198,4 +2198,149 @@ Data,Quilometragem (km),Consumo Estimado (L)
   }
 });
 
+// ============ RELATÓRIO PERSONALIZADO PDF ============
+
+/**
+ * POST /relatorios/personalizado/pdf
+ * Gera PDF com colunas e dados personalizados
+ */
+router.post('/personalizado/pdf', async (req, res) => {
+  try {
+    const { colunas, dados, filtros, titulo } = req.body;
+
+    if (!colunas || !dados || colunas.length === 0) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: 'Colunas e dados são obrigatórios'
+      });
+    }
+
+    // Criar PDF
+    const doc = new PDFDocument({
+      size: 'A4',
+      layout: colunas.length > 6 ? 'landscape' : 'portrait',
+      margins: { top: 50, bottom: 50, left: 40, right: 40 },
+      bufferPages: true
+    });
+
+    const chunks = [];
+    doc.on('data', chunk => chunks.push(chunk));
+    doc.on('end', () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="relatorio_personalizado_${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+    });
+
+    // Configurações de layout
+    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const colWidth = Math.min(pageWidth / colunas.length, 120);
+    const startX = doc.page.margins.left;
+    let currentY = doc.page.margins.top;
+
+    // Título
+    doc.fontSize(18).font('Helvetica-Bold').fillColor('#1a1a2e');
+    doc.text(titulo || 'Relatório Personalizado', startX, currentY, { align: 'center', width: pageWidth });
+    currentY += 30;
+
+    // Informações do período
+    if (filtros && filtros.dataInicio && filtros.dataFim) {
+      doc.fontSize(10).font('Helvetica').fillColor('#666666');
+      doc.text(`Período: ${formatDateTime(filtros.dataInicio)} a ${formatDateTime(filtros.dataFim)}`, startX, currentY, { align: 'center', width: pageWidth });
+      currentY += 15;
+    }
+
+    // Data de geração
+    doc.fontSize(9).fillColor('#999999');
+    doc.text(`Gerado em: ${formatDateTime(new Date())}`, startX, currentY, { align: 'center', width: pageWidth });
+    currentY += 25;
+
+    // Cabeçalho da tabela
+    doc.fillColor('#1a1a2e');
+    doc.rect(startX, currentY, pageWidth, 22).fill('#f0f0f5');
+
+    doc.fontSize(9).font('Helvetica-Bold').fillColor('#1a1a2e');
+    colunas.forEach((col, i) => {
+      const x = startX + (i * colWidth);
+      const text = col.nome.length > 12 ? col.nome.substring(0, 12) + '...' : col.nome;
+      doc.text(text, x + 4, currentY + 6, { width: colWidth - 8 });
+    });
+    currentY += 22;
+
+    // Linhas de dados
+    doc.font('Helvetica').fontSize(8).fillColor('#333333');
+    const rowHeight = 18;
+
+    for (let i = 0; i < dados.length; i++) {
+      const item = dados[i];
+
+      // Verificar se precisa de nova página
+      if (currentY + rowHeight > doc.page.height - doc.page.margins.bottom - 30) {
+        doc.addPage();
+        currentY = doc.page.margins.top;
+
+        // Repetir cabeçalho
+        doc.fillColor('#1a1a2e');
+        doc.rect(startX, currentY, pageWidth, 22).fill('#f0f0f5');
+        doc.fontSize(9).font('Helvetica-Bold').fillColor('#1a1a2e');
+        colunas.forEach((col, j) => {
+          const x = startX + (j * colWidth);
+          const text = col.nome.length > 12 ? col.nome.substring(0, 12) + '...' : col.nome;
+          doc.text(text, x + 4, currentY + 6, { width: colWidth - 8 });
+        });
+        currentY += 22;
+        doc.font('Helvetica').fontSize(8).fillColor('#333333');
+      }
+
+      // Fundo alternado
+      if (i % 2 === 1) {
+        doc.rect(startX, currentY, pageWidth, rowHeight).fill('#fafafa');
+      }
+
+      // Linha de separação
+      doc.strokeColor('#e0e0e0').lineWidth(0.5);
+      doc.moveTo(startX, currentY + rowHeight).lineTo(startX + pageWidth, currentY + rowHeight).stroke();
+
+      // Valores
+      doc.fillColor('#333333');
+      colunas.forEach((col, j) => {
+        const x = startX + (j * colWidth);
+        let valor = item[col.id] || '-';
+
+        // Truncar se muito longo
+        if (typeof valor === 'string' && valor.length > 15) {
+          valor = valor.substring(0, 15) + '...';
+        }
+
+        doc.text(String(valor), x + 4, currentY + 4, { width: colWidth - 8 });
+      });
+
+      currentY += rowHeight;
+    }
+
+    // Rodapé com total
+    currentY += 10;
+    doc.fontSize(9).fillColor('#666666');
+    doc.text(`Total: ${dados.length} registros`, startX, currentY, { align: 'right', width: pageWidth });
+
+    // Numerar páginas
+    const pages = doc.bufferedPageRange();
+    for (let i = 0; i < pages.count; i++) {
+      doc.switchToPage(i);
+      doc.fontSize(8).fillColor('#999999');
+      doc.text(
+        `Página ${i + 1} de ${pages.count}`,
+        doc.page.margins.left,
+        doc.page.height - 30,
+        { align: 'center', width: pageWidth }
+      );
+    }
+
+    doc.end();
+  } catch (error) {
+    console.error('[Relatório Personalizado] Erro:', error);
+    res.status(500).json({ sucesso: false, mensagem: 'Erro ao gerar PDF', erro: error.message });
+  }
+});
+
 module.exports = router;

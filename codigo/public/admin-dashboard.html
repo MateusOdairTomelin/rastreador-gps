@@ -4996,6 +4996,366 @@
       margin-bottom: 12px;
     }
 
+    /* ========== MODAL RELATÓRIO PERSONALIZADO ========== */
+    .relatorio-personalizado-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content-personalizado {
+      position: relative;
+      background: var(--bg-white);
+      border-radius: 16px;
+      width: 95%;
+      max-width: 1200px;
+      height: 90vh;
+      max-height: 800px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-header-personalizado {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .modal-header-personalizado h3 {
+      margin: 0;
+      font-size: 18px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-body-personalizado {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .config-sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .config-section {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .config-section:last-child {
+      border-bottom: none;
+    }
+
+    .config-section h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .templates-list {
+      max-height: 120px;
+      overflow-y: auto;
+      margin-bottom: 8px;
+    }
+
+    .template-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: var(--bg-card);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .template-item:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    .template-item-name {
+      font-size: 13px;
+      flex: 1;
+    }
+
+    .template-item-delete {
+      opacity: 0.5;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 6px;
+    }
+
+    .template-item-delete:hover {
+      opacity: 1;
+      color: var(--danger);
+    }
+
+    .template-empty {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 12px;
+    }
+
+    .template-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .colunas-list {
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .coluna-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.15s;
+    }
+
+    .coluna-item:hover {
+      background: var(--bg-card);
+    }
+
+    .colunas-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .filtro-config {
+      margin-bottom: 12px;
+    }
+
+    .filtro-config label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-light);
+      margin-bottom: 4px;
+    }
+
+    .filtro-config input,
+    .filtro-config select {
+      width: 100%;
+      padding: 8px 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .filtro-config select[multiple] {
+      padding: 6px;
+    }
+
+    .filtro-config select[multiple] option {
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .preview-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-white);
+    }
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .preview-header h4 {
+      margin: 0;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .preview-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .preview-count {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .preview-table-container {
+      flex: 1;
+      overflow: auto;
+      padding: 12px;
+    }
+
+    .preview-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .preview-table th {
+      background: var(--bg);
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text);
+      border-bottom: 2px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      white-space: nowrap;
+    }
+
+    .preview-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .preview-table tr:hover td {
+      background: var(--bg);
+    }
+
+    .modal-footer-personalizado {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 24px;
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .footer-left {
+      flex: 1;
+    }
+
+    .footer-info {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-xs {
+      padding: 4px 8px;
+      font-size: 11px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .btn-xs:hover {
+      background: var(--bg);
+    }
+
+    /* Template input modal */
+    .template-input-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1002;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .template-input-modal {
+      background: var(--bg-white);
+      border-radius: 12px;
+      padding: 24px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+
+    .template-input-modal h4 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      color: var(--text);
+    }
+
+    .template-input-modal input {
+      width: 100%;
+      padding: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+
+    .template-input-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    @media (max-width: 900px) {
+      .modal-body-personalizado {
+        flex-direction: column;
+      }
+
+      .config-sidebar {
+        width: 100%;
+        min-width: auto;
+        max-height: 300px;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .modal-content-personalizado {
+        width: 98%;
+        height: 95vh;
+      }
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
       .relatorios-kpis {
@@ -7883,6 +8243,9 @@
                 </div>
                 <button class="btn btn-sm" onclick="selecionarTodosVeiculos()" id="btn-selecionar-todos">☑ Selecionar Todos</button>
                 <span class="selecionados-count" id="selecionados-count">0 selecionados</span>
+                <button class="btn btn-primary btn-sm" onclick="abrirRelatorioPersonalizado()" style="margin-left: auto;">
+                  ☰ Relatório Personalizado
+                </button>
               </div>
             </div>
             <div class="veiculos-table-container">
@@ -7955,6 +8318,184 @@
                   Exportar PDF
                 </button>
                 <button class="btn btn-secondary" onclick="fecharTrajetoModal()">Fechar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal de Relatório Personalizado -->
+          <div class="relatorio-personalizado-modal" id="relatorio-personalizado-modal" style="display:none;">
+            <div class="modal-overlay" onclick="fecharRelatorioPersonalizado()"></div>
+            <div class="modal-content-personalizado">
+              <div class="modal-header-personalizado">
+                <h3>☰ Relatório Personalizado</h3>
+                <button onclick="fecharRelatorioPersonalizado()" class="btn-fechar">&times;</button>
+              </div>
+              <div class="modal-body-personalizado">
+                <!-- Sidebar de configuração -->
+                <div class="config-sidebar">
+                  <!-- Templates -->
+                  <div class="config-section">
+                    <h4>◇ Templates Salvos</h4>
+                    <div class="templates-list" id="templates-list">
+                      <div class="template-empty">Nenhum template salvo</div>
+                    </div>
+                    <div class="template-actions">
+                      <button class="btn btn-sm btn-success" onclick="salvarTemplate()">+ Salvar Atual</button>
+                    </div>
+                  </div>
+
+                  <!-- Colunas -->
+                  <div class="config-section">
+                    <h4>☰ Colunas do Relatório</h4>
+                    <div class="colunas-list" id="colunas-personalizado-list">
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="placa" checked> Placa
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="veiculo" checked> Veículo/Modelo
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="motorista" checked> Motorista
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="status" checked> Status
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="km_total" checked> Km Total
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="km_media" checked> Km Média/Dia
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="tempo_movimento"> Tempo Movimento
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="tempo_ocioso"> Tempo Ocioso
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="tempo_parado"> Tempo Parado
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="excessos" checked> Excessos Vel.
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="vel_maxima"> Vel. Máxima
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="vel_media"> Vel. Média
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="consumo"> Consumo Est.
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="viagens"> Nº Viagens
+                      </label>
+                      <label class="coluna-item">
+                        <input type="checkbox" data-col="tags"> Tags
+                      </label>
+                    </div>
+                    <div class="colunas-actions">
+                      <button class="btn btn-xs" onclick="marcarTodasColunas(true)">Todas</button>
+                      <button class="btn btn-xs" onclick="marcarTodasColunas(false)">Nenhuma</button>
+                    </div>
+                  </div>
+
+                  <!-- Filtros -->
+                  <div class="config-section">
+                    <h4>▽ Filtros</h4>
+                    <div class="filtro-config">
+                      <label>Período:</label>
+                      <input type="text" id="rp-periodo" placeholder="Selecione..." readonly style="cursor:pointer;">
+                      <input type="hidden" id="rp-data-inicio">
+                      <input type="hidden" id="rp-data-fim">
+                    </div>
+                    <div class="filtro-config">
+                      <label>Veículos:</label>
+                      <select id="rp-veiculos-filtro" multiple style="height: 80px;">
+                        <option value="todos" selected>Todos os veículos</option>
+                      </select>
+                    </div>
+                    <div class="filtro-config">
+                      <label>Tags:</label>
+                      <select id="rp-tags-filtro" multiple style="height: 60px;">
+                        <option value="todos" selected>Todas as tags</option>
+                      </select>
+                    </div>
+                    <div class="filtro-config">
+                      <label>Status:</label>
+                      <select id="rp-status-filtro">
+                        <option value="todos">Todos</option>
+                        <option value="online">Online</option>
+                        <option value="offline">Offline</option>
+                        <option value="movimento">Em Movimento</option>
+                        <option value="ocioso">Ocioso</option>
+                        <option value="parado">Parado</option>
+                      </select>
+                    </div>
+                    <div class="filtro-config">
+                      <label>Ordenar por:</label>
+                      <select id="rp-ordenar">
+                        <option value="placa_asc">Placa (A-Z)</option>
+                        <option value="placa_desc">Placa (Z-A)</option>
+                        <option value="km_desc" selected>Maior Km</option>
+                        <option value="km_asc">Menor Km</option>
+                        <option value="excessos_desc">Mais Excessos</option>
+                        <option value="vel_desc">Maior Velocidade</option>
+                      </select>
+                    </div>
+                    <div class="filtro-config">
+                      <label>Agrupar por:</label>
+                      <select id="rp-agrupar">
+                        <option value="nenhum" selected>Sem agrupamento</option>
+                        <option value="dia">Por Dia</option>
+                        <option value="semana">Por Semana</option>
+                        <option value="tag">Por Tag</option>
+                        <option value="motorista">Por Motorista</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Preview do relatório -->
+                <div class="preview-area">
+                  <div class="preview-header">
+                    <h4>Pré-visualização</h4>
+                    <div class="preview-actions">
+                      <button class="btn btn-sm" onclick="atualizarPreviewRelatorio()">↻ Atualizar</button>
+                      <span class="preview-count" id="rp-preview-count">0 registros</span>
+                    </div>
+                  </div>
+                  <div class="preview-table-container" id="rp-preview-container">
+                    <table class="preview-table" id="rp-preview-table">
+                      <thead id="rp-preview-thead">
+                        <tr>
+                          <th>Carregando...</th>
+                        </tr>
+                      </thead>
+                      <tbody id="rp-preview-tbody">
+                        <tr>
+                          <td style="text-align:center; padding:40px; color:var(--text-muted);">
+                            Configure as opções e clique em "Atualizar" para ver a prévia
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer-personalizado">
+                <div class="footer-left">
+                  <span class="footer-info" id="rp-footer-info">Selecione as colunas e filtros desejados</span>
+                </div>
+                <div class="footer-right">
+                  <button class="btn btn-secondary" onclick="fecharRelatorioPersonalizado()">Cancelar</button>
+                  <button class="btn btn-success" onclick="exportarRelatorioPersonalizadoFormato('csv')">
+                    ≡ Exportar CSV
+                  </button>
+                  <button class="btn btn-danger" onclick="exportarRelatorioPersonalizadoFormato('pdf')">
+                    ☰ Exportar PDF
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -16956,6 +17497,750 @@
     // (será chamado em inicializarSecaoRelatorios)
 
     // ============ FIM RELATÓRIO MODULAR ============
+
+    // ============ RELATÓRIO PERSONALIZADO ============
+
+    // Estado do relatório personalizado
+    let rpTemplates = [];
+    let rpFlatpickr = null;
+    let rpPreviewData = [];
+
+    // Definição das colunas disponíveis
+    const rpColunasDisponiveis = {
+      placa: { nome: 'Placa', campo: 'placa' },
+      veiculo: { nome: 'Veículo/Modelo', campo: 'veiculo' },
+      motorista: { nome: 'Motorista', campo: 'motorista' },
+      status: { nome: 'Status', campo: 'status' },
+      km_total: { nome: 'Km Total', campo: 'km_total' },
+      km_media: { nome: 'Km Média/Dia', campo: 'km_media' },
+      tempo_movimento: { nome: 'Tempo Movimento', campo: 'tempo_movimento' },
+      tempo_ocioso: { nome: 'Tempo Ocioso', campo: 'tempo_ocioso' },
+      tempo_parado: { nome: 'Tempo Parado', campo: 'tempo_parado' },
+      excessos: { nome: 'Excessos Vel.', campo: 'excessos' },
+      vel_maxima: { nome: 'Vel. Máxima', campo: 'vel_maxima' },
+      vel_media: { nome: 'Vel. Média', campo: 'vel_media' },
+      consumo: { nome: 'Consumo Est.', campo: 'consumo' },
+      viagens: { nome: 'Nº Viagens', campo: 'viagens' },
+      tags: { nome: 'Tags', campo: 'tags' }
+    };
+
+    // Abrir modal de relatório personalizado
+    function abrirRelatorioPersonalizado() {
+      const modal = document.getElementById('relatorio-personalizado-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+        inicializarRelatorioPersonalizado();
+      }
+    }
+    window.abrirRelatorioPersonalizado = abrirRelatorioPersonalizado;
+
+    // Fechar modal
+    function fecharRelatorioPersonalizado() {
+      const modal = document.getElementById('relatorio-personalizado-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+    window.fecharRelatorioPersonalizado = fecharRelatorioPersonalizado;
+
+    // Inicializar modal de relatório personalizado
+    async function inicializarRelatorioPersonalizado() {
+      // Carregar templates salvos
+      carregarTemplatesSalvos();
+
+      // Inicializar Flatpickr para período
+      if (!rpFlatpickr) {
+        const periodoInput = document.getElementById('rp-periodo');
+        if (periodoInput && typeof flatpickr !== 'undefined') {
+          const hoje = new Date();
+          const seteDiasAtras = new Date(hoje);
+          seteDiasAtras.setDate(hoje.getDate() - 7);
+
+          rpFlatpickr = flatpickr(periodoInput, {
+            mode: 'range',
+            dateFormat: 'd/m/Y',
+            locale: 'pt',
+            defaultDate: [seteDiasAtras, hoje],
+            maxDate: hoje,
+            onChange: function(dates) {
+              if (dates.length === 2) {
+                document.getElementById('rp-data-inicio').value = formatarDataISO(dates[0]);
+                document.getElementById('rp-data-fim').value = formatarDataISO(dates[1]);
+              }
+            }
+          });
+
+          // Definir valores iniciais
+          document.getElementById('rp-data-inicio').value = formatarDataISO(seteDiasAtras);
+          document.getElementById('rp-data-fim').value = formatarDataISO(hoje);
+        }
+      }
+
+      // Carregar lista de veículos
+      await carregarVeiculosParaFiltro();
+
+      // Carregar lista de tags
+      await carregarTagsParaFiltro();
+
+      // Atualizar preview inicial
+      atualizarPreviewRelatorio();
+    }
+
+    // Carregar veículos para o filtro
+    async function carregarVeiculosParaFiltro() {
+      try {
+        const select = document.getElementById('rp-veiculos-filtro');
+        if (!select) return;
+
+        const response = await authFetch(`${API_URL}/dispositivos`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const veiculos = data.dados || [];
+
+        select.innerHTML = '<option value="todos" selected>Todos os veículos</option>';
+        veiculos.forEach(v => {
+          const placa = v.placa || v.imei;
+          const nome = v.veiculo || v.modelo || '';
+          select.innerHTML += `<option value="${v.imei}">${placa} ${nome ? '- ' + nome : ''}</option>`;
+        });
+      } catch (error) {
+        console.error('[RP] Erro ao carregar veículos:', error);
+      }
+    }
+
+    // Carregar tags para o filtro
+    async function carregarTagsParaFiltro() {
+      try {
+        const select = document.getElementById('rp-tags-filtro');
+        if (!select) return;
+
+        const response = await authFetch(`${API_URL}/tags`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const tags = data.tags || [];
+
+        select.innerHTML = '<option value="todos" selected>Todas as tags</option>';
+        tags.forEach(tag => {
+          select.innerHTML += `<option value="${tag.id}">${tag.nome}</option>`;
+        });
+      } catch (error) {
+        console.error('[RP] Erro ao carregar tags:', error);
+      }
+    }
+
+    // Obter colunas selecionadas
+    function obterColunasSelecionadas() {
+      const colunas = [];
+      const checkboxes = document.querySelectorAll('#colunas-personalizado-list input[type="checkbox"]:checked');
+      checkboxes.forEach(cb => {
+        const col = cb.getAttribute('data-col');
+        if (col && rpColunasDisponiveis[col]) {
+          colunas.push(col);
+        }
+      });
+      return colunas;
+    }
+
+    // Marcar/desmarcar todas as colunas
+    function marcarTodasColunas(marcar) {
+      const checkboxes = document.querySelectorAll('#colunas-personalizado-list input[type="checkbox"]');
+      checkboxes.forEach(cb => {
+        cb.checked = marcar;
+      });
+    }
+    window.marcarTodasColunas = marcarTodasColunas;
+
+    // Obter filtros selecionados
+    function obterFiltrosRelatorio() {
+      return {
+        dataInicio: document.getElementById('rp-data-inicio')?.value || '',
+        dataFim: document.getElementById('rp-data-fim')?.value || '',
+        veiculos: obterValoresMultiSelect('rp-veiculos-filtro'),
+        tags: obterValoresMultiSelect('rp-tags-filtro'),
+        status: document.getElementById('rp-status-filtro')?.value || 'todos',
+        ordenar: document.getElementById('rp-ordenar')?.value || 'km_desc',
+        agrupar: document.getElementById('rp-agrupar')?.value || 'nenhum'
+      };
+    }
+
+    // Obter valores de um select múltiplo
+    function obterValoresMultiSelect(id) {
+      const select = document.getElementById(id);
+      if (!select) return [];
+
+      const valores = [];
+      for (const option of select.selectedOptions) {
+        if (option.value !== 'todos') {
+          valores.push(option.value);
+        }
+      }
+      return valores;
+    }
+
+    // Atualizar preview do relatório
+    async function atualizarPreviewRelatorio() {
+      const colunas = obterColunasSelecionadas();
+      const filtros = obterFiltrosRelatorio();
+
+      if (colunas.length === 0) {
+        document.getElementById('rp-preview-tbody').innerHTML = `
+          <tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-muted);">
+            Selecione pelo menos uma coluna
+          </td></tr>
+        `;
+        document.getElementById('rp-preview-count').textContent = '0 registros';
+        return;
+      }
+
+      // Mostrar loading
+      document.getElementById('rp-preview-tbody').innerHTML = `
+        <tr><td colspan="${colunas.length}" style="text-align:center; padding:30px;">
+          <div style="font-size:20px;">⏳</div> Carregando...
+        </td></tr>
+      `;
+
+      try {
+        // Buscar dados da API
+        let url = `${API_URL}/relatorios/frota?dataInicio=${filtros.dataInicio}&dataFim=${filtros.dataFim}`;
+
+        if (filtros.veiculos.length > 0) {
+          url += `&imeis=${filtros.veiculos.join(',')}`;
+        }
+        if (filtros.tags.length > 0) {
+          url += `&tags=${filtros.tags.join(',')}`;
+        }
+        if (filtros.status !== 'todos') {
+          url += `&status=${filtros.status}`;
+        }
+
+        const response = await authFetch(url);
+        if (!response.ok) throw new Error('Erro ao buscar dados');
+
+        const data = await response.json();
+        rpPreviewData = data.veiculos || data.dados || [];
+
+        // Aplicar ordenação
+        ordenarDadosPreview(rpPreviewData, filtros.ordenar);
+
+        // Renderizar tabela
+        renderizarPreviewTabela(colunas, rpPreviewData, filtros.agrupar);
+
+        // Atualizar contador
+        document.getElementById('rp-preview-count').textContent = `${rpPreviewData.length} registros`;
+        document.getElementById('rp-footer-info').textContent = `${colunas.length} colunas × ${rpPreviewData.length} registros`;
+
+      } catch (error) {
+        console.error('[RP] Erro ao buscar preview:', error);
+        document.getElementById('rp-preview-tbody').innerHTML = `
+          <tr><td colspan="${colunas.length}" style="text-align:center; padding:30px; color:var(--danger);">
+            Erro ao carregar dados: ${error.message}
+          </td></tr>
+        `;
+      }
+    }
+    window.atualizarPreviewRelatorio = atualizarPreviewRelatorio;
+
+    // Ordenar dados do preview
+    function ordenarDadosPreview(dados, ordenacao) {
+      const [campo, direcao] = ordenacao.split('_');
+      const asc = direcao === 'asc';
+
+      dados.sort((a, b) => {
+        let valA, valB;
+
+        switch (campo) {
+          case 'placa':
+            valA = (a.placa || '').toLowerCase();
+            valB = (b.placa || '').toLowerCase();
+            break;
+          case 'km':
+            valA = a.stats?.kmTotal || a.km_total || 0;
+            valB = b.stats?.kmTotal || b.km_total || 0;
+            break;
+          case 'excessos':
+            valA = a.stats?.excessosVelocidade || a.excessos || 0;
+            valB = b.stats?.excessosVelocidade || b.excessos || 0;
+            break;
+          case 'vel':
+            valA = a.stats?.velocidadeMaxima || a.vel_maxima || 0;
+            valB = b.stats?.velocidadeMaxima || b.vel_maxima || 0;
+            break;
+          default:
+            valA = 0;
+            valB = 0;
+        }
+
+        if (asc) {
+          return valA > valB ? 1 : -1;
+        } else {
+          return valA < valB ? 1 : -1;
+        }
+      });
+    }
+
+    // Renderizar tabela de preview
+    function renderizarPreviewTabela(colunas, dados, agrupar) {
+      const thead = document.getElementById('rp-preview-thead');
+      const tbody = document.getElementById('rp-preview-tbody');
+
+      // Cabeçalho
+      let headerHtml = '<tr>';
+      colunas.forEach(col => {
+        headerHtml += `<th>${rpColunasDisponiveis[col].nome}</th>`;
+      });
+      headerHtml += '</tr>';
+      thead.innerHTML = headerHtml;
+
+      // Corpo
+      if (dados.length === 0) {
+        tbody.innerHTML = `
+          <tr><td colspan="${colunas.length}" style="text-align:center; padding:30px; color:var(--text-muted);">
+            Nenhum dado encontrado para os filtros selecionados
+          </td></tr>
+        `;
+        return;
+      }
+
+      let bodyHtml = '';
+      dados.forEach(item => {
+        bodyHtml += '<tr>';
+        colunas.forEach(col => {
+          const valor = obterValorColuna(item, col);
+          bodyHtml += `<td>${valor}</td>`;
+        });
+        bodyHtml += '</tr>';
+      });
+
+      tbody.innerHTML = bodyHtml;
+    }
+
+    // Obter valor de uma coluna para um item
+    function obterValorColuna(item, coluna) {
+      const stats = item.stats || {};
+
+      switch (coluna) {
+        case 'placa':
+          return item.placa || item.imei || '-';
+        case 'veiculo':
+          return item.veiculo || item.modelo || '-';
+        case 'motorista':
+          return item.motorista || item.motorista_nome || '-';
+        case 'status':
+          const status = item.status || 'offline';
+          const estado = item.estado_movimento || item.estado || '';
+          const cor = status === 'online' ? '#22c55e' : '#ef4444';
+          return `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:${cor};"></span>${status}${estado ? ' / ' + estado : ''}</span>`;
+        case 'km_total':
+          const km = stats.kmTotal || item.km_total || 0;
+          return km.toFixed(1) + ' km';
+        case 'km_media':
+          const kmMedia = stats.kmMedia || item.km_media || 0;
+          return kmMedia.toFixed(1) + ' km/dia';
+        case 'tempo_movimento':
+          const mov = stats.tempoMovimento || item.tempo_movimento || 0;
+          return formatarTempo(mov);
+        case 'tempo_ocioso':
+          const oci = stats.tempoOcioso || item.tempo_ocioso || 0;
+          return formatarTempo(oci);
+        case 'tempo_parado':
+          const par = stats.tempoParado || item.tempo_parado || 0;
+          return formatarTempo(par);
+        case 'excessos':
+          const exc = stats.excessosVelocidade || item.excessos || 0;
+          const cor2 = exc > 0 ? 'var(--danger)' : 'var(--text)';
+          return `<span style="color:${cor2};font-weight:${exc > 0 ? '600' : '400'};">${exc}</span>`;
+        case 'vel_maxima':
+          const velMax = stats.velocidadeMaxima || item.vel_maxima || 0;
+          return velMax.toFixed(0) + ' km/h';
+        case 'vel_media':
+          const velMed = stats.velocidadeMedia || item.vel_media || 0;
+          return velMed.toFixed(0) + ' km/h';
+        case 'consumo':
+          const consumo = stats.consumoEstimado || item.consumo || 0;
+          return consumo.toFixed(1) + ' L';
+        case 'viagens':
+          const viagens = stats.totalViagens || item.viagens || 0;
+          return viagens.toString();
+        case 'tags':
+          const tags = item.tags || [];
+          if (tags.length === 0) return '-';
+          return tags.map(t => `<span style="background:${t.cor || '#6b7280'};color:white;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:2px;">${t.nome}</span>`).join('');
+        default:
+          return '-';
+      }
+    }
+
+    // Formatar tempo (minutos para hh:mm)
+    function formatarTempo(minutos) {
+      if (!minutos || minutos === 0) return '0h';
+      const h = Math.floor(minutos / 60);
+      const m = Math.floor(minutos % 60);
+      if (h === 0) return `${m}min`;
+      return `${h}h ${m}min`;
+    }
+
+    // ============ TEMPLATES ============
+
+    // Carregar templates salvos
+    function carregarTemplatesSalvos() {
+      try {
+        const saved = localStorage.getItem('rp-templates');
+        rpTemplates = saved ? JSON.parse(saved) : [];
+        renderizarListaTemplates();
+      } catch (error) {
+        rpTemplates = [];
+      }
+    }
+
+    // Renderizar lista de templates
+    function renderizarListaTemplates() {
+      const container = document.getElementById('templates-list');
+      if (!container) return;
+
+      if (rpTemplates.length === 0) {
+        container.innerHTML = '<div class="template-empty">Nenhum template salvo</div>';
+        return;
+      }
+
+      container.innerHTML = rpTemplates.map((t, index) => `
+        <div class="template-item" onclick="carregarTemplate(${index})">
+          <span class="template-item-name">${escapeHtml(t.nome)}</span>
+          <span class="template-item-delete" onclick="event.stopPropagation(); deletarTemplate(${index})">✕</span>
+        </div>
+      `).join('');
+    }
+
+    // Salvar template atual
+    function salvarTemplate() {
+      // Criar overlay para input do nome
+      const overlay = document.createElement('div');
+      overlay.className = 'template-input-overlay';
+      overlay.innerHTML = `
+        <div class="template-input-modal">
+          <h4>Salvar Template</h4>
+          <input type="text" id="template-nome-input" placeholder="Nome do template..." maxlength="30" autofocus>
+          <div class="template-input-actions">
+            <button class="btn btn-secondary btn-sm" onclick="this.closest('.template-input-overlay').remove()">Cancelar</button>
+            <button class="btn btn-primary btn-sm" onclick="confirmarSalvarTemplate()">Salvar</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      // Focar no input
+      setTimeout(() => {
+        document.getElementById('template-nome-input')?.focus();
+      }, 100);
+
+      // Enter para salvar
+      document.getElementById('template-nome-input')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') confirmarSalvarTemplate();
+      });
+    }
+    window.salvarTemplate = salvarTemplate;
+
+    // Confirmar salvamento do template
+    function confirmarSalvarTemplate() {
+      const input = document.getElementById('template-nome-input');
+      const nome = input?.value?.trim();
+
+      if (!nome) {
+        toastWarning('Digite um nome para o template');
+        return;
+      }
+
+      const colunas = obterColunasSelecionadas();
+      const filtros = obterFiltrosRelatorio();
+
+      const template = {
+        nome,
+        colunas,
+        filtros: {
+          status: filtros.status,
+          ordenar: filtros.ordenar,
+          agrupar: filtros.agrupar
+        },
+        criadoEm: new Date().toISOString()
+      };
+
+      rpTemplates.push(template);
+      localStorage.setItem('rp-templates', JSON.stringify(rpTemplates));
+
+      renderizarListaTemplates();
+      document.querySelector('.template-input-overlay')?.remove();
+      toastSuccess(`Template "${nome}" salvo com sucesso!`);
+    }
+    window.confirmarSalvarTemplate = confirmarSalvarTemplate;
+
+    // Carregar um template
+    function carregarTemplate(index) {
+      const template = rpTemplates[index];
+      if (!template) return;
+
+      // Aplicar colunas
+      const checkboxes = document.querySelectorAll('#colunas-personalizado-list input[type="checkbox"]');
+      checkboxes.forEach(cb => {
+        const col = cb.getAttribute('data-col');
+        cb.checked = template.colunas.includes(col);
+      });
+
+      // Aplicar filtros
+      if (template.filtros) {
+        const statusSelect = document.getElementById('rp-status-filtro');
+        const ordenarSelect = document.getElementById('rp-ordenar');
+        const agruparSelect = document.getElementById('rp-agrupar');
+
+        if (statusSelect) statusSelect.value = template.filtros.status || 'todos';
+        if (ordenarSelect) ordenarSelect.value = template.filtros.ordenar || 'km_desc';
+        if (agruparSelect) agruparSelect.value = template.filtros.agrupar || 'nenhum';
+      }
+
+      toastSuccess(`Template "${template.nome}" carregado`);
+      atualizarPreviewRelatorio();
+    }
+    window.carregarTemplate = carregarTemplate;
+
+    // Deletar template
+    function deletarTemplate(index) {
+      const template = rpTemplates[index];
+      if (!template) return;
+
+      if (confirm(`Excluir template "${template.nome}"?`)) {
+        rpTemplates.splice(index, 1);
+        localStorage.setItem('rp-templates', JSON.stringify(rpTemplates));
+        renderizarListaTemplates();
+        toastSuccess('Template excluído');
+      }
+    }
+    window.deletarTemplate = deletarTemplate;
+
+    // ============ EXPORTAÇÃO ============
+
+    // Exportar relatório personalizado
+    async function exportarRelatorioPersonalizadoFormato(formato) {
+      const colunas = obterColunasSelecionadas();
+      const filtros = obterFiltrosRelatorio();
+
+      if (colunas.length === 0) {
+        toastWarning('Selecione pelo menos uma coluna para exportar');
+        return;
+      }
+
+      if (rpPreviewData.length === 0) {
+        toastWarning('Nenhum dado para exportar. Clique em "Atualizar" primeiro.');
+        return;
+      }
+
+      // Mostrar toast de loading
+      const toastId = mostrarToastDownload('Gerando ' + formato.toUpperCase() + '...', rpPreviewData.length + ' registros');
+
+      try {
+        if (formato === 'csv') {
+          await exportarRelatorioCSV(colunas, rpPreviewData, filtros);
+        } else {
+          await exportarRelatorioPDFPersonalizado(colunas, rpPreviewData, filtros);
+        }
+
+        atualizarToastSucesso(toastId, 'Download concluído!');
+      } catch (error) {
+        console.error('[RP] Erro na exportação:', error);
+        atualizarToastErro(toastId, 'Erro: ' + error.message);
+      }
+    }
+    window.exportarRelatorioPersonalizadoFormato = exportarRelatorioPersonalizadoFormato;
+
+    // Exportar para CSV
+    async function exportarRelatorioCSV(colunas, dados, filtros) {
+      // Cabeçalho
+      const header = colunas.map(col => rpColunasDisponiveis[col].nome);
+
+      // Linhas
+      const rows = dados.map(item => {
+        return colunas.map(col => {
+          const valor = obterValorColunaTexto(item, col);
+          // Escapar aspas e vírgulas
+          if (valor.includes(',') || valor.includes('"') || valor.includes('\n')) {
+            return '"' + valor.replace(/"/g, '""') + '"';
+          }
+          return valor;
+        });
+      });
+
+      // Montar CSV
+      let csv = '\uFEFF'; // BOM para UTF-8
+      csv += header.join(';') + '\n';
+      csv += rows.map(r => r.join(';')).join('\n');
+
+      // Download
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio_${formatarDataArquivo(new Date())}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Obter valor de coluna como texto (sem HTML)
+    function obterValorColunaTexto(item, coluna) {
+      const stats = item.stats || {};
+
+      switch (coluna) {
+        case 'placa':
+          return item.placa || item.imei || '-';
+        case 'veiculo':
+          return item.veiculo || item.modelo || '-';
+        case 'motorista':
+          return item.motorista || item.motorista_nome || '-';
+        case 'status':
+          const status = item.status || 'offline';
+          const estado = item.estado_movimento || item.estado || '';
+          return estado ? `${status} / ${estado}` : status;
+        case 'km_total':
+          return (stats.kmTotal || item.km_total || 0).toFixed(1);
+        case 'km_media':
+          return (stats.kmMedia || item.km_media || 0).toFixed(1);
+        case 'tempo_movimento':
+          return formatarTempo(stats.tempoMovimento || item.tempo_movimento || 0);
+        case 'tempo_ocioso':
+          return formatarTempo(stats.tempoOcioso || item.tempo_ocioso || 0);
+        case 'tempo_parado':
+          return formatarTempo(stats.tempoParado || item.tempo_parado || 0);
+        case 'excessos':
+          return (stats.excessosVelocidade || item.excessos || 0).toString();
+        case 'vel_maxima':
+          return (stats.velocidadeMaxima || item.vel_maxima || 0).toFixed(0);
+        case 'vel_media':
+          return (stats.velocidadeMedia || item.vel_media || 0).toFixed(0);
+        case 'consumo':
+          return (stats.consumoEstimado || item.consumo || 0).toFixed(1);
+        case 'viagens':
+          return (stats.totalViagens || item.viagens || 0).toString();
+        case 'tags':
+          const tags = item.tags || [];
+          return tags.map(t => t.nome).join(', ') || '-';
+        default:
+          return '-';
+      }
+    }
+
+    // Exportar para PDF personalizado (via backend)
+    async function exportarRelatorioPDFPersonalizado(colunas, dados, filtros) {
+      // Enviar para backend gerar PDF
+      const payload = {
+        colunas: colunas.map(col => ({
+          id: col,
+          nome: rpColunasDisponiveis[col].nome
+        })),
+        dados: dados.map(item => {
+          const row = {};
+          colunas.forEach(col => {
+            row[col] = obterValorColunaTexto(item, col);
+          });
+          return row;
+        }),
+        filtros: {
+          dataInicio: filtros.dataInicio,
+          dataFim: filtros.dataFim,
+          ordenacao: filtros.ordenar,
+          agrupamento: filtros.agrupar
+        },
+        titulo: 'Relatório Personalizado'
+      };
+
+      const response = await authFetch(`${API_URL}/relatorios/personalizado/pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao gerar PDF');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio_${formatarDataArquivo(new Date())}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Formatar data para nome de arquivo
+    function formatarDataArquivo(data) {
+      const d = data.getDate().toString().padStart(2, '0');
+      const m = (data.getMonth() + 1).toString().padStart(2, '0');
+      const a = data.getFullYear();
+      const h = data.getHours().toString().padStart(2, '0');
+      const min = data.getMinutes().toString().padStart(2, '0');
+      return `${a}${m}${d}_${h}${min}`;
+    }
+
+    // Funções de toast para download
+    function mostrarToastDownload(titulo, mensagem) {
+      const id = 'toast-' + Date.now();
+      const container = document.getElementById('download-toast-container') || criarContainerToast();
+
+      const toast = document.createElement('div');
+      toast.id = id;
+      toast.className = 'download-toast';
+      toast.innerHTML = `
+        <div class="download-toast-spinner"></div>
+        <div class="download-toast-content">
+          <div class="download-toast-title">${titulo}</div>
+          <div class="download-toast-message">${mensagem}</div>
+        </div>
+      `;
+
+      container.appendChild(toast);
+      return id;
+    }
+
+    function criarContainerToast() {
+      let container = document.getElementById('download-toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'download-toast-container';
+        container.className = 'download-toast-container';
+        document.body.appendChild(container);
+      }
+      return container;
+    }
+
+    function atualizarToastSucesso(id, mensagem) {
+      const toast = document.getElementById(id);
+      if (toast) {
+        toast.className = 'download-toast success';
+        toast.innerHTML = `
+          <div class="download-toast-icon success">✓</div>
+          <div class="download-toast-content">
+            <div class="download-toast-title">${mensagem}</div>
+          </div>
+          <button class="download-toast-close" onclick="this.parentElement.remove()">×</button>
+        `;
+        setTimeout(() => toast.remove(), 5000);
+      }
+    }
+
+    function atualizarToastErro(id, mensagem) {
+      const toast = document.getElementById(id);
+      if (toast) {
+        toast.className = 'download-toast error';
+        toast.innerHTML = `
+          <div class="download-toast-icon error">✕</div>
+          <div class="download-toast-content">
+            <div class="download-toast-title">${mensagem}</div>
+          </div>
+          <button class="download-toast-close" onclick="this.parentElement.remove()">×</button>
+        `;
+        setTimeout(() => toast.remove(), 8000);
+      }
+    }
+
+    // ============ FIM RELATÓRIO PERSONALIZADO ============
 
     // Buscar relatórios (chamado pelo botão "Buscar")
     async function buscarRelatorios() {
