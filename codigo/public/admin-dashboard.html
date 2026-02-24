@@ -18642,17 +18642,18 @@
           `;
         }
 
-        // Verificar se deve filtrar por veículos específicos ou por tags
+        // Verificar se deve filtrar por veículos específicos, tags ou motoristas
         const filtroTodosEl = document.getElementById('rel-todos-veiculos');
         const todosVeiculosMarcado = filtroTodosEl ? filtroTodosEl.value === 'true' : true;
         const filtrandoPorVeiculos = !todosVeiculosMarcado && veiculosFiltroSelecionados.length > 0;
         const tagsSelecionadas = getTagsSelecionadasRelatorio();
         const filtrandoPorTags = tagsSelecionadas.length > 0;
+        const filtrandoPorMotoristas = motoristasCheckboxSelecionados && motoristasCheckboxSelecionados.size > 0;
 
-        // Se tem qualquer filtro (veículos OU tags), os dados virão direto da API de frota
-        const temFiltroAtivo = filtrandoPorVeiculos || filtrandoPorTags;
+        // Se tem qualquer filtro (veículos, tags OU motoristas), os dados virão direto da API de frota
+        const temFiltroAtivo = filtrandoPorVeiculos || filtrandoPorTags || filtrandoPorMotoristas;
 
-        console.log('[Relatórios] Todos marcado:', todosVeiculosMarcado, 'Filtrados:', veiculosFiltroSelecionados.length, 'Tags:', tagsSelecionadas.length, 'Tem filtro:', temFiltroAtivo);
+        console.log('[Relatórios] Filtros - Veículos:', veiculosFiltroSelecionados.length, 'Tags:', tagsSelecionadas.length, 'Motoristas:', motoristasCheckboxSelecionados?.size || 0, 'Tem filtro:', temFiltroAtivo);
 
         if (!temFiltroAtivo) {
           // Buscar todos os dispositivos (nenhum filtro ativo)
@@ -19268,6 +19269,12 @@
         tagsSelecionadas.forEach(tagId => params.append('tags', tagId));
         if (tagsSelecionadas.length > 0) {
           console.log('[Relatórios] Filtrando por tags:', tagsSelecionadas);
+        }
+
+        // Filtrar por motoristas selecionados (do dropdown de checkboxes)
+        if (motoristasCheckboxSelecionados && motoristasCheckboxSelecionados.size > 0) {
+          motoristasCheckboxSelecionados.forEach(motoristaId => params.append('motorista', motoristaId));
+          console.log('[Relatórios] Filtrando por motoristas:', Array.from(motoristasCheckboxSelecionados));
         }
 
         const urlFinal = `${API_URL}/relatorios/frota?${params.toString()}`;

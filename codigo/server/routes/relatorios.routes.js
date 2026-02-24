@@ -1154,7 +1154,8 @@ router.get('/frota', async (req, res) => {
       dataFim,
       formato = 'csv',
       imei, // Filtro opcional por veículo(s) - pode ser string única ou array
-      tags  // Filtro opcional por tags - pode ser string única ou array de IDs
+      tags,  // Filtro opcional por tags - pode ser string única ou array de IDs
+      motorista // Filtro opcional por motorista(s) - pode ser ID único ou array de IDs
     } = req.query;
 
     // Multi-tenant: usar filtro do tenant
@@ -1185,6 +1186,37 @@ router.get('/frota', async (req, res) => {
           }
         };
         console.log('[Relatórios/frota] Filtrando por tags:', tagIds);
+      }
+    }
+
+    // Filtrar por motorista (vinculado atualmente ou no período)
+    let motoristaIds = [];
+    if (motorista) {
+      motoristaIds = (Array.isArray(motorista) ? motorista : [motorista])
+        .map(m => parseInt(m))
+        .filter(m => !isNaN(m));
+
+      if (motoristaIds.length > 0) {
+        // Buscar dispositivos que têm esse motorista vinculado atualmente
+        // OU que tiveram esse motorista vinculado no período
+        whereClause.OR = [
+          // Motorista atualmente vinculado
+          { motorista_id: { in: motoristaIds } },
+          // Motorista vinculado no período (via histórico)
+          {
+            historico_motoristas: {
+              some: {
+                motorista_id: { in: motoristaIds },
+                inicio: { lte: fim },
+                OR: [
+                  { fim: { gte: inicio } },
+                  { fim: null }
+                ]
+              }
+            }
+          }
+        ];
+        console.log('[Relatórios/frota] Filtrando por motoristas:', motoristaIds);
       }
     }
 
