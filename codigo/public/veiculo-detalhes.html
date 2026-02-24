@@ -1525,6 +1525,21 @@
         </div>
     </div>
 
+    <!-- Barra de Ações (visível em modo embed) -->
+    <div id="embed-actions" style="display: none; padding: 12px 20px; background: rgba(15, 23, 42, 0.6); border-bottom: 1px solid var(--border); margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <h2 id="embed-veiculo-nome" style="margin: 0; font-size: 1.2em; color: var(--text);">Veículo</h2>
+                <span id="embed-device-status" class="status-badge status-offline">Offline</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="mostrarQRCode()" style="background: #10B981; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9em; font-weight: 500;">
+                    📱 QR Code
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal QR Code -->
     <div id="qrcode-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center;">
         <div style="background: rgba(19, 30, 125, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(63, 207, 213, 0.25); border-radius: 16px; padding: 32px; max-width: 400px; width: 90%; text-align: center; position: relative;">
@@ -2459,6 +2474,9 @@
             document.querySelectorAll('.floating-orb').forEach(el => el.style.display = 'none');
             const container = document.querySelector('.container');
             if (container) container.style.paddingTop = '10px';
+            // Mostrar barra de ações do modo embed
+            const embedActions = document.getElementById('embed-actions');
+            if (embedActions) embedActions.style.display = 'block';
         }
 
         if (!IMEI) {
@@ -3120,12 +3138,22 @@
 
                 if (device) {
                     currentDevice = device; // Armazenar para usar depois
-                    document.getElementById('veiculo-nome').textContent = device.veiculo || 'Veículo sem nome';
+                    const veiculoNome = device.veiculo || 'Veículo sem nome';
+                    document.getElementById('veiculo-nome').textContent = veiculoNome;
                     document.getElementById('veiculo-info').textContent = `IMEI: ${device.imei} | Placa: ${device.placa || '--'} | Tipo: ${getDeviceTypeName(device.tipo)}`;
 
                     const statusEl = document.getElementById('device-status');
                     statusEl.className = 'status-badge ' + (device.status === 'online' ? 'status-online' : 'status-offline');
                     statusEl.textContent = device.status === 'online' ? '🟢 Online' : '🔴 Offline';
+
+                    // Atualizar também elementos do modo embed
+                    const embedNome = document.getElementById('embed-veiculo-nome');
+                    if (embedNome) embedNome.textContent = `${veiculoNome} (${device.placa || '--'})`;
+                    const embedStatus = document.getElementById('embed-device-status');
+                    if (embedStatus) {
+                        embedStatus.className = 'status-badge ' + (device.status === 'online' ? 'status-online' : 'status-offline');
+                        embedStatus.textContent = device.status === 'online' ? '🟢 Online' : '🔴 Offline';
+                    }
 
                     // Adaptar card de telemetria baseado no tipo do dispositivo
                     adaptTelemetryCard(device.tipo);
