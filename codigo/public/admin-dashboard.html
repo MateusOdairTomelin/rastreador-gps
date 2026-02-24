@@ -7665,51 +7665,58 @@
                 <input type="hidden" id="rel-data-inicio">
                 <input type="hidden" id="rel-data-fim">
               </div>
-              <div class="filtro-item">
+              <div class="filtro-item" style="position: relative;">
                 <label class="icon-with-text"><i data-lucide="activity" class="lucide-icon sm"></i> Status</label>
-                <select id="rel-filtro-status">
-                  <option value="todos">Todos</option>
-                  <option value="movimento">Em Movimento</option>
-                  <option value="ocioso">Ocioso</option>
-                  <option value="parado">Parado</option>
-                  <option value="offline">Offline</option>
-                </select>
+                <input type="hidden" id="rel-filtro-status" value="todos">
+                <button type="button" onclick="toggleStatusDropdown()" style="background: transparent; border: none; padding: 8px 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                  <span style="font-size: 1rem;">📊</span>
+                  <span id="status-label" style="color: var(--primary); font-weight: 500;">Todos</span>
+                  <span style="font-size: 0.7rem; color: var(--text-muted);">▾</span>
+                </button>
+                <div id="status-dropdown" style="display: none; position: absolute; top: 100%; left: 0; min-width: 160px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 6px;">
+                  <div onclick="selecionarStatus('todos', 'Todos')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Todos</div>
+                  <div onclick="selecionarStatus('movimento', '🚗 Movimento')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">🚗 Em Movimento</div>
+                  <div onclick="selecionarStatus('ocioso', '⏸️ Ocioso')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">⏸️ Ocioso</div>
+                  <div onclick="selecionarStatus('parado', '🅿️ Parado')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">🅿️ Parado</div>
+                  <div onclick="selecionarStatus('offline', '📴 Offline')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">📴 Offline</div>
+                </div>
               </div>
               <div class="filtro-item" style="position: relative;">
                 <label class="icon-with-text"><i data-lucide="tag" class="lucide-icon sm"></i> Tags</label>
-                <button type="button" id="btn-filtro-tags" onclick="toggleTagsDropdown()" style="background: transparent; color: var(--text); border: none; padding: 8px 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
-                  <span style="font-size: 1.1rem;">🏷️</span>
+                <button type="button" id="btn-filtro-tags" onclick="toggleTagsDropdown()" style="background: transparent; border: none; padding: 8px 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                  <span style="font-size: 1rem;">🏷️</span>
                   <span id="tags-selecionadas-label" style="color: var(--primary); font-weight: 500;">Todas</span>
                   <span style="font-size: 0.7rem; color: var(--text-muted);">▾</span>
                 </button>
                 <div id="tags-dropdown" style="display: none; position: absolute; top: 100%; left: 0; min-width: 250px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
-                  <div style="padding: 8px; border-bottom: 1px solid var(--border);">
+                  <div style="padding: 8px;">
                     <input type="text" id="tags-search" placeholder="Buscar tag..." oninput="filtrarTagsDropdown()" style="width: 100%; background: var(--bg-card); color: var(--text); border: 1px solid var(--border); padding: 6px 10px; border-radius: 4px; font-size: 0.9rem;">
                   </div>
-                  <div style="padding: 6px 8px; border-bottom: 1px solid var(--border);">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 4px; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
-                      <input type="checkbox" id="tag-todas" checked onchange="toggleTodasTags()" style="width: 15px; height: 15px; accent-color: var(--primary);">
-                      <span style="font-weight: 500; font-size: 0.9rem;">Todas</span>
-                    </label>
-                  </div>
-                  <div id="tags-checkbox-list" style="padding: 6px 8px; max-height: 200px; overflow-y: auto;">
+                  <div id="tags-checkbox-list" style="padding: 6px 8px; max-height: 220px; overflow-y: auto;">
                     <div style="color: var(--text-muted); padding: 12px; text-align: center; font-size: 0.85rem;">Carregando...</div>
+                  </div>
+                  <div style="padding: 8px; border-top: 1px solid var(--border); display: flex; gap: 8px;">
+                    <button onclick="limparTagsSelecionadas()" style="flex: 1; background: var(--bg-card); color: var(--text-muted); border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Limpar</button>
+                    <button onclick="toggleTagsDropdown()" style="flex: 1; background: var(--primary); color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">OK</button>
                   </div>
                 </div>
               </div>
-              <div class="filtro-item">
-                <label class="icon-with-text"><i data-lucide="bar-chart-3" class="lucide-icon sm"></i> Tipo de Relatório</label>
-                <select id="rel-filtro-tipo">
-                  <option value="geral">Visão Geral (+ km)</option>
-                  <option value="menos-rodados">Menos Rodados (- km)</option>
-                  <option value="velocidade">Excessos de Velocidade</option>
-                  <option value="ocioso">Tempo Ocioso</option>
-                  <option value="quilometragem">Quilometragem Detalhada</option>
-                  <option value="operacao">Tempo de Operação</option>
-                  <option value="paradas">Paradas Longas</option>
-                  <option value="ranking">Ranking de Condutores</option>
-                  <option value="consumo">Consumo Estimado</option>
-                </select>
+              <div class="filtro-item" style="position: relative;">
+                <label class="icon-with-text"><i data-lucide="bar-chart-3" class="lucide-icon sm"></i> Tipo</label>
+                <input type="hidden" id="rel-filtro-tipo" value="geral">
+                <button type="button" onclick="toggleTipoDropdown()" style="background: transparent; border: none; padding: 8px 4px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                  <span style="font-size: 1rem;">📈</span>
+                  <span id="tipo-label" style="color: var(--primary); font-weight: 500;">Visão Geral</span>
+                  <span style="font-size: 0.7rem; color: var(--text-muted);">▾</span>
+                </button>
+                <div id="tipo-dropdown" style="display: none; position: absolute; top: 100%; left: 0; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 6px;">
+                  <div onclick="selecionarTipo('geral', '📈 Visão Geral')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">📈 Visão Geral</div>
+                  <div onclick="selecionarTipo('velocidade', '⚡ Excessos')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">⚡ Excessos de Velocidade</div>
+                  <div onclick="selecionarTipo('ocioso', '⏸️ Tempo Ocioso')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">⏸️ Tempo Ocioso</div>
+                  <div onclick="selecionarTipo('quilometragem', '🛣️ Quilometragem')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">🛣️ Quilometragem</div>
+                  <div onclick="selecionarTipo('ranking', '🏆 Ranking')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">🏆 Ranking Condutores</div>
+                  <div onclick="selecionarTipo('consumo', '⛽ Consumo')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">⛽ Consumo Estimado</div>
+                </div>
               </div>
               <div class="filtro-item" style="position: relative;">
                 <label class="icon-with-text"><i data-lucide="search" class="lucide-icon sm"></i> Filtrar Veículos</label>
@@ -16820,12 +16827,32 @@
           }
 
           container.innerHTML = data.tags.map(tag => `
-            <label data-nome="${escapeHtml(tag.nome).toLowerCase()}" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px; border-radius: 4px; font-size: 0.9rem;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
-              <input type="checkbox" class="tag-checkbox" value="${tag.id}" onchange="atualizarTagsSelecionadas()" style="width: 15px; height: 15px; accent-color: var(--primary);">
-              <div style="width: 8px; height: 8px; border-radius: 2px; background: ${tag.cor || '#3B82F6'}; flex-shrink: 0;"></div>
-              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(tag.nome)}</span>
+            <label data-nome="${escapeHtml(tag.nome).toLowerCase()}" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 6px; border-radius: 6px; font-size: 0.9rem; transition: background 0.15s;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+              <input type="checkbox" class="tag-checkbox" value="${tag.id}" onchange="atualizarTagsSelecionadas()" style="display: none;">
+              <div class="custom-check" style="width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0;"></div>
+              <div style="width: 10px; height: 10px; border-radius: 3px; background: ${tag.cor || '#3B82F6'}; flex-shrink: 0;"></div>
+              <span style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(tag.nome)}</span>
             </label>
           `).join('');
+
+          // Adicionar estilo visual para checkboxes customizados
+          container.querySelectorAll('label').forEach(label => {
+            const checkbox = label.querySelector('.tag-checkbox');
+            const customCheck = label.querySelector('.custom-check');
+            const updateCheck = () => {
+              if (checkbox.checked) {
+                customCheck.style.background = 'var(--primary)';
+                customCheck.style.borderColor = 'var(--primary)';
+                customCheck.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+              } else {
+                customCheck.style.background = 'transparent';
+                customCheck.style.borderColor = 'var(--border)';
+                customCheck.innerHTML = '';
+              }
+            };
+            checkbox.addEventListener('change', updateCheck);
+            updateCheck();
+          });
         }
       } catch (error) {
         console.error('[Relatórios] Erro ao carregar tags:', error);
@@ -16833,47 +16860,69 @@
     }
 
     function toggleTagsDropdown() {
+      closeAllDropdowns('tags-dropdown');
       const dropdown = document.getElementById('tags-dropdown');
       dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
     }
 
-    // Fechar dropdown ao clicar fora
+    function toggleStatusDropdown() {
+      closeAllDropdowns('status-dropdown');
+      const dropdown = document.getElementById('status-dropdown');
+      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function toggleTipoDropdown() {
+      closeAllDropdowns('tipo-dropdown');
+      const dropdown = document.getElementById('tipo-dropdown');
+      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function closeAllDropdowns(except = null) {
+      ['tags-dropdown', 'status-dropdown', 'tipo-dropdown'].forEach(id => {
+        if (id !== except) {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        }
+      });
+    }
+
+    // Fechar dropdowns ao clicar fora
     document.addEventListener('click', (e) => {
-      const dropdown = document.getElementById('tags-dropdown');
-      const btn = document.getElementById('btn-filtro-tags');
-      if (dropdown && btn && !dropdown.contains(e.target) && !btn.contains(e.target)) {
-        dropdown.style.display = 'none';
+      const isDropdownClick = e.target.closest('#tags-dropdown, #status-dropdown, #tipo-dropdown, [onclick*="toggle"]');
+      if (!isDropdownClick) {
+        closeAllDropdowns();
       }
     });
 
-    function toggleTodasTags() {
-      const todasCheckbox = document.getElementById('tag-todas');
-      const checkboxes = document.querySelectorAll('.tag-checkbox');
+    function selecionarStatus(valor, texto) {
+      document.getElementById('rel-filtro-status').value = valor;
+      document.getElementById('status-label').textContent = texto;
+      document.getElementById('status-dropdown').style.display = 'none';
+    }
 
-      if (todasCheckbox.checked) {
-        // Desmarcar todas as tags individuais
-        checkboxes.forEach(cb => cb.checked = false);
-      }
+    function selecionarTipo(valor, texto) {
+      document.getElementById('rel-filtro-tipo').value = valor;
+      document.getElementById('tipo-label').textContent = texto;
+      document.getElementById('tipo-dropdown').style.display = 'none';
+    }
+
+    function limparTagsSelecionadas() {
+      document.querySelectorAll('.tag-checkbox').forEach(cb => cb.checked = false);
       atualizarTagsSelecionadas();
     }
 
     function atualizarTagsSelecionadas() {
-      const todasCheckbox = document.getElementById('tag-todas');
       const checkboxes = document.querySelectorAll('.tag-checkbox:checked');
       const label = document.getElementById('tags-selecionadas-label');
 
       if (checkboxes.length === 0) {
-        todasCheckbox.checked = true;
         label.textContent = 'Todas';
+      } else if (checkboxes.length === 1) {
+        const tagId = parseInt(checkboxes[0].value);
+        const tag = relatorioTagsCache.find(t => t.id === tagId);
+        label.textContent = tag ? tag.nome : '1 tag';
       } else {
-        todasCheckbox.checked = false;
-        if (checkboxes.length === 1) {
-          const tagId = parseInt(checkboxes[0].value);
-          const tag = relatorioTagsCache.find(t => t.id === tagId);
-          label.textContent = tag ? tag.nome : '1 selecionada';
-        } else {
-          label.textContent = `${checkboxes.length} selecionadas`;
-        }
+        label.textContent = `${checkboxes.length} tags`;
       }
     }
 
