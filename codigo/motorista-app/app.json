@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Unifique Rastreador Motorista",
-    "slug": "uniraster-motorista",
+    "name": "Unifique Rastreador Frota",
+    "slug": "unifique-rastreador-frota",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -19,7 +19,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.uniraster.motorista",
       "infoPlist": {
-        "NSCameraUsageDescription": "Acesso a camera para escanear QR Code do veiculo"
+        "NSCameraUsageDescription": "Acesso a camera para escanear QR Code do veiculo",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -62,10 +63,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "177d2419-6c58-4724-b825-0a6bdb302be2"
+        "projectId": "2aafe756-233a-4449-b148-00674f7c9b6b"
       },
       "router": {}
     },
-    "owner": "teste_raster"
+    "owner": "unifique"
   }
 }
