@@ -18655,12 +18655,14 @@
         const filtrandoPorVeiculos = !todosVeiculosMarcado && veiculosFiltroSelecionados.length > 0;
         const tagsSelecionadas = getTagsSelecionadasRelatorio();
         const filtrandoPorTags = tagsSelecionadas.length > 0;
-        const filtrandoPorMotoristas = motoristasCheckboxSelecionados && motoristasCheckboxSelecionados.size > 0;
+        // Verificar motoristas diretamente dos checkboxes marcados
+        const motoristasCheckedCount = document.querySelectorAll('.motorista-checkbox:checked').length;
+        const filtrandoPorMotoristas = motoristasCheckedCount > 0;
 
         // Se tem qualquer filtro (veículos, tags OU motoristas), os dados virão direto da API de frota
         const temFiltroAtivo = filtrandoPorVeiculos || filtrandoPorTags || filtrandoPorMotoristas;
 
-        console.log('[Relatórios] Filtros - Veículos:', veiculosFiltroSelecionados.length, 'Tags:', tagsSelecionadas.length, 'Motoristas:', motoristasCheckboxSelecionados?.size || 0, 'Tem filtro:', temFiltroAtivo);
+        console.log('[Relatórios] Filtros - Veículos:', veiculosFiltroSelecionados.length, 'Tags:', tagsSelecionadas.length, 'Motoristas:', motoristasCheckedCount, 'Tem filtro:', temFiltroAtivo);
 
         if (!temFiltroAtivo) {
           // Buscar todos os dispositivos (nenhum filtro ativo)
@@ -19295,9 +19297,14 @@
         }
 
         // Filtrar por motoristas selecionados (do dropdown de checkboxes)
-        if (motoristasCheckboxSelecionados && motoristasCheckboxSelecionados.size > 0) {
-          motoristasCheckboxSelecionados.forEach(motoristaId => params.append('motorista', motoristaId));
-          console.log('[Relatórios] Filtrando por motoristas:', Array.from(motoristasCheckboxSelecionados));
+        // Atualizar a lista de motoristas selecionados antes de enviar
+        const motoristasChecked = document.querySelectorAll('.motorista-checkbox:checked');
+        const motoristasParaFiltrar = Array.from(motoristasChecked).map(cb => cb.value);
+        console.log('[Relatórios] Motoristas checkboxes encontrados:', motoristasChecked.length, 'IDs:', motoristasParaFiltrar);
+
+        if (motoristasParaFiltrar.length > 0) {
+          motoristasParaFiltrar.forEach(motoristaId => params.append('motorista', motoristaId));
+          console.log('[Relatórios] Filtrando por motoristas:', motoristasParaFiltrar);
         }
 
         const urlFinal = `${API_URL}/relatorios/frota?${params.toString()}`;

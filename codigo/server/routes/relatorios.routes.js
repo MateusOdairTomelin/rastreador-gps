@@ -1239,10 +1239,13 @@ router.get('/frota', async (req, res) => {
 
     console.log('[Relatórios/frota] Dispositivos encontrados:', dispositivos.length);
 
+    // Se nenhum dispositivo encontrado, retornar lista vazia (não 404)
     if (dispositivos.length === 0) {
-      return res.status(404).json({
-        sucesso: false,
-        mensagem: 'Nenhum dispositivo encontrado'
+      return res.json({
+        sucesso: true,
+        veiculos: [],
+        periodo: { inicio, fim },
+        mensagem: 'Nenhum veículo encontrado com os filtros aplicados'
       });
     }
 
@@ -1250,8 +1253,8 @@ router.get('/frota', async (req, res) => {
     const LIMITE_EXCESSO_PADRAO = 80; // Limite padrão para visão geral (relatório detalhado usa limites precisos)
 
     // Se filtrar por poucos veículos, buscar todos os registros para precisão
-    // Se buscar muitos, limitar para performance
-    const limiteRegistros = dispositivos.length <= 3 ? undefined : 2000;
+    // Se buscar muitos, limitar para performance (10000 = ~27h de dados a 6 pkt/min)
+    const limiteRegistros = dispositivos.length <= 5 ? undefined : 10000;
 
     const processarVeiculo = async (dispositivo) => {
       // Buscar localizações com campos mínimos necessários
