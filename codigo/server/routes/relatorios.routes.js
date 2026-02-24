@@ -1153,7 +1153,8 @@ router.get('/frota', async (req, res) => {
       dataInicio,
       dataFim,
       formato = 'csv',
-      imei // Filtro opcional por veículo(s) - pode ser string única ou array
+      imei, // Filtro opcional por veículo(s) - pode ser string única ou array
+      tags  // Filtro opcional por tags - pode ser string única ou array de IDs
     } = req.query;
 
     // Multi-tenant: usar filtro do tenant
@@ -1172,10 +1173,36 @@ router.get('/frota', async (req, res) => {
       console.log('[Relatórios/frota] Filtrando por IMEIs:', imeis);
     }
 
+    // Filtrar por tags (veículos que tenham pelo menos uma das tags selecionadas)
+    if (tags) {
+      const tagIds = (Array.isArray(tags) ? tags : [tags]).map(t => parseInt(t)).filter(t => !isNaN(t));
+      if (tagIds.length > 0) {
+        whereClause.veiculo_rel = {
+          tags: {
+            some: {
+              tag_id: { in: tagIds }
+            }
+          }
+        };
+        console.log('[Relatórios/frota] Filtrando por tags:', tagIds);
+      }
+    }
+
     console.log('[Relatórios/frota] whereClause:', JSON.stringify(whereClause));
 
     const dispositivos = await prisma.dispositivo.findMany({
-      where: whereClause
+      where: whereClause,
+      include: {
+        veiculo_rel: {
+          include: {
+            tags: {
+              include: {
+                tag: { select: { id: true, nome: true, cor: true } }
+              }
+            }
+          }
+        }
+      }
     });
 
     console.log('[Relatórios/frota] Dispositivos encontrados:', dispositivos.length);
@@ -1258,6 +1285,13 @@ router.get('/frota', async (req, res) => {
       // Buscar motoristas vinculados no período
       const motoristas = await buscarMotoristasNoPeriodo(dispositivo.id, inicio, fim);
 
+      // Extrair tags do veículo
+      const veiculoTags = dispositivo.veiculo_rel?.tags?.map(vt => ({
+        id: vt.tag.id,
+        nome: vt.tag.nome,
+        cor: vt.tag.cor
+      })) || [];
+
       return {
         placa: dispositivo.placa || 'N/A',
         veiculo: dispositivo.veiculo || 'N/A',
@@ -1272,7 +1306,8 @@ router.get('/frota', async (req, res) => {
         tempoOciosoMinutos: Math.round(tempoOcioso),
         velocidadeMax: velocidadeMax,
         excessosVelocidade: excessosVelocidade,
-        totalRegistros: localizacoes.length
+        totalRegistros: localizacoes.length,
+        tags: veiculoTags
       };
     };
 

@@ -7676,6 +7676,12 @@
                 </select>
               </div>
               <div class="filtro-item">
+                <label class="icon-with-text"><i data-lucide="tag" class="lucide-icon sm"></i> Tags</label>
+                <select id="rel-filtro-tags" multiple style="min-height: 38px; max-height: 100px;">
+                  <option value="">Carregando...</option>
+                </select>
+              </div>
+              <div class="filtro-item">
                 <label class="icon-with-text"><i data-lucide="bar-chart-3" class="lucide-icon sm"></i> Tipo de Relatório</label>
                 <select id="rel-filtro-tipo">
                   <option value="geral">Visão Geral (+ km)</option>
@@ -16735,6 +16741,10 @@
       const busca = (document.getElementById('rel-busca-veiculo')?.value || '').toLowerCase();
       const status = document.getElementById('rel-filtro-status')?.value || 'todos';
 
+      // Pegar tags selecionadas
+      const tagsSelect = document.getElementById('rel-filtro-tags');
+      const tagsSelecionadas = tagsSelect ? Array.from(tagsSelect.selectedOptions).map(o => parseInt(o.value)) : [];
+
       relatoriosVeiculosFiltrados = relatoriosVeiculos.filter(v => {
         // Filtro de busca
         const matchBusca = !busca ||
@@ -16751,7 +16761,14 @@
                        (status === 'offline' && v.status === 'offline');
         }
 
-        return matchBusca && matchStatus;
+        // Filtro de tags (se alguma tag selecionada, veículo deve ter pelo menos uma delas)
+        let matchTags = true;
+        if (tagsSelecionadas.length > 0) {
+          const veiculoTags = v.tags || [];
+          matchTags = veiculoTags.some(t => tagsSelecionadas.includes(t.id));
+        }
+
+        return matchBusca && matchStatus && matchTags;
       });
 
       renderizarTabelaRelatorios();
@@ -16760,7 +16777,32 @@
 
     // Manter compatibilidade com código antigo
     async function carregarDadosRelatorios() {
+      await carregarTagsRelatorios();
       await buscarRelatorios();
+    }
+
+    // Carregar tags no select de filtro de relatórios
+    async function carregarTagsRelatorios() {
+      try {
+        const select = document.getElementById('rel-filtro-tags');
+        if (!select) return;
+
+        const response = await authFetch(`${API_URL}/tags`);
+        const data = await response.json();
+
+        if (data.sucesso && data.tags) {
+          select.innerHTML = data.tags.map(tag =>
+            `<option value="${tag.id}" style="padding: 4px;">${escapeHtml(tag.nome)}</option>`
+          ).join('');
+
+          // Se não há tags, mostrar mensagem
+          if (data.tags.length === 0) {
+            select.innerHTML = '<option value="" disabled>Nenhuma tag criada</option>';
+          }
+        }
+      } catch (error) {
+        console.error('[Relatórios] Erro ao carregar tags:', error);
+      }
     }
 
     // Calcular estatísticas para cada veículo (busca da API real)
@@ -16790,6 +16832,16 @@
         if (filtrandoPorVeiculos && veiculosFiltroSelecionados.length > 0) {
           veiculosFiltroSelecionados.forEach(v => params.append('imei', v.imei));
           console.log('[Relatórios] Filtrando por IMEIs:', veiculosFiltroSelecionados.map(v => v.imei));
+        }
+
+        // Filtrar por tags selecionadas
+        const tagsSelect = document.getElementById('rel-filtro-tags');
+        if (tagsSelect) {
+          const tagsSelecionadas = Array.from(tagsSelect.selectedOptions).map(o => o.value).filter(v => v);
+          tagsSelecionadas.forEach(tagId => params.append('tags', tagId));
+          if (tagsSelecionadas.length > 0) {
+            console.log('[Relatórios] Filtrando por tags:', tagsSelecionadas);
+          }
         }
 
         const urlFinal = `${API_URL}/relatorios/frota?${params.toString()}`;
