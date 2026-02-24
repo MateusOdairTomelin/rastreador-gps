@@ -19377,14 +19377,6 @@
           renderizarTags();
         }
 
-        // Carregar estatísticas
-        const statsRes = await authFetch(`${API_URL}/tags/estatisticas`);
-        const statsData = await statsRes.json();
-        if (statsData.sucesso) {
-          document.getElementById('stat-total-tags').textContent = statsData.totalTags || 0;
-          document.getElementById('stat-veiculos-com-tag').textContent = statsData.veiculosComTag || 0;
-          document.getElementById('stat-veiculos-sem-tag').textContent = statsData.veiculosSemTag || 0;
-        }
       } catch (error) {
         console.error('[Tags] Erro ao carregar:', error);
         document.getElementById('tags-lista').innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">Erro ao carregar tags: ${error.message}</div>`;
@@ -19393,11 +19385,15 @@
 
     function renderizarTags(filtro = '') {
       const container = document.getElementById('tags-lista');
+      const statEl = document.getElementById('stat-total-tags');
 
       let tags = tagsCache;
       if (filtro) {
         tags = tagsCache.filter(t => t.nome.toLowerCase().includes(filtro.toLowerCase()));
       }
+
+      // Atualizar contador
+      if (statEl) statEl.textContent = `${tagsCache.length} tags`;
 
       if (tags.length === 0) {
         container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);">${filtro ? 'Nenhuma tag encontrada' : 'Nenhuma tag criada'}</div>`;
