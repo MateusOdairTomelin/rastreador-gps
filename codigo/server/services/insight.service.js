@@ -241,6 +241,9 @@ class InsightService {
               ? `${motorista.nome} aumentou a quilometragem em ${Math.round(variacaoKm)}%`
               : `${motorista.nome} reduziu a quilometragem em ${Math.round(Math.abs(variacaoKm))}%`,
             descricao: `O motorista ${motorista.nome} percorreu ${Math.round(kmAtual)} km na última semana, ${variacaoKm > 0 ? 'um aumento' : 'uma redução'} de ${Math.round(Math.abs(variacaoKm))}% em relação à semana anterior (${Math.round(kmAnterior)} km).`,
+            acao_recomendada: variacaoKm > 0
+              ? 'Verifique se há rotas alternativas mais curtas ou otimize o planejamento de entregas.'
+              : 'Investigue o motivo da redução. Verifique se há problemas operacionais ou com o veículo.',
             valor_antes: kmAnterior,
             valor_depois: kmAtual,
             variacao_pct: variacaoKm,
@@ -258,6 +261,9 @@ class InsightService {
           motorista_id: motorista.id,
           titulo: `${motorista.nome} atingiu ${Math.round(velMaxAtual)} km/h`,
           descricao: `O motorista ${motorista.nome} atingiu velocidade máxima de ${Math.round(velMaxAtual)} km/h na última semana. A velocidade média foi de ${Math.round(velMediaAtual)} km/h em ${viagensAtual} viagens.`,
+          acao_recomendada: velMaxAtual > 150
+            ? 'Aplique advertência e agende treinamento de direção defensiva urgente.'
+            : 'Converse com o motorista sobre condução segura e configure alertas de velocidade no veículo.',
           valor_depois: velMaxAtual,
           score: Math.min(100, (velMaxAtual - 100) * 2),
           prioridade: velMaxAtual > 150 ? 'critica' : velMaxAtual > 130 ? 'alta' : 'normal'
@@ -310,6 +316,7 @@ class InsightService {
           veiculo_id: veiculo.id,
           titulo: `Veículo ${veiculo.placa} sem viagens na última semana`,
           descricao: `O veículo ${veiculo.placa} (${veiculo.modelo || 'sem modelo'}) não realizou nenhuma viagem nos últimos 7 dias. Verifique se está operacional ou se houve algum problema.`,
+          acao_recomendada: 'Verifique o status do rastreador e se o veículo está em manutenção. Considere redistribuir a frota se estiver ocioso.',
           score: 50,
           prioridade: 'baixa'
         });
@@ -329,6 +336,9 @@ class InsightService {
           veiculo_id: veiculo.id,
           titulo: `Veículo ${veiculo.placa} percorreu ${Math.round(kmTotal)} km`,
           descricao: `O veículo ${veiculo.placa} teve alta utilização na última semana, percorrendo ${Math.round(kmTotal)} km em ${Math.round(horasTotal)} horas de operação.`,
+          acao_recomendada: kmTotal > 3000
+            ? 'Agende manutenção preventiva urgente. Verifique pneus, óleo e freios.'
+            : 'Acompanhe o desgaste do veículo e verifique se a próxima revisão está em dia.',
           valor_depois: kmTotal,
           score: Math.min(100, kmTotal / 30),
           prioridade: kmTotal > 3000 ? 'alta' : 'normal'
@@ -384,11 +394,27 @@ class InsightService {
         const variacao = ((countAtual - countAnterior) / countAnterior) * 100;
 
         if (variacao >= 30) {
+          // Gerar ação recomendada baseada no tipo de alarme
+          let acaoRecomendada = 'Analise os eventos detalhadamente no relatório de alarmes.';
+          const tipoLower = alarme.tipo_alarme.toLowerCase();
+          if (tipoLower.includes('velocidade') || tipoLower.includes('speed')) {
+            acaoRecomendada = 'Configure cercas de velocidade e agende treinamento de direção defensiva para os motoristas.';
+          } else if (tipoLower.includes('freada') || tipoLower.includes('brake')) {
+            acaoRecomendada = 'Verifique o estado dos freios dos veículos e oriente os motoristas sobre direção preventiva.';
+          } else if (tipoLower.includes('cerca') || tipoLower.includes('geofence')) {
+            acaoRecomendada = 'Revise as configurações das cercas eletrônicas e verifique se estão corretas.';
+          } else if (tipoLower.includes('bateria') || tipoLower.includes('battery')) {
+            acaoRecomendada = 'Verifique o sistema elétrico dos veículos e a condição das baterias.';
+          } else if (tipoLower.includes('desconex') || tipoLower.includes('disconnect')) {
+            acaoRecomendada = 'Verifique a instalação dos rastreadores e possíveis tentativas de sabotagem.';
+          }
+
           insights.push({
             tipo: TIPOS.SEGURANCA,
             categoria: CATEGORIAS.ALERTA,
             titulo: `Aumento de ${Math.round(variacao)}% em alarmes de "${alarme.tipo_alarme}"`,
             descricao: `A frota apresentou ${countAtual} eventos de "${alarme.tipo_alarme}" na última semana, um aumento de ${Math.round(variacao)}% em relação à semana anterior (${countAnterior} eventos).`,
+            acao_recomendada: acaoRecomendada,
             valor_antes: countAnterior,
             valor_depois: countAtual,
             variacao_pct: variacao,
@@ -440,6 +466,7 @@ class InsightService {
           categoria: CATEGORIAS.TENDENCIA,
           titulo: `Velocidade média da frota: ${Math.round(velMediaGeral)} km/h`,
           descricao: `A frota apresentou velocidade média de ${Math.round(velMediaGeral)} km/h na última semana em ${estatisticas._count.id} viagens. Uma velocidade média baixa pode indicar congestionamentos frequentes ou rotas ineficientes.`,
+          acao_recomendada: 'Analise os trajetos no mapa e identifique horários/rotas com congestionamento. Considere ajustar horários de saída.',
           valor_depois: velMediaGeral,
           score: 40,
           prioridade: 'baixa'
@@ -453,6 +480,7 @@ class InsightService {
           categoria: CATEGORIAS.ALERTA,
           titulo: `Velocidade extrema detectada: ${Math.round(velMaxGeral)} km/h`,
           descricao: `Foi registrada velocidade máxima de ${Math.round(velMaxGeral)} km/h na frota durante a última semana. Velocidades acima de 150 km/h representam alto risco de acidentes.`,
+          acao_recomendada: 'Identifique o motorista responsável imediatamente. Aplique medidas disciplinares e agende treinamento obrigatório.',
           valor_depois: velMaxGeral,
           score: 90,
           prioridade: 'critica'
@@ -516,6 +544,9 @@ class InsightService {
             veiculo_id: veiculo.id,
             titulo: `Veículo ${veiculo.placa}: ${Math.round(percentualOcioso)}% do tempo ocioso`,
             descricao: `O veículo ${veiculo.placa} permaneceu ocioso (motor ligado parado) em ${Math.round(percentualOcioso)}% do tempo de operação. Isso representa desperdício de combustível e pode indicar esperas excessivas.`,
+            acao_recomendada: percentualOcioso > 60
+              ? 'Instale sistema de corte de marcha lenta automático ou oriente o motorista a desligar o veículo em paradas longas.'
+              : 'Oriente o motorista a desligar o motor em paradas superiores a 2 minutos para economizar combustível.',
             valor_depois: percentualOcioso,
             score: Math.min(100, percentualOcioso),
             prioridade: percentualOcioso > 60 ? 'alta' : 'normal'
@@ -534,6 +565,7 @@ class InsightService {
           categoria: CATEGORIAS.CUSTO,
           titulo: `Frota com ${Math.round(mediaOciosidade)}% de ociosidade média`,
           descricao: `A frota apresentou ociosidade média de ${Math.round(mediaOciosidade)}% na última semana. Reduzir o tempo ocioso pode gerar economia significativa de combustível.`,
+          acao_recomendada: 'Implemente política de desligamento do motor em paradas. Considere metas de redução de ociosidade com bonificação.',
           valor_depois: mediaOciosidade,
           score: Math.min(100, mediaOciosidade * 2),
           prioridade: mediaOciosidade > 40 ? 'alta' : 'normal'
