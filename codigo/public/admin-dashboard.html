@@ -4912,6 +4912,15 @@
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg></span>
           <span>Veiculos</span>
         </button>
+        <button class="nav-item" id="nav-tags" onclick="switchSection('tags')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
+          <span>Tags</span>
+        </button>
+        <button class="nav-item" id="nav-insights" onclick="switchSection('insights')">
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span>
+          <span>Insights IA</span>
+          <span id="badge-insights" style="display:none; background:#7C3AED; color:white; font-size:10px; padding:2px 6px; border-radius:10px; margin-left:auto;"></span>
+        </button>
         <button class="nav-item" id="nav-trajetos" onclick="switchSection('trajetos')">
           <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></span>
           <span>Trajetos</span>
@@ -6803,6 +6812,109 @@
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAGS SECTION -->
+        <section class="section" id="section-tags">
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h2 style="color: var(--primary); font-size: 1.3rem;">Tags de Veiculos</h2>
+              <button onclick="abrirModalNovaTag()" style="background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova Tag
+              </button>
+            </div>
+            <p style="color: var(--text-muted); margin-bottom: 20px;">Organize seus veiculos com tags para filtrar por regiao, tipo, centro de custo, etc.</p>
+
+            <!-- Estatísticas de Tags -->
+            <div id="tags-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px;">
+              <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 16px; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: var(--primary);" id="stat-total-tags">0</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem;">Tags Criadas</div>
+              </div>
+              <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 16px; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: var(--success);" id="stat-veiculos-com-tag">0</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem;">Veiculos com Tags</div>
+              </div>
+              <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 16px; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: var(--warning);" id="stat-veiculos-sem-tag">0</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem;">Veiculos sem Tags</div>
+              </div>
+            </div>
+
+            <!-- Lista de Tags -->
+            <div id="tags-lista" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+              <div style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando tags...</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- INSIGHTS SECTION -->
+        <section class="section" id="section-insights">
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <div>
+                <h2 style="color: var(--primary); font-size: 1.3rem; display: flex; align-items: center; gap: 10px;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                  Insights de IA
+                </h2>
+                <p style="color: var(--text-muted); margin-top: 8px;">Analise automatica de padroes e tendencias da sua frota</p>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button onclick="marcarTodosInsightsLidos()" style="background: var(--bg-card); color: var(--text); border: 1px solid var(--border); padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
+                  Marcar todos como lidos
+                </button>
+                <button onclick="gerarInsights()" style="background: linear-gradient(135deg, #7C3AED, #A855F7); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                  Gerar Insights
+                </button>
+              </div>
+            </div>
+
+            <!-- Resumo de Insights -->
+            <div id="insights-resumo" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px;">
+              <div class="stat-card" style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(168, 85, 247, 0.1)); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 12px; padding: 16px; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: #A855F7;" id="stat-insights-nao-lidos">0</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem;">Nao Lidos</div>
+              </div>
+              <div class="stat-card" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(248, 113, 113, 0.1)); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 16px; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 700; color: #EF4444;" id="stat-insights-criticos">0</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem;">Criticos</div>
+              </div>
+              <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 16px; text-align: center;">
+                <div style="font-size: 0.9rem; color: var(--text-muted);" id="stat-ultimo-gerado">-</div>
+                <div style="color: var(--text-muted); font-size: 0.85rem;">Ultima Geracao</div>
+              </div>
+            </div>
+
+            <!-- Filtros -->
+            <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
+              <select id="filtro-insight-tipo" onchange="carregarInsights()" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px;">
+                <option value="">Todos os tipos</option>
+                <option value="motorista">Motorista</option>
+                <option value="veiculo">Veiculo</option>
+                <option value="frota">Frota</option>
+                <option value="seguranca">Seguranca</option>
+                <option value="custo">Custo</option>
+              </select>
+              <select id="filtro-insight-prioridade" onchange="carregarInsights()" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px;">
+                <option value="">Todas prioridades</option>
+                <option value="critica">Critica</option>
+                <option value="alta">Alta</option>
+                <option value="normal">Normal</option>
+                <option value="baixa">Baixa</option>
+              </select>
+              <label style="display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.9rem;">
+                <input type="checkbox" id="filtro-insight-nao-lidos" onchange="carregarInsights()">
+                Apenas nao lidos
+              </label>
+            </div>
+
+            <!-- Lista de Insights -->
+            <div id="insights-lista" style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando insights...</div>
             </div>
           </div>
         </section>
@@ -11500,6 +11612,8 @@
       multas: '⚠',
       motoristas: '👤',
       veiculos: '🚗',
+      tags: '🏷️',
+      insights: '📊',
       'info-veiculo': '🚗',
       trajetos: '◇',
       lgpd: '🛡'
@@ -11524,6 +11638,8 @@
       multas: 'Multas de Trânsito',
       motoristas: 'Motoristas',
       veiculos: 'Veículos',
+      tags: 'Tags de Veículos',
+      insights: 'Insights de IA',
       'info-veiculo': 'Info Veículo',
       trajetos: 'Trajetos',
       lgpd: 'LGPD / Privacidade'
@@ -11610,6 +11726,10 @@
         if (typeof initLgpd === 'function') initLgpd();
       } else if (name === 'veiculos') {
         if (typeof carregarVeiculosSecao === 'function') carregarVeiculosSecao();
+      } else if (name === 'tags') {
+        if (typeof carregarTags === 'function') carregarTags();
+      } else if (name === 'insights') {
+        if (typeof carregarInsights === 'function') carregarInsights();
       } else if (name === 'trajetos') {
         if (typeof trajetosInit === 'function') trajetosInit();
       }
@@ -18934,6 +19054,371 @@
     window.abrirModalVincularSecao = abrirModalVincularSecao;
     window.confirmarVinculacaoSecao = confirmarVinculacaoSecao;
     window.desvincularDispositivoSecao = desvincularDispositivoSecao;
+
+    // ============ TAGS SECTION ============
+    let tagsCache = [];
+
+    async function carregarTags() {
+      try {
+        const response = await authFetch(`${API_URL}/tags`);
+        if (!response.ok) throw new Error('Erro ao carregar tags');
+
+        const data = await response.json();
+        if (data.sucesso) {
+          tagsCache = data.tags || [];
+          renderizarTags();
+        }
+
+        // Carregar estatísticas
+        const statsRes = await authFetch(`${API_URL}/tags/estatisticas`);
+        const statsData = await statsRes.json();
+        if (statsData.sucesso) {
+          document.getElementById('stat-total-tags').textContent = statsData.totalTags || 0;
+          document.getElementById('stat-veiculos-com-tag').textContent = statsData.veiculosComTag || 0;
+          document.getElementById('stat-veiculos-sem-tag').textContent = statsData.veiculosSemTag || 0;
+        }
+      } catch (error) {
+        console.error('[Tags] Erro ao carregar:', error);
+        document.getElementById('tags-lista').innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">Erro ao carregar tags: ${error.message}</div>`;
+      }
+    }
+
+    function renderizarTags() {
+      const container = document.getElementById('tags-lista');
+
+      if (tagsCache.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 60px; color: var(--text-muted); grid-column: 1 / -1;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 16px; opacity: 0.5;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            <p>Nenhuma tag criada ainda</p>
+            <p style="font-size: 0.85rem; margin-top: 8px;">Crie tags para organizar seus veiculos por regiao, tipo ou centro de custo</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = tagsCache.map(tag => `
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 24px; height: 24px; border-radius: 6px; background: ${tag.cor || '#3B82F6'};"></div>
+            <span style="font-weight: 600; font-size: 1.1rem; flex: 1;">${escapeHtml(tag.nome)}</span>
+            <span style="background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 20px; font-size: 0.85rem;">${tag.totalVeiculos || 0} veiculos</span>
+          </div>
+          ${tag.descricao ? `<p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">${escapeHtml(tag.descricao)}</p>` : ''}
+          <div style="display: flex; gap: 8px; margin-top: auto;">
+            <button onclick="editarTag(${tag.id})" style="flex: 1; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px; border-radius: 6px; cursor: pointer;">Editar</button>
+            <button onclick="verVeiculosTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="flex: 1; background: var(--primary); color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer;">Ver Veiculos</button>
+            <button onclick="excluirTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 6px; cursor: pointer;">🗑</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function abrirModalNovaTag() {
+      const html = `
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <h3 style="margin: 0; color: var(--primary);">Nova Tag</h3>
+          <div>
+            <label style="display: block; margin-bottom: 6px; color: var(--text-muted);">Nome da Tag *</label>
+            <input type="text" id="tag-nome" placeholder="Ex: Frota SP, Caminhoes, Filial A" style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 6px;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 6px; color: var(--text-muted);">Cor</label>
+            <input type="color" id="tag-cor" value="#3B82F6" style="width: 100%; height: 40px; border: none; border-radius: 6px; cursor: pointer;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 6px; color: var(--text-muted);">Descricao (opcional)</label>
+            <textarea id="tag-descricao" placeholder="Descricao da tag..." rows="2" style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 6px; resize: vertical;"></textarea>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 8px;">
+            <button onclick="fecharModal()" style="flex: 1; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: pointer;">Cancelar</button>
+            <button onclick="salvarTag()" style="flex: 1; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Criar Tag</button>
+          </div>
+        </div>`;
+      showModal('Nova Tag', html);
+    }
+
+    async function salvarTag(tagId = null) {
+      const nome = document.getElementById('tag-nome').value.trim();
+      const cor = document.getElementById('tag-cor').value;
+      const descricao = document.getElementById('tag-descricao').value.trim();
+
+      if (!nome) {
+        showToast('Nome da tag e obrigatorio', 'error');
+        return;
+      }
+
+      try {
+        const url = tagId ? `${API_URL}/tags/${tagId}` : `${API_URL}/tags`;
+        const method = tagId ? 'PUT' : 'POST';
+
+        const response = await authFetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome, cor, descricao })
+        });
+
+        const data = await response.json();
+        if (data.sucesso) {
+          showToast(tagId ? 'Tag atualizada!' : 'Tag criada!', 'success');
+          fecharModal();
+          carregarTags();
+        } else {
+          throw new Error(data.erro || 'Erro ao salvar tag');
+        }
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    }
+
+    async function editarTag(tagId) {
+      try {
+        const response = await authFetch(`${API_URL}/tags/${tagId}`);
+        const data = await response.json();
+        if (!data.sucesso) throw new Error('Tag nao encontrada');
+
+        const tag = data.tag;
+        const html = `
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <h3 style="margin: 0; color: var(--primary);">Editar Tag</h3>
+            <div>
+              <label style="display: block; margin-bottom: 6px; color: var(--text-muted);">Nome da Tag *</label>
+              <input type="text" id="tag-nome" value="${escapeHtml(tag.nome)}" style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 6px;">
+            </div>
+            <div>
+              <label style="display: block; margin-bottom: 6px; color: var(--text-muted);">Cor</label>
+              <input type="color" id="tag-cor" value="${tag.cor || '#3B82F6'}" style="width: 100%; height: 40px; border: none; border-radius: 6px; cursor: pointer;">
+            </div>
+            <div>
+              <label style="display: block; margin-bottom: 6px; color: var(--text-muted);">Descricao (opcional)</label>
+              <textarea id="tag-descricao" rows="2" style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 6px; resize: vertical;">${escapeHtml(tag.descricao || '')}</textarea>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+              <button onclick="fecharModal()" style="flex: 1; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: pointer;">Cancelar</button>
+              <button onclick="salvarTag(${tagId})" style="flex: 1; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Salvar</button>
+            </div>
+          </div>`;
+        showModal('Editar Tag', html);
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    }
+
+    async function excluirTag(tagId, nome) {
+      showConfirm(`Excluir tag "${nome}"?`, 'Esta acao nao pode ser desfeita.', async () => {
+        try {
+          const response = await authFetch(`${API_URL}/tags/${tagId}`, { method: 'DELETE' });
+          const data = await response.json();
+          if (data.sucesso) {
+            showToast('Tag excluida!', 'success');
+            carregarTags();
+          } else {
+            throw new Error(data.erro || 'Erro ao excluir');
+          }
+        } catch (error) {
+          showToast(error.message, 'error');
+        }
+      });
+    }
+
+    async function verVeiculosTag(tagId, nome) {
+      try {
+        const response = await authFetch(`${API_URL}/tags/${tagId}/veiculos`);
+        const data = await response.json();
+        if (!data.sucesso) throw new Error('Erro ao carregar veiculos');
+
+        const veiculos = data.veiculos || [];
+        const html = `
+          <div style="display: flex; flex-direction: column; gap: 16px; max-height: 60vh;">
+            <h3 style="margin: 0; color: var(--primary);">Veiculos com tag "${escapeHtml(nome)}"</h3>
+            <div style="overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+              ${veiculos.length === 0
+                ? '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Nenhum veiculo com esta tag</p>'
+                : veiculos.map(v => `
+                    <div style="background: var(--surface); padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                      <div>
+                        <span style="font-weight: 600; color: var(--primary);">${v.placa}</span>
+                        <span style="color: var(--text-muted); margin-left: 12px;">${v.modelo || ''}</span>
+                      </div>
+                      ${v.dispositivos && v.dispositivos[0]
+                        ? `<span style="font-size: 0.85rem; color: ${v.dispositivos[0].status === 'online' ? '#22c55e' : '#6b7280'};">${v.dispositivos[0].status}</span>`
+                        : ''}
+                    </div>
+                  `).join('')
+              }
+            </div>
+            <button onclick="fecharModal()" style="background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: pointer;">Fechar</button>
+          </div>`;
+        showModal(`Veiculos - ${nome}`, html);
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    }
+
+    window.carregarTags = carregarTags;
+    window.abrirModalNovaTag = abrirModalNovaTag;
+    window.salvarTag = salvarTag;
+    window.editarTag = editarTag;
+    window.excluirTag = excluirTag;
+    window.verVeiculosTag = verVeiculosTag;
+
+    // ============ INSIGHTS SECTION ============
+    let insightsCache = [];
+
+    async function carregarInsights() {
+      try {
+        const tipo = document.getElementById('filtro-insight-tipo')?.value || '';
+        const prioridade = document.getElementById('filtro-insight-prioridade')?.value || '';
+        const naoLidos = document.getElementById('filtro-insight-nao-lidos')?.checked;
+
+        let url = `${API_URL}/insights?limit=50`;
+        if (tipo) url += `&tipo=${tipo}`;
+        if (prioridade) url += `&prioridade=${prioridade}`;
+        if (naoLidos) url += `&lido=false`;
+
+        const response = await authFetch(url);
+        if (!response.ok) throw new Error('Erro ao carregar insights');
+
+        const data = await response.json();
+        if (data.sucesso) {
+          insightsCache = data.insights || [];
+          renderizarInsights();
+          document.getElementById('stat-insights-nao-lidos').textContent = data.naoLidos || 0;
+
+          // Atualizar badge no menu
+          const badge = document.getElementById('badge-insights');
+          if (data.naoLidos > 0) {
+            badge.textContent = data.naoLidos;
+            badge.style.display = 'inline';
+          } else {
+            badge.style.display = 'none';
+          }
+        }
+
+        // Carregar resumo
+        const resumoRes = await authFetch(`${API_URL}/insights/resumo`);
+        const resumoData = await resumoRes.json();
+        if (resumoData.sucesso) {
+          document.getElementById('stat-insights-criticos').textContent = resumoData.criticos || 0;
+          if (resumoData.ultimoGerado) {
+            const data = new Date(resumoData.ultimoGerado);
+            document.getElementById('stat-ultimo-gerado').textContent = data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          }
+        }
+      } catch (error) {
+        console.error('[Insights] Erro ao carregar:', error);
+        document.getElementById('insights-lista').innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">Erro ao carregar insights: ${error.message}</div>`;
+      }
+    }
+
+    function renderizarInsights() {
+      const container = document.getElementById('insights-lista');
+
+      if (insightsCache.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 60px; color: var(--text-muted);">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 16px; opacity: 0.5;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            <p>Nenhum insight encontrado</p>
+            <p style="font-size: 0.85rem; margin-top: 8px;">Clique em "Gerar Insights" para analisar os dados da sua frota</p>
+          </div>`;
+        return;
+      }
+
+      const prioridadeCores = {
+        critica: { bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.4)', icon: '🔴' },
+        alta: { bg: 'rgba(249, 115, 22, 0.15)', border: 'rgba(249, 115, 22, 0.4)', icon: '🟠' },
+        normal: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.4)', icon: '🔵' },
+        baixa: { bg: 'rgba(107, 114, 128, 0.15)', border: 'rgba(107, 114, 128, 0.4)', icon: '⚪' }
+      };
+
+      const tipoIcones = {
+        motorista: '👤',
+        veiculo: '🚗',
+        frota: '🚚',
+        seguranca: '⚠️',
+        custo: '💰'
+      };
+
+      container.innerHTML = insightsCache.map(insight => {
+        const cor = prioridadeCores[insight.prioridade] || prioridadeCores.normal;
+        const icone = tipoIcones[insight.tipo] || '📊';
+        const dataInsight = new Date(insight.created_at);
+
+        return `
+          <div style="background: ${cor.bg}; border: 1px solid ${cor.border}; border-radius: 12px; padding: 16px; ${!insight.lido ? 'border-left: 4px solid #7C3AED;' : ''}" onclick="marcarInsightLido(${insight.id})">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <span style="font-size: 1.5rem;">${icone}</span>
+              <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                  <h4 style="margin: 0; font-size: 1rem; ${!insight.lido ? 'font-weight: 700;' : ''}">${escapeHtml(insight.titulo)}</h4>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">${dataInsight.toLocaleDateString('pt-BR')}</span>
+                    <span>${cor.icon}</span>
+                  </div>
+                </div>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">${escapeHtml(insight.descricao)}</p>
+                ${insight.variacao_pct !== null ? `
+                  <div style="margin-top: 12px; display: flex; gap: 16px;">
+                    ${insight.valor_antes !== null ? `<span style="font-size: 0.85rem; color: var(--text-muted);">Antes: <strong>${Math.round(insight.valor_antes)}</strong></span>` : ''}
+                    ${insight.valor_depois !== null ? `<span style="font-size: 0.85rem; color: var(--text-muted);">Depois: <strong>${Math.round(insight.valor_depois)}</strong></span>` : ''}
+                    <span style="font-size: 0.85rem; color: ${insight.variacao_pct > 0 ? '#22c55e' : '#ef4444'}; font-weight: 600;">
+                      ${insight.variacao_pct > 0 ? '+' : ''}${Math.round(insight.variacao_pct)}%
+                    </span>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function gerarInsights() {
+      try {
+        showToast('Gerando insights... Isso pode levar alguns segundos.', 'info');
+
+        const response = await authFetch(`${API_URL}/insights/gerar`, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.sucesso) {
+          showToast(`${data.gerados} insights gerados!`, 'success');
+          carregarInsights();
+        } else {
+          throw new Error(data.erro || 'Erro ao gerar insights');
+        }
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    }
+
+    async function marcarInsightLido(insightId) {
+      try {
+        await authFetch(`${API_URL}/insights/${insightId}/lido`, { method: 'POST' });
+        // Atualizar localmente
+        const insight = insightsCache.find(i => i.id === insightId);
+        if (insight) insight.lido = true;
+        renderizarInsights();
+      } catch (error) {
+        console.error('[Insights] Erro ao marcar como lido:', error);
+      }
+    }
+
+    async function marcarTodosInsightsLidos() {
+      try {
+        const response = await authFetch(`${API_URL}/insights/marcar-todos-lidos`, { method: 'POST' });
+        const data = await response.json();
+        if (data.sucesso) {
+          showToast('Todos marcados como lidos!', 'success');
+          carregarInsights();
+        }
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    }
+
+    window.carregarInsights = carregarInsights;
+    window.gerarInsights = gerarInsights;
+    window.marcarInsightLido = marcarInsightLido;
+    window.marcarTodosInsightsLidos = marcarTodosInsightsLidos;
 
     // ============ TRAJETOS SECTION ============
     // Variáveis já declaradas no início do script

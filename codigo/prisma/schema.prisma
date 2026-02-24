@@ -107,6 +107,8 @@ model Organizacao {
   perfis_permissao PerfilPermissao[]
   usuarios_perfis  UsuarioPerfilPermissao[]
   multas          Multa[]
+  tags            Tag[]
+  insights        InsightIA[]
 
   @@index([slug])
   @@index([status])
@@ -1000,6 +1002,7 @@ model Veiculo {
   dispositivos    Dispositivo[]
   historico_dispositivos VeiculoDispositivoHistorico[]
   multas          Multa[]
+  tags            VeiculoTag[]
 
   created_at      DateTime  @default(now())
   updated_at      DateTime  @updatedAt
@@ -1130,6 +1133,94 @@ model RecursoMulta {
   @@index([multa_id])
   @@index([status])
   @@map("recursos_multa")
+}
+
+// ========== TAGS DE VEÍCULOS ==========
+// Sistema de tags para categorizar e organizar veículos
+model Tag {
+  id              Int       @id @default(autoincrement())
+  organizacao_id  Int
+  organizacao     Organizacao @relation(fields: [organizacao_id], references: [id], onDelete: Cascade)
+
+  nome            String    @db.VarChar(50)
+  cor             String?   @default("#3B82F6") @db.VarChar(7)  // Cor hex para o badge
+  descricao       String?   @db.VarChar(255)
+
+  ativo           Boolean   @default(true)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  veiculos        VeiculoTag[]
+
+  @@unique([organizacao_id, nome])
+  @@index([organizacao_id])
+  @@index([organizacao_id, ativo])
+  @@map("tags")
+}
+
+// Relação N:N entre Veículos e Tags
+model VeiculoTag {
+  id              Int       @id @default(autoincrement())
+  veiculo_id      Int
+  tag_id          Int
+
+  veiculo         Veiculo   @relation(fields: [veiculo_id], references: [id], onDelete: Cascade)
+  tag             Tag       @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime  @default(now())
+
+  @@unique([veiculo_id, tag_id])
+  @@index([veiculo_id])
+  @@index([tag_id])
+  @@map("veiculo_tags")
+}
+
+// ========== INSIGHTS DE IA ==========
+// Armazena insights gerados automaticamente pela IA
+model InsightIA {
+  id              Int       @id @default(autoincrement())
+  organizacao_id  Int
+  organizacao     Organizacao @relation(fields: [organizacao_id], references: [id], onDelete: Cascade)
+
+  // Tipo de insight
+  tipo            String    @db.VarChar(50)   // "motorista", "veiculo", "frota", "custo", "seguranca"
+  categoria       String    @db.VarChar(50)   // "melhoria", "alerta", "tendencia", "comparativo"
+
+  // Referências (opcional - pode ser sobre motorista, veículo ou frota geral)
+  motorista_id    Int?
+  veiculo_id      Int?
+  tag_id          Int?                        // Insight sobre grupo de veículos
+
+  // Conteúdo do insight
+  titulo          String    @db.VarChar(255)
+  descricao       String    @db.Text
+  dados           String?   @db.Text          // JSON com dados de suporte (métricas, gráficos)
+
+  // Métricas do insight
+  valor_antes     Float?    @db.DoublePrecision  // Valor anterior (ex: consumo médio antes)
+  valor_depois    Float?    @db.DoublePrecision  // Valor atual (ex: consumo médio agora)
+  variacao_pct    Float?    @db.DoublePrecision  // Variação percentual
+
+  // Período de análise
+  periodo_inicio  DateTime
+  periodo_fim     DateTime
+
+  // Relevância e prioridade
+  score           Float     @default(0) @db.DoublePrecision  // 0-100, importância do insight
+  prioridade      String    @default("normal") @db.VarChar(20)  // baixa, normal, alta, critica
+
+  // Status
+  lido            Boolean   @default(false)
+  lido_em         DateTime?
+  arquivado       Boolean   @default(false)
+
+  created_at      DateTime  @default(now())
+
+  @@index([organizacao_id, created_at(sort: Desc)])
+  @@index([organizacao_id, lido, arquivado])
+  @@index([tipo])
+  @@index([prioridade])
+  @@map("insights_ia")
 }
 
 // ========== CACHE DE LIMITES DE VELOCIDADE ==========
