@@ -8655,7 +8655,7 @@
               <div class="filtros-linha-1">
                 <div class="filtro-busca-container">
                   <span class="filtro-busca-icon">◎</span>
-                  <input type="text" id="rel-busca-geral" placeholder="Procurar veículos, motoristas e etc..." class="filtro-busca-input">
+                  <input type="text" id="rel-busca-geral" placeholder="Procurar veículos, motoristas e etc..." class="filtro-busca-input" oninput="filtrarTabelaRelatorios(this.value)">
                 </div>
                 <div class="filtro-periodo-container">
                   <span class="filtro-periodo-icon">◷</span>
@@ -18628,6 +18628,13 @@
 
     // ============ FIM RELATÓRIO PERSONALIZADO ============
 
+    // ============ VARIÁVEIS GLOBAIS DOS FILTROS COBLI ============
+    // (declaradas aqui para serem acessíveis em buscarRelatorios)
+    let veiculosCheckboxCache = [];
+    let veiculosCheckboxSelecionados = new Set();
+    let statusCheckboxSelecionados = new Set();
+    let motoristasCheckboxSelecionados = new Set();
+
     // Buscar relatórios (chamado pelo botão "Buscar")
     async function buscarRelatorios() {
       try {
@@ -18681,6 +18688,20 @@
         `;
       }
     }
+
+    // Filtrar tabela de relatórios pelo campo de busca geral
+    function filtrarTabelaRelatorios(busca) {
+      const termo = busca.toLowerCase().trim();
+      const linhas = document.querySelectorAll('#relatorios-veiculos-tbody tr');
+
+      linhas.forEach(linha => {
+        if (linha.querySelector('td[colspan]')) return; // Pular linhas de loading/erro
+
+        const texto = linha.textContent.toLowerCase();
+        linha.style.display = texto.includes(termo) ? '' : 'none';
+      });
+    }
+    window.filtrarTabelaRelatorios = filtrarTabelaRelatorios;
 
     // Filtrar veículos localmente (sem nova busca na API)
     function filtrarVeiculosRelatoriosLocal() {
@@ -18833,12 +18854,6 @@
 
     // ============ NOVOS DROPDOWNS UNIFICADOS ============
 
-    // Cache de veículos para checkbox list
-    let veiculosCheckboxCache = [];
-    let veiculosCheckboxSelecionados = new Set();
-    let statusCheckboxSelecionados = new Set();
-    let motoristasCheckboxSelecionados = new Set();
-
     function toggleVeiculosDropdown() {
       closeAllDropdowns('veiculos-dropdown');
       const dropdown = document.getElementById('veiculos-dropdown');
@@ -18982,8 +18997,16 @@
         relatoriosFlatpickr.setDate([seteDiasAtras, hoje]);
       }
 
+      // Limpar busca geral
+      const buscaGeral = document.getElementById('rel-busca-geral');
+      if (buscaGeral) buscaGeral.value = '';
+
       // Fechar todos os dropdowns
       closeAllDropdowns();
+
+      // Mostrar todas as linhas da tabela
+      const linhas = document.querySelectorAll('#relatorios-veiculos-tbody tr');
+      linhas.forEach(linha => linha.style.display = '');
 
       console.log('[Filtros] Todos os filtros foram limpos');
     }
