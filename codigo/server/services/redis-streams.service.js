@@ -292,9 +292,11 @@ class RedisStreamsService {
         fields.push(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
       }
 
-      // MAXLEN 500 mantém últimas 500 mensagens por stream (limpeza agressiva)
-      // Com 4 partições x 500 = 2000 mensagens total - evita qualquer acúmulo
-      const messageId = await this.client.xadd(stream, 'MAXLEN', '500', '*', ...fields);
+      // MAXLEN 5000 - dimensionado para 3000 rastreadores
+      // 3000 rastreadores × 6 pkt/min = 18000/min ÷ 4 partições = 4500/min/partição
+      // 5000 mensagens = ~1 minuto de buffer por partição
+      // SEM o ~ para garantir limpeza rigorosa (era o problema anterior)
+      const messageId = await this.client.xadd(stream, 'MAXLEN', '5000', '*', ...fields);
       this.stats.published++;
 
       return messageId;
