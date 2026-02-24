@@ -750,8 +750,33 @@ class OrganizacaoService {
       data: userData
     });
 
-    // Se foi fornecida uma organização, associar (não obrigatório para super_admin)
-    if (organizacao_id) {
+    // Super_admin: vincular a todas as organizações (ou às permitidas)
+    if (roleGlobal === 'super_admin') {
+      let orgsParaVincular = [];
+
+      if (organizacoes_permitidas && organizacoes_permitidas.length > 0) {
+        // Vincular apenas às organizações permitidas
+        orgsParaVincular = organizacoes_permitidas;
+      } else {
+        // Vincular a TODAS as organizações
+        const todasOrgs = await prisma.organizacao.findMany({ select: { id: true } });
+        orgsParaVincular = todasOrgs.map(o => o.id);
+      }
+
+      // Criar vínculos
+      for (let i = 0; i < orgsParaVincular.length; i++) {
+        await prisma.usuarioOrganizacao.create({
+          data: {
+            usuario_id: usuario.id,
+            organizacao_id: orgsParaVincular[i],
+            role: 'admin',
+            is_default: i === 0 // Primeira é a padrão
+          }
+        });
+      }
+      console.log(`[Usuário] Super_admin ${email} vinculado a ${orgsParaVincular.length} organizações`);
+    } else if (organizacao_id) {
+      // Usuário comum: vincular à organização especificada
       await prisma.usuarioOrganizacao.create({
         data: {
           usuario_id: usuario.id,
