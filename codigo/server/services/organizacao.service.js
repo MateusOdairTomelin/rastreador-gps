@@ -900,6 +900,13 @@ class OrganizacaoService {
       throw new Error('Organização pai não encontrada');
     }
 
+    // 2.5. Verificar limite de nível hierárquico (máximo 2 níveis de profundidade)
+    // Nível 0 = Raiz (Unifique), Nível 1 = Revendedor, Nível 2 = Cliente do Revendedor
+    const NIVEL_MAXIMO = 2;
+    if (orgPai.nivel >= NIVEL_MAXIMO) {
+      throw new Error(`Limite de hierarquia atingido. Organizações de nível ${orgPai.nivel} não podem criar sub-organizações.`);
+    }
+
     // 3. Verificar limite de subtenants do plano
     if (orgPai.plano) {
       const maxSubtenants = orgPai.plano.max_subtenants || 0;
@@ -1235,6 +1242,263 @@ class OrganizacaoService {
     }
 
     return true;
+  }
+
+  /**
+   * Transferir organização para novo pai (migrar tenant)
+   * Usado quando um revendedor encerra parceria e seus clientes precisam ser transferidos
+   * @param {number} organizacaoId - ID da organização a ser transferida
+   * @param {number} novoParentId - ID do novo pai (null para tornar raiz)
+   * @param {object} usuarioExecutor - Usuário que está executando a ação (deve ser super_admin)
+   */
+  async transferirOrganizacao(organizacaoId, novoParentId, usuarioExecutor) {
+    // Apenas super_admin pode transferir organizações
+    if (usuarioExecutor.role !== 'super_admin') {
+      throw new Error('Apenas super_admin pode transferir organizações entre tenants');
+    }
+
+    const orgParaTransferir = await prisma.organizacao.findUnique({
+      where: { id: organizacaoId },
+      include: { parent: true }
+    });
+
+    if (!orgParaTransferir) {
+      throw new Error('Organização não encontrada');
+    }
+
+    let novoNivel = 0;
+    let novoParent = null;
+
+    if (novoParentId) {
+      novoParent = await prisma.organizacao.findUnique({
+        where: { id: novoParentId }
+      });
+
+      if (!novoParent) {
+        throw new Error('Nova organização pai não encontrada');
+      }
+
+      // Verificar se não está tentando transferir para si mesma ou filho
+      if (novoParentId === organizacaoId) {
+        throw new Error('Não é possível transferir uma organização para si mesma');
+      }
+
+      // Verificar ciclo (não pode transferir para um de seus filhos)
+      const ehFilho = await this.verificarSeEhFilho(organizacaoId, novoParentId);
+      if (ehFilho) {
+        throw new Error('Não é possível transferir para uma sub-organização');
+      }
+
+      novoNivel = novoParent.nivel + 1;
+    }
+
+    // Calcular diferença de nível para atualizar filhos
+    const diferencaNivel = novoNivel - orgParaTransferir.nivel;
+
+    // Buscar todos os filhos recursivamente
+    const todosFilhos = await this.buscarTodosFilhosRecursivo(organizacaoId);
+
+    // Atualizar organização principal
+    await prisma.organizacao.update({
+      where: { id: organizacaoId },
+      data: {
+        parent_organizacao_id: novoParentId,
+        nivel: novoNivel
+      }
+    });
+
+    // Atualizar nível de todos os filhos
+    if (todosFilhos.length > 0 && diferencaNivel !== 0) {
+      for (const filho of todosFilhos) {
+        await prisma.organizacao.update({
+          where: { id: filho.id },
+          data: { nivel: filho.nivel + diferencaNivel }
+        });
+      }
+    }
+
+    // Registrar auditoria
+    await auditService.registrar({
+      usuarioId: usuarioExecutor.id,
+      organizacaoId,
+      acao: 'TRANSFERIR_ORGANIZACAO',
+      recurso: 'organizacao',
+      recursoId: organizacaoId,
+      detalhes: `Organização transferida de pai ${orgParaTransferir.parent_organizacao_id || 'raiz'} para ${novoParentId || 'raiz'}. ${todosFilhos.length} sub-organizações afetadas.`
+    });
+
+    console.log(`[Organização] Transferida: ${orgParaTransferir.nome} para novo pai ${novoParentId || 'RAIZ'}`);
+
+    return {
+      organizacao: orgParaTransferir.nome,
+      pai_anterior: orgParaTransferir.parent?.nome || 'Raiz',
+      pai_novo: novoParent?.nome || 'Raiz',
+      nivel_novo: novoNivel,
+      filhos_afetados: todosFilhos.length
+    };
+  }
+
+  /**
+   * Verifica se targetId é filho (direto ou indireto) de parentId
+   */
+  async verificarSeEhFilho(parentId, targetId) {
+    const filhos = await prisma.organizacao.findMany({
+      where: { parent_organizacao_id: parentId },
+      select: { id: true }
+    });
+
+    for (const filho of filhos) {
+      if (filho.id === targetId) return true;
+      const ehFilhoRecursivo = await this.verificarSeEhFilho(filho.id, targetId);
+      if (ehFilhoRecursivo) return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Busca todos os filhos recursivamente
+   */
+  async buscarTodosFilhosRecursivo(parentId) {
+    const filhos = await prisma.organizacao.findMany({
+      where: { parent_organizacao_id: parentId },
+      select: { id: true, nivel: true, nome: true }
+    });
+
+    let todosFilhos = [...filhos];
+
+    for (const filho of filhos) {
+      const netos = await this.buscarTodosFilhosRecursivo(filho.id);
+      todosFilhos = todosFilhos.concat(netos);
+    }
+
+    return todosFilhos;
+  }
+
+  /**
+   * Absorver organização (mover todos os recursos para outra org e deletar)
+   * Usado quando quer trazer os dados de um revendedor para sua base
+   * @param {number} orgOrigemId - Organização a ser absorvida (será deletada)
+   * @param {number} orgDestinoId - Organização que receberá os recursos
+   * @param {object} usuarioExecutor - Usuário executando (deve ser super_admin)
+   */
+  async absorverOrganizacao(orgOrigemId, orgDestinoId, usuarioExecutor) {
+    if (usuarioExecutor.role !== 'super_admin') {
+      throw new Error('Apenas super_admin pode absorver organizações');
+    }
+
+    if (orgOrigemId === orgDestinoId) {
+      throw new Error('Origem e destino não podem ser iguais');
+    }
+
+    const orgOrigem = await prisma.organizacao.findUnique({
+      where: { id: orgOrigemId },
+      include: { filhos: true }
+    });
+
+    const orgDestino = await prisma.organizacao.findUnique({
+      where: { id: orgDestinoId }
+    });
+
+    if (!orgOrigem) throw new Error('Organização origem não encontrada');
+    if (!orgDestino) throw new Error('Organização destino não encontrada');
+
+    // Primeiro, transferir filhos da origem para o destino
+    if (orgOrigem.filhos.length > 0) {
+      await prisma.organizacao.updateMany({
+        where: { parent_organizacao_id: orgOrigemId },
+        data: {
+          parent_organizacao_id: orgDestinoId,
+          nivel: orgDestino.nivel + 1
+        }
+      });
+    }
+
+    // Transferir veículos
+    const veiculosTransferidos = await prisma.veiculo.updateMany({
+      where: { organizacao_id: orgOrigemId },
+      data: { organizacao_id: orgDestinoId }
+    });
+
+    // Transferir dispositivos
+    const dispositivosTransferidos = await prisma.dispositivo.updateMany({
+      where: { organizacao_id: orgOrigemId },
+      data: { organizacao_id: orgDestinoId }
+    });
+
+    // Transferir motoristas
+    const motoristasTransferidos = await prisma.motorista.updateMany({
+      where: { organizacao_id: orgOrigemId },
+      data: { organizacao_id: orgDestinoId }
+    });
+
+    // Transferir cercas virtuais
+    const cercasTransferidas = await prisma.cercaVirtual.updateMany({
+      where: { organizacao_id: orgOrigemId },
+      data: { organizacao_id: orgDestinoId }
+    });
+
+    // Transferir usuários (vincular ao destino)
+    const usuariosOrigem = await prisma.usuarioOrganizacao.findMany({
+      where: { organizacao_id: orgOrigemId }
+    });
+
+    for (const uo of usuariosOrigem) {
+      // Verificar se já existe vínculo no destino
+      const existeVinculo = await prisma.usuarioOrganizacao.findUnique({
+        where: {
+          usuario_id_organizacao_id: {
+            usuario_id: uo.usuario_id,
+            organizacao_id: orgDestinoId
+          }
+        }
+      });
+
+      if (!existeVinculo) {
+        await prisma.usuarioOrganizacao.create({
+          data: {
+            usuario_id: uo.usuario_id,
+            organizacao_id: orgDestinoId,
+            role: uo.role
+          }
+        });
+      }
+    }
+
+    // Remover vínculos da organização origem
+    await prisma.usuarioOrganizacao.deleteMany({
+      where: { organizacao_id: orgOrigemId }
+    });
+
+    // Deletar organização origem
+    await prisma.organizacao.delete({
+      where: { id: orgOrigemId }
+    });
+
+    // Registrar auditoria
+    await auditService.registrar({
+      usuarioId: usuarioExecutor.id,
+      organizacaoId: orgDestinoId,
+      acao: 'ABSORVER_ORGANIZACAO',
+      recurso: 'organizacao',
+      recursoId: orgOrigemId,
+      detalhes: `Organização "${orgOrigem.nome}" absorvida por "${orgDestino.nome}". Transferidos: ${veiculosTransferidos.count} veículos, ${dispositivosTransferidos.count} dispositivos, ${motoristasTransferidos.count} motoristas, ${cercasTransferidas.count} cercas, ${usuariosOrigem.length} usuários, ${orgOrigem.filhos.length} sub-organizações.`
+    });
+
+    console.log(`[Organização] Absorvida: ${orgOrigem.nome} → ${orgDestino.nome}`);
+
+    return {
+      origem_deletada: orgOrigem.nome,
+      destino: orgDestino.nome,
+      transferidos: {
+        veiculos: veiculosTransferidos.count,
+        dispositivos: dispositivosTransferidos.count,
+        motoristas: motoristasTransferidos.count,
+        cercas: cercasTransferidas.count,
+        usuarios: usuariosOrigem.length,
+        sub_organizacoes: orgOrigem.filhos.length
+      }
+    };
   }
 }
 

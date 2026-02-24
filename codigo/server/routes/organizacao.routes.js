@@ -655,6 +655,70 @@ router.get('/organizacoes/:id/estatisticas', autenticar, apenasSuperAdmin, async
   }
 });
 
+/**
+ * POST /api/organizacoes/:id/transferir
+ * Transferir organização para novo pai (super_admin)
+ * Body: { novo_parent_id: number | null }
+ */
+router.post('/organizacoes/:id/transferir', autenticar, apenasSuperAdmin, async (req, res) => {
+  try {
+    const { novo_parent_id } = req.body;
+    const resultado = await organizacaoService.transferirOrganizacao(
+      parseInt(req.params.id),
+      novo_parent_id ? parseInt(novo_parent_id) : null,
+      req.usuario
+    );
+
+    res.json({
+      sucesso: true,
+      mensagem: 'Organização transferida com sucesso',
+      ...resultado
+    });
+  } catch (error) {
+    console.error('Erro ao transferir organização:', error);
+    res.status(400).json({
+      sucesso: false,
+      erro: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/organizacoes/:id/absorver
+ * Absorver organização (mover todos recursos para outra e deletar)
+ * Body: { destino_id: number }
+ */
+router.post('/organizacoes/:id/absorver', autenticar, apenasSuperAdmin, async (req, res) => {
+  try {
+    const { destino_id } = req.body;
+
+    if (!destino_id) {
+      return res.status(400).json({
+        sucesso: false,
+        erro: 'destino_id é obrigatório'
+      });
+    }
+
+    const resultado = await organizacaoService.absorverOrganizacao(
+      parseInt(req.params.id),
+      parseInt(destino_id),
+      req.usuario
+    );
+
+    res.json({
+      sucesso: true,
+      mensagem: 'Organização absorvida com sucesso',
+      ...resultado
+    });
+  } catch (error) {
+    console.error('Erro ao absorver organização:', error);
+    res.status(400).json({
+      sucesso: false,
+      erro: error.message
+    });
+  }
+});
+
 // ==================== SUPER ADMIN - GESTÃO GLOBAL DE USUÁRIOS ====================
 
 /**
