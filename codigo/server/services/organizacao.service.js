@@ -1500,6 +1500,159 @@ class OrganizacaoService {
       }
     };
   }
+
+  /**
+   * Absorção RECURSIVA - Absorve organização + TODOS os sub-tenants
+   * Move todos os dados de toda a hierarquia para o destino
+   * @param {number} orgOrigemId - Organização raiz a ser absorvida
+   * @param {number} orgDestinoId - Organização que receberá tudo
+   * @param {object} usuarioExecutor - Usuário executando (deve ser super_admin)
+   */
+  async absorverRecursivo(orgOrigemId, orgDestinoId, usuarioExecutor) {
+    if (usuarioExecutor.role !== 'super_admin') {
+      throw new Error('Apenas super_admin pode executar absorção recursiva');
+    }
+
+    if (orgOrigemId === orgDestinoId) {
+      throw new Error('Origem e destino não podem ser iguais');
+    }
+
+    const orgOrigem = await prisma.organizacao.findUnique({
+      where: { id: orgOrigemId }
+    });
+
+    const orgDestino = await prisma.organizacao.findUnique({
+      where: { id: orgDestinoId }
+    });
+
+    if (!orgOrigem) throw new Error('Organização origem não encontrada');
+    if (!orgDestino) throw new Error('Organização destino não encontrada');
+
+    // Verificar se destino não é filho da origem (evitar ciclo)
+    const destinoEhFilho = await this.verificarSeEhFilho(orgOrigemId, orgDestinoId);
+    if (destinoEhFilho) {
+      throw new Error('O destino não pode ser um sub-tenant da origem');
+    }
+
+    console.log(`[Organização] Iniciando absorção recursiva: ${orgOrigem.nome} → ${orgDestino.nome}`);
+
+    // Buscar TODA a hierarquia (origem + todos os filhos/netos/etc)
+    const todosFilhos = await this.buscarTodosFilhosRecursivo(orgOrigemId);
+    const todasOrgs = [{ id: orgOrigemId, nome: orgOrigem.nome }, ...todosFilhos];
+
+    console.log(`[Organização] Total de organizações a absorver: ${todasOrgs.length}`);
+
+    // Contadores totais
+    let totalVeiculos = 0;
+    let totalDispositivos = 0;
+    let totalMotoristas = 0;
+    let totalCercas = 0;
+    let totalUsuarios = 0;
+    const orgsAbsorvidas = [];
+
+    // Processar de baixo para cima (filhos mais profundos primeiro)
+    // Ordenar por nível decrescente para processar folhas primeiro
+    const orgsOrdenadas = [...todasOrgs].sort((a, b) => (b.nivel || 0) - (a.nivel || 0));
+
+    for (const org of orgsOrdenadas) {
+      console.log(`[Organização] Absorvendo: ${org.nome || org.id}`);
+
+      // Transferir veículos
+      const veiculos = await prisma.veiculo.updateMany({
+        where: { organizacao_id: org.id },
+        data: { organizacao_id: orgDestinoId }
+      });
+      totalVeiculos += veiculos.count;
+
+      // Transferir dispositivos
+      const dispositivos = await prisma.dispositivo.updateMany({
+        where: { organizacao_id: org.id },
+        data: { organizacao_id: orgDestinoId }
+      });
+      totalDispositivos += dispositivos.count;
+
+      // Transferir motoristas
+      const motoristas = await prisma.motorista.updateMany({
+        where: { organizacao_id: org.id },
+        data: { organizacao_id: orgDestinoId }
+      });
+      totalMotoristas += motoristas.count;
+
+      // Transferir geofences
+      const cercas = await prisma.geofence.updateMany({
+        where: { organizacao_id: org.id },
+        data: { organizacao_id: orgDestinoId }
+      });
+      totalCercas += cercas.count;
+
+      // Transferir usuários
+      const usuarios = await prisma.usuarioOrganizacao.findMany({
+        where: { organizacao_id: org.id }
+      });
+
+      for (const uo of usuarios) {
+        const existeVinculo = await prisma.usuarioOrganizacao.findUnique({
+          where: {
+            usuario_id_organizacao_id: {
+              usuario_id: uo.usuario_id,
+              organizacao_id: orgDestinoId
+            }
+          }
+        });
+
+        if (!existeVinculo) {
+          await prisma.usuarioOrganizacao.create({
+            data: {
+              usuario_id: uo.usuario_id,
+              organizacao_id: orgDestinoId,
+              role: uo.role
+            }
+          });
+          totalUsuarios++;
+        }
+      }
+
+      // Remover vínculos da org
+      await prisma.usuarioOrganizacao.deleteMany({
+        where: { organizacao_id: org.id }
+      });
+
+      orgsAbsorvidas.push(org.nome || `ID:${org.id}`);
+    }
+
+    // Deletar todas as organizações (folhas primeiro, raiz por último)
+    for (const org of orgsOrdenadas) {
+      await prisma.organizacao.delete({
+        where: { id: org.id }
+      });
+      console.log(`[Organização] Deletada: ${org.nome || org.id}`);
+    }
+
+    // Registrar auditoria
+    await auditoriaService.registrar({
+      usuarioId: usuarioExecutor.id,
+      organizacaoId: orgDestinoId,
+      acao: 'ABSORVER_RECURSIVO',
+      recurso: 'organizacao',
+      recursoId: orgOrigemId,
+      detalhes: `Absorção recursiva: ${todasOrgs.length} organizações absorvidas por "${orgDestino.nome}". Transferidos: ${totalVeiculos} veículos, ${totalDispositivos} dispositivos, ${totalMotoristas} motoristas, ${totalCercas} cercas, ${totalUsuarios} usuários.`
+    });
+
+    console.log(`[Organização] Absorção recursiva concluída: ${todasOrgs.length} orgs → ${orgDestino.nome}`);
+
+    return {
+      destino: orgDestino.nome,
+      organizacoes_absorvidas: orgsAbsorvidas,
+      total_organizacoes: todasOrgs.length,
+      transferidos: {
+        veiculos: totalVeiculos,
+        dispositivos: totalDispositivos,
+        motoristas: totalMotoristas,
+        cercas: totalCercas,
+        usuarios: totalUsuarios
+      }
+    };
+  }
 }
 
 module.exports = new OrganizacaoService();

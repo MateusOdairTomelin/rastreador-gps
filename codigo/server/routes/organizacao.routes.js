@@ -719,6 +719,42 @@ router.post('/organizacoes/:id/absorver', autenticar, apenasSuperAdmin, async (r
   }
 });
 
+/**
+ * POST /api/organizacoes/:id/absorver-recursivo
+ * Absorção RECURSIVA - absorve org + TODOS os sub-tenants de uma vez
+ * Body: { destino_id: number }
+ */
+router.post('/organizacoes/:id/absorver-recursivo', autenticar, apenasSuperAdmin, async (req, res) => {
+  try {
+    const { destino_id } = req.body;
+
+    if (!destino_id) {
+      return res.status(400).json({
+        sucesso: false,
+        erro: 'destino_id é obrigatório'
+      });
+    }
+
+    const resultado = await organizacaoService.absorverRecursivo(
+      parseInt(req.params.id),
+      parseInt(destino_id),
+      req.usuario
+    );
+
+    res.json({
+      sucesso: true,
+      mensagem: 'Absorção recursiva concluída com sucesso',
+      ...resultado
+    });
+  } catch (error) {
+    console.error('Erro na absorção recursiva:', error);
+    res.status(400).json({
+      sucesso: false,
+      erro: error.message
+    });
+  }
+});
+
 // ==================== SUPER ADMIN - GESTÃO GLOBAL DE USUÁRIOS ====================
 
 /**
