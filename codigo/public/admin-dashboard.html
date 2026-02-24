@@ -6315,7 +6315,7 @@
 
               <div style="display: flex; flex-direction: column; gap: 16px;">
                 <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-                  <input type="checkbox" id="notif-geofence-entrada" checked style="width: 20px; height: 20px; accent-color: var(--accent);">
+                  <input type="checkbox" id="notif-geofence-entrada" checked style="accent-color: var(--accent);">
                   <span style="flex: 1;">
                     <strong>Entrada em Cercas</strong>
                     <div style="font-size: 12px; color: var(--text-light);">Alertar quando veículo entrar em uma cerca virtual</div>
@@ -6323,7 +6323,7 @@
                 </label>
 
                 <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-                  <input type="checkbox" id="notif-geofence-saida" checked style="width: 20px; height: 20px; accent-color: var(--accent);">
+                  <input type="checkbox" id="notif-geofence-saida" checked style="accent-color: var(--accent);">
                   <span style="flex: 1;">
                     <strong>Saída de Cercas</strong>
                     <div style="font-size: 12px; color: var(--text-light);">Alertar quando veículo sair de uma cerca virtual</div>
@@ -6331,7 +6331,7 @@
                 </label>
 
                 <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-                  <input type="checkbox" id="notif-velocidade" checked style="width: 20px; height: 20px; accent-color: var(--accent);">
+                  <input type="checkbox" id="notif-velocidade" checked style="accent-color: var(--accent);">
                   <span style="flex: 1;">
                     <strong>Excesso de Velocidade</strong>
                     <div style="font-size: 12px; color: var(--text-light);">Alertar quando veículo exceder limite de velocidade</div>
@@ -6339,7 +6339,7 @@
                 </label>
 
                 <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-                  <input type="checkbox" id="notif-som" checked style="width: 20px; height: 20px; accent-color: var(--accent);">
+                  <input type="checkbox" id="notif-som" checked style="accent-color: var(--accent);">
                   <span style="flex: 1;">
                     <strong>Som de Notificação</strong>
                     <div style="font-size: 12px; color: var(--text-light);">Tocar som quando nova notificação chegar</div>
@@ -6364,7 +6364,7 @@
 
               <div style="display: flex; flex-direction: column; gap: 16px;">
                 <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-                  <input type="checkbox" id="telegram-ativo" style="width: 20px; height: 20px; accent-color: var(--accent);">
+                  <input type="checkbox" id="telegram-ativo" style="accent-color: var(--accent);">
                   <span style="flex: 1;">
                     <strong>Ativar Telegram</strong>
                     <div style="font-size: 12px; color: var(--text-light);">Enviar notificações via bot do Telegram</div>
@@ -19883,7 +19883,7 @@
             <div id="lista-veiculos-tag" style="overflow-y: auto; max-height: 400px; display: flex; flex-direction: column; gap: 4px;">
               ${todosVeiculos.map(v => `
                 <label data-placa="${v.placa.toLowerCase()}" style="display: flex; align-items: center; gap: 12px; padding: 10px; background: var(--surface); border-radius: 6px; cursor: pointer;">
-                  <input type="checkbox" value="${v.id}" ${vinculados.has(v.id) ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--primary);">
+                  <input type="checkbox" value="${v.id}" ${vinculados.has(v.id) ? 'checked' : ''} style="accent-color: var(--primary);">
                   <span style="font-weight: 600; color: var(--text);">${escapeHtml(v.placa)}</span>
                   <span style="color: var(--text-muted); font-size: 0.9rem;">${escapeHtml(v.modelo || '')}</span>
                 </label>
