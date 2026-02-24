@@ -18748,7 +18748,8 @@
     // Manter compatibilidade com código antigo
     async function carregarDadosRelatorios() {
       await carregarTagsRelatorios();
-      await buscarRelatorios();
+      await carregarMotoristasRelatorios(); // Carregar motoristas também
+      // Não chamar buscarRelatorios() automaticamente - usuário deve clicar em Buscar
     }
 
     // Carregar tags no select de filtro de relatórios
