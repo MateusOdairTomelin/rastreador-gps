@@ -678,6 +678,106 @@ router.get('/admin/usuarios-organizacao', autenticar, apenasAdmin, async (req, r
   }
 });
 
+/**
+ * POST /api/lgpd/admin/revogar-usuario/:id
+ * Revogar consentimentos de um usuário (forçar reaceite)
+ * Apenas admin da organização
+ */
+router.post('/admin/revogar-usuario/:id', autenticar, apenasAdmin, async (req, res) => {
+  try {
+    const usuarioId = parseInt(req.params.id);
+    const adminOrgId = req.usuario.organizacao_id;
+
+    // Verificar se usuário pertence à mesma organização
+    const usuario = await prisma.usuario.findFirst({
+      where: {
+        id: usuarioId,
+        organizacoes: { some: { organizacao_id: adminOrgId } }
+      }
+    });
+
+    if (!usuario) {
+      return res.status(404).json({
+        erro: true,
+        mensagem: 'Usuário não encontrado na sua organização'
+      });
+    }
+
+    // Revogar todos os consentimentos
+    const resultado = await prisma.consentimento.updateMany({
+      where: { usuario_id: usuarioId },
+      data: {
+        aceito: false,
+        data_revogacao: new Date()
+      }
+    });
+
+    console.log(`[LGPD] Admin ${req.usuario.email} revogou consentimentos do usuário ID ${usuarioId} (${resultado.count} registros)`);
+
+    res.json({
+      sucesso: true,
+      mensagem: `Consentimentos revogados com sucesso (${resultado.count} registros)`,
+      revogados: resultado.count
+    });
+  } catch (error) {
+    console.error('[LGPD] Erro ao revogar consentimentos de usuário:', error);
+    res.status(500).json({
+      erro: true,
+      mensagem: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/lgpd/admin/revogar-motorista/:id
+ * Revogar consentimentos de um motorista (forçar reaceite no APP)
+ * Apenas admin da organização
+ */
+router.post('/admin/revogar-motorista/:id', autenticar, apenasAdmin, async (req, res) => {
+  try {
+    const motoristaId = parseInt(req.params.id);
+    const adminOrgId = req.usuario.organizacao_id;
+
+    // Verificar se motorista pertence à mesma organização
+    const motorista = await prisma.motorista.findFirst({
+      where: {
+        id: motoristaId,
+        organizacao_id: adminOrgId
+      }
+    });
+
+    if (!motorista) {
+      return res.status(404).json({
+        erro: true,
+        mensagem: 'Motorista não encontrado na sua organização'
+      });
+    }
+
+    // Revogar todos os consentimentos
+    const resultado = await prisma.consentimentoMotorista.updateMany({
+      where: { motorista_id: motoristaId },
+      data: {
+        aceito: false,
+        data_revogacao: new Date()
+      }
+    });
+
+    console.log(`[LGPD] Admin ${req.usuario.email} revogou consentimentos do motorista ID ${motoristaId} (${resultado.count} registros)`);
+
+    res.json({
+      sucesso: true,
+      mensagem: `Consentimentos revogados com sucesso (${resultado.count} registros)`,
+      revogados: resultado.count
+    });
+  } catch (error) {
+    console.error('[LGPD] Erro ao revogar consentimentos de motorista:', error);
+    res.status(500).json({
+      erro: true,
+      mensagem: error.message
+    });
+  }
+});
+
 // ============ ENDPOINTS PARA MOTORISTAS (APP MOBILE) ============
 
 /**

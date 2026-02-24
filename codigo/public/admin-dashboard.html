@@ -17373,7 +17373,7 @@
           return;
         }
 
-        let html = `<table class="data-table"><thead><tr><th>Nome</th><th>Email</th><th>Papel</th><th>Privacidade</th><th>Termos</th></tr></thead><tbody>`;
+        let html = `<table class="data-table"><thead><tr><th>Nome</th><th>Email</th><th>Papel</th><th>Privacidade</th><th>Termos</th><th>Ações</th></tr></thead><tbody>`;
         for (const u of data.usuarios) {
           const privBadge = u.consentimentos.privacidade
             ? '<span style="background: rgba(16,185,129,0.2); color: #10B981; padding: 2px 8px; border-radius: 10px; font-size: 11px;">OK</span>'
@@ -17381,7 +17381,11 @@
           const termosBadge = u.consentimentos.termos_uso
             ? '<span style="background: rgba(16,185,129,0.2); color: #10B981; padding: 2px 8px; border-radius: 10px; font-size: 11px;">OK</span>'
             : '<span style="background: rgba(239,68,68,0.2); color: #EF4444; padding: 2px 8px; border-radius: 10px; font-size: 11px;">Pendente</span>';
-          html += `<tr><td><strong>${u.nome}</strong></td><td>${u.email}</td><td>${u.role}</td><td>${privBadge}</td><td>${termosBadge}</td></tr>`;
+          const temConsentimento = u.consentimentos.privacidade || u.consentimentos.termos_uso;
+          const acaoBtn = temConsentimento
+            ? `<button onclick="lgpdRevogarConsentimento(${u.id}, 'usuario', '${u.nome}')" style="background: rgba(239,68,68,0.2); color: #EF4444; border: 1px solid #EF4444; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;">Revogar</button>`
+            : '<span style="color: var(--text-muted); font-size: 11px;">-</span>';
+          html += `<tr><td><strong>${u.nome}</strong></td><td>${u.email}</td><td>${u.role}</td><td>${privBadge}</td><td>${termosBadge}</td><td>${acaoBtn}</td></tr>`;
         }
         html += '</tbody></table>';
         document.getElementById('lgpd-org-users').innerHTML = html;
@@ -17400,7 +17404,7 @@
           return;
         }
 
-        let html = `<table class="data-table"><thead><tr><th>Nome</th><th>CPF</th><th>Privacidade</th><th>Termos</th></tr></thead><tbody>`;
+        let html = `<table class="data-table"><thead><tr><th>Nome</th><th>CPF</th><th>Privacidade</th><th>Termos</th><th>Ações</th></tr></thead><tbody>`;
         for (const m of data.motoristas) {
           const privBadge = m.consentimentos.privacidade
             ? '<span style="background: rgba(16,185,129,0.2); color: #10B981; padding: 2px 8px; border-radius: 10px; font-size: 11px;">OK</span>'
@@ -17408,12 +17412,42 @@
           const termosBadge = m.consentimentos.termos_uso
             ? '<span style="background: rgba(16,185,129,0.2); color: #10B981; padding: 2px 8px; border-radius: 10px; font-size: 11px;">OK</span>'
             : '<span style="background: rgba(245,158,11,0.2); color: #D97706; padding: 2px 8px; border-radius: 10px; font-size: 11px;">Pendente (APP)</span>';
-          html += `<tr><td><strong>${m.nome}</strong></td><td>${m.cpf || '-'}</td><td>${privBadge}</td><td>${termosBadge}</td></tr>`;
+          const temConsentimento = m.consentimentos.privacidade || m.consentimentos.termos_uso;
+          const acaoBtn = temConsentimento
+            ? `<button onclick="lgpdRevogarConsentimento(${m.id}, 'motorista', '${m.nome}')" style="background: rgba(239,68,68,0.2); color: #EF4444; border: 1px solid #EF4444; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;">Revogar</button>`
+            : '<span style="color: var(--text-muted); font-size: 11px;">-</span>';
+          html += `<tr><td><strong>${m.nome}</strong></td><td>${m.cpf || '-'}</td><td>${privBadge}</td><td>${termosBadge}</td><td>${acaoBtn}</td></tr>`;
         }
         html += '</tbody></table>';
         document.getElementById('lgpd-motoristas').innerHTML = html;
       } catch (error) {
         document.getElementById('lgpd-motoristas').innerHTML = `<div style="color: var(--danger);">Erro ao carregar motoristas</div>`;
+      }
+    }
+
+    async function lgpdRevogarConsentimento(id, tipo, nome) {
+      if (!confirm(`Tem certeza que deseja REVOGAR os consentimentos de "${nome}"?\n\nIsso fará com que o ${tipo === 'usuario' ? 'usuário' : 'motorista'} tenha que aceitar os termos novamente ao acessar o sistema.`)) {
+        return;
+      }
+
+      try {
+        const endpoint = tipo === 'usuario'
+          ? `${API_URL}/lgpd/admin/revogar-usuario/${id}`
+          : `${API_URL}/lgpd/admin/revogar-motorista/${id}`;
+
+        const response = await authFetch(endpoint, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.sucesso) {
+          showToast(`Consentimentos de "${nome}" revogados com sucesso!`, 'success');
+          // Recarregar dados
+          lgpdCarregarDadosAdmin();
+        } else {
+          showToast(data.mensagem || 'Erro ao revogar consentimentos', 'error');
+        }
+      } catch (error) {
+        console.error('Erro ao revogar consentimentos:', error);
+        showToast('Erro ao revogar consentimentos: ' + error.message, 'error');
       }
     }
 
