@@ -7132,34 +7132,20 @@
         <!-- TAGS SECTION -->
         <section class="section" id="section-tags">
           <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-              <h2 style="color: var(--primary); font-size: 1.3rem;">Tags de Veiculos</h2>
-              <button onclick="abrirModalNovaTag()" style="background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Nova Tag
-              </button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <h2 style="color: var(--primary); font-size: 1.2rem; margin: 0;">Tags</h2>
+                <span id="stat-total-tags" style="background: var(--bg-card); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; color: var(--text-muted);">0 tags</span>
+              </div>
+              <button onclick="abrirModalNovaTag()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">+ Nova Tag</button>
             </div>
-            <p style="color: var(--text-muted); margin-bottom: 20px;">Organize seus veiculos com tags para filtrar por regiao, tipo, centro de custo, etc.</p>
 
-            <!-- Estatísticas de Tags -->
-            <div id="tags-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px;">
-              <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 16px; text-align: center;">
-                <div style="font-size: 2rem; font-weight: 700; color: var(--primary);" id="stat-total-tags">0</div>
-                <div style="color: var(--text-muted); font-size: 0.85rem;">Tags Criadas</div>
-              </div>
-              <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 16px; text-align: center;">
-                <div style="font-size: 2rem; font-weight: 700; color: var(--success);" id="stat-veiculos-com-tag">0</div>
-                <div style="color: var(--text-muted); font-size: 0.85rem;">Veiculos com Tags</div>
-              </div>
-              <div class="stat-card" style="background: var(--bg-card); border-radius: 12px; padding: 16px; text-align: center;">
-                <div style="font-size: 2rem; font-weight: 700; color: var(--warning);" id="stat-veiculos-sem-tag">0</div>
-                <div style="color: var(--text-muted); font-size: 0.85rem;">Veiculos sem Tags</div>
-              </div>
-            </div>
+            <!-- Busca -->
+            <input type="text" id="tags-busca" placeholder="Buscar tag..." oninput="filtrarTags()" style="width: 100%; max-width: 300px; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; margin-bottom: 16px;">
 
             <!-- Lista de Tags -->
-            <div id="tags-lista" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-              <div style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando tags...</div>
+            <div id="tags-lista" style="max-height: 500px; overflow-y: auto;">
+              <div style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando...</div>
             </div>
           </div>
         </section>
@@ -19405,34 +19391,54 @@
       }
     }
 
-    function renderizarTags() {
+    function renderizarTags(filtro = '') {
       const container = document.getElementById('tags-lista');
+      const statEl = document.getElementById('stat-total-tags');
 
-      if (tagsCache.length === 0) {
-        container.innerHTML = `
-          <div style="text-align: center; padding: 60px; color: var(--text-muted); grid-column: 1 / -1;">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 16px; opacity: 0.5;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-            <p>Nenhuma tag criada ainda</p>
-            <p style="font-size: 0.85rem; margin-top: 8px;">Crie tags para organizar seus veiculos por regiao, tipo ou centro de custo</p>
-          </div>`;
+      let tags = tagsCache;
+      if (filtro) {
+        tags = tagsCache.filter(t => t.nome.toLowerCase().includes(filtro.toLowerCase()));
+      }
+
+      statEl.textContent = `${tagsCache.length} tags`;
+
+      if (tags.length === 0) {
+        container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);">${filtro ? 'Nenhuma tag encontrada' : 'Nenhuma tag criada'}</div>`;
         return;
       }
 
-      container.innerHTML = tagsCache.map(tag => `
-        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 24px; height: 24px; border-radius: 6px; background: ${tag.cor || '#3B82F6'};"></div>
-            <span style="font-weight: 600; font-size: 1.1rem; flex: 1;">${escapeHtml(tag.nome)}</span>
-            <span style="background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 20px; font-size: 0.85rem;">${tag.totalVeiculos || 0} veiculos</span>
-          </div>
-          ${tag.descricao ? `<p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">${escapeHtml(tag.descricao)}</p>` : ''}
-          <div style="display: flex; gap: 8px; margin-top: auto;">
-            <button onclick="editarTag(${tag.id})" style="flex: 1; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px; border-radius: 6px; cursor: pointer;">Editar</button>
-            <button onclick="verVeiculosTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="flex: 1; background: var(--primary); color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer;">Ver Veiculos</button>
-            <button onclick="excluirTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 6px; cursor: pointer;">🗑</button>
-          </div>
-        </div>
-      `).join('');
+      container.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <th style="text-align: left; padding: 10px 8px; color: var(--text-muted); font-weight: 500; font-size: 0.85rem;">Nome</th>
+              <th style="text-align: center; padding: 10px 8px; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; width: 80px;">Veículos</th>
+              <th style="text-align: right; padding: 10px 8px; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; width: 120px;">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tags.map(tag => `
+              <tr style="border-bottom: 1px solid var(--border-light);" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 10px 8px;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 12px; height: 12px; border-radius: 3px; background: ${tag.cor || '#3B82F6'}; flex-shrink: 0;"></div>
+                    <span>${escapeHtml(tag.nome)}</span>
+                  </div>
+                </td>
+                <td style="text-align: center; padding: 10px 8px; color: var(--text-muted);">${tag.totalVeiculos || 0}</td>
+                <td style="text-align: right; padding: 10px 8px;">
+                  <button onclick="editarTag(${tag.id})" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 8px;" title="Editar">✏️</button>
+                  <button onclick="excluirTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px 8px;" title="Excluir">🗑️</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    function filtrarTags() {
+      const busca = document.getElementById('tags-busca').value;
+      renderizarTags(busca);
     }
 
     function abrirModalNovaTag() {
