@@ -548,20 +548,20 @@ class AuthMotoristaService {
 
     // Construir filtros por dispositivo com período de vinculação
     // Para cada vinculação, buscar notificações entre inicio e fim (ou agora se ainda vinculado)
-    // Usa AND explícito para garantir que ambas as condições sejam aplicadas
     const filtrosDispositivos = historico.map(h => {
-      const filtro = {
-        dispositivo_id: h.dispositivo_id,
-        AND: [
-          { created_at: { gte: h.inicio } }
-        ]
-      };
-      // Se tem fim, limitar até a data de fim da vinculação
+      // Usa objeto único com gte e lte combinados
+      const createdAtFilter = { gte: h.inicio };
       if (h.fim) {
-        filtro.AND.push({ created_at: { lte: h.fim } });
+        createdAtFilter.lte = h.fim;
       }
-      return filtro;
+      return {
+        dispositivo_id: h.dispositivo_id,
+        created_at: createdAtFilter
+      };
     });
+
+    // Log para debug
+    console.log('[AuthMotorista] Filtros notificações:', JSON.stringify(filtrosDispositivos, null, 2));
 
     // Buscar notificações com os filtros de período
     const baseWhere = {
@@ -679,18 +679,15 @@ class AuthMotoristaService {
     }
 
     // Construir filtros por dispositivo com período de vinculação
-    // Usa AND explícito para garantir que ambas as condições sejam aplicadas
     const filtrosDispositivos = historico.map(h => {
-      const filtro = {
-        dispositivo_id: h.dispositivo_id,
-        AND: [
-          { created_at: { gte: h.inicio } }
-        ]
-      };
+      const createdAtFilter = { gte: h.inicio };
       if (h.fim) {
-        filtro.AND.push({ created_at: { lte: h.fim } });
+        createdAtFilter.lte = h.fim;
       }
-      return filtro;
+      return {
+        dispositivo_id: h.dispositivo_id,
+        created_at: createdAtFilter
+      };
     });
 
     const contagem = await prisma.notificacao.count({
