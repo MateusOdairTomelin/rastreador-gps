@@ -7850,7 +7850,38 @@
             <div class="lista-header">
               <h3 class="section-title-icon"><i data-lucide="car" class="lucide-icon"></i> Veículos da Frota</h3>
               <div class="lista-actions">
-                <button class="btn btn-sm" onclick="selecionarTodosVeiculos()" id="btn-selecionar-todos">☑️ Selecionar Todos</button>
+                <!-- Botão Configurar Colunas -->
+                <div style="position: relative;">
+                  <button class="btn btn-sm" onclick="toggleColunasDropdown()" id="btn-config-colunas" title="Configurar colunas visíveis">
+                    ☰ Colunas
+                  </button>
+                  <div id="colunas-dropdown" style="display: none; position: absolute; top: 100%; right: 0; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 8px;">
+                    <div style="padding: 4px 8px; font-size: 0.8rem; color: var(--text-muted); border-bottom: 1px solid var(--border); margin-bottom: 6px;">Selecione as colunas:</div>
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+                      <input type="checkbox" class="col-toggle" data-col="status" checked onchange="toggleColuna('status')"> Status
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+                      <input type="checkbox" class="col-toggle" data-col="km" checked onchange="toggleColuna('km')"> Quilometragem
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+                      <input type="checkbox" class="col-toggle" data-col="movimento" checked onchange="toggleColuna('movimento')"> Tempo Movimento
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+                      <input type="checkbox" class="col-toggle" data-col="ocioso" checked onchange="toggleColuna('ocioso')"> Tempo Ocioso
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+                      <input type="checkbox" class="col-toggle" data-col="excessos" checked onchange="toggleColuna('excessos')"> Excessos Velocidade
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; border-radius: 4px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+                      <input type="checkbox" class="col-toggle" data-col="grafico" checked onchange="toggleColuna('grafico')"> Gráfico Atividade
+                    </label>
+                    <div style="padding: 6px 8px; border-top: 1px solid var(--border); margin-top: 6px; display: flex; gap: 6px;">
+                      <button onclick="mostrarTodasColunas()" style="flex:1; padding: 4px 8px; font-size: 0.75rem; background: var(--bg-card); border: none; border-radius: 4px; cursor: pointer; color: var(--text);">Todas</button>
+                      <button onclick="resetarColunas()" style="flex:1; padding: 4px 8px; font-size: 0.75rem; background: var(--bg-card); border: none; border-radius: 4px; cursor: pointer; color: var(--text);">Resetar</button>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn btn-sm" onclick="selecionarTodosVeiculos()" id="btn-selecionar-todos">☑ Selecionar Todos</button>
                 <span class="selecionados-count" id="selecionados-count">0 selecionados</span>
               </div>
             </div>
@@ -16119,6 +16150,9 @@
     let relatoriosFlatpickr = null;
 
     function inicializarSecaoRelatorios() {
+      // Carregar configuração de colunas salva
+      carregarConfigColunas();
+
       // Pré-carregar cache de veículos para autocomplete instantâneo
       precarregarCacheVeiculos();
 
@@ -16812,6 +16846,117 @@
 
     // ============ FIM TRAJETOS ============
 
+    // ============ RELATÓRIO MODULAR - CONFIGURAÇÃO DE COLUNAS ============
+
+    // Colunas disponíveis e suas configurações
+    const colunasRelatorio = {
+      status: { nome: 'Status', visivel: true },
+      km: { nome: 'Quilometragem', visivel: true },
+      movimento: { nome: 'Tempo Movimento', visivel: true },
+      ocioso: { nome: 'Tempo Ocioso', visivel: true },
+      excessos: { nome: 'Excessos Velocidade', visivel: true },
+      grafico: { nome: 'Gráfico Atividade', visivel: true }
+    };
+
+    // Carregar configuração salva do localStorage
+    function carregarConfigColunas() {
+      try {
+        const salvo = localStorage.getItem('relatorio_colunas');
+        if (salvo) {
+          const config = JSON.parse(salvo);
+          Object.keys(config).forEach(col => {
+            if (colunasRelatorio[col] !== undefined) {
+              colunasRelatorio[col].visivel = config[col];
+            }
+          });
+        }
+      } catch (e) {
+        console.log('[Relatório] Erro ao carregar config colunas:', e);
+      }
+      aplicarVisibilidadeColunas();
+      sincronizarCheckboxesColunas();
+    }
+
+    // Salvar configuração no localStorage
+    function salvarConfigColunas() {
+      const config = {};
+      Object.keys(colunasRelatorio).forEach(col => {
+        config[col] = colunasRelatorio[col].visivel;
+      });
+      localStorage.setItem('relatorio_colunas', JSON.stringify(config));
+    }
+
+    // Toggle dropdown de colunas
+    function toggleColunasDropdown() {
+      const dropdown = document.getElementById('colunas-dropdown');
+      if (dropdown) {
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+      }
+    }
+
+    // Fechar dropdown ao clicar fora
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('colunas-dropdown');
+      const btn = document.getElementById('btn-config-colunas');
+      if (dropdown && btn && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    });
+
+    // Toggle visibilidade de uma coluna
+    function toggleColuna(colId) {
+      if (colunasRelatorio[colId] !== undefined) {
+        colunasRelatorio[colId].visivel = !colunasRelatorio[colId].visivel;
+        aplicarVisibilidadeColunas();
+        salvarConfigColunas();
+      }
+    }
+
+    // Aplicar visibilidade das colunas na tabela
+    function aplicarVisibilidadeColunas() {
+      Object.keys(colunasRelatorio).forEach(col => {
+        const visivel = colunasRelatorio[col].visivel;
+        // Header
+        const th = document.querySelector(`.veiculos-relatorio-table .col-${col}`);
+        if (th) th.style.display = visivel ? '' : 'none';
+        // Células da tabela
+        document.querySelectorAll(`.veiculos-relatorio-table td.col-${col}`).forEach(td => {
+          td.style.display = visivel ? '' : 'none';
+        });
+      });
+    }
+
+    // Sincronizar checkboxes com estado atual
+    function sincronizarCheckboxesColunas() {
+      document.querySelectorAll('.col-toggle').forEach(cb => {
+        const col = cb.dataset.col;
+        if (colunasRelatorio[col] !== undefined) {
+          cb.checked = colunasRelatorio[col].visivel;
+        }
+      });
+    }
+
+    // Mostrar todas as colunas
+    function mostrarTodasColunas() {
+      Object.keys(colunasRelatorio).forEach(col => {
+        colunasRelatorio[col].visivel = true;
+      });
+      aplicarVisibilidadeColunas();
+      sincronizarCheckboxesColunas();
+      salvarConfigColunas();
+    }
+
+    // Resetar para padrão (todas visíveis)
+    function resetarColunas() {
+      mostrarTodasColunas();
+      toastSuccess('Colunas resetadas para o padrão');
+    }
+
+    // Inicializar quando a seção de relatórios for carregada
+    // (será chamado em inicializarSecaoRelatorios)
+
+    // ============ FIM RELATÓRIO MODULAR ============
+
     // Buscar relatórios (chamado pelo botão "Buscar")
     async function buscarRelatorios() {
       try {
@@ -17304,6 +17449,9 @@
           </tr>
         `;
       }).join('');
+
+      // Aplicar visibilidade das colunas após renderizar
+      aplicarVisibilidadeColunas();
     }
 
     // Período anterior para detectar mudanças
