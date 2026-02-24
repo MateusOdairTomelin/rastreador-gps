@@ -19418,8 +19418,11 @@
                     <span>${escapeHtml(tag.nome)}</span>
                   </div>
                 </td>
-                <td style="text-align: center; padding: 10px 8px; color: var(--text-muted);">${tag.totalVeiculos || 0}</td>
+                <td style="text-align: center; padding: 10px 8px;">
+                  <button onclick="gerenciarVeiculosTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: var(--primary); cursor: pointer; padding: 4px 8px; text-decoration: underline;" title="Gerenciar veículos">${tag.totalVeiculos || 0}</button>
+                </td>
                 <td style="text-align: right; padding: 10px 8px;">
+                  <button onclick="gerenciarVeiculosTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: var(--primary); cursor: pointer; padding: 4px 8px;" title="Vincular veículos">🚗</button>
                   <button onclick="editarTag(${tag.id})" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 8px;" title="Editar">✏️</button>
                   <button onclick="excluirTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px 8px;" title="Excluir">🗑️</button>
                 </td>
@@ -19575,12 +19578,117 @@
       }
     }
 
+    // Gerenciar veículos de uma tag
+    async function gerenciarVeiculosTag(tagId, tagNome) {
+      try {
+        // Carregar todos os veículos e os já vinculados em paralelo
+        const [veiculosRes, vinculadosRes] = await Promise.all([
+          authFetch(`${API_URL}/veiculos?limit=500`),
+          authFetch(`${API_URL}/tags/${tagId}/veiculos`)
+        ]);
+
+        const veiculosData = await veiculosRes.json();
+        const vinculadosData = await vinculadosRes.json();
+
+        const todosVeiculos = veiculosData.veiculos || [];
+        const vinculados = new Set((vinculadosData.veiculos || []).map(v => v.id));
+
+        if (todosVeiculos.length === 0) {
+          showToast('Nenhum veículo cadastrado', 'warning');
+          return;
+        }
+
+        const html = `
+          <div style="display: flex; flex-direction: column; gap: 16px; max-height: 70vh;">
+            <h3 style="margin: 0; color: var(--primary);">Vincular veículos à tag "${escapeHtml(tagNome)}"</h3>
+            <input type="text" id="busca-veiculos-tag" placeholder="Buscar por placa..." oninput="filtrarVeiculosTag()" style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px;">
+            <div id="lista-veiculos-tag" style="overflow-y: auto; max-height: 400px; display: flex; flex-direction: column; gap: 4px;">
+              ${todosVeiculos.map(v => `
+                <label data-placa="${v.placa.toLowerCase()}" style="display: flex; align-items: center; gap: 12px; padding: 10px; background: var(--surface); border-radius: 6px; cursor: pointer;">
+                  <input type="checkbox" value="${v.id}" ${vinculados.has(v.id) ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--primary);">
+                  <span style="font-weight: 600; color: var(--text);">${escapeHtml(v.placa)}</span>
+                  <span style="color: var(--text-muted); font-size: 0.9rem;">${escapeHtml(v.modelo || '')}</span>
+                </label>
+              `).join('')}
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+              <button onclick="fecharModal()" style="flex: 1; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: pointer;">Cancelar</button>
+              <button onclick="salvarVeiculosTag(${tagId})" style="flex: 1; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Salvar</button>
+            </div>
+          </div>`;
+        showModal(`Veículos - ${tagNome}`, html);
+      } catch (error) {
+        console.error('[Tags] Erro ao carregar veículos:', error);
+        showToast(error.message, 'error');
+      }
+    }
+
+    // Filtrar veículos no modal de vinculação
+    function filtrarVeiculosTag() {
+      const busca = document.getElementById('busca-veiculos-tag').value.toLowerCase();
+      const labels = document.querySelectorAll('#lista-veiculos-tag label');
+      labels.forEach(label => {
+        const placa = label.dataset.placa;
+        label.style.display = placa.includes(busca) ? 'flex' : 'none';
+      });
+    }
+
+    // Salvar veículos vinculados à tag
+    async function salvarVeiculosTag(tagId) {
+      try {
+        const checkboxes = document.querySelectorAll('#lista-veiculos-tag input[type="checkbox"]');
+        const veiculoIds = [];
+        checkboxes.forEach(cb => {
+          if (cb.checked) veiculoIds.push(parseInt(cb.value));
+        });
+
+        // Usar a API para definir todas as tags de uma vez
+        // Como a API é por veículo, vamos buscar a diferença e aplicar
+        const vinculadosRes = await authFetch(`${API_URL}/tags/${tagId}/veiculos`);
+        const vinculadosData = await vinculadosRes.json();
+        const vinculadosAtuais = new Set((vinculadosData.veiculos || []).map(v => v.id));
+
+        // Veículos a vincular (marcados mas não estavam vinculados)
+        const aVincular = veiculoIds.filter(id => !vinculadosAtuais.has(id));
+        // Veículos a desvincular (estavam vinculados mas não estão marcados)
+        const aDesvincular = [...vinculadosAtuais].filter(id => !veiculoIds.includes(id));
+
+        // Executar vinculações
+        for (const veiculoId of aVincular) {
+          await authFetch(`${API_URL}/tags/${tagId}/vincular`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ veiculo_id: veiculoId })
+          });
+        }
+
+        // Executar desvinculações
+        for (const veiculoId of aDesvincular) {
+          await authFetch(`${API_URL}/tags/${tagId}/desvincular`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ veiculo_id: veiculoId })
+          });
+        }
+
+        fecharModal();
+        showToast(`Tag atualizada: ${aVincular.length} vinculados, ${aDesvincular.length} desvinculados`, 'success');
+        carregarTags(); // Recarregar para atualizar contagem
+      } catch (error) {
+        console.error('[Tags] Erro ao salvar veículos:', error);
+        showToast(error.message, 'error');
+      }
+    }
+
     window.carregarTags = carregarTags;
     window.abrirModalNovaTag = abrirModalNovaTag;
     window.salvarTag = salvarTag;
     window.editarTag = editarTag;
     window.excluirTag = excluirTag;
     window.verVeiculosTag = verVeiculosTag;
+    window.gerenciarVeiculosTag = gerenciarVeiculosTag;
+    window.filtrarVeiculosTag = filtrarVeiculosTag;
+    window.salvarVeiculosTag = salvarVeiculosTag;
 
     // ============ INSIGHTS MODAL ============
     let insightsCache = [];
