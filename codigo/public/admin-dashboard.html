@@ -116,6 +116,64 @@
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
     }
 
+    /* ====== BUTTON STYLES ====== */
+    .btn, button.btn {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover, button.btn:hover {
+      background: var(--bg-card);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .btn-primary, button.btn-primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    .btn-primary:hover, button.btn-primary:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      opacity: 0.9;
+    }
+    .btn-ghost, button.btn-ghost {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 12px;
+    }
+    .btn-ghost:hover, button.btn-ghost:hover {
+      background: var(--bg-card);
+      color: var(--primary);
+    }
+    .btn-sm, button.btn-sm {
+      padding: 5px 10px;
+      font-size: 0.85rem;
+    }
+    .btn-icon {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-icon:hover {
+      background: var(--bg-card);
+      color: var(--primary);
+    }
+
     /* ====== TRAJETOS SLIDER ====== */
     #trajetos-hora-inicio,
     #trajetos-hora-fim {
