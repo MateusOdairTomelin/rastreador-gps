@@ -6178,21 +6178,21 @@
             </div>
             <div class="card stat-card">
               <div class="stat-content">
-                <div class="stat-icon">✅</div>
+                <div class="stat-icon">◉</div>
                 <div class="stat-label">Cercas Ativas</div>
                 <div class="stat-value" id="geo-cercas-ativas" style="color: var(--success);">0</div>
               </div>
             </div>
             <div class="card stat-card">
               <div class="stat-content">
-                <div class="stat-icon">🔔</div>
+                <div class="stat-icon">◎</div>
                 <div class="stat-label">Eventos Hoje</div>
                 <div class="stat-value" id="geo-eventos-hoje" style="color: var(--accent);">0</div>
               </div>
             </div>
             <div class="card stat-card">
               <div class="stat-content">
-                <div class="stat-icon">📊</div>
+                <div class="stat-icon">☰</div>
                 <div class="stat-label">Total de Eventos</div>
                 <div class="stat-value" id="geo-total-eventos">0</div>
               </div>
@@ -8617,9 +8617,9 @@
         } = options;
 
         const icons = {
-          warning: '⚠️',
-          danger: '🗑️',
-          info: '❓'
+          warning: '△',
+          danger: '✕',
+          info: '?'
         };
 
         const overlay = document.createElement('div');
@@ -8664,7 +8664,7 @@
         title: 'Confirmar exclusão',
         type: 'danger',
         confirmText: 'Excluir',
-        icon: '🗑️'
+        icon: '✕'
       });
     }
 
@@ -11051,9 +11051,9 @@
                 <span style="padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: ${g.ativo ? 'var(--success)' : 'var(--text-muted)'}; color: white;">
                   ${g.ativo ? 'Ativa' : 'Inativa'}
                 </span>
-                <button onclick="editarGeofence(${geoId})" class="btn btn-secondary" style="padding: 6px 10px;">✏️</button>
+                <button onclick="editarGeofence(${geoId})" class="btn btn-secondary" style="padding: 6px 10px;">✎</button>
                 <button onclick="toggleGeofence(${geoId})" class="btn btn-secondary" style="padding: 6px 10px;">${g.ativo ? '⏸️' : '▶️'}</button>
-                <button onclick="deletarGeofence(${geoId}, '${nomeSeguro.replace(/'/g, "\\'")}')" class="btn btn-secondary" style="padding: 6px 10px; color: var(--danger);">🗑️</button>
+                <button onclick="deletarGeofence(${geoId}, '${nomeSeguro.replace(/'/g, "\\'")}')" class="btn btn-secondary" style="padding: 6px 10px; color: var(--danger);">✕</button>
               </div>
             </div>
           `}).join('');
@@ -12032,7 +12032,7 @@
       dispositivos: '▣',
       diagnostico: '◉',
       heartbeat: '♡',
-      status: '⚡',
+      status: '◐',
       relatorios: '☰',
       organizacoes: '⌂',
       usuarios: '◇',
@@ -12042,13 +12042,13 @@
       perfis: '⬡',
       geofencing: '◐',
       'notificacoes-config': '◆',
-      multas: '⚠',
-      motoristas: '👤',
-      veiculos: '🚗',
-      tags: '🏷️',
-      'info-veiculo': '🚗',
+      multas: '△',
+      motoristas: '○',
+      veiculos: '▢',
+      tags: '◇',
+      'info-veiculo': '▢',
       trajetos: '◇',
-      lgpd: '🛡'
+      lgpd: '◈'
     };
 
     const sectionTitles = {
@@ -12302,9 +12302,9 @@
             <td>
               <button class="btn btn-primary" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); verNoMapa('${imeiSeguro.replace(/'/g, "\\'")}')">📍 Mapa</button>
               <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); abrirInfoVeiculo('${imeiSeguro.replace(/'/g, "\\'")}')">📊 Detalhes</button>
-              <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #f59e0b;" onclick="event.stopPropagation(); openEditModal('${imeiSeguro.replace(/'/g, "\\'")}')">✏️ Editar</button>
+              <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #f59e0b;" onclick="event.stopPropagation(); openEditModal('${imeiSeguro.replace(/'/g, "\\'")}')">✎ Editar</button>
               ${statusUso !== 'inativo' ? `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #6b7280;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'inativo')" title="Desativar rastreador">🚫</button>` : `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #10b981;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'disponivel')" title="Reativar como disponível">✅</button>`}
-              <button class="btn btn-danger" style="padding: 6px 12px; font-size: 11px;" onclick="event.stopPropagation(); deleteDevice('${imeiSeguro.replace(/'/g, "\\'")}')">🗑️</button>
+              <button class="btn btn-danger" style="padding: 6px 12px; font-size: 11px;" onclick="event.stopPropagation(); deleteDevice('${imeiSeguro.replace(/'/g, "\\'")}')">✕</button>
             </td>
           </tr>
         `}).join('');
@@ -13714,9 +13714,9 @@
             <td>
               <button class="btn btn-primary" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); verNoMapa('${imeiSeguro.replace(/'/g, "\\'")}')">📍 Mapa</button>
               <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); abrirInfoVeiculo('${imeiSeguro.replace(/'/g, "\\'")}')">📊 Detalhes</button>
-              <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #f59e0b;" onclick="event.stopPropagation(); openEditModal('${imeiSeguro.replace(/'/g, "\\'")}')">✏️ Editar</button>
+              <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #f59e0b;" onclick="event.stopPropagation(); openEditModal('${imeiSeguro.replace(/'/g, "\\'")}')">✎ Editar</button>
               ${statusUso !== 'inativo' ? `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #6b7280;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'inativo')" title="Desativar rastreador">🚫</button>` : `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #10b981;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'disponivel')" title="Reativar como disponível">✅</button>`}
-              <button class="btn btn-danger" style="padding: 6px 12px; font-size: 11px;" onclick="event.stopPropagation(); deleteDevice('${imeiSeguro.replace(/'/g, "\\'")}')">🗑️</button>
+              <button class="btn btn-danger" style="padding: 6px 12px; font-size: 11px;" onclick="event.stopPropagation(); deleteDevice('${imeiSeguro.replace(/'/g, "\\'")}')">✕</button>
             </td>
           </tr>
         `}).join('');
@@ -14166,11 +14166,11 @@
             <td style="padding: 12px;">${org._count?.usuarios || 0} / ${org.plano?.max_usuarios || '∞'}</td>
             <td style="padding: 12px;"><span style="padding: 4px 12px; border-radius: 20px; font-size: 12px; background: var(--${statusInfo.class}); color: white;">${statusInfo.icon} ${statusInfo.text}</span></td>
             <td style="padding: 12px; white-space: nowrap;">
-              <button onclick="editarOrg(${org.id})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Editar">✏️</button>
+              <button onclick="editarOrg(${org.id})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Editar">✎</button>
               <button onclick="transferirOrg(${org.id}, '${nomeSeguro}')" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Transferir para outro pai">🔀</button>
               <button onclick="absorverOrg(${org.id}, '${nomeSeguro}')" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Absorver (só esta org)">📥</button>
               <button onclick="absorverRecursivoOrg(${org.id}, '${nomeSeguro}')" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Absorver TUDO (org + sub-tenants)">🌀</button>
-              <button onclick="excluirOrg(${org.id})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Excluir">🗑️</button>
+              <button onclick="excluirOrg(${org.id})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Excluir">✕</button>
             </td>
           </tr>
         `;
@@ -15026,8 +15026,8 @@
             <td style="padding: 12px;"><span style="padding: 4px 12px; border-radius: 20px; font-size: 12px; background: ${user.role === 'super_admin' ? 'var(--primary)' : 'var(--accent)'}; color: white;">${roleSeguro}</span></td>
             <td style="padding: 12px;"><span style="padding: 4px 12px; border-radius: 20px; font-size: 12px; background: var(--${statusClass}); color: white;">${statusText}</span></td>
             <td style="padding: 12px;">
-              <button onclick="editarUsuario(${userId})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Editar">✏️</button>
-              <button onclick="excluirUsuario(${userId})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Excluir">🗑️</button>
+              <button onclick="editarUsuario(${userId})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Editar">✎</button>
+              <button onclick="excluirUsuario(${userId})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Excluir">✕</button>
             </td>
           </tr>
         `;
@@ -17829,7 +17829,7 @@
             <td><span style="background: ${statusCores[multa.status] || '#6b7280'}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase;">${multa.status || '-'}</span></td>
             <td style="white-space: nowrap;">
               <button onclick="visualizarMulta(${multa.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Visualizar">👁</button>
-              <button onclick="editarMulta(${multa.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✏️</button>
+              <button onclick="editarMulta(${multa.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✎</button>
               ${multa.status === 'pendente' ? `<button onclick="registrarPagamentoMulta(${multa.id})" class="btn btn-sm btn-success" style="padding: 4px 8px; margin-right: 4px;" title="Registrar Pagamento">💰</button>` : ''}
               <button onclick="excluirMulta(${multa.id})" class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Excluir">🗑</button>
             </td>
@@ -19024,7 +19024,7 @@
               </span>
             </td>
             <td style="white-space: nowrap;">
-              <button onclick="editarMotoristaSecao(${m.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✏️</button>
+              <button onclick="editarMotoristaSecao(${m.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✎</button>
               <button onclick="excluirMotoristaSecao(${m.id}, '${escapeHtml(m.nome)}')" class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Excluir">🗑</button>
             </td>
           </tr>
@@ -19296,10 +19296,10 @@
             <td>${dispositivoBadge}</td>
             <td>${statusBadge}</td>
             <td style="white-space: nowrap;">
-              <button onclick="editarVeiculoSecao(${v.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✏️</button>
+              <button onclick="editarVeiculoSecao(${v.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✎</button>
               ${dispositivo
                 ? `<button onclick="desvincularDispositivoSecao(${v.id}, ${dispositivo.id})" class="btn btn-sm btn-warning" style="padding: 4px 8px; margin-right: 4px;" title="Desvincular">✂️</button>`
-                : `<button onclick="abrirModalVincularSecao(${v.id}, '${v.placa}')" class="btn btn-sm btn-success" style="padding: 4px 8px; margin-right: 4px;" title="Vincular">🔗</button>`
+                : `<button onclick="abrirModalVincularSecao(${v.id}, '${v.placa}')" class="btn btn-sm btn-success" style="padding: 4px 8px; margin-right: 4px;" title="Vincular">◦</button>`
               }
               <button onclick="excluirVeiculoSecao(${v.id}, '${v.placa}')" class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Excluir">🗑</button>
             </td>
@@ -19698,9 +19698,9 @@
                   <button onclick="gerenciarVeiculosTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: var(--primary); cursor: pointer; padding: 4px 8px; text-decoration: underline;" title="Gerenciar veículos">${tag.totalVeiculos || 0}</button>
                 </td>
                 <td style="text-align: right; padding: 10px 8px;">
-                  <button onclick="gerenciarVeiculosTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: var(--primary); cursor: pointer; padding: 4px 8px;" title="Vincular veículos">🔗</button>
-                  <button onclick="editarTag(${tag.id})" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 8px;" title="Editar">✏️</button>
-                  <button onclick="excluirTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px 8px;" title="Excluir">🗑️</button>
+                  <button onclick="gerenciarVeiculosTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: var(--primary); cursor: pointer; padding: 4px 8px;" title="Vincular veículos">◦</button>
+                  <button onclick="editarTag(${tag.id})" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 8px;" title="Editar">✎</button>
+                  <button onclick="excluirTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px 8px;" title="Excluir">✕</button>
                 </td>
               </tr>
             `).join('')}
