@@ -12625,7 +12625,7 @@
             saveSpeedAlert(d, speed, roadLimit.limite, 'via');
           }
           alerts.push(`<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; margin-bottom: 6px; background: rgba(255,255,255,0.15); border-radius: 6px; border-left: 4px solid #fbbf24;">
-            <span style="color: #ffffff;"><strong style="color: #fbbf24;">${d.veiculo || d.placa || d.imei}</strong>: <span style="font-size: 16px; font-weight: bold;">${speed} km/h</span> (via: ${roadLimit.via} - limite: ${roadLimit.limite} km/h)</span>
+            <span style="color: #ffffff;"><strong style="color: #fbbf24;">${d.placa || d.imei}</strong>: <span style="font-size: 16px; font-weight: bold;">${speed} km/h</span> (via: ${roadLimit.via} - limite: ${roadLimit.limite} km/h)</span>
             <a href="#" onclick="abrirInfoVeiculo('${d.imei}'); return false;" style="color: #fbbf24; text-decoration: none; font-size: 12px; white-space: nowrap; font-weight: bold; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">Ver no mapa</a>
           </div>`);
         }
@@ -12638,7 +12638,7 @@
             saveSpeedAlert(d, speed, userSpeedLimit, 'usuario');
           }
           alerts.push(`<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; margin-bottom: 6px; background: rgba(255,255,255,0.15); border-radius: 6px; border-left: 4px solid #fbbf24;">
-            <span style="color: #ffffff;"><strong style="color: #fbbf24;">${d.veiculo || d.placa || d.imei}</strong>: <span style="font-size: 16px; font-weight: bold;">${speed} km/h</span> (limite configurado: ${userSpeedLimit} km/h)</span>
+            <span style="color: #ffffff;"><strong style="color: #fbbf24;">${d.placa || d.imei}</strong>: <span style="font-size: 16px; font-weight: bold;">${speed} km/h</span> (limite configurado: ${userSpeedLimit} km/h)</span>
             <a href="#" onclick="abrirInfoVeiculo('${d.imei}'); return false;" style="color: #fbbf24; text-decoration: none; font-size: 12px; white-space: nowrap; font-weight: bold; background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">Ver no mapa</a>
           </div>`);
         }
@@ -12677,7 +12677,7 @@
       try {
         // Registrar alerta no console (pode ser expandido para salvar no backend)
         const tipoAlerta = type === 'via' ? 'LIMITE DA VIA' : 'LIMITE CONFIGURADO';
-        console.log(`[ALERTA VELOCIDADE - ${tipoAlerta}] ${device.veiculo || device.imei}: ${speed} km/h > ${limit} km/h`);
+        console.log(`[ALERTA VELOCIDADE - ${tipoAlerta}] ${device.placa || device.imei}: ${speed} km/h > ${limit} km/h`);
 
         // TODO: Enviar para backend se necessário
         // await authFetch(`${API_URL}/alertas`, { method: 'POST', ... });
