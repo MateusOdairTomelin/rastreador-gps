@@ -7,6 +7,7 @@
 
 const cron = require('node-cron');
 const multasJob = require('./multas.job');
+const insightsJob = require('./insights.job');
 
 class Scheduler {
   constructor() {
@@ -63,6 +64,26 @@ class Scheduler {
       }
     });
 
+    // ============ JOBS DE INSIGHTS IA ============
+
+    // Gerar insights diários - todo dia às 06:00
+    this.addJob('insights-diarios', '0 6 * * *', async () => {
+      try {
+        await insightsJob.gerarInsightsDiarios();
+      } catch (error) {
+        console.error('[Scheduler] Erro no job insights-diarios:', error.message);
+      }
+    });
+
+    // Limpar insights antigos - domingo às 03:00
+    this.addJob('insights-limpeza', '0 3 * * 0', async () => {
+      try {
+        await insightsJob.limparInsightsAntigos();
+      } catch (error) {
+        console.error('[Scheduler] Erro no job insights-limpeza:', error.message);
+      }
+    });
+
     this.isRunning = true;
     console.log(`[Scheduler] ${this.jobs.length} jobs agendados`);
 
@@ -115,6 +136,10 @@ class Scheduler {
         return await multasJob.alertarNICPendente();
       case 'descontos-expirados':
         return await multasJob.atualizarDescontosExpirados();
+      case 'insights-diarios':
+        return await insightsJob.gerarInsightsDiarios();
+      case 'insights-limpeza':
+        return await insightsJob.limparInsightsAntigos();
       default:
         throw new Error(`Job não encontrado: ${jobName}`);
     }

@@ -2849,77 +2849,101 @@
       animation: bellRing 0.5s ease;
     }
 
-    /* Insights Button na Topbar */
+    /* Insights Button na Topbar - Design Premium */
     .insights-btn {
       position: relative;
       cursor: pointer;
       padding: 10px;
       border-radius: 12px;
       transition: all 0.3s ease;
-      background: transparent;
-      border: none;
-      margin-right: 4px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      margin-right: 8px;
     }
 
     .insights-btn:hover {
-      background: rgba(124, 58, 237, 0.15);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2));
+      border-color: rgba(139, 92, 246, 0.4);
+      transform: scale(1.05);
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
     }
 
     .insights-btn svg {
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
       fill: none;
-      stroke: #A855F7;
+      stroke: url(#insights-gradient);
       stroke-width: 2;
       transition: all 0.3s ease;
     }
 
     .insights-btn:hover svg {
-      stroke: #C084FC;
+      filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.6));
     }
 
     .insights-btn .insights-badge {
       position: absolute;
-      top: 4px;
-      right: 4px;
-      background: linear-gradient(135deg, #7C3AED, #A855F7);
+      top: 2px;
+      right: 2px;
+      background: linear-gradient(135deg, #EC4899, #8B5CF6);
       color: white;
       font-size: 10px;
-      font-weight: bold;
+      font-weight: 700;
       min-width: 18px;
       height: 18px;
       border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0 4px;
+      padding: 0 5px;
+      box-shadow: 0 2px 8px rgba(236, 72, 153, 0.5);
+      animation: badgePulse 2s ease-in-out infinite;
+    }
+
+    @keyframes badgePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
     }
 
     .insights-dropdown {
-      position: absolute;
-      top: calc(100% + 8px);
-      right: 0;
-      width: 420px;
-      max-height: 500px;
-      background: rgba(15, 23, 42, 0.98);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(124, 58, 237, 0.3);
-      border-radius: 16px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(124, 58, 237, 0.2);
-      z-index: 1001;
+      position: fixed;
+      top: 70px;
+      right: 120px;
+      width: 400px;
+      max-height: 520px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(30, 27, 75, 0.98) 100%);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 20px;
+      box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(139, 92, 246, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      z-index: 100000;
       display: none;
       overflow: hidden;
     }
 
     .insights-dropdown.show {
       display: block;
-      animation: dropdownSlide 0.2s ease;
+      animation: insightsSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes insightsSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
 
     .insights-dropdown-header {
-      padding: 16px 20px;
-      background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(168, 85, 247, 0.1));
-      border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+      padding: 20px 24px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.1) 100%);
+      border-bottom: 1px solid rgba(139, 92, 246, 0.2);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -2927,97 +2951,175 @@
 
     .insights-dropdown-header h4 {
       margin: 0;
-      color: #C084FC;
-      font-size: 1rem;
+      color: #E0E7FF;
+      font-size: 1.1rem;
+      font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+    }
+
+    .insights-dropdown-header h4 svg {
+      stroke: #A78BFA;
     }
 
     .insights-dropdown-body {
       max-height: 380px;
       overflow-y: auto;
-      padding: 8px;
+      padding: 12px;
+    }
+
+    .insights-dropdown-body::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .insights-dropdown-body::-webkit-scrollbar-track {
+      background: rgba(139, 92, 246, 0.1);
+      border-radius: 3px;
+    }
+
+    .insights-dropdown-body::-webkit-scrollbar-thumb {
+      background: rgba(139, 92, 246, 0.3);
+      border-radius: 3px;
     }
 
     .insight-item {
-      padding: 14px;
-      border-radius: 12px;
-      margin-bottom: 8px;
+      padding: 16px;
+      border-radius: 14px;
+      margin-bottom: 10px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid transparent;
     }
 
     .insight-item:hover {
-      transform: translateX(4px);
+      transform: translateX(6px);
+      background: rgba(255, 255, 255, 0.06);
     }
 
     .insight-item.critica {
-      background: rgba(239, 68, 68, 0.15);
-      border-left: 3px solid #EF4444;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.05));
+      border-left: 4px solid #EF4444;
+      border-color: rgba(239, 68, 68, 0.2);
     }
 
     .insight-item.alta {
-      background: rgba(249, 115, 22, 0.15);
-      border-left: 3px solid #F97316;
+      background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(249, 115, 22, 0.05));
+      border-left: 4px solid #F97316;
+      border-color: rgba(249, 115, 22, 0.2);
     }
 
     .insight-item.normal {
-      background: rgba(59, 130, 246, 0.15);
-      border-left: 3px solid #3B82F6;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0.05));
+      border-left: 4px solid #6366F1;
+      border-color: rgba(99, 102, 241, 0.2);
     }
 
     .insight-item.baixa {
-      background: rgba(107, 114, 128, 0.15);
-      border-left: 3px solid #6B7280;
+      background: linear-gradient(135deg, rgba(107, 114, 128, 0.12), rgba(107, 114, 128, 0.05));
+      border-left: 4px solid #6B7280;
+      border-color: rgba(107, 114, 128, 0.2);
     }
 
     .insight-item.unread {
-      border-left-width: 4px;
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+    }
+
+    .insight-item.unread::before {
+      content: '';
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 8px;
+      height: 8px;
+      background: #A78BFA;
+      border-radius: 50%;
     }
 
     .insight-item .insight-title {
       font-weight: 600;
-      font-size: 0.9rem;
-      margin-bottom: 4px;
-      color: var(--text);
+      font-size: 0.95rem;
+      margin-bottom: 6px;
+      color: #F1F5F9;
     }
 
     .insight-item .insight-desc {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      line-height: 1.4;
+      font-size: 0.85rem;
+      color: #94A3B8;
+      line-height: 1.5;
     }
 
     .insight-item .insight-meta {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 8px;
+      margin-top: 10px;
       font-size: 0.75rem;
-      color: var(--text-muted);
+      color: #64748B;
+    }
+
+    .insight-item .insight-variation {
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+    }
+
+    .insight-item .insight-variation.positive {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22C55E;
+    }
+
+    .insight-item .insight-variation.negative {
+      background: rgba(239, 68, 68, 0.15);
+      color: #EF4444;
     }
 
     .insights-empty {
       text-align: center;
-      padding: 40px 20px;
-      color: var(--text-muted);
+      padding: 50px 24px;
+      color: #94A3B8;
+    }
+
+    .insights-empty svg {
+      opacity: 0.3;
+      margin-bottom: 16px;
+    }
+
+    .insights-empty p {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .insights-empty .insights-empty-sub {
+      font-size: 0.8rem;
+      margin-top: 6px;
+      color: #64748B;
     }
 
     .insights-dropdown-footer {
-      padding: 12px 16px;
-      border-top: 1px solid rgba(124, 58, 237, 0.2);
-      display: flex;
-      gap: 8px;
+      padding: 16px 20px;
+      border-top: 1px solid rgba(139, 92, 246, 0.15);
+      background: rgba(0, 0, 0, 0.2);
     }
 
     .insights-dropdown-footer button {
-      flex: 1;
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 0.85rem;
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
+      background: linear-gradient(135deg, #6366F1, #8B5CF6);
+      color: white;
+      border: none;
+    }
+
+    .insights-dropdown-footer button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
     }
 
     @keyframes bellRing {
@@ -5222,31 +5324,38 @@
         </div>
         <div class="topbar-actions">
           <!-- Botão de Insights IA -->
-          <div class="insights-btn" id="insights-btn" onclick="toggleInsightsDropdown(event)" title="Insights de IA">
-            <svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+          <svg width="0" height="0" style="position:absolute;"><defs><linearGradient id="insights-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#818CF8"/><stop offset="100%" style="stop-color:#C084FC"/></linearGradient></defs></svg>
+          <div class="insights-btn" id="insights-btn" onclick="toggleInsightsDropdown(event)" title="Insights Inteligentes">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/>
+              <path d="M5 19l1 3 1-3 3-1-3-1-1-3-1 3-3 1 3 1z"/>
+              <path d="M19 13l1 2 1-2 2-1-2-1-1-2-1 2-2 1 2 1z"/>
+            </svg>
             <span class="insights-badge" id="insights-badge" style="display: none;">0</span>
           </div>
           <!-- Dropdown de Insights -->
           <div class="insights-dropdown" id="insights-dropdown">
             <div class="insights-dropdown-header">
               <h4>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-                Insights de IA
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/>
+                  <path d="M5 19l1 3 1-3 3-1-3-1-1-3-1 3-3 1 3 1z"/>
+                </svg>
+                Insights Inteligentes
               </h4>
-              <button onclick="gerarInsightsTopbar()" style="background: linear-gradient(135deg, #7C3AED, #A855F7); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                Gerar
-              </button>
+              <span id="insights-update-time" style="font-size: 0.75rem; color: #64748B;"></span>
             </div>
             <div class="insights-dropdown-body" id="insights-dropdown-body">
               <div class="insights-empty">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; opacity: 0.4;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/>
+                  <path d="M5 19l1 3 1-3 3-1-3-1-1-3-1 3-3 1 3 1z"/>
+                </svg>
                 <p>Carregando insights...</p>
               </div>
             </div>
             <div class="insights-dropdown-footer">
-              <button onclick="marcarTodosInsightsLidosTopbar()" style="background: rgba(255,255,255,0.1); color: var(--text); border: 1px solid var(--border);">Marcar lidos</button>
-              <button onclick="verTodosInsights()" style="background: linear-gradient(135deg, #7C3AED, #A855F7); color: white; border: none;">Ver todos</button>
+              <button onclick="marcarTodosInsightsLidosTopbar()">Marcar todos como lidos</button>
             </div>
           </div>
           <!-- Sino de Notificações -->
@@ -19441,57 +19550,57 @@
 
     function renderizarInsightsTopbar() {
       const container = document.getElementById('insights-dropdown-body');
+      const updateTime = document.getElementById('insights-update-time');
+
+      // Mostrar horário da última atualização
+      if (updateTime) {
+        updateTime.textContent = `Atualizado ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+      }
 
       if (insightsCache.length === 0) {
         container.innerHTML = `
           <div class="insights-empty">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; opacity: 0.4;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-            <p>Nenhum insight pendente</p>
-            <p style="font-size: 0.8rem; margin-top: 4px;">Clique em "Gerar" para analisar a frota</p>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/>
+              <path d="M5 19l1 3 1-3 3-1-3-1-1-3-1 3-3 1 3 1z"/>
+            </svg>
+            <p>Tudo certo por aqui!</p>
+            <p class="insights-empty-sub">Não há insights pendentes no momento</p>
           </div>`;
         return;
       }
 
-      const tipoIcones = { motorista: '👤', veiculo: '🚗', frota: '🚚', seguranca: '⚠️', custo: '💰' };
+      const tipoIcones = {
+        motorista: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/></svg>',
+        veiculo: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14v-5l-2-4H7l-2 4v5z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>',
+        frota: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><path d="M19 10h3l2 4v4h-5v-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
+        seguranca: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+        custo: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>'
+      };
 
       container.innerHTML = insightsCache.slice(0, 8).map(insight => {
-        const icone = tipoIcones[insight.tipo] || '📊';
+        const icone = tipoIcones[insight.tipo] || tipoIcones.frota;
         const dataInsight = new Date(insight.created_at);
         const prioridadeClass = insight.prioridade || 'normal';
+        const temVariacao = insight.variacao_pct !== null && insight.variacao_pct !== undefined;
+        const variacaoPositiva = temVariacao && insight.variacao_pct > 0;
 
         return `
-          <div class="insight-item ${prioridadeClass} ${!insight.lido ? 'unread' : ''}" onclick="marcarInsightLidoTopbar(${insight.id})">
-            <div style="display: flex; align-items: flex-start; gap: 10px;">
-              <span style="font-size: 1.2rem;">${icone}</span>
+          <div class="insight-item ${prioridadeClass} ${!insight.lido ? 'unread' : ''}" onclick="marcarInsightLidoTopbar(${insight.id})" style="position: relative;">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <div style="padding: 8px; background: rgba(139, 92, 246, 0.15); border-radius: 10px; color: #A78BFA;">${icone}</div>
               <div style="flex: 1; min-width: 0;">
                 <div class="insight-title">${escapeHtml(insight.titulo)}</div>
-                <div class="insight-desc">${escapeHtml(insight.descricao.substring(0, 80))}${insight.descricao.length > 80 ? '...' : ''}</div>
+                <div class="insight-desc">${escapeHtml(insight.descricao.substring(0, 100))}${insight.descricao.length > 100 ? '...' : ''}</div>
                 <div class="insight-meta">
-                  <span>${dataInsight.toLocaleDateString('pt-BR')}</span>
-                  ${insight.variacao_pct !== null ? `<span style="color: ${insight.variacao_pct > 0 ? '#22c55e' : '#ef4444'};">${insight.variacao_pct > 0 ? '+' : ''}${Math.round(insight.variacao_pct)}%</span>` : ''}
+                  <span>${dataInsight.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+                  ${temVariacao ? `<span class="insight-variation ${variacaoPositiva ? 'positive' : 'negative'}">${variacaoPositiva ? '+' : ''}${Math.round(insight.variacao_pct)}%</span>` : ''}
                 </div>
               </div>
             </div>
           </div>
         `;
       }).join('');
-    }
-
-    async function gerarInsightsTopbar() {
-      try {
-        showToast('Gerando insights...', 'info');
-        const response = await authFetch(`${API_URL}/insights/gerar`, { method: 'POST' });
-        const data = await response.json();
-
-        if (data.sucesso) {
-          showToast(`${data.gerados} insights gerados!`, 'success');
-          carregarInsightsTopbar();
-        } else {
-          throw new Error(data.erro || 'Erro');
-        }
-      } catch (error) {
-        showToast(error.message, 'error');
-      }
     }
 
     async function marcarInsightLidoTopbar(insightId) {
@@ -19515,20 +19624,13 @@
       }
     }
 
-    function verTodosInsights() {
-      document.getElementById('insights-dropdown').classList.remove('show');
-      showToast('Funcionalidade em desenvolvimento', 'info');
-    }
-
     // Carregar insights ao iniciar
     setTimeout(carregarInsightsTopbar, 3000);
 
     window.toggleInsightsDropdown = toggleInsightsDropdown;
     window.carregarInsightsTopbar = carregarInsightsTopbar;
-    window.gerarInsightsTopbar = gerarInsightsTopbar;
     window.marcarInsightLidoTopbar = marcarInsightLidoTopbar;
     window.marcarTodosInsightsLidosTopbar = marcarTodosInsightsLidosTopbar;
-    window.verTodosInsights = verTodosInsights;
 
     // ============ TRAJETOS SECTION ============
     // Variáveis já declaradas no início do script
