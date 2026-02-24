@@ -11,6 +11,9 @@
         "buildType": "apk",
         "gradleCommand": ":app:assembleDebug",
         "credentialsSource": "local"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://rastreador.unifique.com.br/api"
       }
     },
     "preview": {
@@ -18,13 +21,19 @@
         "buildType": "apk",
         "credentialsSource": "local"
       },
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://rastreador.unifique.com.br/api"
+      }
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
       },
-      "ios": {}
+      "ios": {},
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://rastreador.unifique.com.br/api"
+      }
     }
   },
   "submit": {

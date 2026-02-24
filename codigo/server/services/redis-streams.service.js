@@ -292,8 +292,9 @@ class RedisStreamsService {
         fields.push(key, typeof value === 'object' ? JSON.stringify(value) : String(value));
       }
 
-      // MAXLEN ~50000 mantém últimas 50k mensagens por stream (suporta ~1000 rastreadores)
-      const messageId = await this.client.xadd(stream, 'MAXLEN', '~', '50000', '*', ...fields);
+      // MAXLEN 1000 mantém últimas 1k mensagens por stream (evita acúmulo de dados antigos)
+      // Com 4 partições x 1000 = 4000 mensagens total, suficiente para ~100 rastreadores
+      const messageId = await this.client.xadd(stream, 'MAXLEN', '1000', '*', ...fields);
       this.stats.published++;
 
       return messageId;
