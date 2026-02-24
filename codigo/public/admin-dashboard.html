@@ -4587,8 +4587,9 @@
     }
 
     .veiculos-relatorio-table .col-check {
-      width: 40px;
+      width: 32px;
       text-align: center;
+      padding: 4px 8px;
     }
 
     .veiculos-relatorio-table .col-veiculo {
@@ -16921,10 +16922,10 @@
           }
 
           container.innerHTML = data.tags.map(tag => `
-            <label data-nome="${escapeHtml(tag.nome).toLowerCase()}" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 6px; border-radius: 6px; font-size: 0.9rem; transition: background 0.15s;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+            <label data-nome="${escapeHtml(tag.nome).toLowerCase()}" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 6px; border-radius: 4px; font-size: 0.85rem; transition: background 0.15s;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
               <input type="checkbox" class="tag-checkbox" value="${tag.id}" onchange="atualizarTagsSelecionadas()" style="display: none;">
-              <div class="custom-check" style="width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0;"></div>
-              <div style="width: 10px; height: 10px; border-radius: 3px; background: ${tag.cor || '#3B82F6'}; flex-shrink: 0;"></div>
+              <div class="custom-check" style="width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0;"></div>
+              <div style="width: 8px; height: 8px; border-radius: 2px; background: ${tag.cor || '#3B82F6'}; flex-shrink: 0;"></div>
               <span style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(tag.nome)}</span>
             </label>
           `).join('');
@@ -16937,7 +16938,7 @@
               if (checkbox.checked) {
                 customCheck.style.background = 'var(--primary)';
                 customCheck.style.borderColor = 'var(--primary)';
-                customCheck.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                customCheck.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
               } else {
                 customCheck.style.background = 'transparent';
                 customCheck.style.borderColor = 'var(--border)';
@@ -19882,10 +19883,10 @@
             <input type="text" id="busca-veiculos-tag" placeholder="Buscar por placa..." oninput="filtrarVeiculosTag()" style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px;">
             <div id="lista-veiculos-tag" style="overflow-y: auto; max-height: 400px; display: flex; flex-direction: column; gap: 4px;">
               ${todosVeiculos.map(v => `
-                <label data-placa="${v.placa.toLowerCase()}" style="display: flex; align-items: center; gap: 12px; padding: 10px; background: var(--surface); border-radius: 6px; cursor: pointer;">
+                <label data-placa="${v.placa.toLowerCase()}" style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--surface); border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
                   <input type="checkbox" value="${v.id}" ${vinculados.has(v.id) ? 'checked' : ''} style="accent-color: var(--primary);">
                   <span style="font-weight: 600; color: var(--text);">${escapeHtml(v.placa)}</span>
-                  <span style="color: var(--text-muted); font-size: 0.9rem;">${escapeHtml(v.modelo || '')}</span>
+                  <span style="color: var(--text-muted); font-size: 0.85rem;">${escapeHtml(v.modelo || '')}</span>
                 </label>
               `).join('')}
             </div>
