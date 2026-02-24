@@ -108,9 +108,13 @@ async function enviarComandosReconfig(imei, socket) {
   if (!deveReconfigurar && !deveConfigTimezone) return;
 
   // Comandos completos de reconfiguração
+  // TIMER = intervalo de GRAVAÇÃO (segundos quando movendo, segundos quando parado)
+  // YUP = intervalo de UPLOAD para servidor
   const comandosCompletos = [
     { cmd: '#55555#TIMEZONE,E,0#', desc: 'Timezone UTC+0' },  // ✅ CRÍTICO: Evita delay de 1.8h
-    { cmd: '#55555#YUP#10#', desc: 'Intervalo 10s' },
+    { cmd: '#55555#TIMER#10#10#', desc: 'Gravação 10s mov/10s parado' },
+    { cmd: '#55555#YUP#10#', desc: 'Upload 10s' },
+    { cmd: '#55555#SENALM#ON#', desc: 'Envio imediato alarmes' },
     { cmd: '#55555#YGPS#1#', desc: 'Ativar GPS' },
     { cmd: '#55555#YONLINE#1#', desc: 'Modo online' },
     { cmd: 'SETLOCX22#', desc: 'Protocolo 0x22' },
