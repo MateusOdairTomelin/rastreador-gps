@@ -4369,18 +4369,33 @@
     .filtro-horario-icon {
       color: var(--text-muted);
       font-size: 13px;
+      flex-shrink: 0;
     }
 
     .filtro-hora-input {
-      width: 70px;
+      width: 75px;
+      min-width: 75px;
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 4px;
       color: var(--text);
       font-size: 13px;
-      padding: 4px 6px;
+      padding: 4px 4px 4px 8px;
       outline: none;
       cursor: pointer;
+    }
+
+    /* Estilizar o ícone nativo do time picker */
+    .filtro-hora-input::-webkit-calendar-picker-indicator {
+      filter: invert(0.6);
+      cursor: pointer;
+      opacity: 0.7;
+      padding: 0;
+      margin: 0;
+    }
+
+    .filtro-hora-input::-webkit-calendar-picker-indicator:hover {
+      opacity: 1;
     }
 
     .filtro-hora-input:focus {
@@ -8700,9 +8715,8 @@
                   <input type="hidden" id="rel-data-fim">
                 </div>
                 <div class="filtro-horario-container">
-                  <span class="filtro-horario-icon">⏱</span>
                   <input type="time" id="rel-hora-inicio" value="00:00" class="filtro-hora-input" title="Hora início">
-                  <span class="hora-separator">-</span>
+                  <span class="hora-separator">às</span>
                   <input type="time" id="rel-hora-fim" value="23:59" class="filtro-hora-input" title="Hora fim">
                 </div>
               </div>
