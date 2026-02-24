@@ -160,16 +160,37 @@ class InsightService {
         insightsVeiculo,
         insightsAlarmes,
         insightsVelocidade,
-        insightsOciosidade
+        insightsOciosidade,
+        insightsRanking,
+        insightsManutencao,
+        insightsPadroes,
+        insightsAnomalias,
+        insightsMultas
       ] = await Promise.all([
         this._gerarInsightsMotoristas(organizacao_id, periodo_inicio, periodo_fim, periodo_anterior_inicio, periodo_anterior_fim),
         this._gerarInsightsVeiculos(organizacao_id, periodo_inicio, periodo_fim, periodo_anterior_inicio, periodo_anterior_fim),
         this._gerarInsightsAlarmes(organizacao_id, periodo_inicio, periodo_fim, periodo_anterior_inicio, periodo_anterior_fim),
         this._gerarInsightsVelocidade(organizacao_id, periodo_inicio, periodo_fim),
-        this._gerarInsightsOciosidade(organizacao_id, periodo_inicio, periodo_fim)
+        this._gerarInsightsOciosidade(organizacao_id, periodo_inicio, periodo_fim),
+        this._gerarInsightsRanking(organizacao_id, periodo_inicio, periodo_fim),
+        this._gerarInsightsManutencao(organizacao_id, periodo_inicio, periodo_fim),
+        this._gerarInsightsPadroesTemporais(organizacao_id, periodo_inicio, periodo_fim),
+        this._gerarInsightsAnomalias(organizacao_id, periodo_inicio, periodo_fim),
+        this._gerarInsightsMultas(organizacao_id, periodo_inicio, periodo_fim)
       ]);
 
-      insights.push(...insightsMotorista, ...insightsVeiculo, ...insightsAlarmes, ...insightsVelocidade, ...insightsOciosidade);
+      insights.push(
+        ...insightsMotorista,
+        ...insightsVeiculo,
+        ...insightsAlarmes,
+        ...insightsVelocidade,
+        ...insightsOciosidade,
+        ...insightsRanking,
+        ...insightsManutencao,
+        ...insightsPadroes,
+        ...insightsAnomalias,
+        ...insightsMultas
+      );
 
       // Salvar insights gerados
       if (insights.length > 0) {
@@ -571,6 +592,358 @@ class InsightService {
           prioridade: mediaOciosidade > 40 ? 'alta' : 'normal'
         });
       }
+    }
+
+    return insights;
+  }
+
+  /**
+   * Gerar ranking de motoristas por eficiência
+   */
+  async _gerarInsightsRanking(organizacao_id, periodo_inicio, periodo_fim) {
+    const insights = [];
+
+    // Buscar motoristas com viagens
+    const motoristas = await prisma.motorista.findMany({
+      where: { organizacao_id, ativo: true },
+      include: {
+        viagens: {
+          where: {
+            inicio: { gte: periodo_inicio, lte: periodo_fim }
+          },
+          select: {
+            distancia_km: true,
+            duracao_minutos: true,
+            velocidade_media: true,
+            velocidade_max: true,
+            consumo_combustivel: true
+          }
+        }
+      }
+    });
+
+    // Calcular score de eficiência para cada motorista
+    const rankings = motoristas
+      .filter(m => m.viagens.length >= 3)
+      .map(m => {
+        const km = m.viagens.reduce((s, v) => s + (v.distancia_km || 0), 0);
+        const velMedia = m.viagens.reduce((s, v) => s + (v.velocidade_media || 0), 0) / m.viagens.length;
+        const velMax = Math.max(...m.viagens.map(v => v.velocidade_max || 0));
+        const consumo = m.viagens.reduce((s, v) => s + (v.consumo_combustivel || 0), 0);
+
+        // Score: quanto menor a velocidade máxima e melhor o consumo, maior o score
+        const penalVelocidade = velMax > 120 ? (velMax - 120) * 2 : 0;
+        const score = 100 - penalVelocidade;
+
+        return { motorista: m, km, velMedia, velMax, consumo, score, viagens: m.viagens.length };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    if (rankings.length >= 3) {
+      // Melhor motorista
+      const melhor = rankings[0];
+      insights.push({
+        tipo: TIPOS.MOTORISTA,
+        categoria: CATEGORIAS.MELHORIA,
+        motorista_id: melhor.motorista.id,
+        titulo: `${melhor.motorista.nome} é o motorista mais eficiente`,
+        descricao: `${melhor.motorista.nome} lidera o ranking de eficiência com ${Math.round(melhor.km)} km percorridos, velocidade média de ${Math.round(melhor.velMedia)} km/h e velocidade máxima de ${Math.round(melhor.velMax)} km/h.`,
+        acao_recomendada: 'Considere bonificar este motorista e usar seu comportamento como exemplo para os demais.',
+        valor_depois: melhor.score,
+        score: 70,
+        prioridade: 'normal'
+      });
+
+      // Motorista que precisa melhorar
+      const pior = rankings[rankings.length - 1];
+      if (pior.score < 60) {
+        insights.push({
+          tipo: TIPOS.MOTORISTA,
+          categoria: CATEGORIAS.ALERTA,
+          motorista_id: pior.motorista.id,
+          titulo: `${pior.motorista.nome} precisa melhorar a condução`,
+          descricao: `${pior.motorista.nome} está no final do ranking de eficiência, com velocidade máxima de ${Math.round(pior.velMax)} km/h e score de ${Math.round(pior.score)}/100.`,
+          acao_recomendada: 'Agende uma conversa com o motorista e ofereça treinamento de direção econômica e segura.',
+          valor_depois: pior.score,
+          score: 60,
+          prioridade: 'normal'
+        });
+      }
+    }
+
+    return insights;
+  }
+
+  /**
+   * Gerar insights de previsão de manutenção
+   */
+  async _gerarInsightsManutencao(organizacao_id, periodo_inicio, periodo_fim) {
+    const insights = [];
+
+    // Buscar veículos com odômetro
+    const veiculos = await prisma.veiculo.findMany({
+      where: { organizacao_id },
+      include: {
+        dispositivos: {
+          select: { odometro_total: true, horimetro_total: true }
+        }
+      }
+    });
+
+    for (const veiculo of veiculos) {
+      if (veiculo.dispositivos.length === 0) continue;
+
+      const odometro = veiculo.dispositivos[0].odometro_total || 0;
+      const horimetro = veiculo.dispositivos[0].horimetro_total || 0;
+
+      // Verificar marcos de manutenção
+      const proximaRevisao = Math.ceil(odometro / 10000) * 10000;
+      const kmParaRevisao = proximaRevisao - odometro;
+
+      if (kmParaRevisao <= 500 && kmParaRevisao > 0) {
+        insights.push({
+          tipo: TIPOS.VEICULO,
+          categoria: CATEGORIAS.ALERTA,
+          veiculo_id: veiculo.id,
+          titulo: `${veiculo.placa} próximo da revisão (${Math.round(kmParaRevisao)} km)`,
+          descricao: `O veículo ${veiculo.placa} está a ${Math.round(kmParaRevisao)} km da próxima revisão (${proximaRevisao.toLocaleString()} km). Odômetro atual: ${odometro.toLocaleString()} km.`,
+          acao_recomendada: 'Agende a revisão preventiva agora para evitar paradas não programadas.',
+          valor_depois: odometro,
+          score: 80,
+          prioridade: 'alta'
+        });
+      } else if (kmParaRevisao <= 1500 && kmParaRevisao > 500) {
+        insights.push({
+          tipo: TIPOS.VEICULO,
+          categoria: CATEGORIAS.TENDENCIA,
+          veiculo_id: veiculo.id,
+          titulo: `${veiculo.placa} revisão em ${Math.round(kmParaRevisao)} km`,
+          descricao: `O veículo ${veiculo.placa} precisa de revisão em aproximadamente ${Math.round(kmParaRevisao)} km. Considere agendar a manutenção preventiva.`,
+          acao_recomendada: 'Planeje a revisão para a próxima semana, evitando dias de alta demanda.',
+          valor_depois: odometro,
+          score: 50,
+          prioridade: 'normal'
+        });
+      }
+    }
+
+    return insights;
+  }
+
+  /**
+   * Gerar insights de padrões temporais
+   */
+  async _gerarInsightsPadroesTemporais(organizacao_id, periodo_inicio, periodo_fim) {
+    const insights = [];
+
+    // Buscar viagens agrupadas por dia da semana
+    const viagens = await prisma.viagem.findMany({
+      where: {
+        dispositivo: { organizacao_id },
+        inicio: { gte: periodo_inicio, lte: periodo_fim }
+      },
+      select: { inicio: true, distancia_km: true, duracao_minutos: true }
+    });
+
+    if (viagens.length < 10) return insights;
+
+    // Agrupar por dia da semana
+    const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const porDia = {};
+
+    viagens.forEach(v => {
+      const dia = new Date(v.inicio).getDay();
+      if (!porDia[dia]) porDia[dia] = { viagens: 0, km: 0 };
+      porDia[dia].viagens++;
+      porDia[dia].km += v.distancia_km || 0;
+    });
+
+    // Encontrar dia mais e menos produtivo
+    const dias = Object.entries(porDia).map(([dia, data]) => ({ dia: parseInt(dia), ...data }));
+    if (dias.length >= 3) {
+      dias.sort((a, b) => b.km - a.km);
+
+      const maisProdutivo = dias[0];
+      const menosProdutivo = dias[dias.length - 1];
+
+      insights.push({
+        tipo: TIPOS.FROTA,
+        categoria: CATEGORIAS.TENDENCIA,
+        titulo: `${diasSemana[maisProdutivo.dia]} é o dia mais produtivo`,
+        descricao: `A frota percorre em média ${Math.round(maisProdutivo.km)} km às ${diasSemana[maisProdutivo.dia]}s, com ${maisProdutivo.viagens} viagens. ${diasSemana[menosProdutivo.dia]} é o dia menos ativo (${Math.round(menosProdutivo.km)} km).`,
+        acao_recomendada: `Considere redistribuir tarefas de ${diasSemana[maisProdutivo.dia]} para ${diasSemana[menosProdutivo.dia]} para equilibrar a demanda.`,
+        valor_depois: maisProdutivo.km,
+        score: 40,
+        prioridade: 'baixa'
+      });
+    }
+
+    // Agrupar por hora do dia
+    const porHora = {};
+    viagens.forEach(v => {
+      const hora = new Date(v.inicio).getHours();
+      if (!porHora[hora]) porHora[hora] = 0;
+      porHora[hora]++;
+    });
+
+    const horas = Object.entries(porHora).map(([hora, count]) => ({ hora: parseInt(hora), count }));
+    if (horas.length >= 5) {
+      horas.sort((a, b) => b.count - a.count);
+      const picoInicio = horas[0];
+
+      insights.push({
+        tipo: TIPOS.FROTA,
+        categoria: CATEGORIAS.TENDENCIA,
+        titulo: `Horário de pico: ${picoInicio.hora}h`,
+        descricao: `A maior parte das viagens inicia às ${picoInicio.hora}h (${picoInicio.count} viagens na última semana). Planeje a logística considerando este horário.`,
+        acao_recomendada: 'Garanta que os veículos estejam abastecidos e prontos antes deste horário de pico.',
+        valor_depois: picoInicio.count,
+        score: 35,
+        prioridade: 'baixa'
+      });
+    }
+
+    return insights;
+  }
+
+  /**
+   * Gerar insights de anomalias de comportamento
+   */
+  async _gerarInsightsAnomalias(organizacao_id, periodo_inicio, periodo_fim) {
+    const insights = [];
+
+    // Buscar viagens com dados anômalos
+    const viagens = await prisma.viagem.findMany({
+      where: {
+        dispositivo: { organizacao_id },
+        inicio: { gte: periodo_inicio, lte: periodo_fim }
+      },
+      include: {
+        motorista: { select: { id: true, nome: true } },
+        dispositivo: {
+          include: {
+            veiculo: { select: { id: true, placa: true } }
+          }
+        }
+      }
+    });
+
+    if (viagens.length < 5) return insights;
+
+    // Calcular médias
+    const mediaKm = viagens.reduce((s, v) => s + (v.distancia_km || 0), 0) / viagens.length;
+    const mediaDuracao = viagens.reduce((s, v) => s + (v.duracao_minutos || 0), 0) / viagens.length;
+
+    // Detectar viagens muito longas (2x a média)
+    const viagensLongas = viagens.filter(v => (v.distancia_km || 0) > mediaKm * 2 && v.distancia_km > 100);
+
+    if (viagensLongas.length > 0) {
+      const maiorViagem = viagensLongas.sort((a, b) => (b.distancia_km || 0) - (a.distancia_km || 0))[0];
+      const placa = maiorViagem.dispositivo?.veiculo?.placa || 'N/A';
+      const motorista = maiorViagem.motorista?.nome || 'Não identificado';
+
+      insights.push({
+        tipo: TIPOS.FROTA,
+        categoria: CATEGORIAS.ALERTA,
+        titulo: `Viagem atípica: ${Math.round(maiorViagem.distancia_km)} km`,
+        descricao: `O veículo ${placa} (motorista: ${motorista}) realizou uma viagem de ${Math.round(maiorViagem.distancia_km)} km, muito acima da média de ${Math.round(mediaKm)} km. Verifique se a rota foi adequada.`,
+        acao_recomendada: 'Analise o trajeto no mapa e verifique se havia uma rota mais curta disponível.',
+        veiculo_id: maiorViagem.dispositivo?.veiculo?.id,
+        motorista_id: maiorViagem.motorista?.id,
+        valor_depois: maiorViagem.distancia_km,
+        score: 55,
+        prioridade: 'normal'
+      });
+    }
+
+    // Detectar viagens em horários incomuns (madrugada)
+    const viagensMadrugada = viagens.filter(v => {
+      const hora = new Date(v.inicio).getHours();
+      return hora >= 0 && hora < 5;
+    });
+
+    if (viagensMadrugada.length > 0) {
+      insights.push({
+        tipo: TIPOS.SEGURANCA,
+        categoria: CATEGORIAS.ALERTA,
+        titulo: `${viagensMadrugada.length} viagens na madrugada`,
+        descricao: `Foram detectadas ${viagensMadrugada.length} viagens iniciadas entre 00h e 05h na última semana. Viagens noturnas apresentam maior risco de acidentes.`,
+        acao_recomendada: 'Avalie a necessidade dessas viagens noturnas. Se necessárias, garanta que os motoristas descansaram adequadamente.',
+        valor_depois: viagensMadrugada.length,
+        score: 60,
+        prioridade: 'normal'
+      });
+    }
+
+    return insights;
+  }
+
+  /**
+   * Gerar insights de multas
+   */
+  async _gerarInsightsMultas(organizacao_id, periodo_inicio, periodo_fim) {
+    const insights = [];
+
+    try {
+      // Buscar multas no período
+      const multas = await prisma.multa.findMany({
+        where: {
+          organizacao_id,
+          data_infracao: { gte: periodo_inicio, lte: periodo_fim }
+        },
+        include: {
+          veiculo: { select: { id: true, placa: true } },
+          motorista: { select: { id: true, nome: true } }
+        }
+      });
+
+      if (multas.length === 0) return insights;
+
+      const valorTotal = multas.reduce((s, m) => s + (m.valor || 0), 0);
+
+      // Agrupar por motorista
+      const porMotorista = {};
+      multas.forEach(m => {
+        if (m.motorista) {
+          if (!porMotorista[m.motorista.id]) {
+            porMotorista[m.motorista.id] = { motorista: m.motorista, count: 0, valor: 0 };
+          }
+          porMotorista[m.motorista.id].count++;
+          porMotorista[m.motorista.id].valor += m.valor || 0;
+        }
+      });
+
+      // Insight geral de multas
+      insights.push({
+        tipo: TIPOS.CUSTO,
+        categoria: CATEGORIAS.ALERTA,
+        titulo: `${multas.length} multas na última semana (R$ ${valorTotal.toFixed(2)})`,
+        descricao: `A frota recebeu ${multas.length} multas totalizando R$ ${valorTotal.toFixed(2)} na última semana. Principais infrações devem ser analisadas.`,
+        acao_recomendada: 'Identifique as infrações mais comuns e implemente treinamento específico para evitá-las.',
+        valor_depois: valorTotal,
+        score: Math.min(100, multas.length * 20),
+        prioridade: multas.length > 5 ? 'critica' : multas.length > 2 ? 'alta' : 'normal'
+      });
+
+      // Motorista com mais multas
+      const motoristasOrdenados = Object.values(porMotorista).sort((a, b) => b.count - a.count);
+      if (motoristasOrdenados.length > 0 && motoristasOrdenados[0].count >= 2) {
+        const piorMotorista = motoristasOrdenados[0];
+        insights.push({
+          tipo: TIPOS.MOTORISTA,
+          categoria: CATEGORIAS.ALERTA,
+          motorista_id: piorMotorista.motorista.id,
+          titulo: `${piorMotorista.motorista.nome}: ${piorMotorista.count} multas`,
+          descricao: `O motorista ${piorMotorista.motorista.nome} acumulou ${piorMotorista.count} multas (R$ ${piorMotorista.valor.toFixed(2)}) na última semana.`,
+          acao_recomendada: 'Aplique advertência formal e agende reciclagem obrigatória de direção.',
+          valor_depois: piorMotorista.count,
+          score: 75,
+          prioridade: piorMotorista.count >= 3 ? 'critica' : 'alta'
+        });
+      }
+    } catch (error) {
+      // Tabela de multas pode não existir
+      console.log('[Insights] Tabela de multas não disponível');
     }
 
     return insights;
