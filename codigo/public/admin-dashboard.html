@@ -19393,14 +19393,11 @@
 
     function renderizarTags(filtro = '') {
       const container = document.getElementById('tags-lista');
-      const statEl = document.getElementById('stat-total-tags');
 
       let tags = tagsCache;
       if (filtro) {
         tags = tagsCache.filter(t => t.nome.toLowerCase().includes(filtro.toLowerCase()));
       }
-
-      statEl.textContent = `${tagsCache.length} tags`;
 
       if (tags.length === 0) {
         container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);">${filtro ? 'Nenhuma tag encontrada' : 'Nenhuma tag criada'}</div>`;
