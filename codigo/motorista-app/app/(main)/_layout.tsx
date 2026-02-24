@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotificacaoStore } from '@/stores/notificacao.store';
 import { Colors } from '@/constants/theme';
 
@@ -17,6 +18,7 @@ function NotificationBadge({ count }: { count: number }) {
 
 export default function MainLayout() {
   const { naoLidas, fetchContagem } = useNotificacaoStore();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     // Inicializar: buscar notificacoes para definir ultimaNotificacaoId
@@ -59,9 +61,9 @@ export default function MainLayout() {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: '#E5E7EB',
-          paddingBottom: 5,
+          paddingBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 10) : 5,
           paddingTop: 5,
-          height: 60,
+          height: 60 + (Platform.OS === 'android' ? Math.max(insets.bottom, 10) : 0),
         },
         headerStyle: {
           backgroundColor: Colors.unifique.deepBlue,
