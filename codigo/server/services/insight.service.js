@@ -615,8 +615,7 @@ class InsightService {
             distancia_km: true,
             duracao_minutos: true,
             velocidade_media: true,
-            velocidade_max: true,
-            consumo_combustivel: true
+            velocidade_max: true
           }
         }
       }
@@ -629,13 +628,11 @@ class InsightService {
         const km = m.viagens.reduce((s, v) => s + (v.distancia_km || 0), 0);
         const velMedia = m.viagens.reduce((s, v) => s + (v.velocidade_media || 0), 0) / m.viagens.length;
         const velMax = Math.max(...m.viagens.map(v => v.velocidade_max || 0));
-        const consumo = m.viagens.reduce((s, v) => s + (v.consumo_combustivel || 0), 0);
-
-        // Score: quanto menor a velocidade máxima e melhor o consumo, maior o score
+        // Score: quanto menor a velocidade máxima, maior o score de segurança
         const penalVelocidade = velMax > 120 ? (velMax - 120) * 2 : 0;
         const score = 100 - penalVelocidade;
 
-        return { motorista: m, km, velMedia, velMax, consumo, score, viagens: m.viagens.length };
+        return { motorista: m, km, velMedia, velMax, score, viagens: m.viagens.length };
       })
       .sort((a, b) => b.score - a.score);
 
