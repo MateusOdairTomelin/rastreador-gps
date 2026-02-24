@@ -1318,7 +1318,7 @@ class OrganizacaoService {
     }
 
     // Registrar auditoria
-    await auditService.registrar({
+    await auditoriaService.registrar({
       usuarioId: usuarioExecutor.id,
       organizacaoId,
       acao: 'TRANSFERIR_ORGANIZACAO',
@@ -1476,7 +1476,7 @@ class OrganizacaoService {
     });
 
     // Registrar auditoria
-    await auditService.registrar({
+    await auditoriaService.registrar({
       usuarioId: usuarioExecutor.id,
       organizacaoId: orgDestinoId,
       acao: 'ABSORVER_ORGANIZACAO',
