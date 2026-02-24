@@ -19422,6 +19422,7 @@
                   <button onclick="gerenciarVeiculosTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: var(--primary); cursor: pointer; padding: 4px 8px; text-decoration: underline;" title="Gerenciar veículos">${tag.totalVeiculos || 0}</button>
                 </td>
                 <td style="text-align: right; padding: 10px 8px;">
+                  <button onclick="gerenciarVeiculosTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: var(--primary); cursor: pointer; padding: 4px 8px;" title="Vincular veículos">🔗</button>
                   <button onclick="editarTag(${tag.id})" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 8px;" title="Editar">✏️</button>
                   <button onclick="excluirTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px 8px;" title="Excluir">🗑️</button>
                 </td>
