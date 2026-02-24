@@ -1204,7 +1204,7 @@ router.get('/frota', async (req, res) => {
           { motorista_id: { in: motoristaIds } },
           // Motorista vinculado no período (via histórico)
           {
-            historico_motoristas: {
+            historicoMotoristas: {
               some: {
                 motorista_id: { in: motoristaIds },
                 inicio: { lte: fim },
