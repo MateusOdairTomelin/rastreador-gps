@@ -4356,6 +4356,42 @@
       cursor: pointer;
     }
 
+    .filtro-horario-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .filtro-horario-icon {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .filtro-hora-input {
+      width: 70px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 4px 6px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .filtro-hora-input:focus {
+      border-color: var(--primary);
+    }
+
+    .hora-separator {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
     .filtros-linha-2 {
       display: flex;
       align-items: center;
@@ -8662,6 +8698,12 @@
                   <input type="text" id="rel-periodo-range" placeholder="Selecione o período" readonly class="filtro-periodo-input">
                   <input type="hidden" id="rel-data-inicio">
                   <input type="hidden" id="rel-data-fim">
+                </div>
+                <div class="filtro-horario-container">
+                  <span class="filtro-horario-icon">⏱</span>
+                  <input type="time" id="rel-hora-inicio" value="00:00" class="filtro-hora-input" title="Hora início">
+                  <span class="hora-separator">-</span>
+                  <input type="time" id="rel-hora-fim" value="23:59" class="filtro-hora-input" title="Hora fim">
                 </div>
               </div>
 
@@ -19001,6 +19043,12 @@
         relatoriosFlatpickr.setDate([seteDiasAtras, hoje]);
       }
 
+      // Resetar horários
+      const horaInicio = document.getElementById('rel-hora-inicio');
+      const horaFim = document.getElementById('rel-hora-fim');
+      if (horaInicio) horaInicio.value = '00:00';
+      if (horaFim) horaFim.value = '23:59';
+
       // Limpar busca geral
       const buscaGeral = document.getElementById('rel-busca-geral');
       if (buscaGeral) buscaGeral.value = '';
@@ -19434,25 +19482,33 @@
     function obterPeriodoRelatorio() {
       const dataInicioInput = document.getElementById('rel-data-inicio');
       const dataFimInput = document.getElementById('rel-data-fim');
+      const horaInicioInput = document.getElementById('rel-hora-inicio');
+      const horaFimInput = document.getElementById('rel-hora-fim');
       const agora = new Date();
 
       let inicio, fim;
 
+      // Pegar horários dos inputs (default: 00:00 a 23:59)
+      const horaInicio = horaInicioInput?.value || '00:00';
+      const horaFim = horaFimInput?.value || '23:59';
+      const [hIni, mIni] = horaInicio.split(':').map(Number);
+      const [hFim, mFim] = horaFim.split(':').map(Number);
+
       // Ler das inputs hidden controladas pelo Flatpickr
       if (dataInicioInput && dataInicioInput.value) {
-        // Parse da data no formato YYYY-MM-DD e criar em horário LOCAL (início do dia)
+        // Parse da data no formato YYYY-MM-DD e criar em horário LOCAL
         const [y, m, d] = dataInicioInput.value.split('-').map(Number);
-        inicio = new Date(y, m - 1, d, 0, 0, 0, 0);
+        inicio = new Date(y, m - 1, d, hIni, mIni, 0, 0);
       } else {
         // Fallback: últimos 7 dias
         inicio = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
-        inicio.setHours(0, 0, 0, 0);
+        inicio.setHours(hIni, mIni, 0, 0);
       }
 
       if (dataFimInput && dataFimInput.value) {
-        // Parse da data no formato YYYY-MM-DD e criar em horário LOCAL (final do dia)
+        // Parse da data no formato YYYY-MM-DD e criar em horário LOCAL
         const [y, m, d] = dataFimInput.value.split('-').map(Number);
-        fim = new Date(y, m - 1, d, 23, 59, 59, 999);
+        fim = new Date(y, m - 1, d, hFim, mFim, 59, 999);
       } else {
         fim = agora;
       }
@@ -19462,7 +19518,8 @@
         inicioLocal: inicio.toLocaleString('pt-BR'),
         inicioUTC: inicio.toISOString(),
         fimLocal: fim.toLocaleString('pt-BR'),
-        fimUTC: fim.toISOString()
+        fimUTC: fim.toISOString(),
+        horarios: `${horaInicio} - ${horaFim}`
       });
 
       return { inicio, fim };
