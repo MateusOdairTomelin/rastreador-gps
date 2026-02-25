@@ -20457,13 +20457,17 @@
               veiculo: v.veiculo,
               motorista: v.motorista || v.motoristas || '-',
               status: v.status,
+              tipo: v.tipo || 'N/A',
+              tags: v.tags || [],
               statusAtual: v.status === 'online' ? 'parado' : 'offline',
+              estado_movimento: v.estado_movimento || 'parado',
               stats: {
                 kmTotal: parseFloat(v.distanciaTotal) || 0,
                 tempoMovimento: v.tempoMovimentoMinutos || 0,
                 tempoOcioso: v.tempoOciosoMinutos || 0,
                 excessosVelocidade: v.excessosVelocidade || 0,
                 velocidadeMax: v.velocidadeMax || 0,
+                totalRegistros: v.totalRegistros || 0,
                 atividadeSemanal: []
               }
             }));
@@ -20479,10 +20483,14 @@
                   tempoOcioso: dadosAPI.tempoOciosoMinutos || 0,
                   excessosVelocidade: dadosAPI.excessosVelocidade || 0,
                   velocidadeMax: dadosAPI.velocidadeMax || 0,
+                  totalRegistros: dadosAPI.totalRegistros || 0,
                   atividadeSemanal: []
                 };
+                // Copiar campos adicionais
+                veiculo.tags = dadosAPI.tags || veiculo.tags || [];
+                veiculo.motorista = dadosAPI.motorista || veiculo.motorista || 'N/A';
               } else {
-                veiculo.stats = { kmTotal: 0, tempoMovimento: 0, tempoOcioso: 0, excessosVelocidade: 0, atividadeSemanal: [] };
+                veiculo.stats = { kmTotal: 0, tempoMovimento: 0, tempoOcioso: 0, excessosVelocidade: 0, totalRegistros: 0, atividadeSemanal: [] };
               }
 
               // Determinar status
@@ -20850,14 +20858,30 @@
         `${veiculo.placa || 'Sem Placa'} - ${veiculo.veiculo || 'N/A'}`;
 
       const formatarTempo = (min) => {
-        if (min < 60) return `${min} min`;
-        return `${Math.floor(min/60)}h ${min%60}m`;
+        if (!min || min === 0) return '0 min';
+        if (min < 60) return `${Math.round(min)} min`;
+        return `${Math.floor(min/60)}h ${Math.round(min%60)}m`;
       };
+
+      // Calcular Score de Conducao
+      let scoreConducao = 100;
+      scoreConducao -= Math.min(40, stats.excessosVelocidade || 0);
+      const tempoTotal = (stats.tempoMovimento || 0) + (stats.tempoOcioso || 0);
+      if (tempoTotal > 0 && (stats.tempoOcioso / tempoTotal) > 0.5) scoreConducao -= 10;
+      else if (tempoTotal > 0 && (stats.tempoOcioso / tempoTotal) > 0.3) scoreConducao -= 5;
+      scoreConducao = Math.max(0, Math.min(100, scoreConducao));
+      const scoreTexto = scoreConducao >= 80 ? 'BOM' : scoreConducao >= 60 ? 'REGULAR' : 'ATENCAO';
+      const scoreCor = scoreConducao >= 80 ? 'var(--success)' : scoreConducao >= 60 ? 'var(--warning)' : 'var(--danger)';
+
+      // Tags do veículo
+      const tagsHtml = (veiculo.tags && veiculo.tags.length > 0)
+        ? veiculo.tags.map(t => `<span style="background: ${t.cor || '#666'}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-right: 4px;">${t.nome}</span>`).join('')
+        : '<span style="color: var(--text-light);">Nenhuma</span>';
 
       document.getElementById('detalhe-veiculo-content').innerHTML = `
         <div class="detalhe-stats">
           <div class="detalhe-stat">
-            <div class="detalhe-stat-value">${(stats.kmTotal || 0).toLocaleString()} km</div>
+            <div class="detalhe-stat-value">${(stats.kmTotal || 0).toFixed(2)} km</div>
             <div class="detalhe-stat-label">Quilometragem Total</div>
           </div>
           <div class="detalhe-stat">
@@ -20874,11 +20898,30 @@
           </div>
         </div>
 
+        <div class="detalhe-stats" style="margin-top: 12px;">
+          <div class="detalhe-stat">
+            <div class="detalhe-stat-value">${stats.velocidadeMax || 0} km/h</div>
+            <div class="detalhe-stat-label">Velocidade Maxima</div>
+          </div>
+          <div class="detalhe-stat">
+            <div class="detalhe-stat-value" style="color: ${scoreCor}">${scoreConducao}/100</div>
+            <div class="detalhe-stat-label">Score (${scoreTexto})</div>
+          </div>
+          <div class="detalhe-stat">
+            <div class="detalhe-stat-value">${stats.totalRegistros || 0}</div>
+            <div class="detalhe-stat-label">Registros GPS</div>
+          </div>
+          <div class="detalhe-stat">
+            <div class="detalhe-stat-value">${stats.diasAtivos || 0}</div>
+            <div class="detalhe-stat-label">Dias com Atividade</div>
+          </div>
+        </div>
+
         <div class="detalhe-chart">
-          <div class="detalhe-chart-title">☰ Atividade dos Últimos 7 Dias</div>
+          <div class="detalhe-chart-title">Atividade dos Ultimos 7 Dias</div>
           <div style="display: flex; align-items: flex-end; height: 100px; gap: 8px; padding: 10px 0;">
             ${(stats.atividadeSemanal || []).map((val, i) => {
-              const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+              const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
               const diaIdx = (new Date().getDay() - 6 + i + 7) % 7;
               return `
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
@@ -20891,12 +20934,32 @@
         </div>
 
         <div class="detalhe-chart">
-          <div class="detalhe-chart-title">◉ Informações do Veículo</div>
+          <div class="detalhe-chart-title">Informacoes do Veiculo</div>
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 13px;">
+            <div><strong>Placa:</strong> ${veiculo.placa || 'N/A'}</div>
+            <div><strong>Nome:</strong> ${veiculo.veiculo || 'N/A'}</div>
             <div><strong>IMEI:</strong> ${veiculo.imei || 'N/A'}</div>
-            <div><strong>Tipo:</strong> ${veiculo.tipo || 'N/A'}</div>
-            <div><strong>Status:</strong> ${veiculo.status || 'N/A'}</div>
-            <div><strong>Última Atualização:</strong> ${veiculo.ultima_atualizacao ? new Date(veiculo.ultima_atualizacao).toLocaleString('pt-BR') : 'N/A'}</div>
+            <div><strong>Tipo Rastreador:</strong> ${veiculo.tipo || 'N/A'}</div>
+            <div><strong>Status:</strong> <span style="color: ${veiculo.status === 'online' ? 'var(--success)' : 'var(--danger)'}">${veiculo.status || 'N/A'}</span></div>
+            <div><strong>Estado:</strong> ${veiculo.estado_movimento || 'N/A'}</div>
+            <div><strong>Motorista:</strong> ${veiculo.motorista || 'N/A'}</div>
+            <div><strong>Ultima Atualizacao:</strong> ${veiculo.ultima_atualizacao ? new Date(veiculo.ultima_atualizacao).toLocaleString('pt-BR') : 'N/A'}</div>
+          </div>
+        </div>
+
+        <div class="detalhe-chart">
+          <div class="detalhe-chart-title">Tags</div>
+          <div style="padding: 8px 0;">
+            ${tagsHtml}
+          </div>
+        </div>
+
+        <div class="detalhe-chart">
+          <div class="detalhe-chart-title">Ultima Posicao</div>
+          <div style="font-size: 13px; line-height: 1.6;">
+            <div><strong>Coordenadas:</strong> ${veiculo.latitude?.toFixed(6) || 'N/A'}, ${veiculo.longitude?.toFixed(6) || 'N/A'}</div>
+            <div><strong>Velocidade Atual:</strong> ${veiculo.velocidade || 0} km/h</div>
+            <div><strong>Ignicao:</strong> ${veiculo.ignicao === true ? 'Ligada' : veiculo.ignicao === false ? 'Desligada' : 'N/A'}</div>
           </div>
         </div>
       `;
