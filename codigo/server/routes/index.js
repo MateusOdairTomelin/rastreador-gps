@@ -1197,22 +1197,24 @@ router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) =
       }
     }
 
-    // 2. Conexões TCP ativas - DB 0
+    // 2. Conexões TCP ativas - DB 0 (chaves dev:*)
     let connections = 0;
     try {
-      connections = await redisDefault.hlen('gps:connections');
+      const devKeys = await redisDefault.keys('dev:*');
+      connections = devKeys ? devKeys.length : 0;
     } catch (e) {
       console.error('[PipelineDebug] Erro ao ler conexões:', e.message);
     }
 
-    // 3. Consumers ativos - DB 2
+    // 3. Consumers ativos - DB 2 (verificar TODAS as 4 partições)
     let consumers = 0;
     try {
-      const groupInfo = await redisStreamsClient.xinfo('GROUPS', 'gps:packets:location:0');
-      if (Array.isArray(groupInfo) && groupInfo.length > 0) {
-        // ioredis retorna array de arrays ou objetos
-        const group = groupInfo[0];
-        consumers = Array.isArray(group) ? group[3] : (group?.consumers || 0);
+      for (let i = 0; i < 4; i++) {
+        const groupName = `location-processors-p${i}`;
+        const consumerInfo = await redisStreamsClient.xinfo('CONSUMERS', `gps:packets:location:${i}`, groupName);
+        if (Array.isArray(consumerInfo) && consumerInfo.length > 0) {
+          consumers += consumerInfo.length;
+        }
       }
     } catch (e) {
       console.error('[PipelineDebug] Erro ao ler consumers:', e.message);
