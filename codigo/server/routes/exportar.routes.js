@@ -937,9 +937,6 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     header += `Gerado em,${formatDateTime(new Date())}\n`;
     header += `Filtros,${filtrosTexto.length > 0 ? filtrosTexto.join(' | ').replace(/,/g, ';') : 'Nenhum'}\n`;
     header += `Tags do Veiculo,${tagsVeiculo.replace(/,/g, ';')}\n`;
-    if (filtroTagAtivo && tagsFiltradasTexto) {
-      header += `Tags Filtradas,${tagsFiltradasTexto}\n`;
-    }
     if (statusFiltroAtivo && statusFiltradoTexto) {
       header += `Status Filtrado,${statusFiltradoTexto}\n`;
     }
@@ -1272,11 +1269,6 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     doc.text(`Tipo: ${dispositivo.tipo || 'N/A'}`);
     doc.text(`Status: ${dispositivo.status === 'online' ? 'Online' : 'Offline'}`);
     doc.text(`Tags do Veículo: ${tagsVeiculo}`);
-    if (filtroTagAtivo && tagsFiltradasTextoPDF) {
-      doc.font('Helvetica-Bold').fillColor('#7c3aed');
-      doc.text(`Tags Filtradas: ${tagsFiltradasTextoPDF}`);
-      doc.font('Helvetica').fillColor('#000');
-    }
     if (statusFiltroAtivo && statusFiltradoTextoPDF) {
       doc.font('Helvetica-Bold').fillColor('#059669');
       doc.text(`Status Filtrado: ${statusFiltradoTextoPDF}`);
@@ -3479,10 +3471,6 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
         ['IMEI', dispositivo.imei],
         ['Tipo', dispositivo.tipo || 'N/A'],
         ['Tags do Veiculo', tagsVeiculo],
-        // Tags filtradas (se houver)
-        ...(filtroTagAtivo && tagsFiltradasTextoExcel
-          ? [['Tags Filtradas', tagsFiltradasTextoExcel]]
-          : []),
         // Status filtrado (se houver)
         ...(statusFiltroAtivo && statusFiltradoTextoExcel
           ? [['Status Filtrado', statusFiltradoTextoExcel]]
