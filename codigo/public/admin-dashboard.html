@@ -13799,26 +13799,27 @@
     function forceMapRefresh() {
       if (!map) return;
 
-      // Aguardar animação CSS terminar
+      // Aguardar animação CSS terminar (400ms fadeIn)
       setTimeout(() => {
-        // 1. Invalidar tamanho
-        map.invalidateSize();
+        // 1. Disparar evento resize para forçar recálculo de dimensões
+        window.dispatchEvent(new Event('resize'));
 
-        // 2. Forçar redraw de todas as tile layers
-        map.eachLayer(layer => {
-          if (layer.redraw) {
-            layer.redraw();
-          }
-        });
+        // 2. Invalidar tamanho explicitamente
+        map.invalidateSize({ animate: false, pan: false });
 
-        // 3. Atualizar marcadores
+        // 3. Pequeno pan para forçar reload das tiles
+        const center = map.getCenter();
+        map.panTo([center.lat + 0.0001, center.lng], { animate: false });
+        map.panTo(center, { animate: false });
+
+        // 4. Atualizar marcadores
         updateMapMarkers();
 
-        // 4. Segunda invalidação após tiles iniciarem carregamento
+        // 5. Segunda invalidação de segurança
         setTimeout(() => {
-          map.invalidateSize();
-        }, 300);
-      }, 100);
+          map.invalidateSize({ animate: false });
+        }, 200);
+      }, 450);
     }
 
     function initMap() {
