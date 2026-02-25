@@ -20459,8 +20459,13 @@
               status: v.status,
               tipo: v.tipo || 'N/A',
               tags: v.tags || [],
-              statusAtual: v.status === 'online' ? 'parado' : 'offline',
+              statusAtual: v.status === 'online' ? (v.estado_movimento || 'parado') : 'offline',
               estado_movimento: v.estado_movimento || 'parado',
+              latitude: v.latitude,
+              longitude: v.longitude,
+              velocidade: v.velocidade || 0,
+              ignicao: v.ignicao,
+              ultima_atualizacao: v.ultima_atualizacao,
               stats: {
                 kmTotal: parseFloat(v.distanciaTotal) || 0,
                 tempoMovimento: v.tempoMovimentoMinutos || 0,
@@ -20486,9 +20491,16 @@
                   totalRegistros: dadosAPI.totalRegistros || 0,
                   atividadeSemanal: []
                 };
-                // Copiar campos adicionais
+                // Copiar campos adicionais da API
                 veiculo.tags = dadosAPI.tags || veiculo.tags || [];
                 veiculo.motorista = dadosAPI.motorista || veiculo.motorista || 'N/A';
+                veiculo.tipo = dadosAPI.tipo || veiculo.tipo || 'N/A';
+                veiculo.estado_movimento = dadosAPI.estado_movimento || veiculo.estado_movimento || 'parado';
+                veiculo.latitude = dadosAPI.latitude ?? veiculo.latitude;
+                veiculo.longitude = dadosAPI.longitude ?? veiculo.longitude;
+                veiculo.velocidade = dadosAPI.velocidade ?? veiculo.velocidade ?? 0;
+                veiculo.ignicao = dadosAPI.ignicao ?? veiculo.ignicao;
+                veiculo.ultima_atualizacao = dadosAPI.ultima_atualizacao || veiculo.ultima_atualizacao;
               } else {
                 veiculo.stats = { kmTotal: 0, tempoMovimento: 0, tempoOcioso: 0, excessosVelocidade: 0, totalRegistros: 0, atividadeSemanal: [] };
               }
@@ -21086,9 +21098,8 @@
 
       } catch (error) {
         console.error('[Relatório] Erro:', error);
-        // Atualizar toast para erro
+        // Atualizar toast para erro (apenas um aviso)
         ocultarLoadingExportacao(false, error.message);
-        toastError('Erro ao gerar relatório: ' + error.message);
       } finally {
         // Reabilitar botões de download
         downloadEmAndamento = false;
