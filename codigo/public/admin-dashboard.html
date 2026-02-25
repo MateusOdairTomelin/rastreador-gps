@@ -21791,10 +21791,13 @@
           params.set('motoristaIds', Array.from(motoristasCheckboxSelecionados).join(','));
         }
 
-        // Adicionar filtro de Tags
-        const tagsSelecionadas = getTagsSelecionadasRelatorio();
-        if (tagsSelecionadas.length > 0) {
-          params.set('tagIds', tagsSelecionadas.join(','));
+        // Adicionar filtro de Tags (nao enviar se "Todos" estiver marcado - significa sem filtro)
+        const tagsTodosChecked = document.getElementById('tags-todos')?.checked || false;
+        if (!tagsTodosChecked) {
+          const tagsSelecionadas = getTagsSelecionadasRelatorio();
+          if (tagsSelecionadas.length > 0) {
+            params.set('tagIds', tagsSelecionadas.join(','));
+          }
         }
 
         // Adicionar filtro de Status
@@ -21806,13 +21809,15 @@
         // Adicionar filtros avançados
         const filtrosAv = getFiltrosAvancados();
 
-        // Geofencing
-        if (filtrosAv.geofences.length > 0) {
+        // Geofencing (nao enviar se "Todos" estiver marcado)
+        const geofencingTodosChecked = document.getElementById('geofencing-todos')?.checked || false;
+        if (!geofencingTodosChecked && filtrosAv.geofences.length > 0) {
           params.set('geofenceIds', filtrosAv.geofences.join(','));
         }
 
-        // Alarmes
-        if (filtrosAv.alarmes.length > 0) {
+        // Alarmes (nao enviar se "Todos" estiver marcado)
+        const alarmesTodosChecked = document.getElementById('alarmes-todos')?.checked || false;
+        if (!alarmesTodosChecked && filtrosAv.alarmes.length > 0) {
           params.set('tiposAlarme', filtrosAv.alarmes.join(','));
         }
 
