@@ -19724,6 +19724,19 @@
       const container = document.getElementById('veiculos-checkbox-list');
       if (!container) return;
 
+      // Usar cache existente se disponível (evita fetch redundante)
+      if (veiculosCheckboxCache && veiculosCheckboxCache.length > 0) {
+        renderizarVeiculosCheckbox(veiculosCheckboxCache);
+        return;
+      }
+
+      // Usar cache de autocomplete se já carregado
+      if (veiculosAutocompleteCache && veiculosAutocompleteCache.length > 0) {
+        veiculosCheckboxCache = veiculosAutocompleteCache;
+        renderizarVeiculosCheckbox(veiculosCheckboxCache);
+        return;
+      }
+
       try {
         container.innerHTML = '<div class="dropdown-loading">Carregando veículos...</div>';
         const response = await authFetch(`${API_URL}/dispositivos`);
@@ -19731,6 +19744,8 @@
 
         if (data.sucesso && data.dados) {
           veiculosCheckboxCache = data.dados;
+          veiculosAutocompleteCache = data.dados; // Compartilhar cache
+          autocompleteCacheCarregado = true;
           renderizarVeiculosCheckbox(data.dados);
         } else {
           container.innerHTML = '<div class="dropdown-empty">Nenhum veículo encontrado</div>';
