@@ -15359,17 +15359,14 @@
           }
         }
 
-        // Atualizar detalhes extras
+        // Atualizar status Redis
         if (data.redis) {
-          document.getElementById('redis-maxlen').textContent = data.redis.maxlen || 5000;
           const statusEl = document.getElementById('redis-status');
-          statusEl.textContent = data.redis.detail || '-';
-          statusEl.className = data.redis.status === 'ok' ? 'delay-ok' :
-                               data.redis.status === 'warning' ? 'delay-warning' : 'delay-error';
-        }
-
-        if (data.latency?.detail) {
-          document.getElementById('latency-detail').textContent = data.latency.detail;
+          if (statusEl) {
+            statusEl.textContent = data.redis.detail || '-';
+            statusEl.className = data.redis.status === 'ok' ? 'delay-ok' :
+                                 data.redis.status === 'warning' ? 'delay-warning' : 'delay-error';
+          }
         }
 
         // Atualizar Alertas
