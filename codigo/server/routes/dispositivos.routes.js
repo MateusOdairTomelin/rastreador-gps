@@ -31,6 +31,11 @@ let dispositivosCache = new Map();
 const DISPOSITIVOS_CACHE_TTL = 5000; // 5 segundos
 let dispositivosFetching = new Map(); // Evitar fetches paralelos
 
+// Cache para dispositivos não atribuídos (TTL 10s)
+let naoAtribuidosCache = null;
+let naoAtribuidosCacheTime = 0;
+const NAO_ATRIBUIDOS_CACHE_TTL = 10000;
+
 // ✅ Multi-tenant: Verifica se dispositivo pertence à organização do usuário
 const verificarPropriedadeDispositivo = async (req, res, next) => {
   const { imei } = req.params;
@@ -1394,6 +1399,11 @@ const { apenasSuperAdmin } = require('../middleware/auth.middleware');
  * Estes são dispositivos que conectaram mas ainda não foram atribuídos a nenhuma org
  */
 router.get('/nao-atribuidos', apenasSuperAdmin, asyncHandler(async (req, res) => {
+  // Verificar cache
+  if (naoAtribuidosCache && (Date.now() - naoAtribuidosCacheTime) < NAO_ATRIBUIDOS_CACHE_TTL) {
+    return res.json(naoAtribuidosCache);
+  }
+
   // Buscar dispositivos com organizacao_id = null
   const dispositivos = await prisma.dispositivo.findMany({
     where: { organizacao_id: null },
@@ -1431,14 +1441,20 @@ router.get('/nao-atribuidos', apenasSuperAdmin, asyncHandler(async (req, res) =>
     };
   });
 
-  res.json({
+  const response = {
     sucesso: true,
     total: dados.length,
     dados,
     mensagem: dados.length === 0
       ? 'Nenhum dispositivo aguardando atribuição'
       : `${dados.length} dispositivo(s) aguardando atribuição a uma organização`,
-  });
+  };
+
+  // Salvar no cache
+  naoAtribuidosCache = response;
+  naoAtribuidosCacheTime = Date.now();
+
+  res.json(response);
 }));
 
 /**

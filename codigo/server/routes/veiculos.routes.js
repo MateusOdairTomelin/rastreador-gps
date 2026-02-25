@@ -10,6 +10,10 @@ const router = express.Router();
 const veiculoService = require('../services/veiculo.service');
 const consultaPlacaService = require('../services/consulta-placa.service');
 
+// Cache de veículos (TTL 5s)
+const veiculosCache = new Map();
+const VEICULOS_CACHE_TTL = 5000;
+
 // Autenticação já é aplicada no index.js via: router.use('/veiculos', autenticar, tenantContext, veiculosRoutes)
 
 // ============ CONSULTA DE PLACA (API EXTERNA) ============
@@ -60,16 +64,26 @@ router.get('/', async (req, res) => {
   try {
     const { busca, page, limit } = req.query;
 
+    // Cache key: org + busca + page + limit
+    const cacheKey = `${req.organizacao_id}:${busca || ''}:${page || 1}:${limit || 50}`;
+    const cached = veiculosCache.get(cacheKey);
+    if (cached && (Date.now() - cached.time) < VEICULOS_CACHE_TTL) {
+      return res.json(cached.data);
+    }
+
     const resultado = await veiculoService.listar(req.organizacao_id, {
       busca,
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 50
     });
 
-    res.json({
+    const response = {
       sucesso: true,
       ...resultado
-    });
+    };
+
+    veiculosCache.set(cacheKey, { data: response, time: Date.now() });
+    res.json(response);
   } catch (error) {
     console.error('[Veículos] Erro ao listar:', error.message);
     res.status(500).json({ sucesso: false, erro: error.message });

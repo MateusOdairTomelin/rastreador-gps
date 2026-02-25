@@ -8,6 +8,10 @@ const perfilService = require('../services/perfil-permissao.service');
 const { MODULOS } = require('../services/perfil-permissao.service');
 const { autenticar, apenasAdmin } = require('../middleware/auth.middleware');
 
+// Cache de permissões por usuário (TTL 30s)
+const permissoesCache = new Map();
+const PERMISSOES_CACHE_TTL = 30000;
+
 /**
  * GET /api/perfis-permissao/modulos
  * Listar módulos disponíveis
@@ -305,15 +309,25 @@ router.get('/usuarios/:usuarioId/permissoes', autenticar, async (req, res) => {
  */
 router.get('/me/permissoes', autenticar, async (req, res) => {
   try {
+    const cacheKey = `${req.usuario.id}:${req.usuario.organizacao_id}`;
+    const cached = permissoesCache.get(cacheKey);
+
+    if (cached && (Date.now() - cached.time) < PERMISSOES_CACHE_TTL) {
+      return res.json(cached.data);
+    }
+
     const permissoes = await perfilService.obterPermissoesUsuario(
       req.usuario.id,
       req.usuario.organizacao_id
     );
 
-    res.json({
+    const response = {
       sucesso: true,
       permissoes
-    });
+    };
+
+    permissoesCache.set(cacheKey, { data: response, time: Date.now() });
+    res.json(response);
   } catch (error) {
     console.error('Erro ao obter permissões:', error);
     res.status(500).json({
