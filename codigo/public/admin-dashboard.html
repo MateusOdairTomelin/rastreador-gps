@@ -7021,16 +7021,22 @@
             </div>
 
             <!-- Gráficos de Histórico -->
-            <div class="grid-2" style="gap: 12px; margin-top: 16px;">
+            <div class="debug-card" style="margin-top: 16px;">
+              <div class="debug-title">📊 Filas Redis P0-P3 (tempo real)</div>
+              <div style="height: 160px; position: relative;">
+                <canvas id="chart-queues"></canvas>
+              </div>
+            </div>
+            <div class="grid-2" style="gap: 12px; margin-top: 12px;">
               <div class="debug-card">
-                <div class="debug-title">📈 Latência (últimas 2h)</div>
-                <div style="height: 180px; position: relative;">
+                <div class="debug-title">⏱️ Latência (histórico)</div>
+                <div style="height: 140px; position: relative;">
                   <canvas id="chart-latency"></canvas>
                 </div>
               </div>
               <div class="debug-card">
-                <div class="debug-title">📊 Throughput (últimas 2h)</div>
-                <div style="height: 180px; position: relative;">
+                <div class="debug-title">📈 Throughput (histórico)</div>
+                <div style="height: 140px; position: relative;">
                   <canvas id="chart-throughput"></canvas>
                 </div>
               </div>
@@ -13478,6 +13484,25 @@
         stopInfraPolling();
       }
 
+      // Gerenciar auto-refresh do pipeline debug
+      if (name === 'diagnosticos') {
+        setTimeout(() => {
+          if (typeof initPipelineCharts === 'function' && !window.chartLatency) {
+            initPipelineCharts();
+          }
+          if (typeof atualizarPipelineDebug === 'function') {
+            atualizarPipelineDebug();
+          }
+          if (typeof startPipelineAuto === 'function') {
+            startPipelineAuto();
+          }
+        }, 100);
+      } else {
+        if (typeof stopPipelineAuto === 'function') {
+          stopPipelineAuto();
+        }
+      }
+
       // Carregar dados das seções administrativas
       if (name === 'organizacoes') {
         // Se chegou aqui, é super_admin (verificado em navegarOrganizacoes)
@@ -15430,7 +15455,8 @@
         // Atualizar gráficos
         const latencyAvg = data.latency?.avg || 0;
         const insertsPerMin = data.throughput?.insertsPerMin || 0;
-        updatePipelineCharts(latencyAvg, insertsPerMin);
+        const queues = data.redis?.queues || [0, 0, 0, 0];
+        updatePipelineCharts(latencyAvg, insertsPerMin, queues);
 
         addLog('◉ Debug pipeline atualizado', 'success');
       } catch (e) {
@@ -15457,29 +15483,54 @@
     let pipelineAutoEnabled = true;
     let chartLatency = null;
     let chartThroughput = null;
+    let chartQueues = null;
     const pipelineHistory = {
       labels: [],
       latency: [],
       throughput: [],
-      maxPoints: 72 // 2 horas com updates de 10s
+      p0: [], p1: [], p2: [], p3: [],
+      maxPoints: 60 // ~10 minutos com updates de 10s
     };
 
     function initPipelineCharts() {
       const ctxLatency = document.getElementById('chart-latency');
       const ctxThroughput = document.getElementById('chart-throughput');
-      if (!ctxLatency || !ctxThroughput) return;
+      const ctxQueues = document.getElementById('chart-queues');
+      if (!ctxLatency || !ctxThroughput || !ctxQueues) return;
 
       const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
         animation: { duration: 300 },
         scales: {
-          x: { display: false },
+          x: { display: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666', maxRotation: 0, font: { size: 9 } } },
           y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#888' } }
         },
         plugins: { legend: { display: false } }
       };
 
+      // Gráfico de Filas P0-P3
+      chartQueues = new Chart(ctxQueues, {
+        type: 'line',
+        data: {
+          labels: pipelineHistory.labels,
+          datasets: [
+            { label: 'P0', data: pipelineHistory.p0, borderColor: '#3FCFD5', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 },
+            { label: 'P1', data: pipelineHistory.p1, borderColor: '#00A2FF', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 },
+            { label: 'P2', data: pipelineHistory.p2, borderColor: '#f59e0b', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 },
+            { label: 'P3', data: pipelineHistory.p3, borderColor: '#a855f7', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 }
+          ]
+        },
+        options: {
+          ...chartOptions,
+          plugins: {
+            legend: { display: true, position: 'top', labels: { color: '#888', boxWidth: 12, padding: 8, font: { size: 10 } } }
+          },
+          scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, max: 500, title: { display: true, text: 'Msgs na fila', color: '#888' } } }
+        }
+      });
+
+      // Gráfico de Latência
       chartLatency = new Chart(ctxLatency, {
         type: 'line',
         data: {
@@ -15487,46 +15538,60 @@
           datasets: [{
             data: pipelineHistory.latency,
             borderColor: '#ef4444',
-            backgroundColor: 'rgba(239,68,68,0.1)',
+            backgroundColor: 'rgba(239,68,68,0.15)',
             fill: true,
             tension: 0.3,
-            pointRadius: 0
+            pointRadius: 0,
+            borderWidth: 2
           }]
         },
         options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { display: true, text: 'Delay (s)', color: '#888' } } } }
       });
 
+      // Gráfico de Throughput
       chartThroughput = new Chart(ctxThroughput, {
         type: 'line',
         data: {
           labels: pipelineHistory.labels,
           datasets: [{
             data: pipelineHistory.throughput,
-            borderColor: '#3FCFD5',
-            backgroundColor: 'rgba(63,207,213,0.1)',
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34,197,94,0.15)',
             fill: true,
             tension: 0.3,
-            pointRadius: 0
+            pointRadius: 0,
+            borderWidth: 2
           }]
         },
         options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { display: true, text: 'Inserções/min', color: '#888' } } } }
       });
+
+      window.chartLatency = chartLatency;
     }
 
-    function updatePipelineCharts(latencyAvg, insertsPerMin) {
-      const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    function updatePipelineCharts(latencyAvg, insertsPerMin, queues) {
+      const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
       pipelineHistory.labels.push(now);
       pipelineHistory.latency.push(latencyAvg || 0);
       pipelineHistory.throughput.push(insertsPerMin || 0);
+      pipelineHistory.p0.push(queues?.[0] || 0);
+      pipelineHistory.p1.push(queues?.[1] || 0);
+      pipelineHistory.p2.push(queues?.[2] || 0);
+      pipelineHistory.p3.push(queues?.[3] || 0);
 
       // Manter apenas os últimos N pontos
       if (pipelineHistory.labels.length > pipelineHistory.maxPoints) {
         pipelineHistory.labels.shift();
         pipelineHistory.latency.shift();
         pipelineHistory.throughput.shift();
+        pipelineHistory.p0.shift();
+        pipelineHistory.p1.shift();
+        pipelineHistory.p2.shift();
+        pipelineHistory.p3.shift();
       }
 
+      if (chartQueues) chartQueues.update('none');
       if (chartLatency) chartLatency.update('none');
       if (chartThroughput) chartThroughput.update('none');
     }
@@ -15565,22 +15630,13 @@
       }
     }
 
-    // Iniciar auto-refresh quando entrar na seção de diagnósticos
-    const originalCarregarSecao = carregarSecao;
-    carregarSecao = function(secao) {
-      originalCarregarSecao(secao);
-      if (secao === 'diagnosticos') {
-        if (!chartLatency) initPipelineCharts();
-        atualizarPipelineDebug();
-        startPipelineAuto();
-      } else {
-        stopPipelineAuto();
-      }
-    };
-
-    // Expor função globalmente
+    // Expor funções globalmente
     window.atualizarPipelineDebug = atualizarPipelineDebug;
     window.togglePipelineAuto = togglePipelineAuto;
+    window.initPipelineCharts = initPipelineCharts;
+    window.startPipelineAuto = startPipelineAuto;
+    window.stopPipelineAuto = stopPipelineAuto;
+    window.chartLatency = chartLatency;
 
     async function loadLocations() {
       try {
