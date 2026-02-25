@@ -6903,6 +6903,14 @@
               </div>
             </div>
 
+            <!-- Alertas e Problemas -->
+            <div class="debug-card" id="debug-alerts-card" style="margin-bottom: 16px; display: none;">
+              <div class="debug-title">🚨 Alertas e Problemas Detectados</div>
+              <div class="debug-content" id="debug-alerts">
+                <!-- Preenchido via JS -->
+              </div>
+            </div>
+
             <!-- Métricas Detalhadas -->
             <div class="grid-3" style="gap: 12px; margin-bottom: 16px;">
               <!-- Redis Queues -->
@@ -6914,6 +6922,8 @@
                   <div class="debug-row"><span>Partição 2:</span> <span id="redis-q2">-</span></div>
                   <div class="debug-row"><span>Partição 3:</span> <span id="redis-q3">-</span></div>
                   <div class="debug-row total"><span>Total:</span> <span id="redis-qtotal">-</span></div>
+                  <div class="debug-row" style="margin-top: 8px; font-size: 11px;"><span>MAXLEN:</span> <span id="redis-maxlen">5000</span></div>
+                  <div class="debug-row"><span>Status:</span> <span id="redis-status">-</span></div>
                 </div>
               </div>
 
@@ -6926,6 +6936,7 @@
                   <div class="debug-row"><span>Máxima:</span> <span id="latency-max">-</span></div>
                   <div class="debug-row"><span>Última inserção:</span> <span id="latency-last">-</span></div>
                   <div class="debug-row total"><span>Status:</span> <span id="latency-status">-</span></div>
+                  <div class="debug-row" style="margin-top: 8px; font-size: 11px;"><span>Detalhe:</span> <span id="latency-detail">-</span></div>
                 </div>
               </div>
 
@@ -6936,7 +6947,8 @@
                   <div class="debug-row"><span>Conexões TCP:</span> <span id="tp-connections">-</span></div>
                   <div class="debug-row"><span>Pacotes/min:</span> <span id="tp-packets">-</span></div>
                   <div class="debug-row"><span>Inserções/min:</span> <span id="tp-inserts">-</span></div>
-                  <div class="debug-row"><span>Consumers ativos:</span> <span id="tp-consumers">-</span></div>
+                  <div class="debug-row"><span>Inserções 5min:</span> <span id="tp-inserts5">-</span></div>
+                  <div class="debug-row"><span>Consumers:</span> <span id="tp-consumers">-</span></div>
                   <div class="debug-row total"><span>Lag total:</span> <span id="tp-lag">-</span></div>
                 </div>
               </div>
@@ -15225,9 +15237,41 @@
           document.getElementById('tp-connections').textContent = data.throughput.connections || 0;
           document.getElementById('tp-packets').textContent = data.throughput.packetsPerMin || '-';
           document.getElementById('tp-inserts').textContent = data.throughput.insertsPerMin || '-';
-          document.getElementById('tp-consumers').textContent = data.throughput.consumers || '-';
+          document.getElementById('tp-inserts5').textContent = data.throughput.inserts5Min || '-';
+          document.getElementById('tp-consumers').textContent = `${data.throughput.consumers || 0}/4`;
           document.getElementById('tp-lag').textContent = data.throughput.totalLag || 0;
           document.getElementById('pipe-gateway-val').textContent = `${data.throughput.connections || 0} conn`;
+        }
+
+        // Atualizar detalhes extras
+        if (data.redis) {
+          document.getElementById('redis-maxlen').textContent = data.redis.maxlen || 5000;
+          const statusEl = document.getElementById('redis-status');
+          statusEl.textContent = data.redis.detail || '-';
+          statusEl.className = data.redis.status === 'ok' ? 'delay-ok' :
+                               data.redis.status === 'warning' ? 'delay-warning' : 'delay-error';
+        }
+
+        if (data.latency?.detail) {
+          document.getElementById('latency-detail').textContent = data.latency.detail;
+        }
+
+        // Atualizar Alertas
+        const alertsCard = document.getElementById('debug-alerts-card');
+        const alertsContainer = document.getElementById('debug-alerts');
+        if (data.alerts && data.alerts.length > 0) {
+          alertsCard.style.display = 'block';
+          alertsContainer.innerHTML = data.alerts.map(a => `
+            <div class="alert-item alert-${a.type}" style="padding: 10px; margin-bottom: 8px; border-radius: 6px; background: ${a.type === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)'}; border-left: 3px solid ${a.type === 'error' ? 'var(--danger)' : 'var(--warning)'};">
+              <div style="font-weight: 600; color: ${a.type === 'error' ? 'var(--danger)' : 'var(--warning)'};">
+                ${a.type === 'error' ? '❌' : '⚠️'} ${a.component}
+              </div>
+              <div style="font-size: 12px; color: var(--text); margin: 4px 0;">${a.message}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">💡 ${a.action}</div>
+            </div>
+          `).join('');
+        } else {
+          alertsCard.style.display = 'none';
         }
 
         // Atualizar tabela de últimos dados
@@ -15235,13 +15279,14 @@
           const tbody = document.getElementById('debug-latest-tbody');
           tbody.innerHTML = data.recentData.map(r => {
             const delayClass = r.delay <= 5 ? 'delay-ok' : r.delay <= 30 ? 'delay-warning' : 'delay-error';
+            const delayText = r.delay > 60 ? `${Math.round(r.delay / 60)}min` : `${r.delay}s`;
             return `
               <tr>
                 <td>${r.placa || '-'}</td>
                 <td>${r.imei}</td>
                 <td>${r.timestampGps}</td>
                 <td>${r.createdAt}</td>
-                <td class="${delayClass}">${r.delay}s</td>
+                <td class="${delayClass}">${delayText}</td>
                 <td>${r.velocidade} km/h</td>
               </tr>
             `;

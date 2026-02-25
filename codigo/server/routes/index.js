@@ -1162,36 +1162,65 @@ router.post('/system/memory/cleanup', autenticar, apenasAdmin, async (req, res) 
 // GET /api/system/pipeline-debug - Debug do pipeline GPS (admin)
 router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) => {
   try {
-    const redis = redisService.getClient();
-    const prisma = require('@prisma/client').PrismaClient ? new (require('@prisma/client').PrismaClient)() : require('../services/prisma.service');
+    const Redis = require('ioredis');
+    const prisma = require('../db/prisma');
 
-    // 1. Filas Redis (partições de location)
+    // Criar conexão direta ao Redis DB 2 (streams)
+    const redisStreamsClient = new Redis({
+      host: process.env.REDIS_HOST || 'redis',
+      port: parseInt(process.env.REDIS_PORT) || 6379,
+      password: process.env.REDIS_PASSWORD || undefined,
+      db: 2,
+      lazyConnect: false
+    });
+
+    // Conexão DB 0 (conexões TCP)
+    const redisDefault = new Redis({
+      host: process.env.REDIS_HOST || 'redis',
+      port: parseInt(process.env.REDIS_PORT) || 6379,
+      password: process.env.REDIS_PASSWORD || undefined,
+      db: 0,
+      lazyConnect: false
+    });
+
+    // 1. Filas Redis (partições de location) - DB 2
     const queues = [];
     let totalLag = 0;
     for (let i = 0; i < 4; i++) {
       try {
-        const len = await redis.xlen(`gps:packets:location:${i}`);
+        const len = await redisStreamsClient.xlen(`gps:packets:location:${i}`);
         queues.push(len || 0);
         totalLag += len || 0;
       } catch (e) {
+        console.error(`[PipelineDebug] Erro ao ler fila ${i}:`, e.message);
         queues.push(0);
       }
     }
 
-    // 2. Conexões TCP ativas
+    // 2. Conexões TCP ativas - DB 0
     let connections = 0;
     try {
-      connections = await redis.hlen('gps:connections');
-    } catch (e) {}
+      connections = await redisDefault.hlen('gps:connections');
+    } catch (e) {
+      console.error('[PipelineDebug] Erro ao ler conexões:', e.message);
+    }
 
-    // 3. Consumers ativos
+    // 3. Consumers ativos - DB 2
     let consumers = 0;
     try {
-      const groupInfo = await redis.xinfo('GROUPS', 'gps:packets:location:0');
-      if (groupInfo && groupInfo.length > 0) {
-        consumers = groupInfo[0]?.consumers || 0;
+      const groupInfo = await redisStreamsClient.xinfo('GROUPS', 'gps:packets:location:0');
+      if (Array.isArray(groupInfo) && groupInfo.length > 0) {
+        // ioredis retorna array de arrays ou objetos
+        const group = groupInfo[0];
+        consumers = Array.isArray(group) ? group[3] : (group?.consumers || 0);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('[PipelineDebug] Erro ao ler consumers:', e.message);
+    }
+
+    // Fechar conexões temporárias
+    await redisStreamsClient.quit();
+    await redisDefault.quit();
 
     // 4. Latência (últimos 10 registros)
     let latencyData = { avg: 0, min: 0, max: 0, lastInsert: '-' };
@@ -1243,49 +1272,143 @@ router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) =
 
     // 5. Throughput (inserções no último minuto)
     let insertsPerMin = 0;
+    let inserts5Min = 0;
     try {
       const oneMinAgo = new Date(Date.now() - 60000);
+      const fiveMinAgo = new Date(Date.now() - 300000);
       insertsPerMin = await prisma.localizacao.count({
         where: { created_at: { gte: oneMinAgo } }
       });
+      inserts5Min = await prisma.localizacao.count({
+        where: { created_at: { gte: fiveMinAgo } }
+      });
     } catch (e) {}
+
+    // 6. Gerar alertas baseados nos dados
+    const alerts = [];
+    const MAXLEN = 5000;
+
+    // Alerta de filas acumulando
+    queues.forEach((q, i) => {
+      if (q >= MAXLEN) {
+        alerts.push({
+          type: 'error',
+          component: `Redis P${i}`,
+          message: `Partição ${i} no MAXLEN (${q}/${MAXLEN}) - dados sendo descartados!`,
+          action: 'Verificar location-processor-' + i
+        });
+      } else if (q > 1000) {
+        alerts.push({
+          type: 'warning',
+          component: `Redis P${i}`,
+          message: `Partição ${i} acumulando (${q} msgs)`,
+          action: 'Monitorar processor'
+        });
+      }
+    });
+
+    // Alerta de latência alta
+    if (latencyData.avg > 300) {
+      alerts.push({
+        type: 'error',
+        component: 'Latência',
+        message: `Delay médio de ${Math.round(latencyData.avg / 60)} minutos!`,
+        action: 'Filas acumuladas ou processors parados'
+      });
+    } else if (latencyData.avg > 60) {
+      alerts.push({
+        type: 'warning',
+        component: 'Latência',
+        message: `Delay médio de ${latencyData.avg}s`,
+        action: 'Verificar throughput dos processors'
+      });
+    }
+
+    // Alerta de conexões TCP
+    if (connections === 0) {
+      alerts.push({
+        type: 'warning',
+        component: 'TCP Gateway',
+        message: 'Nenhuma conexão TCP ativa',
+        action: 'Verificar se gateways estão rodando'
+      });
+    }
+
+    // Alerta de consumers
+    if (consumers < 4) {
+      alerts.push({
+        type: 'warning',
+        component: 'Processors',
+        message: `Apenas ${consumers} de 4 consumers ativos`,
+        action: 'Reiniciar location-processors'
+      });
+    }
+
+    // Alerta de inserções
+    if (insertsPerMin === 0 && totalLag > 0) {
+      alerts.push({
+        type: 'error',
+        component: 'Database',
+        message: 'Filas com dados mas sem inserções!',
+        action: 'Processors não estão processando'
+      });
+    }
 
     // Montar resposta
     const response = {
       gateway: {
         status: connections > 0 ? 'ok' : 'warning',
-        value: `${connections} conn`
+        value: `${connections} conn`,
+        detail: connections > 0 ? 'Rastreadores conectados' : 'Sem conexões ativas'
       },
       redis: {
         status: totalLag < 100 ? 'ok' : totalLag < 1000 ? 'warning' : 'error',
         value: `${totalLag} msgs`,
-        queues
+        queues,
+        maxlen: MAXLEN,
+        detail: totalLag === 0 ? 'Filas vazias (OK)' :
+                totalLag < 100 ? 'Processamento normal' :
+                totalLag < 1000 ? 'Acumulando - verificar' : 'CRÍTICO - filas cheias!'
       },
       processors: {
         status: consumers >= 4 ? 'ok' : consumers > 0 ? 'warning' : 'error',
-        value: `${consumers} ativos`
+        value: `${consumers}/4 ativos`,
+        detail: consumers >= 4 ? 'Todos os processors rodando' :
+                consumers > 0 ? `${4 - consumers} processors parados` : 'Nenhum processor ativo!'
       },
       database: {
         status: insertsPerMin > 0 ? 'ok' : 'warning',
-        value: `${insertsPerMin}/min`
+        value: `${insertsPerMin}/min`,
+        detail: `${inserts5Min} inserções nos últimos 5 min`
       },
       api: {
         status: 'ok',
-        value: 'Online'
+        value: 'Online',
+        detail: 'API respondendo normalmente'
       },
       frontend: {
         status: 'ok',
-        value: 'WebSocket'
+        value: 'WebSocket',
+        detail: 'Conexão em tempo real ativa'
       },
-      latency: latencyData,
+      latency: {
+        ...latencyData,
+        detail: latencyData.avg <= 5 ? 'Tempo real' :
+                latencyData.avg <= 30 ? 'Leve atraso' :
+                latencyData.avg <= 60 ? 'Atraso moderado' :
+                `Atraso crítico (${Math.round(latencyData.avg / 60)} min)`
+      },
       throughput: {
         connections,
-        packetsPerMin: '-',
+        packetsPerMin: totalLag > 0 ? Math.round(totalLag / 5) : insertsPerMin,
         insertsPerMin,
+        inserts5Min,
         consumers,
         totalLag
       },
-      recentData
+      alerts,
+      recentData,
+      timestamp: new Date().toISOString()
     };
 
     res.json(response);
