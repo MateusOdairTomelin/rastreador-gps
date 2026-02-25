@@ -9524,6 +9524,10 @@
                   </button>
                   <div id="viagens-dropdown" class="filtro-dropdown">
                     <div id="viagens-checkbox-list" class="dropdown-list" style="padding: 8px 0;">
+                      <label class="dropdown-checkbox-item" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;">
+                        <input type="checkbox" id="viagem-todos" onchange="toggleTodosViagens()">
+                        <strong>Todos</strong>
+                      </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" id="viagem-incluir" class="viagem-checkbox" onchange="atualizarViagensSelecionadas()">
                         Incluir Viagens no Relatorio
@@ -9604,6 +9608,10 @@
                   </button>
                   <div id="velocidade-dropdown" class="filtro-dropdown">
                     <div id="velocidade-checkbox-list" class="dropdown-list" style="padding: 8px 0;">
+                      <label class="dropdown-checkbox-item" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;">
+                        <input type="checkbox" id="vel-todos" onchange="toggleTodosVelocidade()">
+                        <strong>Todos</strong>
+                      </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" id="vel-apenas-excessos" class="vel-checkbox" onchange="atualizarVelocidadeFiltro()">
                         Apenas Excessos de Velocidade
@@ -9637,6 +9645,10 @@
                   </button>
                   <div id="performance-dropdown" class="filtro-dropdown">
                     <div id="performance-checkbox-list" class="dropdown-list" style="padding: 8px 0;">
+                      <label class="dropdown-checkbox-item" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;">
+                        <input type="checkbox" id="perf-todos" onchange="toggleTodosPerformance()">
+                        <strong>Todos</strong>
+                      </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" id="perf-score" class="perf-checkbox" onchange="atualizarPerformanceSelecionada()">
                         Score de Conducao
@@ -20814,6 +20826,12 @@
     }
     window.limparViagensFiltro = limparViagensFiltro;
 
+    function toggleTodosViagens() {
+      const todos = document.getElementById('viagem-todos')?.checked || false;
+      document.querySelectorAll('.viagem-checkbox').forEach(cb => cb.checked = todos);
+    }
+    window.toggleTodosViagens = toggleTodosViagens;
+
     function aplicarViagensFiltro() {
       viagensOpcoes = {
         incluir: document.getElementById('viagem-incluir')?.checked || false,
@@ -20881,6 +20899,12 @@
       // Só atualiza os checkboxes
     }
 
+    function toggleTodosVelocidade() {
+      const todos = document.getElementById('vel-todos')?.checked || false;
+      document.querySelectorAll('.vel-checkbox').forEach(cb => cb.checked = todos);
+    }
+    window.toggleTodosVelocidade = toggleTodosVelocidade;
+
     function limparVelocidadeFiltro() {
       document.querySelectorAll('.vel-checkbox').forEach(cb => cb.checked = false);
       filtrosVelocidade = { apenasExcessos: false, acima80: false, acima100: false, acima120: false };
@@ -20933,6 +20957,12 @@
       // Atualizar estado
     }
     window.atualizarPerformanceSelecionada = atualizarPerformanceSelecionada;
+
+    function toggleTodosPerformance() {
+      const todos = document.getElementById('perf-todos')?.checked || false;
+      document.querySelectorAll('.perf-checkbox').forEach(cb => cb.checked = todos);
+    }
+    window.toggleTodosPerformance = toggleTodosPerformance;
 
     function limparPerformanceFiltro() {
       document.querySelectorAll('.perf-checkbox').forEach(cb => cb.checked = false);
@@ -21417,7 +21447,7 @@
             <td class="col-acoes">
               <div class="btn-acoes">
                 <button class="btn-ver" onclick="abrirDetalheVeiculo('${veiculo.imei}')" title="Ver detalhes">◎</button>
-                <button class="btn-xlsx" onclick="exportarRelatorioIndividual('${veiculo.imei}', 'xlsx')" title="Excel"></button>
+                <button class="btn-xlsx" onclick="exportarRelatorioIndividual('${veiculo.imei}', 'xlsx')" title="Excel">📊</button>
                 <button class="btn-csv" onclick="exportarRelatorioIndividual('${veiculo.imei}', 'csv')" title="CSV">☰</button>
                 <button class="btn-pdf" onclick="exportarRelatorioIndividual('${veiculo.imei}', 'pdf')" title="PDF">≡</button>
               </div>
