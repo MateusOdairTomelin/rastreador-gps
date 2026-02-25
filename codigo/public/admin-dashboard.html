@@ -21030,6 +21030,18 @@
           params.set('motoristaIds', Array.from(motoristasCheckboxSelecionados).join(','));
         }
 
+        // Adicionar filtro de Tags
+        const tagsSelecionadas = getTagsSelecionadasRelatorio();
+        if (tagsSelecionadas.length > 0) {
+          params.set('tagIds', tagsSelecionadas.join(','));
+        }
+
+        // Adicionar filtro de Status
+        const statusFiltro = document.getElementById('rel-filtro-status')?.value || 'todos';
+        if (statusFiltro && statusFiltro !== 'todos') {
+          params.set('statusFiltro', statusFiltro);
+        }
+
         switch (tipoRelatorio) {
           case 'velocidade':
             url = `${API_URL}/relatorios/velocidade/${imei}?${params.toString()}`;

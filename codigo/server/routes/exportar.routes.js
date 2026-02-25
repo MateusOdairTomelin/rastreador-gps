@@ -65,8 +65,19 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       soExcessos = 'false',
       tipoAlarme = '',
       motoristaIds = '', // IDs dos motoristas filtrados (separados por vírgula)
-      mostrarMotoristas = '' // 'todos' para mostrar todos os motoristas vinculados
+      mostrarMotoristas = '', // 'todos' para mostrar todos os motoristas vinculados
+      tagIds = '', // IDs das tags filtradas (separados por vírgula)
+      statusFiltro = '' // Status filtrado (movimento, ocioso, parado, offline)
     } = req.query;
+
+    // Extrair filtro de tags
+    const tagIdsFiltro = tagIds
+      ? tagIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id))
+      : [];
+    const filtroTagAtivo = tagIdsFiltro.length > 0;
+
+    // Extrair filtro de status
+    const statusFiltroAtivo = statusFiltro && statusFiltro !== 'todos';
 
     // Extrair filtro de motorista
     const motoristaIdsFiltro = motoristaIds
@@ -192,6 +203,29 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       }
       return null;
     };
+
+    // ============ BUSCAR NOMES DAS TAGS FILTRADAS (CSV) ============
+    let tagsFiltradas = [];
+    if (filtroTagAtivo) {
+      try {
+        tagsFiltradas = await prisma.tag.findMany({
+          where: { id: { in: tagIdsFiltro } },
+          select: { id: true, nome: true }
+        });
+      } catch (e) {
+        console.log('[CSV] Erro ao buscar tags filtradas:', e.message);
+      }
+    }
+    const tagsFiltradasTexto = tagsFiltradas.map(t => t.nome).join('; ') || '';
+
+    // ============ TEXTO DO STATUS FILTRADO (CSV) ============
+    const statusTextoMap = {
+      'movimento': 'Em Movimento',
+      'ocioso': 'Ocioso (motor ligado)',
+      'parado': 'Parado (motor desligado)',
+      'offline': 'Offline'
+    };
+    const statusFiltradoTexto = statusFiltroAtivo ? (statusTextoMap[statusFiltro] || statusFiltro) : '';
 
     // ============ MÓDULO: LOCALIZAÇÕES ============
     // Localizações são necessárias para vários módulos (resumo, excessos, paradas, etc)
@@ -786,7 +820,13 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     header += `Total de Registros,${totalRegistros}\n`;
     header += `Gerado em,${formatDateTime(new Date())}\n`;
     header += `Filtros,${filtrosTexto.length > 0 ? filtrosTexto.join(' | ').replace(/,/g, ';') : 'Nenhum'}\n`;
-    header += `Tags,${tagsVeiculo.replace(/,/g, ';')}\n`;
+    header += `Tags do Veiculo,${tagsVeiculo.replace(/,/g, ';')}\n`;
+    if (filtroTagAtivo && tagsFiltradasTexto) {
+      header += `Tags Filtradas,${tagsFiltradasTexto}\n`;
+    }
+    if (statusFiltroAtivo && statusFiltradoTexto) {
+      header += `Status Filtrado,${statusFiltradoTexto}\n`;
+    }
     header += '\n\n';
 
     // TABELA 2: RESUMO ESTATISTICO
@@ -883,8 +923,19 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       soExcessos = 'false',
       tipoAlarme = '',
       motoristaIds = '', // IDs dos motoristas filtrados
-      mostrarMotoristas = '' // 'todos' para mostrar todos os motoristas vinculados
+      mostrarMotoristas = '', // 'todos' para mostrar todos os motoristas vinculados
+      tagIds = '', // IDs das tags filtradas (separados por vírgula)
+      statusFiltro = '' // Status filtrado (movimento, ocioso, parado, offline)
     } = req.query;
+
+    // Extrair filtro de tags
+    const tagIdsFiltro = tagIds
+      ? tagIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id))
+      : [];
+    const filtroTagAtivo = tagIdsFiltro.length > 0;
+
+    // Extrair filtro de status
+    const statusFiltroAtivo = statusFiltro && statusFiltro !== 'todos';
 
     // Extrair filtro de motorista
     const motoristaIdsFiltro = motoristaIds
@@ -1014,6 +1065,29 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       return null; // Não identificado
     };
 
+    // ============ BUSCAR NOMES DAS TAGS FILTRADAS (PDF) ============
+    let tagsFiltradasPDF = [];
+    if (filtroTagAtivo) {
+      try {
+        tagsFiltradasPDF = await prisma.tag.findMany({
+          where: { id: { in: tagIdsFiltro } },
+          select: { id: true, nome: true }
+        });
+      } catch (e) {
+        console.log('[PDF] Erro ao buscar tags filtradas:', e.message);
+      }
+    }
+    const tagsFiltradasTextoPDF = tagsFiltradasPDF.map(t => t.nome).join(', ') || '';
+
+    // ============ TEXTO DO STATUS FILTRADO (PDF) ============
+    const statusTextoMapPDF = {
+      'movimento': 'Em Movimento',
+      'ocioso': 'Ocioso (motor ligado)',
+      'parado': 'Parado (motor desligado)',
+      'offline': 'Offline'
+    };
+    const statusFiltradoTextoPDF = statusFiltroAtivo ? (statusTextoMapPDF[statusFiltro] || statusFiltro) : '';
+
     // Informações do veículo
     doc.fontSize(12).font('Helvetica-Bold').text('Informações do Veículo');
     doc.fontSize(10).font('Helvetica');
@@ -1022,7 +1096,17 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     doc.text(`IMEI: ${dispositivo.imei}`);
     doc.text(`Tipo: ${dispositivo.tipo || 'N/A'}`);
     doc.text(`Status: ${dispositivo.status === 'online' ? 'Online' : 'Offline'}`);
-    doc.text(`Tags: ${tagsVeiculo}`);
+    doc.text(`Tags do Veículo: ${tagsVeiculo}`);
+    if (filtroTagAtivo && tagsFiltradasTextoPDF) {
+      doc.font('Helvetica-Bold').fillColor('#7c3aed');
+      doc.text(`Tags Filtradas: ${tagsFiltradasTextoPDF}`);
+      doc.font('Helvetica').fillColor('#000');
+    }
+    if (statusFiltroAtivo && statusFiltradoTextoPDF) {
+      doc.font('Helvetica-Bold').fillColor('#059669');
+      doc.text(`Status Filtrado: ${statusFiltradoTextoPDF}`);
+      doc.font('Helvetica').fillColor('#000');
+    }
 
     // ✅ Mostrar motorista(s) vinculado(s) com período - APENAS se filtro ativo
     if (filtroMotoristaAtivo && motoristasVinculados.length > 0) {
@@ -2816,8 +2900,19 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
       modulos = 'resumo,score,consumo,kmDia,excessos,paradas,viagens,obd2,alarmes,localizacoes',
       corrigido = 'true',
       motoristaIds = '', // IDs dos motoristas filtrados
-      mostrarMotoristas = '' // 'todos' para mostrar todos os motoristas vinculados
+      mostrarMotoristas = '', // 'todos' para mostrar todos os motoristas vinculados
+      tagIds = '', // IDs das tags filtradas (separados por vírgula)
+      statusFiltro = '' // Status filtrado (movimento, ocioso, parado, offline)
     } = req.query;
+
+    // Extrair filtro de tags
+    const tagIdsFiltro = tagIds
+      ? tagIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id))
+      : [];
+    const filtroTagAtivo = tagIdsFiltro.length > 0;
+
+    // Extrair filtro de status
+    const statusFiltroAtivo = statusFiltro && statusFiltro !== 'todos';
 
     // Extrair filtro de motorista
     const motoristaIdsFiltro = motoristaIds
@@ -2937,6 +3032,29 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
         }))
         .sort((a, b) => new Date(a.periodoInicio) - new Date(b.periodoInicio));
     }
+
+    // ============ BUSCAR NOMES DAS TAGS FILTRADAS (Excel) ============
+    let tagsFiltradasExcel = [];
+    if (filtroTagAtivo) {
+      try {
+        tagsFiltradasExcel = await prisma.tag.findMany({
+          where: { id: { in: tagIdsFiltro } },
+          select: { id: true, nome: true }
+        });
+      } catch (e) {
+        console.log('[Excel] Erro ao buscar tags filtradas:', e.message);
+      }
+    }
+    const tagsFiltradasTextoExcel = tagsFiltradasExcel.map(t => t.nome).join(', ') || '';
+
+    // ============ TEXTO DO STATUS FILTRADO (Excel) ============
+    const statusTextoMapExcel = {
+      'movimento': 'Em Movimento',
+      'ocioso': 'Ocioso (motor ligado)',
+      'parado': 'Parado (motor desligado)',
+      'offline': 'Offline'
+    };
+    const statusFiltradoTextoExcel = statusFiltroAtivo ? (statusTextoMapExcel[statusFiltro] || statusFiltro) : '';
 
     // Calcular estatísticas
     let distanciaTotal = 0;
@@ -3079,7 +3197,15 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
         ['Placa', dispositivo.placa || 'N/A'],
         ['IMEI', dispositivo.imei],
         ['Tipo', dispositivo.tipo || 'N/A'],
-        ['Tags', tagsVeiculo],
+        ['Tags do Veiculo', tagsVeiculo],
+        // Tags filtradas (se houver)
+        ...(filtroTagAtivo && tagsFiltradasTextoExcel
+          ? [['Tags Filtradas', tagsFiltradasTextoExcel]]
+          : []),
+        // Status filtrado (se houver)
+        ...(statusFiltroAtivo && statusFiltradoTextoExcel
+          ? [['Status Filtrado', statusFiltradoTextoExcel]]
+          : []),
         // Referência à aba de Motoristas se houver vínculos
         ...(filtroMotoristaAtivo && motoristasVinculadosExcel.length > 0
           ? [['Motorista(s)', `${motoristasVinculadosExcel.length} vinculo(s) - ver aba Motoristas`]]
