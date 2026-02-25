@@ -29,6 +29,49 @@ try {
 // Tipos de dispositivo para verificar suporte OBD2
 const { supportsOBD2 } = require('../constants/device-types');
 
+// ============ HELPER: FILTRAR LOCALIZAÇÕES POR STATUS ============
+/**
+ * Filtra localizações baseado no status selecionado
+ * @param {Array} localizacoes - Array de localizações
+ * @param {string} statusFiltro - Status para filtrar (movimento, ocioso, parado, offline)
+ * @param {Object} dispositivo - Dispositivo (para verificar status online/offline)
+ * @returns {Array} Localizações filtradas
+ */
+function filtrarLocalizacoesPorStatus(localizacoes, statusFiltro, dispositivo) {
+  if (!statusFiltro || statusFiltro === 'todos' || statusFiltro === '') {
+    return localizacoes;
+  }
+
+  return localizacoes.filter(loc => {
+    const velocidade = loc.velocidade || 0;
+    const estadoIgnicao = loc.estado_ignicao || '';
+
+    switch (statusFiltro) {
+      case 'movimento':
+        // Em movimento: velocidade > 0
+        return velocidade > 0;
+
+      case 'ocioso':
+        // Ocioso: motor ligado (ignicao=true ou estado_ignicao=idle) e velocidade = 0
+        return velocidade === 0 && (loc.ignicao === true || estadoIgnicao === 'idle');
+
+      case 'parado':
+        // Parado: motor desligado e velocidade = 0
+        return velocidade === 0 && loc.ignicao !== true && estadoIgnicao !== 'idle';
+
+      case 'offline':
+        // Offline: dispositivo offline (verificar timestamp antigo > 5min)
+        const agora = new Date();
+        const ultimoUpdate = new Date(loc.timestamp);
+        const diffMinutos = (agora - ultimoUpdate) / (1000 * 60);
+        return diffMinutos > 5;
+
+      default:
+        return true;
+    }
+  });
+}
+
 // ============ EXPORTAR CSV ============
 
 /**
@@ -354,6 +397,13 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
         },
         orderBy: { timestamp: 'asc' }
       });
+
+      // Aplicar filtro de status se selecionado
+      if (statusFiltroAtivo) {
+        const totalAntes = localizacoes.length;
+        localizacoes = filtrarLocalizacoesPorStatus(localizacoes, statusFiltro, dispositivo);
+        console.log(`[CSV] Filtro status '${statusFiltro}': ${totalAntes} -> ${localizacoes.length} registros`);
+      }
 
       // Aplicar correção GPS (OSRM) se habilitado
       if (aplicarCorrecao && localizacoes.length > 1) {
@@ -765,13 +815,18 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     let maxVelocidadeRota = 0;
 
     // Buscar todas as localizações para cálculo
-    const todasLocalizacoes = await prisma.localizacao.findMany({
+    let todasLocalizacoes = await prisma.localizacao.findMany({
       where: {
         dispositivo_id: dispositivo.id,
         timestamp: { gte: inicio, lte: fim }
       },
       orderBy: { timestamp: 'asc' }
     });
+
+    // Aplicar filtro de status se selecionado
+    if (statusFiltroAtivo) {
+      todasLocalizacoes = filtrarLocalizacoesPorStatus(todasLocalizacoes, statusFiltro, dispositivo);
+    }
 
     const todosOBD2 = await prisma.dadosOBD2.findMany({
       where: {
@@ -1387,6 +1442,13 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         },
         orderBy: { timestamp: 'asc' }
       });
+
+      // Aplicar filtro de status se selecionado
+      if (statusFiltroAtivo) {
+        const totalAntes = localizacoes.length;
+        localizacoes = filtrarLocalizacoesPorStatus(localizacoes, statusFiltro, dispositivo);
+        console.log(`[PDF] Filtro status '${statusFiltro}': ${totalAntes} -> ${localizacoes.length} registros`);
+      }
 
       // Aplicar correção GPS (OSRM) para ter rota realista que segue as ruas
       let localizacoesCorrigidas = localizacoes;
@@ -2296,7 +2358,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
 
     // ============ MÓDULO: LOCALIZAÇÕES (TODOS os dados do período) ============
     if (temModulo('localizacoes')) {
-      const localizacoes = await prisma.localizacao.findMany({
+      let localizacoes = await prisma.localizacao.findMany({
         where: {
           dispositivo_id: dispositivo.id,
           timestamp: { gte: inicio, lte: fim }
@@ -2304,6 +2366,11 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         orderBy: { timestamp: 'desc' }
         // SEM LIMITE - exportar todos os dados do período
       });
+
+      // Aplicar filtro de status se selecionado
+      if (statusFiltroAtivo) {
+        localizacoes = filtrarLocalizacoesPorStatus(localizacoes, statusFiltro, dispositivo);
+      }
 
       if (localizacoes.length > 0) {
         doc.addPage();
@@ -3182,13 +3249,20 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
     const fim = dataFim ? new Date(dataFim) : new Date();
 
     // Buscar localizações
-    const localizacoes = await prisma.localizacao.findMany({
+    let localizacoes = await prisma.localizacao.findMany({
       where: {
         dispositivo_id: dispositivo.id,
         timestamp: { gte: inicio, lte: fim }
       },
       orderBy: { timestamp: 'asc' }
     });
+
+    // Aplicar filtro de status se selecionado
+    if (statusFiltroAtivo) {
+      const totalAntes = localizacoes.length;
+      localizacoes = filtrarLocalizacoesPorStatus(localizacoes, statusFiltro, dispositivo);
+      console.log(`[Excel] Filtro status '${statusFiltro}': ${totalAntes} -> ${localizacoes.length} registros`);
+    }
 
     // Buscar OBD2 (se aplicável)
     const isOBD2Device = supportsOBD2(dispositivo.tipo);
