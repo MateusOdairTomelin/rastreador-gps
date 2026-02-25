@@ -67,7 +67,17 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       motoristaIds = '', // IDs dos motoristas filtrados (separados por vírgula)
       mostrarMotoristas = '', // 'todos' para mostrar todos os motoristas vinculados
       tagIds = '', // IDs das tags filtradas (separados por vírgula)
-      statusFiltro = '' // Status filtrado (movimento, ocioso, parado, offline)
+      statusFiltro = '', // Status filtrado (movimento, ocioso, parado, offline)
+      // 🎯 Filtros Avançados
+      geofenceIds = '', // IDs das cercas filtradas
+      tiposAlarme = '', // Tipos de alarme
+      viagemKmMin = '', viagemKmMax = '', // Viagem: distância
+      viagemDuracaoMin = '', viagemDuracaoMax = '', // Viagem: duração
+      viagemVelMaxMin = '', viagemVelMaxMax = '', // Viagem: vel. máxima
+      multaStatus = '', multaGravidade = '', // Multas
+      velAcima80 = '', velAcima100 = '', velAcima120 = '', // Velocidade
+      scoreMin = '', scoreMax = '', // Performance
+      excessosMax = '', ociosoMax = '', kmMinRodado = '' // Performance
     } = req.query;
 
     // Extrair filtro de tags
@@ -86,11 +96,48 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     const mostrarTodosMotoristas = mostrarMotoristas === 'todos';
     const filtroMotoristaAtivo = motoristaIdsFiltro.length > 0 || mostrarTodosMotoristas;
 
+    // 🎯 Extrair filtros avançados
+    const geofenceIdsFiltro = geofenceIds ? geofenceIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
+    const filtroGeofenceAtivo = geofenceIdsFiltro.length > 0;
+
+    const tiposAlarmeFiltro = tiposAlarme ? tiposAlarme.split(',').filter(t => t.trim()) : [];
+    const filtroAlarmeAtivo = tiposAlarmeFiltro.length > 0;
+
+    const filtrosViagem = {
+      kmMin: viagemKmMin ? parseFloat(viagemKmMin) : null,
+      kmMax: viagemKmMax ? parseFloat(viagemKmMax) : null,
+      duracaoMin: viagemDuracaoMin ? parseFloat(viagemDuracaoMin) : null,
+      duracaoMax: viagemDuracaoMax ? parseFloat(viagemDuracaoMax) : null,
+      velMaxMin: viagemVelMaxMin ? parseFloat(viagemVelMaxMin) : null,
+      velMaxMax: viagemVelMaxMax ? parseFloat(viagemVelMaxMax) : null
+    };
+    const filtroViagemAtivo = Object.values(filtrosViagem).some(v => v !== null);
+
+    const multaStatusFiltro = multaStatus ? multaStatus.split(',').filter(s => s.trim()) : [];
+    const multaGravidadeFiltro = multaGravidade ? multaGravidade.split(',').filter(g => g.trim()) : [];
+    const filtroMultaAtivo = multaStatusFiltro.length > 0 || multaGravidadeFiltro.length > 0;
+
+    const filtrosVelocidade = {
+      acima80: velAcima80 === 'true',
+      acima100: velAcima100 === 'true',
+      acima120: velAcima120 === 'true'
+    };
+
+    const filtrosPerformance = {
+      scoreMin: scoreMin ? parseFloat(scoreMin) : null,
+      scoreMax: scoreMax ? parseFloat(scoreMax) : null,
+      excessosMax: excessosMax ? parseInt(excessosMax) : null,
+      ociosoMax: ociosoMax ? parseInt(ociosoMax) : null,
+      kmMinRodado: kmMinRodado ? parseFloat(kmMinRodado) : null
+    };
+    const filtroPerformanceAtivo = Object.values(filtrosPerformance).some(v => v !== null);
+
     // Parsear módulos selecionados
     const modulosSelecionados = modulos.split(',').map(m => m.trim().toLowerCase());
     const temModulo = (nome) => modulosSelecionados.includes(nome.toLowerCase());
 
     console.log('[CSV Modular] Módulos selecionados:', modulosSelecionados);
+    console.log('[CSV Modular] Filtros avançados:', { geofenceIdsFiltro, tiposAlarmeFiltro, filtrosViagem, filtroMultaAtivo });
 
     // Converter filtros numéricos
     const velocidadeMin = velMin ? parseFloat(velMin) : null;
@@ -226,6 +273,95 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       'offline': 'Offline'
     };
     const statusFiltradoTexto = statusFiltroAtivo ? (statusTextoMap[statusFiltro] || statusFiltro) : '';
+
+    // ============ 🎯 BUSCAR DADOS DOS FILTROS AVANÇADOS (CSV) ============
+
+    // 📍 Geofencing
+    let geofencesFiltradas = [];
+    if (filtroGeofenceAtivo) {
+      try {
+        geofencesFiltradas = await prisma.geofence.findMany({
+          where: { id: { in: geofenceIdsFiltro } },
+          select: { id: true, nome: true, raio_metros: true }
+        });
+      } catch (e) {
+        console.log('[CSV] Erro ao buscar cercas:', e.message);
+      }
+    }
+    const geofencesTexto = geofencesFiltradas.map(g => `${g.nome} (${g.raio_metros}m)`).join('; ') || '';
+
+    // ⚠️ Alarmes - Mapeamento de tipos
+    const alarmesTextoMap = {
+      'excesso_velocidade': '🚨 Excesso de Velocidade',
+      'sos': '🆘 SOS/Pânico',
+      'bateria_baixa': '🔋 Bateria Baixa',
+      'desconexao': '📡 Desconexão GPS',
+      'geofence_entrada': '📍 Entrada em Cerca',
+      'geofence_saida': '📍 Saída de Cerca',
+      'ignicao': '🔑 Ignição On/Off',
+      'vibracao': '📳 Vibração/Impacto'
+    };
+    const alarmesTexto = tiposAlarmeFiltro.map(t => alarmesTextoMap[t] || t).join('; ') || '';
+
+    // 🚗 Viagens - Texto
+    let viagensTexto = '';
+    if (filtroViagemAtivo) {
+      const partes = [];
+      if (filtrosViagem.kmMin || filtrosViagem.kmMax) {
+        partes.push(`Dist: ${filtrosViagem.kmMin || 0}-${filtrosViagem.kmMax || '∞'} km`);
+      }
+      if (filtrosViagem.duracaoMin || filtrosViagem.duracaoMax) {
+        partes.push(`Duração: ${filtrosViagem.duracaoMin || 0}-${filtrosViagem.duracaoMax || '∞'} min`);
+      }
+      if (filtrosViagem.velMaxMin || filtrosViagem.velMaxMax) {
+        partes.push(`Vel.Max: ${filtrosViagem.velMaxMin || 0}-${filtrosViagem.velMaxMax || '∞'} km/h`);
+      }
+      viagensTexto = partes.join('; ');
+    }
+
+    // 📋 Multas - Texto
+    let multasTexto = '';
+    if (filtroMultaAtivo) {
+      const partes = [];
+      if (multaStatusFiltro.length > 0) {
+        partes.push(`Status: ${multaStatusFiltro.join(', ')}`);
+      }
+      if (multaGravidadeFiltro.length > 0) {
+        partes.push(`Gravidade: ${multaGravidadeFiltro.join(', ')}`);
+      }
+      multasTexto = partes.join('; ');
+    }
+
+    // ⚡ Velocidade - Texto
+    let velocidadeTexto = '';
+    const velPartes = [];
+    if (velocidadeMin || velocidadeMax) {
+      velPartes.push(`${velocidadeMin || 0}-${velocidadeMax || '∞'} km/h`);
+    }
+    if (filtrosVelocidade.acima80) velPartes.push('>80 km/h');
+    if (filtrosVelocidade.acima100) velPartes.push('>100 km/h');
+    if (filtrosVelocidade.acima120) velPartes.push('>120 km/h');
+    if (filtrarSoExcessos) velPartes.push('Apenas excessos');
+    velocidadeTexto = velPartes.join('; ');
+
+    // 📊 Performance - Texto
+    let performanceTexto = '';
+    if (filtroPerformanceAtivo) {
+      const partes = [];
+      if (filtrosPerformance.scoreMin || filtrosPerformance.scoreMax) {
+        partes.push(`Score: ${filtrosPerformance.scoreMin || 0}-${filtrosPerformance.scoreMax || 100}`);
+      }
+      if (filtrosPerformance.excessosMax) {
+        partes.push(`Max excessos: ${filtrosPerformance.excessosMax}`);
+      }
+      if (filtrosPerformance.ociosoMax) {
+        partes.push(`Max ocioso: ${filtrosPerformance.ociosoMax} min`);
+      }
+      if (filtrosPerformance.kmMinRodado) {
+        partes.push(`Min rodado: ${filtrosPerformance.kmMinRodado} km`);
+      }
+      performanceTexto = partes.join('; ');
+    }
 
     // ============ MÓDULO: LOCALIZAÇÕES ============
     // Localizações são necessárias para vários módulos (resumo, excessos, paradas, etc)
@@ -827,6 +963,25 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     if (statusFiltroAtivo && statusFiltradoTexto) {
       header += `Status Filtrado,${statusFiltradoTexto}\n`;
     }
+    // 🎯 Filtros Avançados
+    if (filtroGeofenceAtivo && geofencesTexto) {
+      header += `Cercas Filtradas,${geofencesTexto.replace(/,/g, ';')}\n`;
+    }
+    if (filtroAlarmeAtivo && alarmesTexto) {
+      header += `Tipos de Alarme,${alarmesTexto.replace(/,/g, ';')}\n`;
+    }
+    if (filtroViagemAtivo && viagensTexto) {
+      header += `Filtro Viagens,${viagensTexto.replace(/,/g, ';')}\n`;
+    }
+    if (filtroMultaAtivo && multasTexto) {
+      header += `Filtro Multas,${multasTexto.replace(/,/g, ';')}\n`;
+    }
+    if (velocidadeTexto) {
+      header += `Filtro Velocidade,${velocidadeTexto.replace(/,/g, ';')}\n`;
+    }
+    if (filtroPerformanceAtivo && performanceTexto) {
+      header += `Filtro Performance,${performanceTexto.replace(/,/g, ';')}\n`;
+    }
     header += '\n\n';
 
     // TABELA 2: RESUMO ESTATISTICO
@@ -925,7 +1080,14 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       motoristaIds = '', // IDs dos motoristas filtrados
       mostrarMotoristas = '', // 'todos' para mostrar todos os motoristas vinculados
       tagIds = '', // IDs das tags filtradas (separados por vírgula)
-      statusFiltro = '' // Status filtrado (movimento, ocioso, parado, offline)
+      statusFiltro = '', // Status filtrado (movimento, ocioso, parado, offline)
+      // 🎯 Filtros Avançados
+      geofenceIds = '', tiposAlarme = '',
+      viagemKmMin = '', viagemKmMax = '', viagemDuracaoMin = '', viagemDuracaoMax = '',
+      viagemVelMaxMin = '', viagemVelMaxMax = '',
+      multaStatus = '', multaGravidade = '',
+      velAcima80 = '', velAcima100 = '', velAcima120 = '',
+      scoreMin = '', scoreMax = '', excessosMax = '', ociosoMax = '', kmMinRodado = ''
     } = req.query;
 
     // Extrair filtro de tags
@@ -943,6 +1105,16 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       : [];
     const mostrarTodosMotoristas = mostrarMotoristas === 'todos';
     const filtroMotoristaAtivo = motoristaIdsFiltro.length > 0 || mostrarTodosMotoristas;
+
+    // 🎯 Extrair filtros avançados (PDF)
+    const geofenceIdsFiltro = geofenceIds ? geofenceIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
+    const filtroGeofenceAtivo = geofenceIdsFiltro.length > 0;
+    const tiposAlarmeFiltro = tiposAlarme ? tiposAlarme.split(',').filter(t => t.trim()) : [];
+    const filtroAlarmeAtivo = tiposAlarmeFiltro.length > 0;
+    const filtroViagemAtivo = viagemKmMin || viagemKmMax || viagemDuracaoMin || viagemDuracaoMax;
+    const filtroMultaAtivo = multaStatus || multaGravidade;
+    const filtroVelocidadeAvancado = velAcima80 === 'true' || velAcima100 === 'true' || velAcima120 === 'true';
+    const filtroPerformanceAtivo = scoreMin || scoreMax || excessosMax || ociosoMax || kmMinRodado;
 
     // Parsear módulos selecionados
     const modulosSelecionados = modulos.split(',').map(m => m.trim().toLowerCase());
@@ -1088,6 +1260,28 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     };
     const statusFiltradoTextoPDF = statusFiltroAtivo ? (statusTextoMapPDF[statusFiltro] || statusFiltro) : '';
 
+    // ============ 🎯 BUSCAR DADOS DOS FILTROS AVANÇADOS (PDF) ============
+    let geofencesFiltradasPDF = [];
+    if (filtroGeofenceAtivo) {
+      try {
+        geofencesFiltradasPDF = await prisma.geofence.findMany({
+          where: { id: { in: geofenceIdsFiltro } },
+          select: { id: true, nome: true, raio_metros: true }
+        });
+      } catch (e) {
+        console.log('[PDF] Erro ao buscar cercas:', e.message);
+      }
+    }
+    const geofencesTextoPDF = geofencesFiltradasPDF.map(g => `${g.nome} (${g.raio_metros}m)`).join(', ') || '';
+
+    // Textos dos filtros avançados
+    const alarmesTextoMapPDF = {
+      'excesso_velocidade': 'Excesso Vel.', 'sos': 'SOS', 'bateria_baixa': 'Bateria',
+      'desconexao': 'Desconexão', 'geofence_entrada': 'Entrada Cerca',
+      'geofence_saida': 'Saída Cerca', 'ignicao': 'Ignição', 'vibracao': 'Vibração'
+    };
+    const alarmesTextoPDF = tiposAlarmeFiltro.map(t => alarmesTextoMapPDF[t] || t).join(', ') || '';
+
     // Informações do veículo
     doc.fontSize(12).font('Helvetica-Bold').text('Informações do Veículo');
     doc.fontSize(10).font('Helvetica');
@@ -1105,6 +1299,50 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     if (statusFiltroAtivo && statusFiltradoTextoPDF) {
       doc.font('Helvetica-Bold').fillColor('#059669');
       doc.text(`Status Filtrado: ${statusFiltradoTextoPDF}`);
+      doc.font('Helvetica').fillColor('#000');
+    }
+
+    // 🎯 Mostrar filtros avançados no PDF
+    if (filtroGeofenceAtivo && geofencesTextoPDF) {
+      doc.font('Helvetica-Bold').fillColor('#eab308');
+      doc.text(`📍 Cercas: ${geofencesTextoPDF}`);
+      doc.font('Helvetica').fillColor('#000');
+    }
+    if (filtroAlarmeAtivo && alarmesTextoPDF) {
+      doc.font('Helvetica-Bold').fillColor('#ef4444');
+      doc.text(`⚠️ Alarmes: ${alarmesTextoPDF}`);
+      doc.font('Helvetica').fillColor('#000');
+    }
+    if (filtroViagemAtivo) {
+      doc.font('Helvetica-Bold').fillColor('#6366f1');
+      const partes = [];
+      if (viagemKmMin || viagemKmMax) partes.push(`Dist: ${viagemKmMin || 0}-${viagemKmMax || '∞'} km`);
+      if (viagemDuracaoMin || viagemDuracaoMax) partes.push(`Dur: ${viagemDuracaoMin || 0}-${viagemDuracaoMax || '∞'} min`);
+      doc.text(`🚗 Viagens: ${partes.join(', ')}`);
+      doc.font('Helvetica').fillColor('#000');
+    }
+    if (filtroMultaAtivo) {
+      doc.font('Helvetica-Bold').fillColor('#ec4899');
+      doc.text(`📋 Multas: ${multaStatus || ''} ${multaGravidade || ''}`);
+      doc.font('Helvetica').fillColor('#000');
+    }
+    if (filtroVelocidadeAvancado || velocidadeMin || velocidadeMax) {
+      doc.font('Helvetica-Bold').fillColor('#f59e0b');
+      const partes = [];
+      if (velocidadeMin || velocidadeMax) partes.push(`${velocidadeMin || 0}-${velocidadeMax || '∞'} km/h`);
+      if (velAcima80 === 'true') partes.push('>80');
+      if (velAcima100 === 'true') partes.push('>100');
+      if (velAcima120 === 'true') partes.push('>120');
+      doc.text(`⚡ Velocidade: ${partes.join(', ')}`);
+      doc.font('Helvetica').fillColor('#000');
+    }
+    if (filtroPerformanceAtivo) {
+      doc.font('Helvetica-Bold').fillColor('#10b981');
+      const partes = [];
+      if (scoreMin || scoreMax) partes.push(`Score: ${scoreMin || 0}-${scoreMax || 100}`);
+      if (excessosMax) partes.push(`Max exc: ${excessosMax}`);
+      if (ociosoMax) partes.push(`Max ocioso: ${ociosoMax}min`);
+      doc.text(`📊 Performance: ${partes.join(', ')}`);
       doc.font('Helvetica').fillColor('#000');
     }
 
@@ -2902,7 +3140,15 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
       motoristaIds = '', // IDs dos motoristas filtrados
       mostrarMotoristas = '', // 'todos' para mostrar todos os motoristas vinculados
       tagIds = '', // IDs das tags filtradas (separados por vírgula)
-      statusFiltro = '' // Status filtrado (movimento, ocioso, parado, offline)
+      statusFiltro = '', // Status filtrado (movimento, ocioso, parado, offline)
+      // 🎯 Filtros Avançados
+      geofenceIds = '', tiposAlarme = '',
+      viagemKmMin = '', viagemKmMax = '', viagemDuracaoMin = '', viagemDuracaoMax = '',
+      viagemVelMaxMin = '', viagemVelMaxMax = '',
+      multaStatus = '', multaGravidade = '',
+      velMin = '', velMax = '', soExcessos = '',
+      velAcima80 = '', velAcima100 = '', velAcima120 = '',
+      scoreMin = '', scoreMax = '', excessosMax = '', ociosoMax = '', kmMinRodado = ''
     } = req.query;
 
     // Extrair filtro de tags
@@ -2920,6 +3166,16 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
       : [];
     const mostrarTodosMotoristas = mostrarMotoristas === 'todos';
     const filtroMotoristaAtivo = motoristaIdsFiltro.length > 0 || mostrarTodosMotoristas;
+
+    // 🎯 Extrair filtros avançados (Excel)
+    const geofenceIdsFiltro = geofenceIds ? geofenceIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
+    const filtroGeofenceAtivo = geofenceIdsFiltro.length > 0;
+    const tiposAlarmeFiltro = tiposAlarme ? tiposAlarme.split(',').filter(t => t.trim()) : [];
+    const filtroAlarmeAtivo = tiposAlarmeFiltro.length > 0;
+    const filtroViagemAtivo = viagemKmMin || viagemKmMax || viagemDuracaoMin || viagemDuracaoMax;
+    const filtroMultaAtivo = multaStatus || multaGravidade;
+    const filtroVelocidadeAvancado = velAcima80 === 'true' || velAcima100 === 'true' || velAcima120 === 'true' || velMin || velMax || soExcessos === 'true';
+    const filtroPerformanceAtivo = scoreMin || scoreMax || excessosMax || ociosoMax || kmMinRodado;
 
     // Parsear módulos selecionados
     const modulosSelecionados = modulos.split(',').map(m => m.trim().toLowerCase());
@@ -3055,6 +3311,58 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
       'offline': 'Offline'
     };
     const statusFiltradoTextoExcel = statusFiltroAtivo ? (statusTextoMapExcel[statusFiltro] || statusFiltro) : '';
+
+    // ============ 🎯 BUSCAR DADOS DOS FILTROS AVANÇADOS (Excel) ============
+    let geofencesFiltradasExcel = [];
+    if (filtroGeofenceAtivo) {
+      try {
+        geofencesFiltradasExcel = await prisma.geofence.findMany({
+          where: { id: { in: geofenceIdsFiltro } },
+          select: { id: true, nome: true, raio_metros: true }
+        });
+      } catch (e) {
+        console.log('[Excel] Erro ao buscar cercas:', e.message);
+      }
+    }
+    const geofencesTextoExcel = geofencesFiltradasExcel.map(g => `${g.nome} (${g.raio_metros}m)`).join(', ') || '';
+
+    // Alarmes
+    const alarmesTextoMapExcel = {
+      'excesso_velocidade': 'Excesso Vel.', 'sos': 'SOS', 'bateria_baixa': 'Bateria',
+      'desconexao': 'Desconexão', 'geofence_entrada': 'Entrada Cerca',
+      'geofence_saida': 'Saída Cerca', 'ignicao': 'Ignição', 'vibracao': 'Vibração'
+    };
+    const alarmesTextoExcel = tiposAlarmeFiltro.map(t => alarmesTextoMapExcel[t] || t).join(', ') || '';
+
+    // Viagens
+    let viagensTextoExcel = '';
+    if (filtroViagemAtivo) {
+      const partes = [];
+      if (viagemKmMin || viagemKmMax) partes.push(`Dist: ${viagemKmMin || 0}-${viagemKmMax || '∞'} km`);
+      if (viagemDuracaoMin || viagemDuracaoMax) partes.push(`Dur: ${viagemDuracaoMin || 0}-${viagemDuracaoMax || '∞'} min`);
+      viagensTextoExcel = partes.join(', ');
+    }
+
+    // Velocidade
+    let velocidadeTextoExcel = '';
+    const velPartesExcel = [];
+    if (velMin || velMax) velPartesExcel.push(`${velMin || 0}-${velMax || '∞'} km/h`);
+    if (velAcima80 === 'true') velPartesExcel.push('>80');
+    if (velAcima100 === 'true') velPartesExcel.push('>100');
+    if (velAcima120 === 'true') velPartesExcel.push('>120');
+    if (soExcessos === 'true') velPartesExcel.push('Só excessos');
+    velocidadeTextoExcel = velPartesExcel.join(', ');
+
+    // Performance
+    let performanceTextoExcel = '';
+    if (filtroPerformanceAtivo) {
+      const partes = [];
+      if (scoreMin || scoreMax) partes.push(`Score: ${scoreMin || 0}-${scoreMax || 100}`);
+      if (excessosMax) partes.push(`Max exc: ${excessosMax}`);
+      if (ociosoMax) partes.push(`Max ocioso: ${ociosoMax}min`);
+      if (kmMinRodado) partes.push(`Min rodado: ${kmMinRodado}km`);
+      performanceTextoExcel = partes.join(', ');
+    }
 
     // Calcular estatísticas
     let distanciaTotal = 0;
@@ -3205,6 +3513,25 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
         // Status filtrado (se houver)
         ...(statusFiltroAtivo && statusFiltradoTextoExcel
           ? [['Status Filtrado', statusFiltradoTextoExcel]]
+          : []),
+        // 🎯 Filtros avançados
+        ...(filtroGeofenceAtivo && geofencesTextoExcel
+          ? [['📍 Cercas Filtradas', geofencesTextoExcel]]
+          : []),
+        ...(filtroAlarmeAtivo && alarmesTextoExcel
+          ? [['⚠️ Alarmes Filtrados', alarmesTextoExcel]]
+          : []),
+        ...(filtroViagemAtivo && viagensTextoExcel
+          ? [['🚗 Filtro Viagens', viagensTextoExcel]]
+          : []),
+        ...(filtroMultaAtivo
+          ? [['📋 Filtro Multas', `${multaStatus || ''} ${multaGravidade || ''}`]]
+          : []),
+        ...(filtroVelocidadeAvancado && velocidadeTextoExcel
+          ? [['⚡ Filtro Velocidade', velocidadeTextoExcel]]
+          : []),
+        ...(filtroPerformanceAtivo && performanceTextoExcel
+          ? [['📊 Filtro Performance', performanceTextoExcel]]
           : []),
         // Referência à aba de Motoristas se houver vínculos
         ...(filtroMotoristaAtivo && motoristasVinculadosExcel.length > 0

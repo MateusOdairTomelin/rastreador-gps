@@ -4729,6 +4729,127 @@
       border-color: #06b6d4;
     }
 
+    /* 📍 Geofencing (Amarelo) */
+    .filtro-chip-geofencing {
+      background: rgba(234, 179, 8, 0.15);
+      color: #eab308;
+      border-color: rgba(234, 179, 8, 0.3);
+    }
+    .filtro-chip-geofencing:hover, .filtro-chip-geofencing.active {
+      background: rgba(234, 179, 8, 0.25);
+      border-color: #eab308;
+    }
+
+    /* ⚠️ Alarmes (Vermelho) */
+    .filtro-chip-alarmes {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .filtro-chip-alarmes:hover, .filtro-chip-alarmes.active {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: #ef4444;
+    }
+
+    /* 🚗 Viagens (Índigo) */
+    .filtro-chip-viagens {
+      background: rgba(99, 102, 241, 0.15);
+      color: #6366f1;
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+    .filtro-chip-viagens:hover, .filtro-chip-viagens.active {
+      background: rgba(99, 102, 241, 0.25);
+      border-color: #6366f1;
+    }
+
+    /* 📋 Multas (Rosa) */
+    .filtro-chip-multas {
+      background: rgba(236, 72, 153, 0.15);
+      color: #ec4899;
+      border-color: rgba(236, 72, 153, 0.3);
+    }
+    .filtro-chip-multas:hover, .filtro-chip-multas.active {
+      background: rgba(236, 72, 153, 0.25);
+      border-color: #ec4899;
+    }
+
+    /* ⚡ Velocidade (Âmbar) */
+    .filtro-chip-velocidade {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+    .filtro-chip-velocidade:hover, .filtro-chip-velocidade.active {
+      background: rgba(245, 158, 11, 0.25);
+      border-color: #f59e0b;
+    }
+
+    /* 📊 Performance (Esmeralda) */
+    .filtro-chip-performance {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+    .filtro-chip-performance:hover, .filtro-chip-performance.active {
+      background: rgba(16, 185, 129, 0.25);
+      border-color: #10b981;
+    }
+
+    /* Linha 3 de filtros avançados */
+    .filtros-linha-3 {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border);
+      margin-top: 8px;
+    }
+
+    .filtros-linha-3-header {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-right: 8px;
+    }
+
+    /* Slider de range nos dropdowns */
+    .dropdown-range-container {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .dropdown-range-label {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .dropdown-range-inputs {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .dropdown-range-input {
+      width: 80px;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg-card);
+      color: var(--text);
+      font-size: 12px;
+      text-align: center;
+    }
+    .dropdown-range-input:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+    .dropdown-range-separator {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
     /* Dropdown dos chips */
     .filtro-dropdown {
       display: none;
@@ -9314,6 +9435,280 @@
                 <button class="btn-buscar-cobli" onclick="buscarRelatorios()">
                   Buscar
                 </button>
+              </div>
+
+              <!-- Linha 3: Filtros Avançados -->
+              <div class="filtros-linha-3">
+                <span class="filtros-linha-3-header">🎯 Avançado:</span>
+
+                <!-- 📍 Chip Geofencing (Amarelo) -->
+                <div class="filtro-chip-container" style="position: relative;">
+                  <button type="button" onclick="toggleGeofencingDropdown()" class="filtro-chip filtro-chip-geofencing">
+                    <span class="chip-icon">📍</span>
+                    <span id="geofencing-label">Cercas</span>
+                    <span class="chip-arrow">▾</span>
+                  </button>
+                  <div id="geofencing-dropdown" class="filtro-dropdown">
+                    <div class="dropdown-search">
+                      <input type="text" id="geofencing-search" placeholder="Buscar cerca..." oninput="filtrarGeofencingDropdown()">
+                    </div>
+                    <div id="geofencing-checkbox-list" class="dropdown-list">
+                      <div class="dropdown-loading">Carregando cercas...</div>
+                    </div>
+                    <div class="dropdown-actions">
+                      <button onclick="limparGeofencingSelecionados()" class="dropdown-btn-cancel">Limpar</button>
+                      <button onclick="aplicarGeofencingSelecionados()" class="dropdown-btn-apply">Aplicar</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ⚠️ Chip Alarmes (Vermelho) -->
+                <div class="filtro-chip-container" style="position: relative;">
+                  <button type="button" onclick="toggleAlarmesDropdown()" class="filtro-chip filtro-chip-alarmes">
+                    <span class="chip-icon">⚠️</span>
+                    <span id="alarmes-label">Alarmes</span>
+                    <span class="chip-arrow">▾</span>
+                  </button>
+                  <div id="alarmes-dropdown" class="filtro-dropdown">
+                    <div id="alarmes-checkbox-list" class="dropdown-list" style="padding-top: 8px;">
+                      <label class="dropdown-checkbox-item" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;">
+                        <input type="checkbox" id="alarmes-todos" onchange="toggleTodosAlarmes()">
+                        <strong>Todos os tipos</strong>
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="alarme-checkbox" value="excesso_velocidade" onchange="atualizarAlarmesSelecionados()">
+                        <span style="color: #ef4444;">🚨</span> Excesso de Velocidade
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="alarme-checkbox" value="sos" onchange="atualizarAlarmesSelecionados()">
+                        <span style="color: #dc2626;">🆘</span> SOS / Pânico
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="alarme-checkbox" value="bateria_baixa" onchange="atualizarAlarmesSelecionados()">
+                        <span style="color: #f59e0b;">🔋</span> Bateria Baixa
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="alarme-checkbox" value="desconexao" onchange="atualizarAlarmesSelecionados()">
+                        <span style="color: #6b7280;">📡</span> Desconexão GPS
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="alarme-checkbox" value="geofence_entrada" onchange="atualizarAlarmesSelecionados()">
+                        <span style="color: #22c55e;">📍</span> Entrada em Cerca
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="alarme-checkbox" value="geofence_saida" onchange="atualizarAlarmesSelecionados()">
+                        <span style="color: #ef4444;">📍</span> Saída de Cerca
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="alarme-checkbox" value="ignicao" onchange="atualizarAlarmesSelecionados()">
+                        <span style="color: #3b82f6;">🔑</span> Ignição On/Off
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="alarme-checkbox" value="vibracao" onchange="atualizarAlarmesSelecionados()">
+                        <span style="color: #8b5cf6;">📳</span> Vibração/Impacto
+                      </label>
+                    </div>
+                    <div class="dropdown-actions">
+                      <button onclick="limparAlarmesSelecionados()" class="dropdown-btn-cancel">Limpar</button>
+                      <button onclick="aplicarAlarmesSelecionados()" class="dropdown-btn-apply">Aplicar</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 🚗 Chip Viagens (Índigo) -->
+                <div class="filtro-chip-container" style="position: relative;">
+                  <button type="button" onclick="toggleViagensDropdown()" class="filtro-chip filtro-chip-viagens">
+                    <span class="chip-icon">🚗</span>
+                    <span id="viagens-label">Viagens</span>
+                    <span class="chip-arrow">▾</span>
+                  </button>
+                  <div id="viagens-dropdown" class="filtro-dropdown">
+                    <div class="dropdown-range-container">
+                      <div class="dropdown-range-label">
+                        <span>📏 Distância (km)</span>
+                      </div>
+                      <div class="dropdown-range-inputs">
+                        <input type="number" id="viagem-km-min" class="dropdown-range-input" placeholder="Min" min="0" step="1">
+                        <span class="dropdown-range-separator">até</span>
+                        <input type="number" id="viagem-km-max" class="dropdown-range-input" placeholder="Max" min="0" step="1">
+                      </div>
+                    </div>
+                    <div class="dropdown-range-container">
+                      <div class="dropdown-range-label">
+                        <span>⏱️ Duração (min)</span>
+                      </div>
+                      <div class="dropdown-range-inputs">
+                        <input type="number" id="viagem-duracao-min" class="dropdown-range-input" placeholder="Min" min="0" step="1">
+                        <span class="dropdown-range-separator">até</span>
+                        <input type="number" id="viagem-duracao-max" class="dropdown-range-input" placeholder="Max" min="0" step="1">
+                      </div>
+                    </div>
+                    <div class="dropdown-range-container">
+                      <div class="dropdown-range-label">
+                        <span>🏎️ Vel. Máxima (km/h)</span>
+                      </div>
+                      <div class="dropdown-range-inputs">
+                        <input type="number" id="viagem-velmax-min" class="dropdown-range-input" placeholder="Min" min="0" step="1">
+                        <span class="dropdown-range-separator">até</span>
+                        <input type="number" id="viagem-velmax-max" class="dropdown-range-input" placeholder="Max" min="0" step="1">
+                      </div>
+                    </div>
+                    <div class="dropdown-actions">
+                      <button onclick="limparViagensFiltro()" class="dropdown-btn-cancel">Limpar</button>
+                      <button onclick="aplicarViagensFiltro()" class="dropdown-btn-apply">Aplicar</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 📋 Chip Multas (Rosa) -->
+                <div class="filtro-chip-container" style="position: relative;">
+                  <button type="button" onclick="toggleMultasDropdown()" class="filtro-chip filtro-chip-multas">
+                    <span class="chip-icon">📋</span>
+                    <span id="multas-label">Multas</span>
+                    <span class="chip-arrow">▾</span>
+                  </button>
+                  <div id="multas-dropdown" class="filtro-dropdown">
+                    <div id="multas-checkbox-list" class="dropdown-list" style="padding-top: 8px;">
+                      <label class="dropdown-checkbox-item" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;">
+                        <strong>📊 Status da Multa</strong>
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="multa-status-checkbox" value="pendente" onchange="atualizarMultasSelecionadas()">
+                        <span style="color: #f59e0b;">⏳</span> Pendente
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="multa-status-checkbox" value="paga" onchange="atualizarMultasSelecionadas()">
+                        <span style="color: #22c55e;">✅</span> Paga
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="multa-status-checkbox" value="vencida" onchange="atualizarMultasSelecionadas()">
+                        <span style="color: #ef4444;">❌</span> Vencida
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="multa-status-checkbox" value="recorrida" onchange="atualizarMultasSelecionadas()">
+                        <span style="color: #3b82f6;">📝</span> Recorrida
+                      </label>
+                      <label class="dropdown-checkbox-item" style="border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px;">
+                        <strong>⚖️ Gravidade</strong>
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="multa-gravidade-checkbox" value="leve" onchange="atualizarMultasSelecionadas()">
+                        <span style="color: #22c55e;">●</span> Leve (3 pts)
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="multa-gravidade-checkbox" value="media" onchange="atualizarMultasSelecionadas()">
+                        <span style="color: #f59e0b;">●</span> Média (4 pts)
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="multa-gravidade-checkbox" value="grave" onchange="atualizarMultasSelecionadas()">
+                        <span style="color: #f97316;">●</span> Grave (5 pts)
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="multa-gravidade-checkbox" value="gravissima" onchange="atualizarMultasSelecionadas()">
+                        <span style="color: #ef4444;">●</span> Gravíssima (7 pts)
+                      </label>
+                    </div>
+                    <div class="dropdown-actions">
+                      <button onclick="limparMultasFiltro()" class="dropdown-btn-cancel">Limpar</button>
+                      <button onclick="aplicarMultasFiltro()" class="dropdown-btn-apply">Aplicar</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ⚡ Chip Velocidade (Âmbar) -->
+                <div class="filtro-chip-container" style="position: relative;">
+                  <button type="button" onclick="toggleVelocidadeDropdown()" class="filtro-chip filtro-chip-velocidade">
+                    <span class="chip-icon">⚡</span>
+                    <span id="velocidade-label">Velocidade</span>
+                    <span class="chip-arrow">▾</span>
+                  </button>
+                  <div id="velocidade-dropdown" class="filtro-dropdown">
+                    <div class="dropdown-range-container">
+                      <div class="dropdown-range-label">
+                        <span>🏎️ Faixa de Velocidade (km/h)</span>
+                      </div>
+                      <div class="dropdown-range-inputs">
+                        <input type="number" id="vel-filtro-min" class="dropdown-range-input" placeholder="Min" min="0" step="5">
+                        <span class="dropdown-range-separator">até</span>
+                        <input type="number" id="vel-filtro-max" class="dropdown-range-input" placeholder="Max" min="0" step="5">
+                      </div>
+                    </div>
+                    <div id="velocidade-checkbox-list" class="dropdown-list" style="padding-top: 8px; border-top: 1px solid var(--border);">
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" id="vel-apenas-excessos" onchange="atualizarVelocidadeFiltro()">
+                        <span style="color: #ef4444;">🚨</span> Apenas Excessos de Velocidade
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" id="vel-acima-80" onchange="atualizarVelocidadeFiltro()">
+                        <span style="color: #f59e0b;">⚠️</span> Acima de 80 km/h
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" id="vel-acima-100" onchange="atualizarVelocidadeFiltro()">
+                        <span style="color: #ef4444;">🔥</span> Acima de 100 km/h
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" id="vel-acima-120" onchange="atualizarVelocidadeFiltro()">
+                        <span style="color: #dc2626;">💨</span> Acima de 120 km/h
+                      </label>
+                    </div>
+                    <div class="dropdown-actions">
+                      <button onclick="limparVelocidadeFiltro()" class="dropdown-btn-cancel">Limpar</button>
+                      <button onclick="aplicarVelocidadeFiltro()" class="dropdown-btn-apply">Aplicar</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 📊 Chip Performance (Esmeralda) -->
+                <div class="filtro-chip-container" style="position: relative;">
+                  <button type="button" onclick="togglePerformanceDropdown()" class="filtro-chip filtro-chip-performance">
+                    <span class="chip-icon">📊</span>
+                    <span id="performance-label">Performance</span>
+                    <span class="chip-arrow">▾</span>
+                  </button>
+                  <div id="performance-dropdown" class="filtro-dropdown">
+                    <div class="dropdown-range-container">
+                      <div class="dropdown-range-label">
+                        <span>⭐ Score de Condução (0-100)</span>
+                      </div>
+                      <div class="dropdown-range-inputs">
+                        <input type="number" id="score-min" class="dropdown-range-input" placeholder="Min" min="0" max="100" step="5">
+                        <span class="dropdown-range-separator">até</span>
+                        <input type="number" id="score-max" class="dropdown-range-input" placeholder="Max" min="0" max="100" step="5">
+                      </div>
+                    </div>
+                    <div class="dropdown-range-container">
+                      <div class="dropdown-range-label">
+                        <span>🚨 Máx. Excessos de Velocidade</span>
+                      </div>
+                      <div class="dropdown-range-inputs">
+                        <input type="number" id="excessos-max" class="dropdown-range-input" placeholder="Máx" min="0" step="1" style="width: 100px;">
+                        <span style="font-size: 11px; color: var(--text-muted);">ocorrências</span>
+                      </div>
+                    </div>
+                    <div class="dropdown-range-container">
+                      <div class="dropdown-range-label">
+                        <span>⏱️ Tempo Ocioso Máximo</span>
+                      </div>
+                      <div class="dropdown-range-inputs">
+                        <input type="number" id="ocioso-max" class="dropdown-range-input" placeholder="Máx" min="0" step="5" style="width: 100px;">
+                        <span style="font-size: 11px; color: var(--text-muted);">minutos</span>
+                      </div>
+                    </div>
+                    <div class="dropdown-range-container">
+                      <div class="dropdown-range-label">
+                        <span>📏 Km Mínimo Rodado</span>
+                      </div>
+                      <div class="dropdown-range-inputs">
+                        <input type="number" id="km-min-rodado" class="dropdown-range-input" placeholder="Min" min="0" step="10" style="width: 100px;">
+                        <span style="font-size: 11px; color: var(--text-muted);">km</span>
+                      </div>
+                    </div>
+                    <div class="dropdown-actions">
+                      <button onclick="limparPerformanceFiltro()" class="dropdown-btn-cancel">Limpar</button>
+                      <button onclick="aplicarPerformanceFiltro()" class="dropdown-btn-apply">Aplicar</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -19575,6 +19970,18 @@
     let statusCheckboxSelecionados = new Set();
     let motoristasCheckboxSelecionados = new Set();
 
+    // 🎯 Filtros Avançados
+    let geofencesCache = [];
+    let geofencesSelecionados = new Set();
+    let alarmesSelecionados = new Set();
+    let multasStatusSelecionados = new Set();
+    let multasGravidadeSelecionados = new Set();
+
+    // Filtros de range (viagens, velocidade, performance)
+    let filtrosViagem = { kmMin: null, kmMax: null, duracaoMin: null, duracaoMax: null, velMaxMin: null, velMaxMax: null };
+    let filtrosVelocidade = { min: null, max: null, apenasExcessos: false, acima80: false, acima100: false, acima120: false };
+    let filtrosPerformance = { scoreMin: null, scoreMax: null, excessosMax: null, ociosoMax: null, kmMinRodado: null };
+
     // Buscar relatórios (chamado pelo botão "Buscar")
     async function buscarRelatorios() {
       try {
@@ -19755,7 +20162,7 @@
     }
 
     function closeAllDropdowns(except = null) {
-      ['tags-dropdown', 'status-dropdown', 'tipo-dropdown', 'veiculos-dropdown', 'motoristas-dropdown', 'modulos-dropdown', 'export-dropdown', 'colunas-dropdown'].forEach(id => {
+      ['tags-dropdown', 'status-dropdown', 'tipo-dropdown', 'veiculos-dropdown', 'motoristas-dropdown', 'modulos-dropdown', 'export-dropdown', 'colunas-dropdown', 'geofencing-dropdown', 'alarmes-dropdown', 'viagens-dropdown', 'multas-dropdown', 'velocidade-dropdown', 'performance-dropdown'].forEach(id => {
         if (id !== except) {
           const el = document.getElementById(id);
           if (el) el.style.display = 'none';
@@ -19765,7 +20172,7 @@
 
     // Fechar dropdowns ao clicar fora
     document.addEventListener('click', (e) => {
-      const isDropdownClick = e.target.closest('#tags-dropdown, #status-dropdown, #tipo-dropdown, #veiculos-dropdown, #motoristas-dropdown, #modulos-dropdown, #export-dropdown, #colunas-dropdown, [onclick*="toggle"]');
+      const isDropdownClick = e.target.closest('#tags-dropdown, #status-dropdown, #tipo-dropdown, #veiculos-dropdown, #motoristas-dropdown, #modulos-dropdown, #export-dropdown, #colunas-dropdown, #geofencing-dropdown, #alarmes-dropdown, #viagens-dropdown, #multas-dropdown, #velocidade-dropdown, #performance-dropdown, [onclick*="toggle"]');
       if (!isDropdownClick) {
         closeAllDropdowns();
       }
@@ -19977,6 +20384,55 @@
       // Limpar busca geral
       const buscaGeral = document.getElementById('rel-busca-geral');
       if (buscaGeral) buscaGeral.value = '';
+
+      // 🎯 Limpar filtros avançados
+
+      // Geofencing
+      document.querySelectorAll('.geofence-checkbox').forEach(cb => cb.checked = false);
+      geofencesSelecionados.clear();
+      document.getElementById('geofencing-label').textContent = 'Cercas';
+
+      // Alarmes
+      document.querySelectorAll('.alarme-checkbox').forEach(cb => cb.checked = false);
+      const todoAlarmes = document.getElementById('alarmes-todos');
+      if (todoAlarmes) todoAlarmes.checked = false;
+      alarmesSelecionados.clear();
+      document.getElementById('alarmes-label').textContent = 'Alarmes';
+
+      // Viagens
+      document.getElementById('viagem-km-min').value = '';
+      document.getElementById('viagem-km-max').value = '';
+      document.getElementById('viagem-duracao-min').value = '';
+      document.getElementById('viagem-duracao-max').value = '';
+      document.getElementById('viagem-velmax-min').value = '';
+      document.getElementById('viagem-velmax-max').value = '';
+      filtrosViagem = { kmMin: null, kmMax: null, duracaoMin: null, duracaoMax: null, velMaxMin: null, velMaxMax: null };
+      document.getElementById('viagens-label').textContent = 'Viagens';
+
+      // Multas
+      document.querySelectorAll('.multa-status-checkbox, .multa-gravidade-checkbox').forEach(cb => cb.checked = false);
+      multasStatusSelecionados.clear();
+      multasGravidadeSelecionados.clear();
+      document.getElementById('multas-label').textContent = 'Multas';
+
+      // Velocidade
+      document.getElementById('vel-filtro-min').value = '';
+      document.getElementById('vel-filtro-max').value = '';
+      document.getElementById('vel-apenas-excessos').checked = false;
+      document.getElementById('vel-acima-80').checked = false;
+      document.getElementById('vel-acima-100').checked = false;
+      document.getElementById('vel-acima-120').checked = false;
+      filtrosVelocidade = { min: null, max: null, apenasExcessos: false, acima80: false, acima100: false, acima120: false };
+      document.getElementById('velocidade-label').textContent = 'Velocidade';
+
+      // Performance
+      document.getElementById('score-min').value = '';
+      document.getElementById('score-max').value = '';
+      document.getElementById('excessos-max').value = '';
+      document.getElementById('ocioso-max').value = '';
+      document.getElementById('km-min-rodado').value = '';
+      filtrosPerformance = { scoreMin: null, scoreMax: null, excessosMax: null, ociosoMax: null, kmMinRodado: null };
+      document.getElementById('performance-label').textContent = 'Performance';
 
       // Fechar todos os dropdowns
       closeAllDropdowns();
@@ -20265,6 +20721,343 @@
       return Array.from(modulosSelecionados);
     }
     window.getModulosSelecionados = getModulosSelecionados;
+
+    // ============ 📍 GEOFENCING DROPDOWN ============
+
+    async function carregarGeofences() {
+      try {
+        const response = await authFetch(`${API_URL}/geofencing`);
+        if (response.ok) {
+          const data = await response.json();
+          geofencesCache = data.dados || [];
+          renderizarGeofencesDropdown();
+        }
+      } catch (e) {
+        console.error('[Geofencing] Erro ao carregar:', e);
+      }
+    }
+
+    function renderizarGeofencesDropdown() {
+      const container = document.getElementById('geofencing-checkbox-list');
+      if (geofencesCache.length === 0) {
+        container.innerHTML = '<div class="dropdown-empty">Nenhuma cerca cadastrada</div>';
+        return;
+      }
+
+      container.innerHTML = geofencesCache.map(g => `
+        <label class="dropdown-checkbox-item" data-nome="${g.nome.toLowerCase()}">
+          <input type="checkbox" class="geofence-checkbox" value="${g.id}" onchange="atualizarGeofencingSelecionados()">
+          <span style="color: ${g.cor || '#eab308'};">📍</span>
+          ${escapeHtml(g.nome)}
+          <span style="font-size: 10px; color: var(--text-muted); margin-left: auto;">${g.raio_metros}m</span>
+        </label>
+      `).join('');
+    }
+
+    function toggleGeofencingDropdown() {
+      closeAllDropdowns('geofencing-dropdown');
+      const dropdown = document.getElementById('geofencing-dropdown');
+      const isVisible = dropdown.style.display === 'block';
+      dropdown.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible && geofencesCache.length === 0) {
+        carregarGeofences();
+      }
+    }
+    window.toggleGeofencingDropdown = toggleGeofencingDropdown;
+
+    function filtrarGeofencingDropdown() {
+      const busca = document.getElementById('geofencing-search').value.toLowerCase();
+      document.querySelectorAll('#geofencing-checkbox-list .dropdown-checkbox-item').forEach(item => {
+        const nome = item.dataset.nome || '';
+        item.style.display = nome.includes(busca) ? '' : 'none';
+      });
+    }
+    window.filtrarGeofencingDropdown = filtrarGeofencingDropdown;
+
+    function atualizarGeofencingSelecionados() {
+      geofencesSelecionados.clear();
+      document.querySelectorAll('.geofence-checkbox:checked').forEach(cb => {
+        geofencesSelecionados.add(parseInt(cb.value));
+      });
+    }
+
+    function limparGeofencingSelecionados() {
+      document.querySelectorAll('.geofence-checkbox').forEach(cb => cb.checked = false);
+      geofencesSelecionados.clear();
+      document.getElementById('geofencing-label').textContent = 'Cercas';
+      document.getElementById('geofencing-dropdown').style.display = 'none';
+    }
+    window.limparGeofencingSelecionados = limparGeofencingSelecionados;
+
+    function aplicarGeofencingSelecionados() {
+      atualizarGeofencingSelecionados();
+      const count = geofencesSelecionados.size;
+      const label = document.getElementById('geofencing-label');
+      if (count === 0) {
+        label.textContent = 'Cercas';
+      } else if (count === 1) {
+        const cb = document.querySelector('.geofence-checkbox:checked');
+        const nome = cb?.parentElement?.textContent?.trim()?.split('\n')[0] || '1 cerca';
+        label.textContent = nome.substring(0, 15);
+      } else {
+        label.textContent = `${count} cercas`;
+      }
+      document.getElementById('geofencing-dropdown').style.display = 'none';
+    }
+    window.aplicarGeofencingSelecionados = aplicarGeofencingSelecionados;
+
+    // ============ ⚠️ ALARMES DROPDOWN ============
+
+    function toggleAlarmesDropdown() {
+      closeAllDropdowns('alarmes-dropdown');
+      const dropdown = document.getElementById('alarmes-dropdown');
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    }
+    window.toggleAlarmesDropdown = toggleAlarmesDropdown;
+
+    function toggleTodosAlarmes() {
+      const todosCheckbox = document.getElementById('alarmes-todos');
+      document.querySelectorAll('.alarme-checkbox').forEach(cb => cb.checked = todosCheckbox.checked);
+      atualizarAlarmesSelecionados();
+    }
+    window.toggleTodosAlarmes = toggleTodosAlarmes;
+
+    function atualizarAlarmesSelecionados() {
+      alarmesSelecionados.clear();
+      document.querySelectorAll('.alarme-checkbox:checked').forEach(cb => {
+        alarmesSelecionados.add(cb.value);
+      });
+      const todosCheckbox = document.getElementById('alarmes-todos');
+      const total = document.querySelectorAll('.alarme-checkbox').length;
+      if (todosCheckbox) todosCheckbox.checked = alarmesSelecionados.size === total;
+    }
+
+    function limparAlarmesSelecionados() {
+      document.querySelectorAll('.alarme-checkbox').forEach(cb => cb.checked = false);
+      const todosCb = document.getElementById('alarmes-todos');
+      if (todosCb) todosCb.checked = false;
+      alarmesSelecionados.clear();
+      document.getElementById('alarmes-label').textContent = 'Alarmes';
+      document.getElementById('alarmes-dropdown').style.display = 'none';
+    }
+    window.limparAlarmesSelecionados = limparAlarmesSelecionados;
+
+    function aplicarAlarmesSelecionados() {
+      atualizarAlarmesSelecionados();
+      const count = alarmesSelecionados.size;
+      const label = document.getElementById('alarmes-label');
+      if (count === 0) {
+        label.textContent = 'Alarmes';
+      } else {
+        label.textContent = `${count} tipo${count > 1 ? 's' : ''}`;
+      }
+      document.getElementById('alarmes-dropdown').style.display = 'none';
+    }
+    window.aplicarAlarmesSelecionados = aplicarAlarmesSelecionados;
+
+    // ============ 🚗 VIAGENS DROPDOWN ============
+
+    function toggleViagensDropdown() {
+      closeAllDropdowns('viagens-dropdown');
+      const dropdown = document.getElementById('viagens-dropdown');
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    }
+    window.toggleViagensDropdown = toggleViagensDropdown;
+
+    function limparViagensFiltro() {
+      document.getElementById('viagem-km-min').value = '';
+      document.getElementById('viagem-km-max').value = '';
+      document.getElementById('viagem-duracao-min').value = '';
+      document.getElementById('viagem-duracao-max').value = '';
+      document.getElementById('viagem-velmax-min').value = '';
+      document.getElementById('viagem-velmax-max').value = '';
+      filtrosViagem = { kmMin: null, kmMax: null, duracaoMin: null, duracaoMax: null, velMaxMin: null, velMaxMax: null };
+      document.getElementById('viagens-label').textContent = 'Viagens';
+      document.getElementById('viagens-dropdown').style.display = 'none';
+    }
+    window.limparViagensFiltro = limparViagensFiltro;
+
+    function aplicarViagensFiltro() {
+      filtrosViagem = {
+        kmMin: parseFloat(document.getElementById('viagem-km-min').value) || null,
+        kmMax: parseFloat(document.getElementById('viagem-km-max').value) || null,
+        duracaoMin: parseFloat(document.getElementById('viagem-duracao-min').value) || null,
+        duracaoMax: parseFloat(document.getElementById('viagem-duracao-max').value) || null,
+        velMaxMin: parseFloat(document.getElementById('viagem-velmax-min').value) || null,
+        velMaxMax: parseFloat(document.getElementById('viagem-velmax-max').value) || null
+      };
+
+      const label = document.getElementById('viagens-label');
+      const filtrosAtivos = Object.values(filtrosViagem).filter(v => v !== null).length;
+      if (filtrosAtivos === 0) {
+        label.textContent = 'Viagens';
+      } else {
+        label.textContent = `${filtrosAtivos} filtro${filtrosAtivos > 1 ? 's' : ''}`;
+      }
+      document.getElementById('viagens-dropdown').style.display = 'none';
+    }
+    window.aplicarViagensFiltro = aplicarViagensFiltro;
+
+    // ============ 📋 MULTAS DROPDOWN ============
+
+    function toggleMultasDropdown() {
+      closeAllDropdowns('multas-dropdown');
+      const dropdown = document.getElementById('multas-dropdown');
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    }
+    window.toggleMultasDropdown = toggleMultasDropdown;
+
+    function atualizarMultasSelecionadas() {
+      multasStatusSelecionados.clear();
+      multasGravidadeSelecionados.clear();
+      document.querySelectorAll('.multa-status-checkbox:checked').forEach(cb => {
+        multasStatusSelecionados.add(cb.value);
+      });
+      document.querySelectorAll('.multa-gravidade-checkbox:checked').forEach(cb => {
+        multasGravidadeSelecionados.add(cb.value);
+      });
+    }
+
+    function limparMultasFiltro() {
+      document.querySelectorAll('.multa-status-checkbox, .multa-gravidade-checkbox').forEach(cb => cb.checked = false);
+      multasStatusSelecionados.clear();
+      multasGravidadeSelecionados.clear();
+      document.getElementById('multas-label').textContent = 'Multas';
+      document.getElementById('multas-dropdown').style.display = 'none';
+    }
+    window.limparMultasFiltro = limparMultasFiltro;
+
+    function aplicarMultasFiltro() {
+      atualizarMultasSelecionadas();
+      const count = multasStatusSelecionados.size + multasGravidadeSelecionados.size;
+      const label = document.getElementById('multas-label');
+      if (count === 0) {
+        label.textContent = 'Multas';
+      } else {
+        label.textContent = `${count} filtro${count > 1 ? 's' : ''}`;
+      }
+      document.getElementById('multas-dropdown').style.display = 'none';
+    }
+    window.aplicarMultasFiltro = aplicarMultasFiltro;
+
+    // ============ ⚡ VELOCIDADE DROPDOWN ============
+
+    function toggleVelocidadeDropdown() {
+      closeAllDropdowns('velocidade-dropdown');
+      const dropdown = document.getElementById('velocidade-dropdown');
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    }
+    window.toggleVelocidadeDropdown = toggleVelocidadeDropdown;
+
+    function atualizarVelocidadeFiltro() {
+      // Só atualiza os checkboxes
+    }
+
+    function limparVelocidadeFiltro() {
+      document.getElementById('vel-filtro-min').value = '';
+      document.getElementById('vel-filtro-max').value = '';
+      document.getElementById('vel-apenas-excessos').checked = false;
+      document.getElementById('vel-acima-80').checked = false;
+      document.getElementById('vel-acima-100').checked = false;
+      document.getElementById('vel-acima-120').checked = false;
+      filtrosVelocidade = { min: null, max: null, apenasExcessos: false, acima80: false, acima100: false, acima120: false };
+      document.getElementById('velocidade-label').textContent = 'Velocidade';
+      document.getElementById('velocidade-dropdown').style.display = 'none';
+    }
+    window.limparVelocidadeFiltro = limparVelocidadeFiltro;
+
+    function aplicarVelocidadeFiltro() {
+      filtrosVelocidade = {
+        min: parseFloat(document.getElementById('vel-filtro-min').value) || null,
+        max: parseFloat(document.getElementById('vel-filtro-max').value) || null,
+        apenasExcessos: document.getElementById('vel-apenas-excessos').checked,
+        acima80: document.getElementById('vel-acima-80').checked,
+        acima100: document.getElementById('vel-acima-100').checked,
+        acima120: document.getElementById('vel-acima-120').checked
+      };
+
+      const label = document.getElementById('velocidade-label');
+      const filtrosAtivos = [
+        filtrosVelocidade.min !== null,
+        filtrosVelocidade.max !== null,
+        filtrosVelocidade.apenasExcessos,
+        filtrosVelocidade.acima80,
+        filtrosVelocidade.acima100,
+        filtrosVelocidade.acima120
+      ].filter(Boolean).length;
+
+      if (filtrosAtivos === 0) {
+        label.textContent = 'Velocidade';
+      } else if (filtrosVelocidade.apenasExcessos) {
+        label.textContent = 'Só Excessos';
+      } else if (filtrosVelocidade.min && filtrosVelocidade.max) {
+        label.textContent = `${filtrosVelocidade.min}-${filtrosVelocidade.max}`;
+      } else {
+        label.textContent = `${filtrosAtivos} filtro${filtrosAtivos > 1 ? 's' : ''}`;
+      }
+      document.getElementById('velocidade-dropdown').style.display = 'none';
+    }
+    window.aplicarVelocidadeFiltro = aplicarVelocidadeFiltro;
+
+    // ============ 📊 PERFORMANCE DROPDOWN ============
+
+    function togglePerformanceDropdown() {
+      closeAllDropdowns('performance-dropdown');
+      const dropdown = document.getElementById('performance-dropdown');
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    }
+    window.togglePerformanceDropdown = togglePerformanceDropdown;
+
+    function limparPerformanceFiltro() {
+      document.getElementById('score-min').value = '';
+      document.getElementById('score-max').value = '';
+      document.getElementById('excessos-max').value = '';
+      document.getElementById('ocioso-max').value = '';
+      document.getElementById('km-min-rodado').value = '';
+      filtrosPerformance = { scoreMin: null, scoreMax: null, excessosMax: null, ociosoMax: null, kmMinRodado: null };
+      document.getElementById('performance-label').textContent = 'Performance';
+      document.getElementById('performance-dropdown').style.display = 'none';
+    }
+    window.limparPerformanceFiltro = limparPerformanceFiltro;
+
+    function aplicarPerformanceFiltro() {
+      filtrosPerformance = {
+        scoreMin: parseFloat(document.getElementById('score-min').value) || null,
+        scoreMax: parseFloat(document.getElementById('score-max').value) || null,
+        excessosMax: parseInt(document.getElementById('excessos-max').value) || null,
+        ociosoMax: parseInt(document.getElementById('ocioso-max').value) || null,
+        kmMinRodado: parseFloat(document.getElementById('km-min-rodado').value) || null
+      };
+
+      const label = document.getElementById('performance-label');
+      const filtrosAtivos = Object.values(filtrosPerformance).filter(v => v !== null).length;
+      if (filtrosAtivos === 0) {
+        label.textContent = 'Performance';
+      } else if (filtrosPerformance.scoreMin && filtrosPerformance.scoreMax) {
+        label.textContent = `Score ${filtrosPerformance.scoreMin}-${filtrosPerformance.scoreMax}`;
+      } else {
+        label.textContent = `${filtrosAtivos} filtro${filtrosAtivos > 1 ? 's' : ''}`;
+      }
+      document.getElementById('performance-dropdown').style.display = 'none';
+    }
+    window.aplicarPerformanceFiltro = aplicarPerformanceFiltro;
+
+    // ============ HELPER: Obter todos os filtros avançados ============
+
+    function getFiltrosAvancados() {
+      return {
+        geofences: Array.from(geofencesSelecionados),
+        alarmes: Array.from(alarmesSelecionados),
+        viagem: filtrosViagem,
+        multas: {
+          status: Array.from(multasStatusSelecionados),
+          gravidade: Array.from(multasGravidadeSelecionados)
+        },
+        velocidade: filtrosVelocidade,
+        performance: filtrosPerformance
+      };
+    }
+    window.getFiltrosAvancados = getFiltrosAvancados;
 
     // ============ FIM MODULOS DROPDOWN ============
 
@@ -21041,6 +21834,50 @@
         if (statusFiltro && statusFiltro !== 'todos') {
           params.set('statusFiltro', statusFiltro);
         }
+
+        // 🎯 Adicionar filtros avançados
+        const filtrosAv = getFiltrosAvancados();
+
+        // 📍 Geofencing
+        if (filtrosAv.geofences.length > 0) {
+          params.set('geofenceIds', filtrosAv.geofences.join(','));
+        }
+
+        // ⚠️ Alarmes
+        if (filtrosAv.alarmes.length > 0) {
+          params.set('tiposAlarme', filtrosAv.alarmes.join(','));
+        }
+
+        // 🚗 Viagens
+        if (filtrosAv.viagem.kmMin) params.set('viagemKmMin', filtrosAv.viagem.kmMin);
+        if (filtrosAv.viagem.kmMax) params.set('viagemKmMax', filtrosAv.viagem.kmMax);
+        if (filtrosAv.viagem.duracaoMin) params.set('viagemDuracaoMin', filtrosAv.viagem.duracaoMin);
+        if (filtrosAv.viagem.duracaoMax) params.set('viagemDuracaoMax', filtrosAv.viagem.duracaoMax);
+        if (filtrosAv.viagem.velMaxMin) params.set('viagemVelMaxMin', filtrosAv.viagem.velMaxMin);
+        if (filtrosAv.viagem.velMaxMax) params.set('viagemVelMaxMax', filtrosAv.viagem.velMaxMax);
+
+        // 📋 Multas
+        if (filtrosAv.multas.status.length > 0) {
+          params.set('multaStatus', filtrosAv.multas.status.join(','));
+        }
+        if (filtrosAv.multas.gravidade.length > 0) {
+          params.set('multaGravidade', filtrosAv.multas.gravidade.join(','));
+        }
+
+        // ⚡ Velocidade
+        if (filtrosAv.velocidade.min) params.set('velMin', filtrosAv.velocidade.min);
+        if (filtrosAv.velocidade.max) params.set('velMax', filtrosAv.velocidade.max);
+        if (filtrosAv.velocidade.apenasExcessos) params.set('soExcessos', 'true');
+        if (filtrosAv.velocidade.acima80) params.set('velAcima80', 'true');
+        if (filtrosAv.velocidade.acima100) params.set('velAcima100', 'true');
+        if (filtrosAv.velocidade.acima120) params.set('velAcima120', 'true');
+
+        // 📊 Performance
+        if (filtrosAv.performance.scoreMin) params.set('scoreMin', filtrosAv.performance.scoreMin);
+        if (filtrosAv.performance.scoreMax) params.set('scoreMax', filtrosAv.performance.scoreMax);
+        if (filtrosAv.performance.excessosMax) params.set('excessosMax', filtrosAv.performance.excessosMax);
+        if (filtrosAv.performance.ociosoMax) params.set('ociosoMax', filtrosAv.performance.ociosoMax);
+        if (filtrosAv.performance.kmMinRodado) params.set('kmMinRodado', filtrosAv.performance.kmMinRodado);
 
         switch (tipoRelatorio) {
           case 'velocidade':
