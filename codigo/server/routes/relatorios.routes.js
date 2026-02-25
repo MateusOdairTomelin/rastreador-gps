@@ -1268,7 +1268,8 @@ router.get('/frota', async (req, res) => {
           latitude: true,
           longitude: true,
           velocidade: true,
-          ignicao: true
+          ignicao: true,
+          estado_ignicao: true
         },
         orderBy: { timestamp: 'asc' },
         take: limiteRegistros
@@ -1311,9 +1312,27 @@ router.get('/frota', async (req, res) => {
           if (loc.velocidade > LIMITE_EXCESSO_PADRAO) {
             excessosVelocidade++;
           }
-        } else if (loc.ignicao === true) {
-          // Parado com motor ligado = ocioso
-          tempoOcioso += tempoMinutos;
+        } else {
+          // Parado - verificar se é ocioso ou desligado
+          let motorLigado = false;
+
+          if (loc.ignicao === true || loc.estado_ignicao === 'idle') {
+            // Ignição ligada ou estado idle = ocioso
+            motorLigado = true;
+          } else if (dispositivo.tipo === 'XT40_OBD2' || dispositivo.tipo === 'XT40_4F') {
+            // Fallback para dispositivos com ignição não confiável:
+            // Se houve movimento recente (últimos 30 pontos = ~5 min), considera ocioso
+            for (let j = i - 1; j >= 0 && j >= i - 30; j--) {
+              if (localizacoes[j].velocidade > 3) {
+                motorLigado = true;
+                break;
+              }
+            }
+          }
+
+          if (motorLigado) {
+            tempoOcioso += tempoMinutos;
+          }
         }
       }
 
