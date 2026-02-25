@@ -32,14 +32,13 @@ const { supportsOBD2 } = require('../constants/device-types');
 
 /**
  * GET /api/exportar/:imei/csv
- * Exporta histórico do veículo em formato CSV
+ * Exporta histórico do veículo em formato CSV MODULAR
  *
  * Query params:
  * - dataInicio: Data inicial (ISO string)
  * - dataFim: Data final (ISO string)
- * - incluirLocalizacoes: boolean (default: true)
- * - incluirOBD2: boolean (default: true)
- * - incluirAlarmes: boolean (default: true)
+ * - modulos: string - lista separada por vírgula dos módulos a incluir
+ *   Valores: resumo, score, consumo, kmDia, excessos, paradas, viagens, obd2, alarmes, localizacoes
  * - corrigido: boolean (default: true) - usar dados corrigidos pelo OSRM
  * - estado: string - filtrar por estado (movimento, ocioso, parado, ligado)
  * - velMin: number - velocidade mínima
@@ -54,6 +53,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     const {
       dataInicio,
       dataFim,
+      modulos = 'resumo,score,consumo,kmDia,excessos,paradas,viagens,obd2,alarmes,localizacoes', // Padrão: todos
       incluirLocalizacoes = 'true',
       incluirOBD2 = 'true',
       incluirAlarmes = 'true',
@@ -64,6 +64,12 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       soExcessos = 'false',
       tipoAlarme = ''
     } = req.query;
+
+    // Parsear módulos selecionados
+    const modulosSelecionados = modulos.split(',').map(m => m.trim().toLowerCase());
+    const temModulo = (nome) => modulosSelecionados.includes(nome.toLowerCase());
+
+    console.log('[CSV Modular] Módulos selecionados:', modulosSelecionados);
 
     // Converter filtros numéricos
     const velocidadeMin = velMin ? parseFloat(velMin) : null;
@@ -175,8 +181,10 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       return null;
     };
 
-    // ============ LOCALIZAÇÕES ============
-    if (incluirLocalizacoes === 'true') {
+    // ============ MÓDULO: LOCALIZAÇÕES ============
+    // Localizações são necessárias para vários módulos (resumo, excessos, paradas, etc)
+    const precisaLocalizacoes = temModulo('localizacoes') || temModulo('resumo') || temModulo('excessos') || temModulo('paradas');
+    if (precisaLocalizacoes) {
       let localizacoes = await prisma.localizacao.findMany({
         where: {
           dispositivo_id: dispositivo.id,
@@ -269,7 +277,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
           return true;
         });
 
-        if (localizacoesFiltradas.length > 0) {
+        if (localizacoesFiltradas.length > 0 && temModulo('localizacoes')) {
           csvContent += '=== LOCALIZAÇÕES ===\n';
           csvContent += 'Data/Hora,Estado,Latitude,Longitude,Velocidade (km/h),Limite Via,Nome Via,Excesso (km/h),Dist. Anterior (m),Tempo Anterior,Direção,Corrigido\n';
 
@@ -439,10 +447,10 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       }
     }
 
-    // ============ DADOS OBD2 ============
+    // ============ MÓDULO: DADOS OBD2 ============
     // ✅ Só inclui OBD2 se o dispositivo SUPORTA OBD2 (não inclui para XT40_4F)
     const dispositivoSuportaOBD2 = supportsOBD2(dispositivo.tipo);
-    if (incluirOBD2 === 'true' && dispositivoSuportaOBD2) {
+    if (temModulo('obd2') && dispositivoSuportaOBD2) {
       const dadosOBD2 = await prisma.dadosOBD2.findMany({
         where: {
           dispositivo_id: dispositivo.id,
@@ -539,8 +547,8 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       }
     }
 
-    // ============ ALARMES ============
-    if (incluirAlarmes === 'true') {
+    // ============ MÓDULO: ALARMES ============
+    if (temModulo('alarmes')) {
       // Construir filtro de tipo de alarme
       const whereAlarme = {
         dispositivo_id: dispositivo.id,
@@ -796,9 +804,11 @@ ${Array.from(kmPorDiaCSV.entries()).map(([dia, km]) => `${dia}: ${km.toFixed(2)}
 
 /**
  * GET /api/exportar/:imei/pdf
- * Exporta histórico do veículo em formato PDF
+ * Exporta histórico do veículo em formato PDF MODULAR
  *
  * Query params:
+ * - modulos: string - lista separada por vírgula dos módulos a incluir
+ *   Valores: resumo, score, consumo, kmDia, excessos, paradas, viagens, obd2, alarmes, localizacoes
  * - corrigido: boolean (default: true) - usar dados corrigidos pelo OSRM
  * - estado: string - filtrar por estado (movimento, ocioso, parado, ligado)
  * - velMin: number - velocidade mínima
@@ -813,6 +823,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     const {
       dataInicio,
       dataFim,
+      modulos = 'resumo,score,consumo,kmDia,excessos,paradas,viagens,obd2,alarmes', // Padrão: todos menos localizacoes
       incluirLocalizacoes = 'true',
       incluirOBD2 = 'true',
       incluirAlarmes = 'true',
@@ -824,6 +835,12 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       soExcessos = 'false',
       tipoAlarme = ''
     } = req.query;
+
+    // Parsear módulos selecionados
+    const modulosSelecionados = modulos.split(',').map(m => m.trim().toLowerCase());
+    const temModulo = (nome) => modulosSelecionados.includes(nome.toLowerCase());
+
+    console.log('[PDF Modular] Módulos selecionados:', modulosSelecionados);
 
     // Converter filtros numéricos
     const velocidadeMin = velMin ? parseFloat(velMin) : null;
@@ -1027,8 +1044,11 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     doc.moveDown();
 
     // ============ ESTATÍSTICAS ============
-    console.log(`[PDF] incluirEstatisticas=${incluirEstatisticas}`);
-    if (incluirEstatisticas === 'true') {
+    // Módulos: resumo, score, consumo, kmDia, excessos, paradas
+    const precisaEstatisticas = temModulo('resumo') || temModulo('score') || temModulo('consumo') ||
+                                 temModulo('kmdia') || temModulo('excessos') || temModulo('paradas');
+    console.log(`[PDF] precisaEstatisticas=${precisaEstatisticas}, modulos:`, modulosSelecionados);
+    if (precisaEstatisticas) {
       console.log('[PDF] Buscando dados para estatísticas...');
       // Buscar dados para estatísticas
       let localizacoes = await prisma.localizacao.findMany({
@@ -1270,48 +1290,51 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         return `${mins} min`;
       };
 
-      doc.fontSize(12).font('Helvetica-Bold').text('Resumo Estatístico');
-      doc.moveDown(0.3);
+      // ============ MÓDULO: RESUMO ESTATÍSTICO ============
+      if (temModulo('resumo')) {
+        doc.fontSize(12).font('Helvetica-Bold').text('Resumo Estatístico');
+        doc.moveDown(0.3);
 
-      // Box de estatísticas (aumentado para caber mais dados)
-      const statsY = doc.y;
-      doc.rect(50, statsY, 495, 125).fillAndStroke('#f7fafc', '#e2e8f0');
+        // Box de estatísticas (aumentado para caber mais dados)
+        const statsY = doc.y;
+        doc.rect(50, statsY, 495, 125).fillAndStroke('#f7fafc', '#e2e8f0');
 
-      doc.fillColor('#000').fontSize(10).font('Helvetica');
-      // Coluna 1 - Distâncias e Velocidades
-      doc.text(`Distância Total: ${distanciaTotal.toFixed(2)} km`, 60, statsY + 10);
-      doc.text(`Distância em Movimento: ${distanciaMovimento.toFixed(2)} km`, 60, statsY + 25);
-      doc.text(`Velocidade Máxima: ${velocidadeMax} km/h`, 60, statsY + 40);
-      doc.text(`Velocidade Média: ${velocidadeMedia} km/h`, 60, statsY + 55);
-      doc.text(`Limite de Velocidade: Dinâmico por via`, 60, statsY + 70);
+        doc.fillColor('#000').fontSize(10).font('Helvetica');
+        // Coluna 1 - Distâncias e Velocidades
+        doc.text(`Distância Total: ${distanciaTotal.toFixed(2)} km`, 60, statsY + 10);
+        doc.text(`Distância em Movimento: ${distanciaMovimento.toFixed(2)} km`, 60, statsY + 25);
+        doc.text(`Velocidade Máxima: ${velocidadeMax} km/h`, 60, statsY + 40);
+        doc.text(`Velocidade Média: ${velocidadeMedia} km/h`, 60, statsY + 55);
+        doc.text(`Limite de Velocidade: Dinâmico por via`, 60, statsY + 70);
 
-      // Coluna 2 - Tempos e contagens
-      doc.text(`Tempo em Movimento: ${formatarTempo(tempoMovimentoTotal)}`, 300, statsY + 10);
-      doc.text(`Tempo Ocioso: ${formatarTempo(tempoOciosoTotal)}`, 300, statsY + 25);
-      doc.text(`Tempo Parado: ${formatarTempo(tempoParadoTotal)}`, 300, statsY + 40);
-      doc.text(`Posições GPS: ${localizacoes.length}`, 300, statsY + 55);
-      // ✅ Só mostrar Registros OBD2 se o dispositivo suporta OBD2
-      const suportaOBD2PDF = supportsOBD2(dispositivo.tipo);
-      if (suportaOBD2PDF) {
-        doc.text(`Registros OBD2: ${dadosOBD2.length}`, 300, statsY + 70);
+        // Coluna 2 - Tempos e contagens
+        doc.text(`Tempo em Movimento: ${formatarTempo(tempoMovimentoTotal)}`, 300, statsY + 10);
+        doc.text(`Tempo Ocioso: ${formatarTempo(tempoOciosoTotal)}`, 300, statsY + 25);
+        doc.text(`Tempo Parado: ${formatarTempo(tempoParadoTotal)}`, 300, statsY + 40);
+        doc.text(`Posições GPS: ${localizacoes.length}`, 300, statsY + 55);
+        // ✅ Só mostrar Registros OBD2 se o dispositivo suporta OBD2
+        const suportaOBD2PDF = supportsOBD2(dispositivo.tipo);
+        if (suportaOBD2PDF) {
+          doc.text(`Registros OBD2: ${dadosOBD2.length}`, 300, statsY + 70);
+        }
+
+        // Linha de alertas (destaque se houver excessos)
+        if (excessosVelocidade > 0) {
+          doc.fillColor('#c62828').font('Helvetica-Bold');
+          doc.text(`⚠️ Excessos de Velocidade: ${excessosVelocidade} ocorrências`, 60, statsY + 85);
+          doc.fillColor('#000').font('Helvetica');
+        } else {
+          doc.text(`Excessos de Velocidade: 0`, 60, statsY + 85);
+        }
+        doc.text(`Alarmes: ${alarmes.length}`, 300, statsY + 85);
+
+        // Tipo de dispositivo
+        doc.fontSize(8).fillColor('#666');
+        doc.text(`Tipo: ${dispositivo.tipo || 'N/A'}`, 60, statsY + 105);
+
+        doc.y = statsY + 135;
+        doc.moveDown();
       }
-
-      // Linha de alertas (destaque se houver excessos)
-      if (excessosVelocidade > 0) {
-        doc.fillColor('#c62828').font('Helvetica-Bold');
-        doc.text(`⚠️ Excessos de Velocidade: ${excessosVelocidade} ocorrências`, 60, statsY + 85);
-        doc.fillColor('#000').font('Helvetica');
-      } else {
-        doc.text(`Excessos de Velocidade: 0`, 60, statsY + 85);
-      }
-      doc.text(`Alarmes: ${alarmes.length}`, 300, statsY + 85);
-
-      // Tipo de dispositivo
-      doc.fontSize(8).fillColor('#666');
-      doc.text(`Tipo: ${dispositivo.tipo || 'N/A'}`, 60, statsY + 105);
-
-      doc.y = statsY + 135;
-      doc.moveDown();
 
       // ============ RESUMO POR DIA + SCORE DE CONDUÇÃO + CONSUMO ============
       // Calcular km por dia
@@ -1359,54 +1382,65 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       const consumoMedio = 10; // L/100km (média de veículo leve)
       const consumoEstimadoLitros = (distanciaTotal * consumoMedio) / 100;
 
-      // Box de métricas adicionais
-      if (kmPorDia.size > 0 || scoreConducao < 100) {
+      // ============ MÓDULO: MÉTRICAS ADICIONAIS (Score, Consumo, Km/Dia) ============
+      const temMetricasAdicionais = temModulo('score') || temModulo('consumo') || temModulo('kmdia');
+      if (temMetricasAdicionais && (kmPorDia.size > 0 || scoreConducao < 100)) {
         doc.fontSize(11).font('Helvetica-Bold').fillColor('#333').text('Métricas Adicionais');
         doc.moveDown(0.3);
 
         const metricasY = doc.y;
         doc.rect(50, metricasY, 495, 85).fillAndStroke('#f0f7ff', '#667eea');
 
-        // Score de Condução com cor
-        const scoreColor = scoreConducao >= 80 ? '#4caf50' :
-                          scoreConducao >= 60 ? '#ff9800' : '#f44336';
-        const scoreTexto = scoreConducao >= 80 ? 'BOM' :
-                          scoreConducao >= 60 ? 'REGULAR' : 'ATENÇÃO';
+        let xOffset = 60; // Posição inicial
 
-        doc.fontSize(20).font('Helvetica-Bold').fillColor(scoreColor);
-        doc.text(`${scoreConducao}`, 60, metricasY + 8, { width: 80, align: 'center' });
-        doc.fontSize(9).font('Helvetica').fillColor('#333');
-        doc.text(`Score (${scoreTexto})`, 60, metricasY + 32, { width: 80, align: 'center' });
+        // Score de Condução com cor
+        if (temModulo('score')) {
+          const scoreColor = scoreConducao >= 80 ? '#4caf50' :
+                            scoreConducao >= 60 ? '#ff9800' : '#f44336';
+          const scoreTexto = scoreConducao >= 80 ? 'BOM' :
+                            scoreConducao >= 60 ? 'REGULAR' : 'ATENÇÃO';
+
+          doc.fontSize(20).font('Helvetica-Bold').fillColor(scoreColor);
+          doc.text(`${scoreConducao}`, xOffset, metricasY + 8, { width: 80, align: 'center' });
+          doc.fontSize(9).font('Helvetica').fillColor('#333');
+          doc.text(`Score (${scoreTexto})`, xOffset, metricasY + 32, { width: 80, align: 'center' });
+          xOffset += 90;
+        }
 
         // Consumo Estimado
-        doc.fontSize(16).font('Helvetica-Bold').fillColor('#1565c0');
-        doc.text(`${consumoEstimadoLitros.toFixed(1)}L`, 150, metricasY + 8, { width: 80, align: 'center' });
-        doc.fontSize(9).font('Helvetica').fillColor('#333');
-        doc.text('Consumo Est.', 150, metricasY + 32, { width: 80, align: 'center' });
+        if (temModulo('consumo')) {
+          doc.fontSize(16).font('Helvetica-Bold').fillColor('#1565c0');
+          doc.text(`${consumoEstimadoLitros.toFixed(1)}L`, xOffset, metricasY + 8, { width: 80, align: 'center' });
+          doc.fontSize(9).font('Helvetica').fillColor('#333');
+          doc.text('Consumo Est.', xOffset, metricasY + 32, { width: 80, align: 'center' });
+          xOffset += 90;
+        }
 
         // Média diária
-        const diasComMovimento = kmPorDia.size;
-        const mediaDiaria = diasComMovimento > 0 ? distanciaTotal / diasComMovimento : 0;
-        doc.fontSize(16).font('Helvetica-Bold').fillColor('#667eea');
-        doc.text(`${mediaDiaria.toFixed(1)}`, 240, metricasY + 8, { width: 80, align: 'center' });
-        doc.fontSize(9).font('Helvetica').fillColor('#333');
-        doc.text('km/dia (média)', 240, metricasY + 32, { width: 80, align: 'center' });
+        if (temModulo('kmdia')) {
+          const diasComMovimento = kmPorDia.size;
+          const mediaDiaria = diasComMovimento > 0 ? distanciaTotal / diasComMovimento : 0;
+          doc.fontSize(16).font('Helvetica-Bold').fillColor('#667eea');
+          doc.text(`${mediaDiaria.toFixed(1)}`, xOffset, metricasY + 8, { width: 80, align: 'center' });
+          doc.fontSize(9).font('Helvetica').fillColor('#333');
+          doc.text('km/dia (média)', xOffset, metricasY + 32, { width: 80, align: 'center' });
 
-        // Resumo por dia (tabela compacta)
-        if (kmPorDia.size > 0 && kmPorDia.size <= 10) {
-          doc.fontSize(9).font('Helvetica-Bold').fillColor('#333');
-          doc.text('Resumo por Dia:', 340, metricasY + 8);
-          doc.fontSize(7).font('Helvetica').fillColor('#555');
-          let diaY = metricasY + 20;
-          const diasOrdenados = Array.from(kmPorDia.entries()).sort((a, b) =>
-            new Date(a[0].split('/').reverse().join('-')) - new Date(b[0].split('/').reverse().join('-'))
-          );
-          for (const [dia, km] of diasOrdenados.slice(0, 5)) {
-            doc.text(`${dia}: ${km.toFixed(1)} km`, 340, diaY);
-            diaY += 10;
-          }
-          if (diasOrdenados.length > 5) {
-            doc.text(`... +${diasOrdenados.length - 5} dias`, 340, diaY);
+          // Resumo por dia (tabela compacta)
+          if (kmPorDia.size > 0 && kmPorDia.size <= 10) {
+            doc.fontSize(9).font('Helvetica-Bold').fillColor('#333');
+            doc.text('Resumo por Dia:', 340, metricasY + 8);
+            doc.fontSize(7).font('Helvetica').fillColor('#555');
+            let diaY = metricasY + 20;
+            const diasOrdenados = Array.from(kmPorDia.entries()).sort((a, b) =>
+              new Date(a[0].split('/').reverse().join('-')) - new Date(b[0].split('/').reverse().join('-'))
+            );
+            for (const [dia, km] of diasOrdenados.slice(0, 5)) {
+              doc.text(`${dia}: ${km.toFixed(1)} km`, 340, diaY);
+              diaY += 10;
+            }
+            if (diasOrdenados.length > 5) {
+              doc.text(`... +${diasOrdenados.length - 5} dias`, 340, diaY);
+            }
           }
         }
 
@@ -1414,9 +1448,9 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         doc.moveDown(0.5);
       }
 
-      // ============ DETALHAMENTO DOS EXCESSOS DE VELOCIDADE ============
+      // ============ MÓDULO: EXCESSOS DE VELOCIDADE ============
       console.log(`[PDF Excessos] Total de excessos detectados: ${detalhesExcessos ? detalhesExcessos.length : 0}`);
-      if (detalhesExcessos && detalhesExcessos.length > 0) {
+      if (temModulo('excessos') && detalhesExcessos && detalhesExcessos.length > 0) {
         console.log(`[PDF Excessos] Amostra: Via="${detalhesExcessos[0].nomeVia}", Vel=${detalhesExcessos[0].velocidade}, Limite=${detalhesExcessos[0].limite}`);
 
         // Nova página para excessos de velocidade
@@ -1566,9 +1600,9 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         doc.fillColor('#000');
       }
 
-      // ============ PARADAS SIGNIFICATIVAS ============
+      // ============ MÓDULO: PARADAS SIGNIFICATIVAS ============
       console.log(`[PDF Paradas] Total de paradas: ${paradasSignificativas.length}`);
-      if (paradasSignificativas.length > 0) {
+      if (temModulo('paradas') && paradasSignificativas.length > 0) {
         // Buscar nomes das vias para cada parada
         const velocidadeViaService = require('../services/velocidade-via.service');
         for (const parada of paradasSignificativas) {
@@ -1712,6 +1746,136 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         doc.fillColor('#000');
       }
 
+      // ============ MÓDULO: VIAGENS ============
+      if (temModulo('viagens')) {
+        const viagens = await prisma.viagem.findMany({
+          where: {
+            dispositivo_id: dispositivo.id,
+            inicio: { gte: inicio, lte: fim }
+          },
+          include: {
+            motorista: { select: { nome: true, cnh_categoria: true } }
+          },
+          orderBy: { inicio: 'desc' }
+        });
+
+        if (viagens.length > 0) {
+          doc.addPage();
+          doc.rect(0, 0, 595, 50).fill('#4caf50');
+          doc.fontSize(16).font('Helvetica-Bold').fillColor('#fff')
+            .text('REGISTRO DE VIAGENS', 50, 18, { align: 'center', width: 495 });
+          doc.y = 70;
+
+          // Resumo das viagens
+          const resumoViagensY = doc.y;
+          const kmTotalViagens = viagens.reduce((sum, v) => sum + (v.distancia_km || 0), 0);
+          const tempoTotalViagens = viagens.reduce((sum, v) => {
+            if (v.inicio && v.fim) {
+              return sum + (new Date(v.fim) - new Date(v.inicio)) / (1000 * 60);
+            }
+            return sum;
+          }, 0);
+
+          doc.rect(50, resumoViagensY, 160, 50).fillAndStroke('#e8f5e9', '#4caf50');
+          doc.rect(220, resumoViagensY, 160, 50).fillAndStroke('#e3f2fd', '#2196f3');
+          doc.rect(390, resumoViagensY, 155, 50).fillAndStroke('#fff3e0', '#ff9800');
+
+          doc.fillColor('#2e7d32').fontSize(20).font('Helvetica-Bold')
+            .text(viagens.length.toString(), 50, resumoViagensY + 8, { width: 160, align: 'center' });
+          doc.fillColor('#333').fontSize(9).font('Helvetica')
+            .text('Total de Viagens', 50, resumoViagensY + 32, { width: 160, align: 'center' });
+
+          doc.fillColor('#1565c0').fontSize(18).font('Helvetica-Bold')
+            .text(`${kmTotalViagens.toFixed(1)} km`, 220, resumoViagensY + 8, { width: 160, align: 'center' });
+          doc.fillColor('#333').fontSize(9).font('Helvetica')
+            .text('Distância Total', 220, resumoViagensY + 32, { width: 160, align: 'center' });
+
+          doc.fillColor('#e65100').fontSize(18).font('Helvetica-Bold')
+            .text(formatarTempo(tempoTotalViagens), 390, resumoViagensY + 8, { width: 155, align: 'center' });
+          doc.fillColor('#333').fontSize(9).font('Helvetica')
+            .text('Tempo Total', 390, resumoViagensY + 32, { width: 155, align: 'center' });
+
+          doc.y = resumoViagensY + 65;
+
+          // Tabela de viagens
+          doc.fontSize(11).font('Helvetica-Bold').fillColor('#333').text('Detalhamento das Viagens');
+          doc.moveDown(0.3);
+
+          const viagensTableY = doc.y;
+          const viagensColWidths = [30, 70, 70, 50, 55, 80, 100];
+          const viagensHeaders = ['#', 'Início', 'Fim', 'Duração', 'Km', 'Motorista', 'Status'];
+
+          doc.fontSize(7).font('Helvetica-Bold').fillColor('#fff');
+          doc.rect(50, viagensTableY, 495, 13).fill('#4caf50');
+
+          let xPos = 53;
+          viagensHeaders.forEach((header, i) => {
+            doc.text(header, xPos, viagensTableY + 3, { width: viagensColWidths[i], align: 'left' });
+            xPos += viagensColWidths[i];
+          });
+
+          doc.fillColor('#333').font('Helvetica').fontSize(6);
+          let yPos = viagensTableY + 15;
+
+          for (let i = 0; i < Math.min(viagens.length, 50); i++) {
+            const viagem = viagens[i];
+
+            if (yPos > 760) {
+              doc.addPage();
+              yPos = 50;
+              doc.fontSize(7).font('Helvetica-Bold').fillColor('#fff');
+              doc.rect(50, yPos, 495, 13).fill('#4caf50');
+              xPos = 53;
+              viagensHeaders.forEach((header, idx) => {
+                doc.text(header, xPos, yPos + 3, { width: viagensColWidths[idx], align: 'left' });
+                xPos += viagensColWidths[idx];
+              });
+              doc.fillColor('#333').font('Helvetica').fontSize(6);
+              yPos += 15;
+            }
+
+            if (i % 2 === 0) {
+              doc.rect(50, yPos - 1, 495, 11).fill('#f5f5f5');
+            }
+            doc.fillColor('#333');
+
+            const duracao = viagem.inicio && viagem.fim
+              ? formatarTempo((new Date(viagem.fim) - new Date(viagem.inicio)) / (1000 * 60))
+              : 'Em andamento';
+
+            const motoristaViagem = viagem.motorista?.nome || 'N/I';
+            const statusViagem = viagem.fim ? 'Concluída' : 'Em andamento';
+
+            xPos = 53;
+            const viagemRowData = [
+              (i + 1).toString(),
+              formatDateTime(viagem.inicio),
+              viagem.fim ? formatDateTime(viagem.fim) : '-',
+              duracao,
+              `${(viagem.distancia_km || 0).toFixed(1)}`,
+              motoristaViagem.length > 15 ? motoristaViagem.substring(0, 12) + '...' : motoristaViagem,
+              statusViagem
+            ];
+
+            viagemRowData.forEach((data, idx) => {
+              doc.text(data, xPos, yPos + 1, { width: viagensColWidths[idx], align: 'left' });
+              xPos += viagensColWidths[idx];
+            });
+
+            yPos += 11;
+          }
+
+          if (viagens.length > 50) {
+            doc.moveDown(0.5);
+            doc.fontSize(8).fillColor('#666');
+            doc.text(`Mostrando 50 de ${viagens.length} viagens.`, { align: 'center' });
+          }
+
+          doc.moveDown();
+          doc.fillColor('#000');
+        }
+      }
+
       // ============ MAPA COM TRAJETÓRIA ============
       // ✅ Usar localizacoesCorrigidas para desenhar rota que segue as ruas
       console.log(`[PDF] Total de localizacoes: ${localizacoes.length}, corrigidas: ${localizacoesCorrigidas.length}`);
@@ -1801,8 +1965,8 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       }
     }
 
-    // ============ LOCALIZAÇÕES (TODOS os dados do período) ============
-    if (incluirLocalizacoes === 'true') {
+    // ============ MÓDULO: LOCALIZAÇÕES (TODOS os dados do período) ============
+    if (temModulo('localizacoes')) {
       const localizacoes = await prisma.localizacao.findMany({
         where: {
           dispositivo_id: dispositivo.id,
@@ -1922,10 +2086,10 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       }
     }
 
-    // ============ DADOS OBD2 (TODOS os dados do período) ============
+    // ============ MÓDULO: DADOS OBD2 (TODOS os dados do período) ============
     // ✅ Só inclui OBD2 se o dispositivo SUPORTA OBD2 (não inclui para XT40_4F)
     const dispositivoSuportaOBD2PDF = supportsOBD2(dispositivo.tipo);
-    if (incluirOBD2 === 'true' && dispositivoSuportaOBD2PDF) {
+    if (temModulo('obd2') && dispositivoSuportaOBD2PDF) {
       const dadosOBD2 = await prisma.dadosOBD2.findMany({
         where: {
           dispositivo_id: dispositivo.id,
@@ -2004,8 +2168,8 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       }
     }
 
-    // ============ ALARMES ============
-    if (incluirAlarmes === 'true') {
+    // ============ MÓDULO: ALARMES ============
+    if (temModulo('alarmes')) {
       const alarmes = await prisma.alarme.findMany({
         where: {
           dispositivo_id: dispositivo.id,
