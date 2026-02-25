@@ -21040,6 +21040,13 @@
           params.set('modulos', modulos.join(','));
         }
 
+        // Adicionar filtro de motorista se ativo
+        if (filtroMotoristaAtual === 'especifico' && motoristaSelecionadoId) {
+          params.set('motoristaIds', motoristaSelecionadoId.toString());
+        } else if (filtroMotoristaAtual === 'multiplos' && motoristasCheckboxSelecionados.size > 0) {
+          params.set('motoristaIds', Array.from(motoristasCheckboxSelecionados).join(','));
+        }
+
         switch (tipoRelatorio) {
           case 'velocidade':
             url = `${API_URL}/relatorios/velocidade/${imei}?${params.toString()}`;

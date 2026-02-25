@@ -63,8 +63,15 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       velMin = '',
       velMax = '',
       soExcessos = 'false',
-      tipoAlarme = ''
+      tipoAlarme = '',
+      motoristaIds = '' // IDs dos motoristas filtrados (separados por vírgula)
     } = req.query;
+
+    // Extrair filtro de motorista
+    const motoristaIdsFiltro = motoristaIds
+      ? motoristaIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id))
+      : [];
+    const filtroMotoristaAtivo = motoristaIdsFiltro.length > 0;
 
     // Parsear módulos selecionados
     const modulosSelecionados = modulos.split(',').map(m => m.trim().toLowerCase());
@@ -117,70 +124,74 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     };
 
     // ============ BUSCAR MOTORISTA(S) VINCULADO(S) NO PERÍODO (CSV) ============
-    // ✅ IMPORTANTE: Esta busca precisa estar ANTES do loop de localizações para a função helper funcionar
-    let motoristasTextoCSV = 'Não identificado no período';
+    // ✅ Só busca motoristas se o filtro de motorista estiver ativo
+    let motoristasTextoCSV = '';
     let motoristasVinculadosCSV = [];
-    try {
-      const historicoMotoristasCSV = await prisma.historicoMotorista.findMany({
-        where: {
-          dispositivo_id: dispositivo.id,
-          OR: [{ fim: null }, { fim: { gte: inicio } }],
-          inicio: { lte: fim }
-        },
-        include: { motorista: { select: { id: true, nome: true, cnh_categoria: true } } },
-        orderBy: { inicio: 'asc' }
-      });
 
-      const viagensComMotoristaCSV = await prisma.viagem.findMany({
-        where: {
-          dispositivo_id: dispositivo.id,
-          inicio: { gte: inicio },
-          fim: { lte: fim },
-          motorista_id: { not: null }
-        },
-        include: { motorista: { select: { id: true, nome: true, cnh_categoria: true } } },
-        orderBy: { inicio: 'asc' }
-      });
+    if (filtroMotoristaAtivo) {
+      try {
+        const historicoMotoristasCSV = await prisma.historicoMotorista.findMany({
+          where: {
+            dispositivo_id: dispositivo.id,
+            motorista_id: { in: motoristaIdsFiltro }, // Filtrar pelos IDs selecionados
+            OR: [{ fim: null }, { fim: { gte: inicio } }],
+            inicio: { lte: fim }
+          },
+          include: { motorista: { select: { id: true, nome: true, cnh_categoria: true } } },
+          orderBy: { inicio: 'asc' }
+        });
 
-      const motoristasMapCSV = new Map();
-      historicoMotoristasCSV.forEach(h => {
-        if (h.motorista) {
-          const key = h.motorista.id;
-          if (!motoristasMapCSV.has(key)) {
-            motoristasMapCSV.set(key, { ...h.motorista, periodoInicio: h.inicio, periodoFim: h.fim });
+        const viagensComMotoristaCSV = await prisma.viagem.findMany({
+          where: {
+            dispositivo_id: dispositivo.id,
+            motorista_id: { in: motoristaIdsFiltro }, // Filtrar pelos IDs selecionados
+            inicio: { gte: inicio },
+            fim: { lte: fim }
+          },
+          include: { motorista: { select: { id: true, nome: true, cnh_categoria: true } } },
+          orderBy: { inicio: 'asc' }
+        });
+
+        const motoristasMapCSV = new Map();
+        historicoMotoristasCSV.forEach(h => {
+          if (h.motorista) {
+            const key = h.motorista.id;
+            if (!motoristasMapCSV.has(key)) {
+              motoristasMapCSV.set(key, { ...h.motorista, periodoInicio: h.inicio, periodoFim: h.fim });
+            }
           }
-        }
-      });
-      viagensComMotoristaCSV.forEach(v => {
-        if (v.motorista && !motoristasMapCSV.has(v.motorista.id)) {
-          motoristasMapCSV.set(v.motorista.id, { ...v.motorista, periodoInicio: v.inicio, periodoFim: v.fim });
-        }
-      });
+        });
+        viagensComMotoristaCSV.forEach(v => {
+          if (v.motorista && !motoristasMapCSV.has(v.motorista.id)) {
+            motoristasMapCSV.set(v.motorista.id, { ...v.motorista, periodoInicio: v.inicio, periodoFim: v.fim });
+          }
+        });
 
-      motoristasVinculadosCSV = Array.from(motoristasMapCSV.values())
-        .sort((a, b) => new Date(a.periodoInicio) - new Date(b.periodoInicio));
+        motoristasVinculadosCSV = Array.from(motoristasMapCSV.values())
+          .sort((a, b) => new Date(a.periodoInicio) - new Date(b.periodoInicio));
 
-      // Função para formatar período com DATA + HORA precisa
-      const formatarPeriodoCSV = (data) => {
-        if (!data) return '';
-        const d = new Date(data);
-        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      };
+        // Função para formatar período com DATA + HORA precisa
+        const formatarPeriodoCSV = (data) => {
+          if (!data) return '';
+          const d = new Date(data);
+          return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        };
 
-      if (motoristasVinculadosCSV.length === 1) {
-        const m = motoristasVinculadosCSV[0];
-        const inicioStr = formatarPeriodoCSV(m.periodoInicio);
-        const fimStr = m.periodoFim ? formatarPeriodoCSV(m.periodoFim) : 'atual';
-        motoristasTextoCSV = `${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''} [${inicioStr} até ${fimStr}]`;
-      } else if (motoristasVinculadosCSV.length > 1) {
-        motoristasTextoCSV = motoristasVinculadosCSV.map(m => {
+        if (motoristasVinculadosCSV.length === 1) {
+          const m = motoristasVinculadosCSV[0];
           const inicioStr = formatarPeriodoCSV(m.periodoInicio);
           const fimStr = m.periodoFim ? formatarPeriodoCSV(m.periodoFim) : 'atual';
-          return `${m.nome} [${inicioStr} até ${fimStr}]`;
-        }).join('; ');
+          motoristasTextoCSV = `${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''} [${inicioStr} até ${fimStr}]`;
+        } else if (motoristasVinculadosCSV.length > 1) {
+          motoristasTextoCSV = motoristasVinculadosCSV.map(m => {
+            const inicioStr = formatarPeriodoCSV(m.periodoInicio);
+            const fimStr = m.periodoFim ? formatarPeriodoCSV(m.periodoFim) : 'atual';
+            return `${m.nome} [${inicioStr} até ${fimStr}]`;
+          }).join('; ');
+        }
+      } catch (e) {
+        console.log('[CSV] Erro ao buscar motoristas:', e.message);
       }
-    } catch (e) {
-      console.log('[CSV] Erro ao buscar motoristas:', e.message);
     }
 
     // ✅ Função helper para encontrar motorista em um timestamp específico (CSV)
@@ -782,7 +793,9 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     header += `Placa,${dispositivo.placa || 'N/A'}\n`;
     header += `IMEI,${dispositivo.imei}\n`;
     header += `Tipo,${dispositivo.tipo || 'N/A'}\n`;
-    header += `Motorista(s),${motoristasTextoCSV.replace(/,/g, ';')}\n`;
+    if (filtroMotoristaAtivo && motoristasTextoCSV) {
+      header += `Motorista(s),${motoristasTextoCSV.replace(/,/g, ';')}\n`;
+    }
     header += `Periodo,${formatDateTime(inicio)} ate ${formatDateTime(fim)}\n`;
     header += `Total de Registros,${totalRegistros}\n`;
     header += `Gerado em,${formatDateTime(new Date())}\n`;
@@ -882,8 +895,15 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       velMin = '',
       velMax = '',
       soExcessos = 'false',
-      tipoAlarme = ''
+      tipoAlarme = '',
+      motoristaIds = '' // IDs dos motoristas filtrados
     } = req.query;
+
+    // Extrair filtro de motorista
+    const motoristaIdsFiltro = motoristaIds
+      ? motoristaIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id))
+      : [];
+    const filtroMotoristaAtivo = motoristaIdsFiltro.length > 0;
 
     // Parsear módulos selecionados
     const modulosSelecionados = modulos.split(',').map(m => m.trim().toLowerCase());
@@ -951,85 +971,89 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     doc.moveDown(0.5);
 
     // ============ BUSCAR MOTORISTA(S) VINCULADO(S) NO PERÍODO ============
-    // Guarda info de motoristas com períodos para mostrar corretamente
+    // ✅ Só busca motoristas se o filtro de motorista estiver ativo
     let motoristasVinculados = [];
-    try {
-      // Buscar do histórico de vinculações COM período
-      const historicoMotoristas = await prisma.historicoMotorista.findMany({
-        where: {
-          dispositivo_id: dispositivo.id,
-          OR: [
-            { fim: null },
-            { fim: { gte: inicio } }
-          ],
-          inicio: { lte: fim }
-        },
-        include: {
-          motorista: {
-            select: { id: true, nome: true, cnh_categoria: true }
-          }
-        },
-        orderBy: { inicio: 'asc' }
-      });
 
-      // Buscar também de viagens do período (com período de uso)
-      const viagensComMotorista = await prisma.viagem.findMany({
-        where: {
-          dispositivo_id: dispositivo.id,
-          inicio: { gte: inicio },
-          fim: { lte: fim },
-          motorista_id: { not: null }
-        },
-        include: {
-          motorista: {
-            select: { id: true, nome: true, cnh_categoria: true }
-          }
-        },
-        orderBy: { inicio: 'asc' }
-      });
+    if (filtroMotoristaAtivo) {
+      try {
+        // Buscar do histórico de vinculações COM período
+        const historicoMotoristas = await prisma.historicoMotorista.findMany({
+          where: {
+            dispositivo_id: dispositivo.id,
+            motorista_id: { in: motoristaIdsFiltro }, // Filtrar pelos IDs selecionados
+            OR: [
+              { fim: null },
+              { fim: { gte: inicio } }
+            ],
+            inicio: { lte: fim }
+          },
+          include: {
+            motorista: {
+              select: { id: true, nome: true, cnh_categoria: true }
+            }
+          },
+          orderBy: { inicio: 'asc' }
+        });
 
-      // Combinar e manter os períodos de cada motorista
-      const motoristasMap = new Map();
-      historicoMotoristas.forEach(h => {
-        if (h.motorista) {
-          const key = h.motorista.id;
-          if (!motoristasMap.has(key)) {
-            motoristasMap.set(key, {
-              ...h.motorista,
-              periodoInicio: h.inicio,
-              periodoFim: h.fim,
-              fonte: 'vinculacao'
-            });
-          } else {
-            // Expandir período se já existe
-            const existing = motoristasMap.get(key);
-            if (h.inicio < existing.periodoInicio) existing.periodoInicio = h.inicio;
-            if (h.fim && (!existing.periodoFim || h.fim > existing.periodoFim)) existing.periodoFim = h.fim;
+        // Buscar também de viagens do período (com período de uso)
+        const viagensComMotorista = await prisma.viagem.findMany({
+          where: {
+            dispositivo_id: dispositivo.id,
+            motorista_id: { in: motoristaIdsFiltro }, // Filtrar pelos IDs selecionados
+            inicio: { gte: inicio },
+            fim: { lte: fim }
+          },
+          include: {
+            motorista: {
+              select: { id: true, nome: true, cnh_categoria: true }
+            }
+          },
+          orderBy: { inicio: 'asc' }
+        });
+
+        // Combinar e manter os períodos de cada motorista
+        const motoristasMap = new Map();
+        historicoMotoristas.forEach(h => {
+          if (h.motorista) {
+            const key = h.motorista.id;
+            if (!motoristasMap.has(key)) {
+              motoristasMap.set(key, {
+                ...h.motorista,
+                periodoInicio: h.inicio,
+                periodoFim: h.fim,
+                fonte: 'vinculacao'
+              });
+            } else {
+              // Expandir período se já existe
+              const existing = motoristasMap.get(key);
+              if (h.inicio < existing.periodoInicio) existing.periodoInicio = h.inicio;
+              if (h.fim && (!existing.periodoFim || h.fim > existing.periodoFim)) existing.periodoFim = h.fim;
+            }
           }
-        }
-      });
-      viagensComMotorista.forEach(v => {
-        if (v.motorista) {
-          const key = v.motorista.id;
-          if (!motoristasMap.has(key)) {
-            motoristasMap.set(key, {
-              ...v.motorista,
-              periodoInicio: v.inicio,
-              periodoFim: v.fim,
-              fonte: 'viagem'
-            });
-          } else {
-            // Expandir período se já existe
-            const existing = motoristasMap.get(key);
-            if (v.inicio < existing.periodoInicio) existing.periodoInicio = v.inicio;
-            if (v.fim && (!existing.periodoFim || v.fim > existing.periodoFim)) existing.periodoFim = v.fim;
+        });
+        viagensComMotorista.forEach(v => {
+          if (v.motorista) {
+            const key = v.motorista.id;
+            if (!motoristasMap.has(key)) {
+              motoristasMap.set(key, {
+                ...v.motorista,
+                periodoInicio: v.inicio,
+                periodoFim: v.fim,
+                fonte: 'viagem'
+              });
+            } else {
+              // Expandir período se já existe
+              const existing = motoristasMap.get(key);
+              if (v.inicio < existing.periodoInicio) existing.periodoInicio = v.inicio;
+              if (v.fim && (!existing.periodoFim || v.fim > existing.periodoFim)) existing.periodoFim = v.fim;
+            }
           }
-        }
-      });
-      motoristasVinculados = Array.from(motoristasMap.values())
-        .sort((a, b) => new Date(a.periodoInicio) - new Date(b.periodoInicio));
-    } catch (e) {
-      console.log('[PDF] Erro ao buscar motoristas:', e.message);
+        });
+        motoristasVinculados = Array.from(motoristasMap.values())
+          .sort((a, b) => new Date(a.periodoInicio) - new Date(b.periodoInicio));
+      } catch (e) {
+        console.log('[PDF] Erro ao buscar motoristas:', e.message);
+      }
     }
 
     // ✅ Função helper para encontrar motorista em um timestamp específico
@@ -1055,19 +1079,25 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     doc.text(`Status: ${dispositivo.status === 'online' ? 'Online' : 'Offline'}`);
     doc.text(`Tags: ${tagsVeiculo}`);
 
-    // ✅ Mostrar motorista(s) vinculado(s) com período
-    if (motoristasVinculados.length > 0) {
+    // ✅ Mostrar motorista(s) vinculado(s) com período - APENAS se filtro ativo
+    if (filtroMotoristaAtivo && motoristasVinculados.length > 0) {
       doc.font('Helvetica-Bold').fillColor('#1565c0');
       if (motoristasVinculados.length === 1) {
-        // Um único motorista - formato simples
+        // Um único motorista - formato com período
         const m = motoristasVinculados[0];
-        doc.text(`Motorista: ${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''}`);
+        const formatarPeriodo = (data) => {
+          if (!data) return '';
+          const d = new Date(data);
+          return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        };
+        const inicioStr = formatarPeriodo(m.periodoInicio);
+        const fimStr = m.periodoFim ? formatarPeriodo(m.periodoFim) : 'atual';
+        doc.text(`Motorista: ${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''} [${inicioStr} até ${fimStr}]`);
       } else {
         // Múltiplos motoristas - mostrar com período COMPLETO (data + hora) de cada
         doc.text(`Motorista(s) no período: ${motoristasVinculados.length}`);
         doc.font('Helvetica').fillColor('#333').fontSize(8);
         motoristasVinculados.forEach(m => {
-          // ✅ Formato completo: DD/MM/AAAA HH:MM para identificar precisamente quem estava no veículo
           const formatarPeriodo = (data) => {
             if (!data) return '';
             const d = new Date(data);
@@ -1080,10 +1110,8 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         });
       }
       doc.font('Helvetica').fillColor('#000').fontSize(10);
-    } else {
-      doc.fillColor('#999').text('Motorista: Não identificado no período');
-      doc.fillColor('#000');
     }
+    // Se filtro não ativo, não mostra nada sobre motorista
 
     doc.moveDown(0.5);
 
@@ -2841,8 +2869,15 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
       dataInicio,
       dataFim,
       modulos = 'resumo,score,consumo,kmDia,excessos,paradas,viagens,obd2,alarmes,localizacoes',
-      corrigido = 'true'
+      corrigido = 'true',
+      motoristaIds = '' // IDs dos motoristas filtrados
     } = req.query;
+
+    // Extrair filtro de motorista
+    const motoristaIdsFiltro = motoristaIds
+      ? motoristaIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id))
+      : [];
+    const filtroMotoristaAtivo = motoristaIdsFiltro.length > 0;
 
     // Parsear módulos selecionados
     const modulosSelecionados = modulos.split(',').map(m => m.trim().toLowerCase());
@@ -2924,18 +2959,49 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
       });
     }
 
-    // Buscar motoristas vinculados
-    const historico = await prisma.historicoMotorista.findMany({
-      where: {
-        dispositivo_id: dispositivo.id,
-        inicio: { lte: fim },
-        OR: [{ fim: { gte: inicio } }, { fim: null }]
-      },
-      include: { motorista: true }
-    });
-    const motoristasTexto = historico.length > 0
-      ? historico.map(h => h.motorista.nome).join(', ')
-      : 'Nenhum';
+    // Buscar motoristas vinculados - APENAS se filtro ativo
+    let motoristasTexto = '';
+    if (filtroMotoristaAtivo) {
+      const historico = await prisma.historicoMotorista.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          motorista_id: { in: motoristaIdsFiltro }, // Filtrar pelos IDs selecionados
+          inicio: { lte: fim },
+          OR: [{ fim: { gte: inicio } }, { fim: null }]
+        },
+        include: { motorista: { select: { id: true, nome: true, cnh_categoria: true } } },
+        orderBy: { inicio: 'asc' }
+      });
+
+      // Consolidar motoristas com período
+      const motoristasMap = new Map();
+      historico.forEach(h => {
+        if (h.motorista) {
+          const key = h.motorista.id;
+          if (!motoristasMap.has(key)) {
+            motoristasMap.set(key, { ...h.motorista, periodoInicio: h.inicio, periodoFim: h.fim });
+          }
+        }
+      });
+
+      // Formatar com período
+      const formatarPeriodo = (data) => {
+        if (!data) return '';
+        const d = new Date(data);
+        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      };
+
+      const motoristasVinculados = Array.from(motoristasMap.values())
+        .sort((a, b) => new Date(a.periodoInicio) - new Date(b.periodoInicio));
+
+      motoristasTexto = motoristasVinculados.length > 0
+        ? motoristasVinculados.map(m => {
+            const inicioStr = formatarPeriodo(m.periodoInicio);
+            const fimStr = m.periodoFim ? formatarPeriodo(m.periodoFim) : 'atual';
+            return `${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''} [${inicioStr} até ${fimStr}]`;
+          }).join('; ')
+        : '';
+    }
 
     // Calcular estatísticas
     let distanciaTotal = 0;
@@ -3079,7 +3145,8 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
         ['IMEI', dispositivo.imei],
         ['Tipo', dispositivo.tipo || 'N/A'],
         ['Tags', tagsVeiculo],
-        ['Motorista(s)', motoristasTexto],
+        // Só incluir motorista se filtro estiver ativo
+        ...(filtroMotoristaAtivo && motoristasTexto ? [['Motorista(s)', motoristasTexto]] : []),
         ['Periodo', `${formatDateTime(inicio)} até ${formatDateTime(fim)}`],
         ['Total de Registros', localizacoes.length]
       ];
