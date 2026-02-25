@@ -444,8 +444,9 @@ class RedisStreamsService {
 
           try {
             await processor(message);
-            // Confirmar processamento (ACK)
+            // Confirmar processamento (ACK) e remover da stream
             await this.client.xack(stream, group, id);
+            await this.client.xdel(stream, id);
             this.stats.consumed++;
             results.push({ id, success: true });
           } catch (error) {
@@ -493,7 +494,9 @@ class RedisStreamsService {
               message._deliveryCount = deliveryCount;
 
               await processor(message);
+              // Confirmar e remover da stream
               await this.client.xack(stream, group, claimedId);
+              await this.client.xdel(stream, claimedId);
               results.push({ id: claimedId, success: true, reclaimed: true });
             }
           } catch (error) {
