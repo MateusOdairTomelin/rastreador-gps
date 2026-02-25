@@ -2907,7 +2907,7 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
     }
 
     // Buscar motoristas vinculados - se filtro específico OU "todos os motoristas"
-    let motoristasTexto = '';
+    let motoristasVinculadosExcel = [];
     if (filtroMotoristaAtivo) {
       // Construir filtro base
       const whereHistorico = {
@@ -2927,15 +2927,8 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
         orderBy: { inicio: 'asc' }
       });
 
-      // Formatar com período
-      const formatarPeriodo = (data) => {
-        if (!data) return '';
-        const d = new Date(data);
-        return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      };
-
-      // ✅ Mostrar CADA vínculo separadamente (não consolidar por motorista)
-      const motoristasVinculados = historico
+      // ✅ Guardar vínculos para aba separada
+      motoristasVinculadosExcel = historico
         .filter(h => h.motorista)
         .map(h => ({
           ...h.motorista,
@@ -2943,14 +2936,6 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
           periodoFim: h.fim
         }))
         .sort((a, b) => new Date(a.periodoInicio) - new Date(b.periodoInicio));
-
-      motoristasTexto = motoristasVinculados.length > 0
-        ? motoristasVinculados.map(m => {
-            const inicioStr = formatarPeriodo(m.periodoInicio);
-            const fimStr = m.periodoFim ? formatarPeriodo(m.periodoFim) : 'atual';
-            return `${m.nome}${m.cnh_categoria ? ` (CNH ${m.cnh_categoria})` : ''} [${inicioStr} até ${fimStr}]`;
-          }).join('; ')
-        : '';
     }
 
     // Calcular estatísticas
@@ -3095,8 +3080,10 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
         ['IMEI', dispositivo.imei],
         ['Tipo', dispositivo.tipo || 'N/A'],
         ['Tags', tagsVeiculo],
-        // Só incluir motorista se filtro estiver ativo
-        ...(filtroMotoristaAtivo && motoristasTexto ? [['Motorista(s)', motoristasTexto]] : []),
+        // Referência à aba de Motoristas se houver vínculos
+        ...(filtroMotoristaAtivo && motoristasVinculadosExcel.length > 0
+          ? [['Motorista(s)', `${motoristasVinculadosExcel.length} vinculo(s) - ver aba Motoristas`]]
+          : []),
         ['Periodo', `${formatDateTime(inicio)} até ${formatDateTime(fim)}`],
         ['Total de Registros', localizacoes.length]
       ];
@@ -3308,6 +3295,58 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
       [20, 14, 14, 12, 10, 10].forEach((width, idx) => {
         locsSheet.getColumn(idx + 1).width = width;
       });
+    }
+
+    // ========== ABA 8: MOTORISTAS (se houver vínculos) ==========
+    if (filtroMotoristaAtivo && motoristasVinculadosExcel.length > 0) {
+      const motoristasSheet = workbook.addWorksheet('Motoristas');
+
+      // Título
+      motoristasSheet.mergeCells('A1:E1');
+      motoristasSheet.getCell('A1').value = 'HISTORICO DE MOTORISTAS VINCULADOS';
+      motoristasSheet.getCell('A1').font = { bold: true, size: 14 };
+      motoristasSheet.getCell('A1').alignment = { horizontal: 'center' };
+
+      motoristasSheet.addRow([]);
+
+      // Cabeçalho da tabela
+      motoristasSheet.addRow(['Motorista', 'CNH', 'Inicio Vinculo', 'Fim Vinculo', 'Duracao']);
+      motoristasSheet.getRow(3).eachCell(cell => Object.assign(cell, headerStyle));
+
+      // Função para calcular duração
+      const calcularDuracao = (inicio, fim) => {
+        const dataInicio = new Date(inicio);
+        const dataFim = fim ? new Date(fim) : new Date();
+        const diffMs = dataFim - dataInicio;
+        const diffMin = Math.floor(diffMs / (1000 * 60));
+        const dias = Math.floor(diffMin / (60 * 24));
+        const horas = Math.floor((diffMin % (60 * 24)) / 60);
+        const mins = diffMin % 60;
+
+        if (dias > 0) return `${dias}d ${horas}h ${mins}min`;
+        if (horas > 0) return `${horas}h ${mins}min`;
+        return `${mins}min`;
+      };
+
+      // Dados dos motoristas
+      motoristasVinculadosExcel.forEach(m => {
+        motoristasSheet.addRow([
+          m.nome,
+          m.cnh_categoria || '-',
+          formatDateTime(m.periodoInicio),
+          m.periodoFim ? formatDateTime(m.periodoFim) : 'Atual (vinculado)',
+          calcularDuracao(m.periodoInicio, m.periodoFim)
+        ]).eachCell(cell => Object.assign(cell, cellStyle));
+      });
+
+      // Largura das colunas
+      [30, 8, 22, 22, 15].forEach((width, idx) => {
+        motoristasSheet.getColumn(idx + 1).width = width;
+      });
+
+      // Resumo
+      motoristasSheet.addRow([]);
+      motoristasSheet.addRow([`Total: ${motoristasVinculadosExcel.length} vinculo(s) no periodo`]);
     }
 
     // Gerar buffer e enviar
