@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -6909,7 +6910,11 @@
           <div class="card" style="margin-top: 28px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <div class="section-title" style="margin-bottom: 0;">🔍 Debug Pipeline GPS</div>
-              <button class="btn btn-primary btn-sm" onclick="atualizarPipelineDebug()">↻ Atualizar</button>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span id="pipeline-auto-status" style="font-size: 11px; color: var(--success);">● Auto 10s</span>
+                <button class="btn btn-secondary btn-sm" id="btn-pipeline-auto" onclick="togglePipelineAuto()">⏸ Pausar</button>
+                <button class="btn btn-primary btn-sm" onclick="atualizarPipelineDebug()">↻ Atualizar</button>
+              </div>
             </div>
 
             <!-- Pipeline Visual -->
@@ -7011,6 +7016,22 @@
                   <div class="debug-row"><span>📤 Inserções/5min:</span> <span id="tp-inserts5">-</span></div>
                   <div class="debug-row" style="margin-top: 8px;"><span>📊 Estimado/min:</span> <span id="tp-packets">-</span></div>
                   <div class="debug-row total"><span>Diagnóstico:</span> <span id="tp-diag">-</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gráficos de Histórico -->
+            <div class="grid-2" style="gap: 12px; margin-top: 16px;">
+              <div class="debug-card">
+                <div class="debug-title">📈 Latência (últimas 2h)</div>
+                <div style="height: 180px; position: relative;">
+                  <canvas id="chart-latency"></canvas>
+                </div>
+              </div>
+              <div class="debug-card">
+                <div class="debug-title">📊 Throughput (últimas 2h)</div>
+                <div style="height: 180px; position: relative;">
+                  <canvas id="chart-throughput"></canvas>
                 </div>
               </div>
             </div>
@@ -15406,6 +15427,11 @@
           }).join('');
         }
 
+        // Atualizar gráficos
+        const latencyAvg = data.latency?.avg || 0;
+        const insertsPerMin = data.throughput?.insertsPerMin || 0;
+        updatePipelineCharts(latencyAvg, insertsPerMin);
+
         addLog('◉ Debug pipeline atualizado', 'success');
       } catch (e) {
         console.error('Erro ao atualizar pipeline debug:', e);
@@ -15426,8 +15452,135 @@
       if (valueEl && data.value) valueEl.textContent = data.value;
     }
 
+    // ============ AUTO-REFRESH E GRÁFICOS PIPELINE ============
+    let pipelineAutoInterval = null;
+    let pipelineAutoEnabled = true;
+    let chartLatency = null;
+    let chartThroughput = null;
+    const pipelineHistory = {
+      labels: [],
+      latency: [],
+      throughput: [],
+      maxPoints: 72 // 2 horas com updates de 10s
+    };
+
+    function initPipelineCharts() {
+      const ctxLatency = document.getElementById('chart-latency');
+      const ctxThroughput = document.getElementById('chart-throughput');
+      if (!ctxLatency || !ctxThroughput) return;
+
+      const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 300 },
+        scales: {
+          x: { display: false },
+          y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#888' } }
+        },
+        plugins: { legend: { display: false } }
+      };
+
+      chartLatency = new Chart(ctxLatency, {
+        type: 'line',
+        data: {
+          labels: pipelineHistory.labels,
+          datasets: [{
+            data: pipelineHistory.latency,
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239,68,68,0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0
+          }]
+        },
+        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { display: true, text: 'Delay (s)', color: '#888' } } } }
+      });
+
+      chartThroughput = new Chart(ctxThroughput, {
+        type: 'line',
+        data: {
+          labels: pipelineHistory.labels,
+          datasets: [{
+            data: pipelineHistory.throughput,
+            borderColor: '#3FCFD5',
+            backgroundColor: 'rgba(63,207,213,0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0
+          }]
+        },
+        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { display: true, text: 'Inserções/min', color: '#888' } } } }
+      });
+    }
+
+    function updatePipelineCharts(latencyAvg, insertsPerMin) {
+      const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+      pipelineHistory.labels.push(now);
+      pipelineHistory.latency.push(latencyAvg || 0);
+      pipelineHistory.throughput.push(insertsPerMin || 0);
+
+      // Manter apenas os últimos N pontos
+      if (pipelineHistory.labels.length > pipelineHistory.maxPoints) {
+        pipelineHistory.labels.shift();
+        pipelineHistory.latency.shift();
+        pipelineHistory.throughput.shift();
+      }
+
+      if (chartLatency) chartLatency.update('none');
+      if (chartThroughput) chartThroughput.update('none');
+    }
+
+    function togglePipelineAuto() {
+      pipelineAutoEnabled = !pipelineAutoEnabled;
+      const btn = document.getElementById('btn-pipeline-auto');
+      const status = document.getElementById('pipeline-auto-status');
+
+      if (pipelineAutoEnabled) {
+        btn.innerHTML = '⏸ Pausar';
+        status.innerHTML = '● Auto 10s';
+        status.style.color = 'var(--success)';
+        startPipelineAuto();
+      } else {
+        btn.innerHTML = '▶ Iniciar';
+        status.innerHTML = '○ Pausado';
+        status.style.color = 'var(--text-muted)';
+        stopPipelineAuto();
+      }
+    }
+
+    function startPipelineAuto() {
+      if (pipelineAutoInterval) clearInterval(pipelineAutoInterval);
+      pipelineAutoInterval = setInterval(() => {
+        if (pipelineAutoEnabled && document.getElementById('section-diagnosticos').style.display !== 'none') {
+          atualizarPipelineDebug();
+        }
+      }, 10000);
+    }
+
+    function stopPipelineAuto() {
+      if (pipelineAutoInterval) {
+        clearInterval(pipelineAutoInterval);
+        pipelineAutoInterval = null;
+      }
+    }
+
+    // Iniciar auto-refresh quando entrar na seção de diagnósticos
+    const originalCarregarSecao = carregarSecao;
+    carregarSecao = function(secao) {
+      originalCarregarSecao(secao);
+      if (secao === 'diagnosticos') {
+        if (!chartLatency) initPipelineCharts();
+        atualizarPipelineDebug();
+        startPipelineAuto();
+      } else {
+        stopPipelineAuto();
+      }
+    };
+
     // Expor função globalmente
     window.atualizarPipelineDebug = atualizarPipelineDebug;
+    window.togglePipelineAuto = togglePipelineAuto;
 
     async function loadLocations() {
       try {
