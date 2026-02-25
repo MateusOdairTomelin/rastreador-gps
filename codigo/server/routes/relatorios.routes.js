@@ -1275,6 +1275,19 @@ router.get('/frota', async (req, res) => {
         take: limiteRegistros
       });
 
+      // Buscar última localização (posição atual)
+      const ultimaLocalizacao = await prisma.localizacao.findFirst({
+        where: { dispositivo_id: dispositivo.id },
+        select: {
+          timestamp: true,
+          latitude: true,
+          longitude: true,
+          velocidade: true,
+          ignicao: true
+        },
+        orderBy: { timestamp: 'desc' }
+      });
+
       let distanciaMovimento = 0; // Só conta km quando em movimento (consistente com veiculo-detalhes)
       let tempoMovimento = 0;
       let tempoOcioso = 0;
@@ -1356,11 +1369,12 @@ router.get('/frota', async (req, res) => {
         status: dispositivo.status || 'offline',
         estado_ignicao: dispositivo.estado_ignicao || 'off',
         estado_movimento: dispositivo.estado_ignicao === 'moving' ? 'movimento' : dispositivo.estado_ignicao === 'idle' ? 'ocioso' : 'parado',
-        latitude: dispositivo.latitude,
-        longitude: dispositivo.longitude,
-        velocidade: dispositivo.velocidade || 0,
-        ignicao: dispositivo.ignicao,
-        ultima_atualizacao: dispositivo.ultima_atualizacao,
+        // Dados da última localização
+        latitude: ultimaLocalizacao?.latitude || null,
+        longitude: ultimaLocalizacao?.longitude || null,
+        velocidade: ultimaLocalizacao?.velocidade || 0,
+        ignicao: ultimaLocalizacao?.ignicao ?? null,
+        ultima_atualizacao: ultimaLocalizacao?.timestamp || dispositivo.ultima_conexao || null,
         distanciaTotal: distanciaMovimento.toFixed(2),
         tempoMovimento: formatarTempo(tempoMovimento),
         tempoMovimentoMinutos: Math.round(tempoMovimento),
