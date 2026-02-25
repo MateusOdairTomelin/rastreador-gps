@@ -4773,7 +4773,7 @@
       border-color: #ec4899;
     }
 
-    /* ⚡ Velocidade (Âmbar) */
+    /*  Velocidade (Âmbar) */
     .filtro-chip-velocidade {
       background: rgba(245, 158, 11, 0.15);
       color: #f59e0b;
@@ -7153,7 +7153,7 @@
 
             <!-- Alertas e Problemas -->
             <div class="debug-card" id="debug-alerts-card" style="margin-bottom: 16px; display: none;">
-              <div class="debug-title">🚨 Alertas e Problemas Detectados</div>
+              <div class="debug-title"> Alertas e Problemas Detectados</div>
               <div class="debug-content" id="debug-alerts">
                 <!-- Preenchido via JS -->
               </div>
@@ -9477,7 +9477,7 @@
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="alarme-checkbox" value="excesso_velocidade" onchange="atualizarAlarmesSelecionados()">
-                        <span style="color: #ef4444;">🚨</span> Excesso de Velocidade
+                        <span style="color: #ef4444;"></span> Excesso de Velocidade
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="alarme-checkbox" value="sos" onchange="atualizarAlarmesSelecionados()">
@@ -9515,49 +9515,12 @@
                   </div>
                 </div>
 
-                <!-- Chip Viagens (Índigo) -->
+                <!-- Chip Viagens (Índigo) - Checkbox simples -->
                 <div class="filtro-chip-container" style="position: relative;">
-                  <button type="button" onclick="toggleViagensDropdown()" class="filtro-chip filtro-chip-viagens">
-                    <span class="chip-icon"></span>
+                  <label class="filtro-chip filtro-chip-viagens" style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <input type="checkbox" id="incluir-viagens-checkbox" onchange="toggleIncluirViagens()" style="width: 16px; height: 16px; cursor: pointer;">
                     <span id="viagens-label">Viagens</span>
-                    <span class="chip-arrow">▾</span>
-                  </button>
-                  <div id="viagens-dropdown" class="filtro-dropdown">
-                    <div class="dropdown-range-container">
-                      <div class="dropdown-range-label">
-                        <span>📏 Distância (km)</span>
-                      </div>
-                      <div class="dropdown-range-inputs">
-                        <input type="number" id="viagem-km-min" class="dropdown-range-input" placeholder="Min" min="0" step="1">
-                        <span class="dropdown-range-separator">até</span>
-                        <input type="number" id="viagem-km-max" class="dropdown-range-input" placeholder="Max" min="0" step="1">
-                      </div>
-                    </div>
-                    <div class="dropdown-range-container">
-                      <div class="dropdown-range-label">
-                        <span>Duração (min)</span>
-                      </div>
-                      <div class="dropdown-range-inputs">
-                        <input type="number" id="viagem-duracao-min" class="dropdown-range-input" placeholder="Min" min="0" step="1">
-                        <span class="dropdown-range-separator">até</span>
-                        <input type="number" id="viagem-duracao-max" class="dropdown-range-input" placeholder="Max" min="0" step="1">
-                      </div>
-                    </div>
-                    <div class="dropdown-range-container">
-                      <div class="dropdown-range-label">
-                        <span>Vel. Vel. Máxima (km/h)</span>
-                      </div>
-                      <div class="dropdown-range-inputs">
-                        <input type="number" id="viagem-velmax-min" class="dropdown-range-input" placeholder="Min" min="0" step="1">
-                        <span class="dropdown-range-separator">até</span>
-                        <input type="number" id="viagem-velmax-max" class="dropdown-range-input" placeholder="Max" min="0" step="1">
-                      </div>
-                    </div>
-                    <div class="dropdown-actions">
-                      <button onclick="limparViagensFiltro()" class="dropdown-btn-cancel">Limpar</button>
-                      <button onclick="aplicarViagensFiltro()" class="dropdown-btn-apply">Aplicar</button>
-                    </div>
-                  </div>
+                  </label>
                 </div>
 
                 <!-- Chip Multas (Rosa) -->
@@ -9574,7 +9537,7 @@
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="multa-status-checkbox" value="pendente" onchange="atualizarMultasSelecionadas()">
-                        <span style="color: #f59e0b;">⏳</span> Pendente
+                        <span style="color: #f59e0b;"></span> Pendente
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="multa-status-checkbox" value="paga" onchange="atualizarMultasSelecionadas()">
@@ -9589,7 +9552,7 @@
                         <span style="color: #3b82f6;">R</span> Recorrida
                       </label>
                       <label class="dropdown-checkbox-item" style="border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px;">
-                        <strong>Gravidade Gravidade</strong>
+                        <strong>Gravidade</strong>
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="multa-gravidade-checkbox" value="leve" onchange="atualizarMultasSelecionadas()">
@@ -9615,10 +9578,10 @@
                   </div>
                 </div>
 
-                <!-- ⚡ Chip Velocidade (Âmbar) -->
+                <!--  Chip Velocidade (Âmbar) -->
                 <div class="filtro-chip-container" style="position: relative;">
                   <button type="button" onclick="toggleVelocidadeDropdown()" class="filtro-chip filtro-chip-velocidade">
-                    <span class="chip-icon">⚡</span>
+                    <span class="chip-icon"></span>
                     <span id="velocidade-label">Velocidade</span>
                     <span class="chip-arrow">▾</span>
                   </button>
@@ -9636,7 +9599,7 @@
                     <div id="velocidade-checkbox-list" class="dropdown-list" style="padding-top: 8px; border-top: 1px solid var(--border);">
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" id="vel-apenas-excessos" onchange="atualizarVelocidadeFiltro()">
-                        <span style="color: #ef4444;">🚨</span> Apenas Excessos de Velocidade
+                        <span style="color: #ef4444;"></span> Apenas Excessos de Velocidade
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" id="vel-acima-80" onchange="atualizarVelocidadeFiltro()">
@@ -9644,11 +9607,11 @@
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" id="vel-acima-100" onchange="atualizarVelocidadeFiltro()">
-                        <span style="color: #ef4444;">🔥</span> Acima de 100 km/h
+                        <span style="color: #ef4444;"></span> Acima de 100 km/h
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" id="vel-acima-120" onchange="atualizarVelocidadeFiltro()">
-                        <span style="color: #dc2626;">💨</span> Acima de 120 km/h
+                        <span style="color: #dc2626;"></span> Acima de 120 km/h
                       </label>
                     </div>
                     <div class="dropdown-actions">
@@ -9678,7 +9641,7 @@
                     </div>
                     <div class="dropdown-range-container">
                       <div class="dropdown-range-label">
-                        <span>🚨 Máx. Excessos de Velocidade</span>
+                        <span> Máx. Excessos de Velocidade</span>
                       </div>
                       <div class="dropdown-range-inputs">
                         <input type="number" id="excessos-max" class="dropdown-range-input" placeholder="Máx" min="0" step="1" style="width: 100px;">
@@ -9696,7 +9659,7 @@
                     </div>
                     <div class="dropdown-range-container">
                       <div class="dropdown-range-label">
-                        <span>📏 Km Mínimo Rodado</span>
+                        <span>Km Mínimo Rodado</span>
                       </div>
                       <div class="dropdown-range-inputs">
                         <input type="number" id="km-min-rodado" class="dropdown-range-input" placeholder="Min" min="0" step="10" style="width: 100px;">
@@ -17490,7 +17453,7 @@
         'EDITAR_GEOFENCE': { label: 'Editar Cerca', icon: '◉', class: 'info' },
         'DELETAR_GEOFENCE': { label: 'Excluir Cerca', icon: '◉', class: 'danger' },
         // Comandos
-        'ENVIAR_COMANDO': { label: 'Comando', icon: '⚡', class: 'warning' },
+        'ENVIAR_COMANDO': { label: 'Comando', icon: '', class: 'warning' },
         'CORTAR_COMBUSTIVEL': { label: 'Cortar Comb.', icon: '●', class: 'danger' },
         'RELIGAR_COMBUSTIVEL': { label: 'Religar Comb.', icon: '●', class: 'success' }
       };
@@ -18835,7 +18798,7 @@
       const tbody = document.getElementById('trajetos-tbody');
       tbody.innerHTML = `
         <tr><td colspan="9" style="text-align:center;padding:40px;">
-          <div style="font-size:32px;">⏳</div>
+          <div style="font-size:32px;"></div>
           <div>Buscando viagens...</div>
         </td></tr>
       `;
@@ -19418,7 +19381,7 @@
       // Mostrar loading
       document.getElementById('rp-preview-tbody').innerHTML = `
         <tr><td colspan="${colunas.length}" style="text-align:center; padding:30px;">
-          <div style="font-size:20px;">⏳</div> Carregando...
+          <div style="font-size:20px;"></div> Carregando...
         </td></tr>
       `;
 
@@ -19990,7 +19953,7 @@
         if (tbody) {
           tbody.innerHTML = `
             <tr><td colspan="10" style="text-align:center;padding:40px;">
-              <div style="font-size:24px;">⏳</div>
+              <div style="font-size:24px;"></div>
               <div>Buscando dados...</div>
             </td></tr>
           `;
@@ -20855,48 +20818,27 @@
     }
     window.aplicarAlarmesSelecionados = aplicarAlarmesSelecionados;
 
-    // ============ VIAGENS DROPDOWN ============
+    // ============ VIAGENS CHECKBOX ============
 
-    function toggleViagensDropdown() {
-      closeAllDropdowns('viagens-dropdown');
-      const dropdown = document.getElementById('viagens-dropdown');
-      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    let incluirViagens = false;
+
+    function toggleIncluirViagens() {
+      const checkbox = document.getElementById('incluir-viagens-checkbox');
+      incluirViagens = checkbox.checked;
+      const label = document.getElementById('viagens-label');
+      label.style.fontWeight = incluirViagens ? 'bold' : 'normal';
     }
-    window.toggleViagensDropdown = toggleViagensDropdown;
+    window.toggleIncluirViagens = toggleIncluirViagens;
 
+    // Manter compatibilidade com getFiltrosAvancados
     function limparViagensFiltro() {
-      document.getElementById('viagem-km-min').value = '';
-      document.getElementById('viagem-km-max').value = '';
-      document.getElementById('viagem-duracao-min').value = '';
-      document.getElementById('viagem-duracao-max').value = '';
-      document.getElementById('viagem-velmax-min').value = '';
-      document.getElementById('viagem-velmax-max').value = '';
-      filtrosViagem = { kmMin: null, kmMax: null, duracaoMin: null, duracaoMax: null, velMaxMin: null, velMaxMax: null };
-      document.getElementById('viagens-label').textContent = 'Viagens';
-      document.getElementById('viagens-dropdown').style.display = 'none';
+      incluirViagens = false;
+      const checkbox = document.getElementById('incluir-viagens-checkbox');
+      if (checkbox) checkbox.checked = false;
+      const label = document.getElementById('viagens-label');
+      if (label) label.style.fontWeight = 'normal';
     }
     window.limparViagensFiltro = limparViagensFiltro;
-
-    function aplicarViagensFiltro() {
-      filtrosViagem = {
-        kmMin: parseFloat(document.getElementById('viagem-km-min').value) || null,
-        kmMax: parseFloat(document.getElementById('viagem-km-max').value) || null,
-        duracaoMin: parseFloat(document.getElementById('viagem-duracao-min').value) || null,
-        duracaoMax: parseFloat(document.getElementById('viagem-duracao-max').value) || null,
-        velMaxMin: parseFloat(document.getElementById('viagem-velmax-min').value) || null,
-        velMaxMax: parseFloat(document.getElementById('viagem-velmax-max').value) || null
-      };
-
-      const label = document.getElementById('viagens-label');
-      const filtrosAtivos = Object.values(filtrosViagem).filter(v => v !== null).length;
-      if (filtrosAtivos === 0) {
-        label.textContent = 'Viagens';
-      } else {
-        label.textContent = `${filtrosAtivos} filtro${filtrosAtivos > 1 ? 's' : ''}`;
-      }
-      document.getElementById('viagens-dropdown').style.display = 'none';
-    }
-    window.aplicarViagensFiltro = aplicarViagensFiltro;
 
     // ============ MULTAS DROPDOWN ============
 
@@ -20940,7 +20882,7 @@
     }
     window.aplicarMultasFiltro = aplicarMultasFiltro;
 
-    // ============ ⚡ VELOCIDADE DROPDOWN ============
+    // ============  VELOCIDADE DROPDOWN ============
 
     function toggleVelocidadeDropdown() {
       closeAllDropdowns('velocidade-dropdown');
@@ -21048,7 +20990,7 @@
       return {
         geofences: Array.from(geofencesSelecionados),
         alarmes: Array.from(alarmesSelecionados),
-        viagem: filtrosViagem,
+        viagem: { incluir: incluirViagens },
         multas: {
           status: Array.from(multasStatusSelecionados),
           gravidade: Array.from(multasGravidadeSelecionados)
@@ -21179,7 +21121,7 @@
         if (tbody) {
           tbody.innerHTML = `
             <tr><td colspan="10" style="text-align:center;padding:40px;">
-              <div style="font-size:24px;">⏳</div>
+              <div style="font-size:24px;"></div>
               <div>Carregando dados do período...</div>
             </td></tr>
           `;
@@ -21848,13 +21790,10 @@
           params.set('tiposAlarme', filtrosAv.alarmes.join(','));
         }
 
-        // Viagens
-        if (filtrosAv.viagem.kmMin) params.set('viagemKmMin', filtrosAv.viagem.kmMin);
-        if (filtrosAv.viagem.kmMax) params.set('viagemKmMax', filtrosAv.viagem.kmMax);
-        if (filtrosAv.viagem.duracaoMin) params.set('viagemDuracaoMin', filtrosAv.viagem.duracaoMin);
-        if (filtrosAv.viagem.duracaoMax) params.set('viagemDuracaoMax', filtrosAv.viagem.duracaoMax);
-        if (filtrosAv.viagem.velMaxMin) params.set('viagemVelMaxMin', filtrosAv.viagem.velMaxMin);
-        if (filtrosAv.viagem.velMaxMax) params.set('viagemVelMaxMax', filtrosAv.viagem.velMaxMax);
+        // Viagens - checkbox simples
+        if (filtrosAv.viagem.incluir) {
+          params.set('incluirViagens', 'true');
+        }
 
         // Multas
         if (filtrosAv.multas.status.length > 0) {
@@ -21864,7 +21803,7 @@
           params.set('multaGravidade', filtrosAv.multas.gravidade.join(','));
         }
 
-        // ⚡ Velocidade
+        //  Velocidade
         if (filtrosAv.velocidade.min) params.set('velMin', filtrosAv.velocidade.min);
         if (filtrosAv.velocidade.max) params.set('velMax', filtrosAv.velocidade.max);
         if (filtrosAv.velocidade.apenasExcessos) params.set('soExcessos', 'true');
@@ -21998,7 +21937,7 @@
           const loadingMsg = document.createElement('div');
           loadingMsg.id = 'export-loading';
           loadingMsg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:20px 40px;border-radius:10px;z-index:9999;';
-          loadingMsg.innerHTML = '⏳ Gerando relatório da frota...';
+          loadingMsg.innerHTML = ' Gerando relatório da frota...';
           document.body.appendChild(loadingMsg);
 
           const response = await authFetch(url);
