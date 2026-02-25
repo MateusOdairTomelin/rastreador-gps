@@ -19750,7 +19750,18 @@
         return;
       }
 
-      container.innerHTML = veiculos.map(v => {
+      // Verificar se todos estão selecionados
+      const todosChecked = veiculos.every(v => veiculosCheckboxSelecionados.has(v.imei));
+
+      // Opção "Selecionar Todos" no topo
+      const selecionarTodosHtml = `
+        <label class="dropdown-checkbox-item" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px; font-weight: 600;">
+          <input type="checkbox" id="selecionar-todos-veiculos" ${todosChecked ? 'checked' : ''} onchange="toggleSelecionarTodosVeiculos(this.checked)">
+          <span class="checkbox-placa">✓ Selecionar Todos (${veiculos.length})</span>
+        </label>
+      `;
+
+      container.innerHTML = selecionarTodosHtml + veiculos.map(v => {
         const placa = v.placa || v.imei;
         const nome = v.veiculo || v.modelo || '';
         const isChecked = veiculosCheckboxSelecionados.has(v.imei);
@@ -19764,6 +19775,13 @@
       }).join('');
     }
 
+    function toggleSelecionarTodosVeiculos(checked) {
+      const checkboxes = document.querySelectorAll('.veiculo-checkbox');
+      checkboxes.forEach(cb => cb.checked = checked);
+      atualizarVeiculosCheckbox();
+    }
+    window.toggleSelecionarTodosVeiculos = toggleSelecionarTodosVeiculos;
+
     function filtrarVeiculosCheckbox(busca) {
       const labels = document.querySelectorAll('#veiculos-checkbox-list .dropdown-checkbox-item');
       const termo = busca.toLowerCase().trim();
@@ -19776,7 +19794,14 @@
 
     function atualizarVeiculosCheckbox() {
       const checkboxes = document.querySelectorAll('.veiculo-checkbox:checked');
+      const todosCheckboxes = document.querySelectorAll('.veiculo-checkbox');
       veiculosCheckboxSelecionados = new Set(Array.from(checkboxes).map(cb => cb.value));
+
+      // Atualizar checkbox "Selecionar Todos"
+      const selecionarTodos = document.getElementById('selecionar-todos-veiculos');
+      if (selecionarTodos) {
+        selecionarTodos.checked = checkboxes.length === todosCheckboxes.length && todosCheckboxes.length > 0;
+      }
     }
 
     function limparVeiculosSelecionadosCobli() {
