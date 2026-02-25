@@ -11,13 +11,13 @@ const prisma = require('../db/prisma');
 const https = require('https');
 const http = require('http');
 
-// ✅ Multi-tenant: Middleware de verificação de propriedade
+// Multi-tenant: Middleware de verificação de propriedade
 const { verificarDispositivoTenant } = require('../middleware/tenant-device.middleware');
 
-// ✅ Serviço de limite de velocidade por via
+// Serviço de limite de velocidade por via
 const velocidadeViaService = require('../services/velocidade-via.service');
 
-// ✅ Serviço de correção GPS (OSRM)
+// Serviço de correção GPS (OSRM)
 let gpsFilterService = null;
 try {
   gpsFilterService = require('../services/gps-filter.service');
@@ -26,7 +26,7 @@ try {
   console.warn('[Exportar] GPS Filter Service não disponível:', e.message);
 }
 
-// ✅ Tipos de dispositivo para verificar suporte OBD2
+// Tipos de dispositivo para verificar suporte OBD2
 const { supportsOBD2 } = require('../constants/device-types');
 
 // ============ EXPORTAR CSV ============
@@ -46,7 +46,7 @@ const { supportsOBD2 } = require('../constants/device-types');
  * - velMax: number - velocidade máxima
  * - soExcessos: boolean - apenas excessos de velocidade
  * - tipoAlarme: string - filtrar por tipo de alarme
- * ✅ Multi-tenant: Verifica propriedade do dispositivo
+ * Multi-tenant: Verifica propriedade do dispositivo
  */
 router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
   try {
@@ -68,7 +68,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       mostrarMotoristas = '', // 'todos' para mostrar todos os motoristas vinculados
       tagIds = '', // IDs das tags filtradas (separados por vírgula)
       statusFiltro = '', // Status filtrado (movimento, ocioso, parado, offline)
-      // 🎯 Filtros Avançados
+      // Filtros Avançados
       geofenceIds = '', // IDs das cercas filtradas
       tiposAlarme = '', // Tipos de alarme
       viagemKmMin = '', viagemKmMax = '', // Viagem: distância
@@ -96,7 +96,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     const mostrarTodosMotoristas = mostrarMotoristas === 'todos';
     const filtroMotoristaAtivo = motoristaIdsFiltro.length > 0 || mostrarTodosMotoristas;
 
-    // 🎯 Extrair filtros avançados
+    // Extrair filtros avançados
     const geofenceIdsFiltro = geofenceIds ? geofenceIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
     const filtroGeofenceAtivo = geofenceIdsFiltro.length > 0;
 
@@ -184,7 +184,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     };
 
     // ============ BUSCAR MOTORISTA(S) VINCULADO(S) NO PERÍODO (CSV) ============
-    // ✅ Busca motoristas se: filtro específico OU "todos os motoristas"
+    // Busca motoristas se: filtro específico OU "todos os motoristas"
     let motoristasTextoCSV = '';
     let motoristasVinculadosCSV = [];
 
@@ -215,7 +215,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
           return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         };
 
-        // ✅ Mostrar CADA vínculo separadamente (não consolidar por motorista)
+        // Mostrar CADA vínculo separadamente (não consolidar por motorista)
         motoristasVinculadosCSV = historicoMotoristasCSV
           .filter(h => h.motorista)
           .map(h => ({
@@ -238,7 +238,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       }
     }
 
-    // ✅ Função helper para encontrar motorista em um timestamp específico (CSV)
+    // Função helper para encontrar motorista em um timestamp específico (CSV)
     const encontrarMotoristaPorTimestampCSV = (timestamp) => {
       const ts = new Date(timestamp);
       for (const m of motoristasVinculadosCSV) {
@@ -274,9 +274,9 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     };
     const statusFiltradoTexto = statusFiltroAtivo ? (statusTextoMap[statusFiltro] || statusFiltro) : '';
 
-    // ============ 🎯 BUSCAR DADOS DOS FILTROS AVANÇADOS (CSV) ============
+    // ============ BUSCAR DADOS DOS FILTROS AVANÇADOS (CSV) ============
 
-    // 📍 Geofencing
+    // Geofencing
     let geofencesFiltradas = [];
     if (filtroGeofenceAtivo) {
       try {
@@ -290,20 +290,20 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     }
     const geofencesTexto = geofencesFiltradas.map(g => `${g.nome} (${g.raio_metros}m)`).join('; ') || '';
 
-    // ⚠️ Alarmes - Mapeamento de tipos
+    // Alarmes - Mapeamento de tipos
     const alarmesTextoMap = {
       'excesso_velocidade': '🚨 Excesso de Velocidade',
       'sos': '🆘 SOS/Pânico',
       'bateria_baixa': '🔋 Bateria Baixa',
-      'desconexao': '📡 Desconexão GPS',
-      'geofence_entrada': '📍 Entrada em Cerca',
-      'geofence_saida': '📍 Saída de Cerca',
+      'desconexao': 'Desconexão GPS',
+      'geofence_entrada': 'Entrada em Cerca',
+      'geofence_saida': 'Saída de Cerca',
       'ignicao': '🔑 Ignição On/Off',
       'vibracao': '📳 Vibração/Impacto'
     };
     const alarmesTexto = tiposAlarmeFiltro.map(t => alarmesTextoMap[t] || t).join('; ') || '';
 
-    // 🚗 Viagens - Texto
+    // Viagens - Texto
     let viagensTexto = '';
     if (filtroViagemAtivo) {
       const partes = [];
@@ -319,7 +319,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       viagensTexto = partes.join('; ');
     }
 
-    // 📋 Multas - Texto
+    // Multas - Texto
     let multasTexto = '';
     if (filtroMultaAtivo) {
       const partes = [];
@@ -344,7 +344,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     if (filtrarSoExcessos) velPartes.push('Apenas excessos');
     velocidadeTexto = velPartes.join('; ');
 
-    // 📊 Performance - Texto
+    // Performance - Texto
     let performanceTexto = '';
     if (filtroPerformanceAtivo) {
       const partes = [];
@@ -375,7 +375,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
         orderBy: { timestamp: 'asc' }
       });
 
-      // ✅ Aplicar correção GPS (OSRM) se habilitado
+      // Aplicar correção GPS (OSRM) se habilitado
       if (aplicarCorrecao && localizacoes.length > 1) {
         console.log(`[CSV] Aplicando correção GPS em ${localizacoes.length} pontos...`);
         try {
@@ -418,7 +418,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
           console.log('[CSV] Erro ao consultar limites:', e.message);
         }
 
-        // ✅ Aplicar filtros avançados
+        // Aplicar filtros avançados
         let localizacoesFiltradas = localizacoes.filter(loc => {
           const velocidade = loc.velocidade || 0;
 
@@ -525,7 +525,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
                 limite: limiteVia,
                 excesso: excedeValor,
                 nomeVia: nomeVia,
-                motorista: encontrarMotoristaPorTimestampCSV(loc.timestamp) // ✅ Motorista no momento do excesso
+                motorista: encontrarMotoristaPorTimestampCSV(loc.timestamp) // Motorista no momento do excesso
               });
             }
 
@@ -637,7 +637,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     }
 
     // ============ MÓDULO: DADOS OBD2 ============
-    // ✅ Só inclui OBD2 se o dispositivo SUPORTA OBD2 (não inclui para XT40_4F)
+    // Só inclui OBD2 se o dispositivo SUPORTA OBD2 (não inclui para XT40_4F)
     const dispositivoSuportaOBD2 = supportsOBD2(dispositivo.tipo);
     if (temModulo('obd2') && dispositivoSuportaOBD2) {
       const dadosOBD2 = await prisma.dadosOBD2.findMany({
@@ -745,7 +745,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
         timestamp: { gte: inicio, lte: fim }
       };
 
-      // ✅ Filtrar por tipo de alarme se especificado
+      // Filtrar por tipo de alarme se especificado
       if (tipoAlarme) {
         whereAlarme.tipo_alarme = { contains: tipoAlarme, mode: 'insensitive' };
       }
@@ -775,7 +775,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       });
     }
 
-    // ✅ Calcular estatísticas para o cabeçalho
+    // Calcular estatísticas para o cabeçalho
     let distanciaTotal = 0;
     let distanciaMovimento = 0;
     let tempoMovimentoTotal = 0;
@@ -832,7 +832,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
           return diff < 60000;
         });
 
-        // ✅ Lógica diferenciada por tipo de dispositivo
+        // Lógica diferenciada por tipo de dispositivo
         let motorLigado = false;
         let motorDesligado = false;
 
@@ -847,7 +847,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
             motorLigado = obd2.rpm >= 500 && loc.velocidade === 0;
             motorDesligado = obd2.rpm < 500 && loc.velocidade === 0;
           } else {
-            // ✅ FALLBACK: Sem RPM - detectar ocioso se houve movimento recente
+            // FALLBACK: Sem RPM - detectar ocioso se houve movimento recente
             if (loc.velocidade === 0) {
               let temMovimentoRecente = false;
               for (let j = i - 1; j >= 0 && j > i - 30; j--) {
@@ -878,7 +878,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
             maxVelocidadeRota = loc.velocidade;
           }
 
-          // ✅ Verificar excesso de velocidade baseado no limite REAL da via
+          // Verificar excesso de velocidade baseado no limite REAL da via
           const cacheKey = velocidadeViaService.getCacheKey(loc.latitude, loc.longitude);
           const infoVia = limitesViaStats.get(cacheKey) || { limite: 60 };
           if (loc.velocidade > infoVia.limite) {
@@ -963,7 +963,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     if (statusFiltroAtivo && statusFiltradoTexto) {
       header += `Status Filtrado,${statusFiltradoTexto}\n`;
     }
-    // 🎯 Filtros Avançados
+    // Filtros Avançados
     if (filtroGeofenceAtivo && geofencesTexto) {
       header += `Cercas Filtradas,${geofencesTexto.replace(/,/g, ';')}\n`;
     }
@@ -1058,7 +1058,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
  * - velMax: number - velocidade máxima
  * - soExcessos: boolean - apenas excessos de velocidade
  * - tipoAlarme: string - filtrar por tipo de alarme
- * ✅ Multi-tenant: Verifica propriedade do dispositivo
+ * Multi-tenant: Verifica propriedade do dispositivo
  */
 router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
   try {
@@ -1081,7 +1081,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       mostrarMotoristas = '', // 'todos' para mostrar todos os motoristas vinculados
       tagIds = '', // IDs das tags filtradas (separados por vírgula)
       statusFiltro = '', // Status filtrado (movimento, ocioso, parado, offline)
-      // 🎯 Filtros Avançados
+      // Filtros Avançados
       geofenceIds = '', tiposAlarme = '',
       viagemKmMin = '', viagemKmMax = '', viagemDuracaoMin = '', viagemDuracaoMax = '',
       viagemVelMaxMin = '', viagemVelMaxMax = '',
@@ -1106,7 +1106,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     const mostrarTodosMotoristas = mostrarMotoristas === 'todos';
     const filtroMotoristaAtivo = motoristaIdsFiltro.length > 0 || mostrarTodosMotoristas;
 
-    // 🎯 Extrair filtros avançados (PDF)
+    // Extrair filtros avançados (PDF)
     const geofenceIdsFiltro = geofenceIds ? geofenceIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
     const filtroGeofenceAtivo = geofenceIdsFiltro.length > 0;
     const tiposAlarmeFiltro = tiposAlarme ? tiposAlarme.split(',').filter(t => t.trim()) : [];
@@ -1182,7 +1182,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     doc.moveDown(0.5);
 
     // ============ BUSCAR MOTORISTA(S) VINCULADO(S) NO PERÍODO ============
-    // ✅ Busca motoristas se: filtro específico OU "todos os motoristas"
+    // Busca motoristas se: filtro específico OU "todos os motoristas"
     let motoristasVinculados = [];
 
     if (filtroMotoristaAtivo) {
@@ -1209,7 +1209,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
           orderBy: { inicio: 'asc' }
         });
 
-        // ✅ Mostrar CADA vínculo separadamente (não consolidar por motorista)
+        // Mostrar CADA vínculo separadamente (não consolidar por motorista)
         motoristasVinculados = historicoMotoristas
           .filter(h => h.motorista)
           .map(h => ({
@@ -1224,7 +1224,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       }
     }
 
-    // ✅ Função helper para encontrar motorista em um timestamp específico
+    // Função helper para encontrar motorista em um timestamp específico
     const encontrarMotoristaPorTimestamp = (timestamp) => {
       const ts = new Date(timestamp);
       for (const m of motoristasVinculados) {
@@ -1260,7 +1260,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     };
     const statusFiltradoTextoPDF = statusFiltroAtivo ? (statusTextoMapPDF[statusFiltro] || statusFiltro) : '';
 
-    // ============ 🎯 BUSCAR DADOS DOS FILTROS AVANÇADOS (PDF) ============
+    // ============ BUSCAR DADOS DOS FILTROS AVANÇADOS (PDF) ============
     let geofencesFiltradasPDF = [];
     if (filtroGeofenceAtivo) {
       try {
@@ -1302,15 +1302,15 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       doc.font('Helvetica').fillColor('#000');
     }
 
-    // 🎯 Mostrar filtros avançados no PDF
+    // Mostrar filtros avançados no PDF
     if (filtroGeofenceAtivo && geofencesTextoPDF) {
       doc.font('Helvetica-Bold').fillColor('#eab308');
-      doc.text(`📍 Cercas: ${geofencesTextoPDF}`);
+      doc.text(`Cercas: ${geofencesTextoPDF}`);
       doc.font('Helvetica').fillColor('#000');
     }
     if (filtroAlarmeAtivo && alarmesTextoPDF) {
       doc.font('Helvetica-Bold').fillColor('#ef4444');
-      doc.text(`⚠️ Alarmes: ${alarmesTextoPDF}`);
+      doc.text(`Alarmes: ${alarmesTextoPDF}`);
       doc.font('Helvetica').fillColor('#000');
     }
     if (filtroViagemAtivo) {
@@ -1318,12 +1318,12 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       const partes = [];
       if (viagemKmMin || viagemKmMax) partes.push(`Dist: ${viagemKmMin || 0}-${viagemKmMax || '∞'} km`);
       if (viagemDuracaoMin || viagemDuracaoMax) partes.push(`Dur: ${viagemDuracaoMin || 0}-${viagemDuracaoMax || '∞'} min`);
-      doc.text(`🚗 Viagens: ${partes.join(', ')}`);
+      doc.text(`Viagens: ${partes.join(', ')}`);
       doc.font('Helvetica').fillColor('#000');
     }
     if (filtroMultaAtivo) {
       doc.font('Helvetica-Bold').fillColor('#ec4899');
-      doc.text(`📋 Multas: ${multaStatus || ''} ${multaGravidade || ''}`);
+      doc.text(`Multas: ${multaStatus || ''} ${multaGravidade || ''}`);
       doc.font('Helvetica').fillColor('#000');
     }
     if (filtroVelocidadeAvancado || velocidadeMin || velocidadeMax) {
@@ -1342,11 +1342,11 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       if (scoreMin || scoreMax) partes.push(`Score: ${scoreMin || 0}-${scoreMax || 100}`);
       if (excessosMax) partes.push(`Max exc: ${excessosMax}`);
       if (ociosoMax) partes.push(`Max ocioso: ${ociosoMax}min`);
-      doc.text(`📊 Performance: ${partes.join(', ')}`);
+      doc.text(`Performance: ${partes.join(', ')}`);
       doc.font('Helvetica').fillColor('#000');
     }
 
-    // ✅ Mostrar motorista(s) vinculado(s) com período - APENAS se filtro ativo
+    // Mostrar motorista(s) vinculado(s) com período - APENAS se filtro ativo
     if (filtroMotoristaAtivo && motoristasVinculados.length > 0) {
       doc.font('Helvetica-Bold').fillColor('#1565c0');
       if (motoristasVinculados.length === 1) {
@@ -1386,7 +1386,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     doc.text(`Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`);
     doc.text(`Gerado em: ${formatDateTime(new Date())}`);
 
-    // ✅ Mostrar filtros aplicados
+    // Mostrar filtros aplicados
     let filtrosTexto = [];
     if (aplicarCorrecao) filtrosTexto.push('GPS Corrigido (OSRM)');
     if (estado) filtrosTexto.push(`Estado: ${estado}`);
@@ -1418,7 +1418,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         orderBy: { timestamp: 'asc' }
       });
 
-      // ✅ Aplicar correção GPS (OSRM) para ter rota realista que segue as ruas
+      // Aplicar correção GPS (OSRM) para ter rota realista que segue as ruas
       let localizacoesCorrigidas = localizacoes;
       if (aplicarCorrecao && gpsFilterService && localizacoes.length > 1) {
         console.log(`[PDF] Aplicando correção OSRM em ${localizacoes.length} pontos para rota realista...`);
@@ -1435,8 +1435,8 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
           const resultado = await gpsFilterService.processarRotaCompleta(pontosParaCorrigir, {
             usarKalman: true,
             usarHampel: true,
-            usarInterpolacao: true, // ✅ Interpolar para rota mais suave
-            usarOSRM: true          // ✅ OSRM para seguir ruas reais
+            usarInterpolacao: true, // Interpolar para rota mais suave
+            usarOSRM: true          // OSRM para seguir ruas reais
           });
 
           if (resultado && resultado.pontos && resultado.pontos.length > 0) {
@@ -1511,7 +1511,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
             return diff < 60000;
           });
 
-          // ✅ Lógica diferenciada por tipo de dispositivo
+          // Lógica diferenciada por tipo de dispositivo
           let motorLigado = false;
           let motorDesligado = false;
 
@@ -1526,7 +1526,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
               motorLigado = obd2.rpm >= 500 && loc.velocidade === 0;
               motorDesligado = obd2.rpm < 500 && loc.velocidade === 0;
             } else {
-              // ✅ FALLBACK: Sem RPM - detectar ocioso se houve movimento recente
+              // FALLBACK: Sem RPM - detectar ocioso se houve movimento recente
               if (loc.velocidade === 0) {
                 let temMovimentoRecente = false;
                 for (let j = i - 1; j >= 0 && j > i - 30; j--) {
@@ -1554,7 +1554,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
             distanciaMovimento += dist;
             tempoMovimentoTotal += tempoMinutos;
 
-            // ✅ Verificar excesso de velocidade baseado no limite REAL da via
+            // Verificar excesso de velocidade baseado no limite REAL da via
             const cacheKey = velocidadeViaService.getCacheKey(loc.latitude, loc.longitude);
             const infoVia = limitesViaPDF.get(cacheKey) || { limite: 60, nome: '' };
             if (loc.velocidade > infoVia.limite) {
@@ -1569,7 +1569,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
                 limite: infoVia.limite,
                 excesso: loc.velocidade - infoVia.limite,
                 nomeVia: infoVia.nome || '',
-                motorista: encontrarMotoristaPorTimestamp(loc.timestamp) // ✅ Motorista no momento do excesso
+                motorista: encontrarMotoristaPorTimestamp(loc.timestamp) // Motorista no momento do excesso
               });
             }
           } else if (motorLigado) {
@@ -1671,7 +1671,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         doc.text(`Tempo Ocioso: ${formatarTempo(tempoOciosoTotal)}`, 300, statsY + 25);
         doc.text(`Tempo Parado: ${formatarTempo(tempoParadoTotal)}`, 300, statsY + 40);
         doc.text(`Posições GPS: ${localizacoes.length}`, 300, statsY + 55);
-        // ✅ Só mostrar Registros OBD2 se o dispositivo suporta OBD2
+        // Só mostrar Registros OBD2 se o dispositivo suporta OBD2
         const suportaOBD2PDF = supportsOBD2(dispositivo.tipo);
         if (suportaOBD2PDF) {
           doc.text(`Registros OBD2: ${dadosOBD2.length}`, 300, statsY + 70);
@@ -1680,7 +1680,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         // Linha de alertas (destaque se houver excessos)
         if (excessosVelocidade > 0) {
           doc.fillColor('#c62828').font('Helvetica-Bold');
-          doc.text(`⚠️ Excessos de Velocidade: ${excessosVelocidade} ocorrências`, 60, statsY + 85);
+          doc.text(`Excessos de Velocidade: ${excessosVelocidade} ocorrências`, 60, statsY + 85);
           doc.fillColor('#000').font('Helvetica');
         } else {
           doc.text(`Excessos de Velocidade: 0`, 60, statsY + 85);
@@ -1850,7 +1850,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
           .text('(Coordenadas incluídas para identificação de radares/multas)');
         doc.moveDown(0.3);
 
-        // ✅ LEGENDA DE CORES DA TABELA
+        // LEGENDA DE CORES DA TABELA
         const legendaExcY = doc.y;
         doc.rect(50, legendaExcY, 495, 28).fill('#f5f5f5');
         doc.fontSize(7).font('Helvetica-Bold').fillColor('#333');
@@ -1864,7 +1864,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         doc.moveDown(0.5);
 
         const excTableY = doc.y;
-        // ✅ Adicionada coluna Motorista para identificar condutor no momento do excesso
+        // Adicionada coluna Motorista para identificar condutor no momento do excesso
         const excColWidths = [70, 95, 75, 35, 35, 35, 150];
         const excHeaders = ['Data/Hora', 'Via', 'Motorista', 'Vel.', 'Lim.', 'Exc.', 'Coordenadas'];
 
@@ -1918,7 +1918,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
             ? (exc.nomeVia.length > 18 ? exc.nomeVia.substring(0, 15) + '...' : exc.nomeVia)
             : 'Via não identif.';
 
-          // ✅ Motorista no momento do excesso
+          // Motorista no momento do excesso
           const motoristaExc = exc.motorista
             ? (exc.motorista.length > 14 ? exc.motorista.substring(0, 11) + '...' : exc.motorista)
             : 'N/I';
@@ -2012,7 +2012,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
           .text('(Locais onde o veículo permaneceu parado por tempo significativo)');
         doc.moveDown(0.3);
 
-        // ✅ LEGENDA DE CORES DA TABELA DE PARADAS
+        // LEGENDA DE CORES DA TABELA DE PARADAS
         const legendaParY = doc.y;
         doc.rect(50, legendaParY, 495, 18).fill('#f5f5f5');
         doc.fontSize(7).font('Helvetica-Bold').fillColor('#333');
@@ -2236,7 +2236,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       }
 
       // ============ MAPA COM TRAJETÓRIA ============
-      // ✅ Usar localizacoesCorrigidas para desenhar rota que segue as ruas
+      // Usar localizacoesCorrigidas para desenhar rota que segue as ruas
       console.log(`[PDF] Total de localizacoes: ${localizacoes.length}, corrigidas: ${localizacoesCorrigidas.length}`);
       if (localizacoes.length > 0) {
         // Nova página para trajetória
@@ -2246,12 +2246,12 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
           .text('TRAJETÓRIA DO VEÍCULO', 50, 18, { align: 'center', width: 495 });
         doc.y = 70;
 
-        // ✅ Usar dados corrigidos pelo OSRM para o mapa (rota realista nas ruas)
+        // Usar dados corrigidos pelo OSRM para o mapa (rota realista nas ruas)
         const mapInfo = generateMapInfo(localizacoesCorrigidas);
 
         if (mapInfo && mapInfo.validLocs.length > 0) {
           const validLocs = mapInfo.validLocs;
-          // ✅ Usar coordenadas corrigidas mas timestamps originais
+          // Usar coordenadas corrigidas mas timestamps originais
           const primeiro = validLocs[0];
           const ultimo = validLocs[validLocs.length - 1];
           // Timestamps das localizações originais (início e fim reais da viagem)
@@ -2332,7 +2332,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
           timestamp: { gte: inicio, lte: fim }
         },
         orderBy: { timestamp: 'desc' }
-        // ✅ SEM LIMITE - exportar todos os dados do período
+        // SEM LIMITE - exportar todos os dados do período
       });
 
       if (localizacoes.length > 0) {
@@ -2340,7 +2340,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         doc.fontSize(12).font('Helvetica-Bold').text(`Histórico de Localizações (${localizacoes.length} registros)`);
         doc.moveDown(0.3);
 
-        // ✅ LEGENDA DE CORES DA TABELA DE LOCALIZAÇÕES
+        // LEGENDA DE CORES DA TABELA DE LOCALIZAÇÕES
         const legendaLocY = doc.y;
         doc.rect(50, legendaLocY, 495, 22).fill('#f5f5f5');
         doc.fontSize(7).font('Helvetica-Bold').fillColor('#333');
@@ -2381,7 +2381,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         doc.fillColor('#000').font('Helvetica').fontSize(7);
         let yPos = tableTop + 18;
 
-        for (const loc of localizacoes) {  // ✅ TODOS os registros
+        for (const loc of localizacoes) {  // TODOS os registros
           if (yPos > 750) {
             doc.addPage();
             yPos = 50;
@@ -2446,7 +2446,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     }
 
     // ============ MÓDULO: DADOS OBD2 (TODOS os dados do período) ============
-    // ✅ Só inclui OBD2 se o dispositivo SUPORTA OBD2 (não inclui para XT40_4F)
+    // Só inclui OBD2 se o dispositivo SUPORTA OBD2 (não inclui para XT40_4F)
     const dispositivoSuportaOBD2PDF = supportsOBD2(dispositivo.tipo);
     if (temModulo('obd2') && dispositivoSuportaOBD2PDF) {
       const dadosOBD2 = await prisma.dadosOBD2.findMany({
@@ -2455,7 +2455,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
           timestamp: { gte: inicio, lte: fim }
         },
         orderBy: { timestamp: 'desc' }
-        // ✅ SEM LIMITE - exportar todos os dados do período
+        // SEM LIMITE - exportar todos os dados do período
       });
 
       if (dadosOBD2.length > 0) {
@@ -2542,7 +2542,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
         doc.fontSize(12).font('Helvetica-Bold').fillColor('#000').text(`Registro de Alarmes (${alarmes.length} registros)`);
         doc.moveDown(0.5);
 
-        for (const alarme of alarmes) {  // ✅ TODOS os alarmes
+        for (const alarme of alarmes) {  // TODOS os alarmes
           const severidadeCor = alarme.severidade === 'critical' ? '#f56565' :
                                alarme.severidade === 'high' ? '#ed8936' : '#48bb78';
 
@@ -2594,7 +2594,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
 /**
  * GET /api/exportar/:imei/dados-relatorio
  * Retorna dados formatados para gerar PDF no cliente (com mapa)
- * ✅ Multi-tenant: Verifica propriedade do dispositivo
+ * Multi-tenant: Verifica propriedade do dispositivo
  */
 router.get('/:imei/dados-relatorio', verificarDispositivoTenant, async (req, res) => {
   try {
@@ -2688,8 +2688,8 @@ router.get('/:imei/dados-relatorio', verificarDispositivoTenant, async (req, res
           velocidade: l.velocidade,
           direcao: l.direcao
         })),
-        obd2: dadosOBD2,  // ✅ TODOS os dados OBD2
-        alarmes: alarmes  // ✅ TODOS os alarmes
+        obd2: dadosOBD2,  // TODOS os dados OBD2
+        alarmes: alarmes  // TODOS os alarmes
       }
     });
 
@@ -3141,7 +3141,7 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
       mostrarMotoristas = '', // 'todos' para mostrar todos os motoristas vinculados
       tagIds = '', // IDs das tags filtradas (separados por vírgula)
       statusFiltro = '', // Status filtrado (movimento, ocioso, parado, offline)
-      // 🎯 Filtros Avançados
+      // Filtros Avançados
       geofenceIds = '', tiposAlarme = '',
       viagemKmMin = '', viagemKmMax = '', viagemDuracaoMin = '', viagemDuracaoMax = '',
       viagemVelMaxMin = '', viagemVelMaxMax = '',
@@ -3167,7 +3167,7 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
     const mostrarTodosMotoristas = mostrarMotoristas === 'todos';
     const filtroMotoristaAtivo = motoristaIdsFiltro.length > 0 || mostrarTodosMotoristas;
 
-    // 🎯 Extrair filtros avançados (Excel)
+    // Extrair filtros avançados (Excel)
     const geofenceIdsFiltro = geofenceIds ? geofenceIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
     const filtroGeofenceAtivo = geofenceIdsFiltro.length > 0;
     const tiposAlarmeFiltro = tiposAlarme ? tiposAlarme.split(',').filter(t => t.trim()) : [];
@@ -3278,7 +3278,7 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
         orderBy: { inicio: 'asc' }
       });
 
-      // ✅ Guardar vínculos para aba separada
+      // Guardar vínculos para aba separada
       motoristasVinculadosExcel = historico
         .filter(h => h.motorista)
         .map(h => ({
@@ -3312,7 +3312,7 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
     };
     const statusFiltradoTextoExcel = statusFiltroAtivo ? (statusTextoMapExcel[statusFiltro] || statusFiltro) : '';
 
-    // ============ 🎯 BUSCAR DADOS DOS FILTROS AVANÇADOS (Excel) ============
+    // ============ BUSCAR DADOS DOS FILTROS AVANÇADOS (Excel) ============
     let geofencesFiltradasExcel = [];
     if (filtroGeofenceAtivo) {
       try {
@@ -3514,24 +3514,24 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
         ...(statusFiltroAtivo && statusFiltradoTextoExcel
           ? [['Status Filtrado', statusFiltradoTextoExcel]]
           : []),
-        // 🎯 Filtros avançados
+        // Filtros avançados
         ...(filtroGeofenceAtivo && geofencesTextoExcel
-          ? [['📍 Cercas Filtradas', geofencesTextoExcel]]
+          ? [['Cercas Filtradas', geofencesTextoExcel]]
           : []),
         ...(filtroAlarmeAtivo && alarmesTextoExcel
-          ? [['⚠️ Alarmes Filtrados', alarmesTextoExcel]]
+          ? [['Alarmes Filtrados', alarmesTextoExcel]]
           : []),
         ...(filtroViagemAtivo && viagensTextoExcel
-          ? [['🚗 Filtro Viagens', viagensTextoExcel]]
+          ? [['Filtro Viagens', viagensTextoExcel]]
           : []),
         ...(filtroMultaAtivo
-          ? [['📋 Filtro Multas', `${multaStatus || ''} ${multaGravidade || ''}`]]
+          ? [['Filtro Multas', `${multaStatus || ''} ${multaGravidade || ''}`]]
           : []),
         ...(filtroVelocidadeAvancado && velocidadeTextoExcel
           ? [['⚡ Filtro Velocidade', velocidadeTextoExcel]]
           : []),
         ...(filtroPerformanceAtivo && performanceTextoExcel
-          ? [['📊 Filtro Performance', performanceTextoExcel]]
+          ? [['Filtro Performance', performanceTextoExcel]]
           : []),
         // Referência à aba de Motoristas se houver vínculos
         ...(filtroMotoristaAtivo && motoristasVinculadosExcel.length > 0

@@ -275,8 +275,8 @@ services:
       - WORKER_ID=loc-0
       - PARTITION_ID=0
       - LOCATION_PARTITIONS=4
-      - BATCH_SIZE=20
-      - BLOCK_TIME=3000
+      - BATCH_SIZE=10
+      - BLOCK_TIME=1000
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
@@ -316,8 +316,8 @@ services:
       - WORKER_ID=loc-1
       - PARTITION_ID=1
       - LOCATION_PARTITIONS=4
-      - BATCH_SIZE=20
-      - BLOCK_TIME=3000
+      - BATCH_SIZE=10
+      - BLOCK_TIME=1000
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
@@ -357,8 +357,8 @@ services:
       - WORKER_ID=loc-2
       - PARTITION_ID=2
       - LOCATION_PARTITIONS=4
-      - BATCH_SIZE=20
-      - BLOCK_TIME=3000
+      - BATCH_SIZE=10
+      - BLOCK_TIME=1000
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
@@ -398,8 +398,8 @@ services:
       - WORKER_ID=loc-3
       - PARTITION_ID=3
       - LOCATION_PARTITIONS=4
-      - BATCH_SIZE=20
-      - BLOCK_TIME=3000
+      - BATCH_SIZE=10
+      - BLOCK_TIME=1000
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}
@@ -437,8 +437,8 @@ services:
     command: ["node", "server/workers/status-processor.js"]
     environment:
       - WORKER_ID=status-1
-      - BATCH_SIZE=20
-      - BLOCK_TIME=2000
+      - BATCH_SIZE=10
+      - BLOCK_TIME=1000
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-UI6+PBaM/EMhf7I4tX6i9qdhtzKg6nttX7VO28oGa90=}

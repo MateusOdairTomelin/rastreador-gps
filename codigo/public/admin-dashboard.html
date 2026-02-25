@@ -1127,7 +1127,7 @@
       animation: fadeIn 0.4s ease;
     }
 
-    /* ✅ FIX: Seção do mapa usa visibility ao invés de display para Leaflet funcionar */
+    /* FIX: Seção do mapa usa visibility ao invés de display para Leaflet funcionar */
     #section-mapa {
       display: block !important;
       visibility: hidden;
@@ -4729,7 +4729,7 @@
       border-color: #06b6d4;
     }
 
-    /* 📍 Geofencing (Amarelo) */
+    /* Geofencing (Amarelo) */
     .filtro-chip-geofencing {
       background: rgba(234, 179, 8, 0.15);
       color: #eab308;
@@ -4740,7 +4740,7 @@
       border-color: #eab308;
     }
 
-    /* ⚠️ Alarmes (Vermelho) */
+    /* Alarmes (Vermelho) */
     .filtro-chip-alarmes {
       background: rgba(239, 68, 68, 0.15);
       color: #ef4444;
@@ -4751,7 +4751,7 @@
       border-color: #ef4444;
     }
 
-    /* 🚗 Viagens (Índigo) */
+    /* Viagens (Índigo) */
     .filtro-chip-viagens {
       background: rgba(99, 102, 241, 0.15);
       color: #6366f1;
@@ -4762,7 +4762,7 @@
       border-color: #6366f1;
     }
 
-    /* 📋 Multas (Rosa) */
+    /* Multas (Rosa) */
     .filtro-chip-multas {
       background: rgba(236, 72, 153, 0.15);
       color: #ec4899;
@@ -4784,7 +4784,7 @@
       border-color: #f59e0b;
     }
 
-    /* 📊 Performance (Esmeralda) */
+    /* Performance (Esmeralda) */
     .filtro-chip-performance {
       background: rgba(16, 185, 129, 0.15);
       color: #10b981;
@@ -7115,7 +7115,7 @@
             <!-- Pipeline Visual -->
             <div class="pipeline-container" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; padding: 16px; background: var(--bg); border-radius: 8px;">
               <div class="pipeline-step" id="pipe-gateway">
-                <div class="pipe-icon">📡</div>
+                <div class="pipe-icon"></div>
                 <div class="pipe-label">TCP Gateway</div>
                 <div class="pipe-value" id="pipe-gateway-val">-</div>
               </div>
@@ -7163,7 +7163,7 @@
             <div class="grid-3" style="gap: 12px; margin-bottom: 16px;">
               <!-- Redis Queues -->
               <div class="debug-card">
-                <div class="debug-title">📊 Filas Redis (Location) <span style="font-size:10px;color:var(--text-muted);">MAXLEN: 5000</span></div>
+                <div class="debug-title">Filas Redis (Location) <span style="font-size:10px;color:var(--text-muted);">MAXLEN: 5000</span></div>
                 <div class="debug-content" id="debug-redis-queues">
                   <div class="queue-row" id="queue-row-0">
                     <div class="queue-header"><span>P0:</span> <span id="redis-q0">-</span></div>
@@ -7188,7 +7188,7 @@
 
               <!-- Latência -->
               <div class="debug-card">
-                <div class="debug-title">⏱️ Latência (GPS → DB)</div>
+                <div class="debug-title">Latência (GPS → DB)</div>
                 <div class="debug-content" id="debug-latency">
                   <div class="latency-big" id="latency-big">--</div>
                   <div class="latency-label" id="latency-label">Delay médio</div>
@@ -7201,7 +7201,7 @@
 
               <!-- Throughput -->
               <div class="debug-card">
-                <div class="debug-title">📈 Throughput</div>
+                <div class="debug-title">Throughput</div>
                 <div class="debug-content" id="debug-throughput">
                   <div class="debug-row"><span>🔌 Conexões TCP:</span> <span id="tp-connections">-</span></div>
                   <div class="debug-row"><span>📥 Na fila:</span> <span id="tp-lag">-</span></div>
@@ -7209,7 +7209,7 @@
                   <div style="border-top: 1px solid var(--border); margin: 8px 0;"></div>
                   <div class="debug-row"><span>📤 Inserções/min:</span> <span id="tp-inserts">-</span></div>
                   <div class="debug-row"><span>📤 Inserções/5min:</span> <span id="tp-inserts5">-</span></div>
-                  <div class="debug-row" style="margin-top: 8px;"><span>📊 Estimado/min:</span> <span id="tp-packets">-</span></div>
+                  <div class="debug-row" style="margin-top: 8px;"><span>Estimado/min:</span> <span id="tp-packets">-</span></div>
                   <div class="debug-row total"><span>Diagnóstico:</span> <span id="tp-diag">-</span></div>
                 </div>
               </div>
@@ -7217,20 +7217,20 @@
 
             <!-- Gráficos de Histórico -->
             <div class="debug-card" style="margin-top: 16px;">
-              <div class="debug-title">📊 Filas Redis P0-P3 (tempo real)</div>
+              <div class="debug-title">Filas Redis P0-P3 (tempo real)</div>
               <div style="height: 160px; position: relative;">
                 <canvas id="chart-queues"></canvas>
               </div>
             </div>
             <div class="grid-2" style="gap: 12px; margin-top: 12px;">
               <div class="debug-card">
-                <div class="debug-title">⏱️ Latência (histórico)</div>
+                <div class="debug-title">Latência (histórico)</div>
                 <div style="height: 140px; position: relative;">
                   <canvas id="chart-latency"></canvas>
                 </div>
               </div>
               <div class="debug-card">
-                <div class="debug-title">📈 Throughput (histórico)</div>
+                <div class="debug-title">Throughput (histórico)</div>
                 <div style="height: 140px; position: relative;">
                   <canvas id="chart-throughput"></canvas>
                 </div>
@@ -7239,7 +7239,7 @@
 
             <!-- Últimos Dados por Veículo -->
             <div class="debug-card" style="margin-top: 12px;">
-              <div class="debug-title">🚗 Últimos Dados Recebidos (10 mais recentes)</div>
+              <div class="debug-title">Últimos Dados Recebidos (10 mais recentes)</div>
               <div class="table-wrapper" style="max-height: 300px; overflow-y: auto;">
                 <table class="debug-table" id="debug-latest-data">
                   <thead>
@@ -8081,7 +8081,7 @@
           <div class="card" style="margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px;">
               <div>
-                <h2 style="margin: 0; color: var(--primary);">📡 Dispositivos Não Atribuídos</h2>
+                <h2 style="margin: 0; color: var(--primary);">Dispositivos Não Atribuídos</h2>
                 <p style="margin: 5px 0 0 0; color: var(--text-light);">Dispositivos que conectaram mas ainda não foram atribuídos a nenhuma organização</p>
               </div>
               <button onclick="carregarDispositivosNaoAtribuidos()" class="btn btn-secondary" style="padding: 8px 16px;">
@@ -9225,7 +9225,7 @@
                     ↓ Exportar <span style="font-size: 0.7rem;">▾</span>
                   </button>
                   <div id="export-dropdown" style="display: none; position: absolute; top: 100%; right: 0; min-width: 140px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.4); padding: 6px;">
-                    <div onclick="exportarRelatorioLote('xlsx')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">📊 Excel</div>
+                    <div onclick="exportarRelatorioLote('xlsx')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">Excel</div>
                     <div onclick="exportarRelatorioLote('csv')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">≡ CSV</div>
                     <div onclick="exportarRelatorioLote('pdf')" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">☰ PDF</div>
                   </div>
@@ -9439,12 +9439,12 @@
 
               <!-- Linha 3: Filtros Avançados -->
               <div class="filtros-linha-3">
-                <span class="filtros-linha-3-header">🎯 Avançado:</span>
+                <span class="filtros-linha-3-header">Avançado:</span>
 
-                <!-- 📍 Chip Geofencing (Amarelo) -->
+                <!-- Chip Geofencing (Amarelo) -->
                 <div class="filtro-chip-container" style="position: relative;">
                   <button type="button" onclick="toggleGeofencingDropdown()" class="filtro-chip filtro-chip-geofencing">
-                    <span class="chip-icon">📍</span>
+                    <span class="chip-icon"></span>
                     <span id="geofencing-label">Cercas</span>
                     <span class="chip-arrow">▾</span>
                   </button>
@@ -9462,10 +9462,10 @@
                   </div>
                 </div>
 
-                <!-- ⚠️ Chip Alarmes (Vermelho) -->
+                <!-- Chip Alarmes (Vermelho) -->
                 <div class="filtro-chip-container" style="position: relative;">
                   <button type="button" onclick="toggleAlarmesDropdown()" class="filtro-chip filtro-chip-alarmes">
-                    <span class="chip-icon">⚠️</span>
+                    <span class="chip-icon"></span>
                     <span id="alarmes-label">Alarmes</span>
                     <span class="chip-arrow">▾</span>
                   </button>
@@ -9489,15 +9489,15 @@
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="alarme-checkbox" value="desconexao" onchange="atualizarAlarmesSelecionados()">
-                        <span style="color: #6b7280;">📡</span> Desconexão GPS
+                        <span style="color: #6b7280;"></span> Desconexão GPS
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="alarme-checkbox" value="geofence_entrada" onchange="atualizarAlarmesSelecionados()">
-                        <span style="color: #22c55e;">📍</span> Entrada em Cerca
+                        <span style="color: #22c55e;"></span> Entrada em Cerca
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="alarme-checkbox" value="geofence_saida" onchange="atualizarAlarmesSelecionados()">
-                        <span style="color: #ef4444;">📍</span> Saída de Cerca
+                        <span style="color: #ef4444;"></span> Saída de Cerca
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="alarme-checkbox" value="ignicao" onchange="atualizarAlarmesSelecionados()">
@@ -9515,10 +9515,10 @@
                   </div>
                 </div>
 
-                <!-- 🚗 Chip Viagens (Índigo) -->
+                <!-- Chip Viagens (Índigo) -->
                 <div class="filtro-chip-container" style="position: relative;">
                   <button type="button" onclick="toggleViagensDropdown()" class="filtro-chip filtro-chip-viagens">
-                    <span class="chip-icon">🚗</span>
+                    <span class="chip-icon"></span>
                     <span id="viagens-label">Viagens</span>
                     <span class="chip-arrow">▾</span>
                   </button>
@@ -9535,7 +9535,7 @@
                     </div>
                     <div class="dropdown-range-container">
                       <div class="dropdown-range-label">
-                        <span>⏱️ Duração (min)</span>
+                        <span>Duração (min)</span>
                       </div>
                       <div class="dropdown-range-inputs">
                         <input type="number" id="viagem-duracao-min" class="dropdown-range-input" placeholder="Min" min="0" step="1">
@@ -9560,17 +9560,17 @@
                   </div>
                 </div>
 
-                <!-- 📋 Chip Multas (Rosa) -->
+                <!-- Chip Multas (Rosa) -->
                 <div class="filtro-chip-container" style="position: relative;">
                   <button type="button" onclick="toggleMultasDropdown()" class="filtro-chip filtro-chip-multas">
-                    <span class="chip-icon">📋</span>
+                    <span class="chip-icon"></span>
                     <span id="multas-label">Multas</span>
                     <span class="chip-arrow">▾</span>
                   </button>
                   <div id="multas-dropdown" class="filtro-dropdown">
                     <div id="multas-checkbox-list" class="dropdown-list" style="padding-top: 8px;">
                       <label class="dropdown-checkbox-item" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;">
-                        <strong>📊 Status da Multa</strong>
+                        <strong>Status da Multa</strong>
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="multa-status-checkbox" value="pendente" onchange="atualizarMultasSelecionadas()">
@@ -9578,7 +9578,7 @@
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="multa-status-checkbox" value="paga" onchange="atualizarMultasSelecionadas()">
-                        <span style="color: #22c55e;">✅</span> Paga
+                        <span style="color: #22c55e;"></span> Paga
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="multa-status-checkbox" value="vencida" onchange="atualizarMultasSelecionadas()">
@@ -9640,7 +9640,7 @@
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" id="vel-acima-80" onchange="atualizarVelocidadeFiltro()">
-                        <span style="color: #f59e0b;">⚠️</span> Acima de 80 km/h
+                        <span style="color: #f59e0b;"></span> Acima de 80 km/h
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" id="vel-acima-100" onchange="atualizarVelocidadeFiltro()">
@@ -9658,17 +9658,17 @@
                   </div>
                 </div>
 
-                <!-- 📊 Chip Performance (Esmeralda) -->
+                <!-- Chip Performance (Esmeralda) -->
                 <div class="filtro-chip-container" style="position: relative;">
                   <button type="button" onclick="togglePerformanceDropdown()" class="filtro-chip filtro-chip-performance">
-                    <span class="chip-icon">📊</span>
+                    <span class="chip-icon"></span>
                     <span id="performance-label">Performance</span>
                     <span class="chip-arrow">▾</span>
                   </button>
                   <div id="performance-dropdown" class="filtro-dropdown">
                     <div class="dropdown-range-container">
                       <div class="dropdown-range-label">
-                        <span>⭐ Score de Condução (0-100)</span>
+                        <span>Score de Condução (0-100)</span>
                       </div>
                       <div class="dropdown-range-inputs">
                         <input type="number" id="score-min" class="dropdown-range-input" placeholder="Min" min="0" max="100" step="5">
@@ -9687,7 +9687,7 @@
                     </div>
                     <div class="dropdown-range-container">
                       <div class="dropdown-range-label">
-                        <span>⏱️ Tempo Ocioso Máximo</span>
+                        <span>Tempo Ocioso Máximo</span>
                       </div>
                       <div class="dropdown-range-inputs">
                         <input type="number" id="ocioso-max" class="dropdown-range-input" placeholder="Máx" min="0" step="5" style="width: 100px;">
@@ -10775,12 +10775,12 @@
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('usuario');
         localStorage.removeItem('csrfToken');
-        localStorage.removeItem('currentTenantId');  // ✅ Limpar tenant
+        localStorage.removeItem('currentTenantId');  // Limpar tenant
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('refreshToken');
         sessionStorage.removeItem('usuario');
         sessionStorage.removeItem('csrfToken');
-        sessionStorage.removeItem('currentTenantId');  // ✅ Limpar tenant
+        sessionStorage.removeItem('currentTenantId');  // Limpar tenant
         window.location.href = '/login.html';
         throw new Error('Sessão expirada');
       }
@@ -11103,7 +11103,7 @@
               sidebarLogoEmoji.style.display = 'inline';
             };
             sidebarLogoEmoji.style.display = 'none';
-            sidebarLogoText.textContent = org.nome || ''; // ✅ Mostrar nome ao lado da logo
+            sidebarLogoText.textContent = org.nome || ''; // Mostrar nome ao lado da logo
           } else {
             // Sem logo, mostrar emoji + nome da organização
             sidebarLogoImg.style.display = 'none';
@@ -11313,7 +11313,7 @@
     let autoRefreshHeartbeat = true;
     let ws = null;
     let wsReconnectTimeout = null;
-    let wsConnecting = false; // ✅ Flag para prevenir múltiplas conexões
+    let wsConnecting = false; // Flag para prevenir múltiplas conexões
     let deviceTypes = [];
     let systemMetricsInterval = null;
 
@@ -12212,13 +12212,13 @@
       }
       wsConnecting = true;
 
-      // ✅ CORREÇÃO: Cancelar timeout de reconexão pendente
+      // CORREÇÃO: Cancelar timeout de reconexão pendente
       if (wsReconnectTimeout) {
         clearTimeout(wsReconnectTimeout);
         wsReconnectTimeout = null;
       }
 
-      // ✅ CORREÇÃO: Limpar conexão anterior completamente
+      // CORREÇÃO: Limpar conexão anterior completamente
       if (ws) {
         ws.onclose = null; // Prevenir reconexão automática
         ws.onerror = null;
@@ -12230,7 +12230,7 @@
         ws = null;
       }
 
-      // ✅ SEGURANÇA: Enviar token JWT na conexão WebSocket
+      // SEGURANÇA: Enviar token JWT na conexão WebSocket
       const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
       if (!token) {
         console.warn('[WS] Sem token de autenticação - WebSocket não conectado');
@@ -12244,12 +12244,12 @@
 
       ws.onopen = () => {
         console.log('[WS] Conectado ao servidor (autenticado)');
-        wsConnecting = false; // ✅ Conexão estabelecida
+        wsConnecting = false; // Conexão estabelecida
         updateStatusBox('ws', true, 'Online');
         // Enviar identificação
         ws.send(JSON.stringify({ tipo: 'subscribe', canal: 'updates' }));
 
-        // ✅ KEEPALIVE: Enviar ping a cada 30 segundos para manter conexão viva
+        // KEEPALIVE: Enviar ping a cada 30 segundos para manter conexão viva
         if (window.wsPingInterval) clearInterval(window.wsPingInterval);
         window.wsPingInterval = setInterval(() => {
           if (ws && ws.readyState === WebSocket.OPEN) {
@@ -12266,7 +12266,7 @@
             console.log('[WS] Dados recebidos:', data.tipo, data.imei || '');
           }
 
-          // ✅ CORREÇÃO: Processar location_update em TEMPO REAL (sem fetch!)
+          // CORREÇÃO: Processar location_update em TEMPO REAL (sem fetch!)
           if (data.tipo === 'location_update') {
             const locData = data.data || data; // Suporta ambos os formatos
             const lat = locData.latitude;
@@ -12274,9 +12274,9 @@
             const vel = locData.velocidade || 0;
             const estado = locData.estado_ignicao || 'off';
 
-            console.log(`[WS] 📍 TEMPO REAL: ${data.imei} (${lat?.toFixed(5)}, ${lng?.toFixed(5)}) @ ${vel}km/h [${estado}]`);
+            console.log(`[WS] TEMPO REAL: ${data.imei} (${lat?.toFixed(5)}, ${lng?.toFixed(5)}) @ ${vel}km/h [${estado}]`);
 
-            // ✅ Atualizar marcador DIRETAMENTE com dados do WebSocket (sem fetch!)
+            // Atualizar marcador DIRETAMENTE com dados do WebSocket (sem fetch!)
             if (map && mapMarkers[data.imei] && lat && lng) {
               const marker = mapMarkers[data.imei];
               const speedLimit = parseInt(document.getElementById('speed-limit')?.value) || 80;
@@ -12328,7 +12328,7 @@
               });
               marker.setIcon(carIcon);
 
-              // ✅ CORREÇÃO: Registrar timestamp da atualização WebSocket
+              // CORREÇÃO: Registrar timestamp da atualização WebSocket
               // Isso evita que dados antigos da API sobrescrevam esta posição
               wsUpdateTimestamps[data.imei] = Date.now();
 
@@ -12337,9 +12337,9 @@
                 map.setView([lat, lng], map.getZoom());
               }
 
-              console.log(`[WS] ✅ Marcador ${data.imei} atualizado em TEMPO REAL`);
+              console.log(`[WS] Marcador ${data.imei} atualizado em TEMPO REAL`);
 
-              // ✅ ATUALIZAR PAINEL DE DETALHES se este veículo está selecionado
+              // ATUALIZAR PAINEL DE DETALHES se este veículo está selecionado
               if (selectedVehicleImei === data.imei) {
                 document.getElementById('selected-speed').textContent = vel;
                 atualizarIgnicaoPainel(estado, vel);
@@ -12364,7 +12364,7 @@
                 }
               }
 
-              // ✅ ATUALIZAR SEÇÃO INFO-VEICULO se este veículo está aberto
+              // ATUALIZAR SEÇÃO INFO-VEICULO se este veículo está aberto
               if (typeof atualizarInfoVeiculoWS === 'function') {
                 atualizarInfoVeiculoWS(data.imei, {
                   velocidade: vel,
@@ -12423,7 +12423,7 @@
       };
 
       ws.onclose = (event) => {
-        wsConnecting = false; // ✅ Permitir nova tentativa
+        wsConnecting = false; // Permitir nova tentativa
         console.log(`[WS] Conexão fechada (code: ${event.code}, reason: ${event.reason || 'nenhum'})`);
 
         // Limpar ping interval
@@ -12432,7 +12432,7 @@
           window.wsPingInterval = null;
         }
 
-        // ✅ NÃO reconectar se limite de conexões foi atingido (código 4000)
+        // NÃO reconectar se limite de conexões foi atingido (código 4000)
         // Isso evita loops de reconexão quando usuário tem muitas abas
         if (event.code === 4000) {
           console.warn('[WS] Limite de conexões atingido - não reconectando automaticamente');
@@ -12441,13 +12441,13 @@
         }
 
         updateStatusBox('ws', false, 'Reconectando');
-        // ✅ Reconectar com backoff progressivo para evitar flood
+        // Reconectar com backoff progressivo para evitar flood
         const delay = Math.min(3000 + Math.random() * 2000, 10000); // 3-5s, max 10s
         wsReconnectTimeout = setTimeout(connectWebSocket, delay);
       };
 
       ws.onerror = (error) => {
-        wsConnecting = false; // ✅ Permitir nova tentativa
+        wsConnecting = false; // Permitir nova tentativa
         console.error('[WS] Erro:', error);
         updateStatusBox('ws', false, 'Erro');
       };
@@ -13436,7 +13436,7 @@
       // Atualizar lista de veículos ociosos
       async function atualizarListaOciosos() {
         try {
-          // ✅ OTIMIZADO: Usar cache de dispositivos
+          // OTIMIZADO: Usar cache de dispositivos
           const dispositivos = await fetchDevices();
           if (!dispositivos || dispositivos.length === 0) return;
           const agora = new Date();
@@ -13600,7 +13600,7 @@
       // Carregar veículos no seletor de relatórios
       async function carregarVeiculosRelatorio() {
         try {
-          // ✅ OTIMIZADO: Usar cache de dispositivos
+          // OTIMIZADO: Usar cache de dispositivos
           const allDevices = await fetchDevices();
           if (!allDevices || allDevices.length === 0) return;
 
@@ -13900,7 +13900,7 @@
       // Inicializar mapa (seção inicial)
       setTimeout(initMap, 200);
 
-      // ✅ CORREÇÃO: Atualização sincronizada em tempo real
+      // CORREÇÃO: Atualização sincronizada em tempo real
       // - Cada 2 segundos: atualizar mapa (tempo real)
       // - Dashboard e outras métricas a cada 5 segundos
       let lastMapUpdate = 0;
@@ -13912,7 +13912,7 @@
         loadLocations();
         checkServiceStatus();
 
-        // ✅ CORREÇÃO: Sempre atualizar mapa em background (dados em tempo real)
+        // CORREÇÃO: Sempre atualizar mapa em background (dados em tempo real)
         const now = Date.now();
         if (map && now - lastMapUpdate >= MAP_UPDATE_INTERVAL) {
           console.log('[Mapa] setInterval: atualizando mapa em background...');
@@ -13995,14 +13995,14 @@
       }
 
       if (name === 'mapa') {
-        // ✅ CORREÇÃO: Invalidar cache ao abrir mapa (evita dados stale)
+        // CORREÇÃO: Invalidar cache ao abrir mapa (evita dados stale)
         deviceCache.invalidate();
 
         if (!map) {
-          // ✅ FIX: Aguardar animação CSS (400ms) antes de inicializar
+          // FIX: Aguardar animação CSS (400ms) antes de inicializar
           setTimeout(initMap, 450);
         } else {
-          // ✅ FIX: Forçar refresh completo do mapa após animação CSS
+          // FIX: Forçar refresh completo do mapa após animação CSS
           forceMapRefresh();
         }
       }
@@ -14147,7 +14147,7 @@
 
     async function _loadDashboardInternal() {
       try {
-        // ✅ OTIMIZADO: Usar cache de dispositivos
+        // OTIMIZADO: Usar cache de dispositivos
         const devices = await fetchDevices();
 
         if (!Array.isArray(devices)) return;
@@ -14184,7 +14184,7 @@
           </tr>
         `}).join('');
 
-        // ✅ API já retorna OBD2 e localização - não fazer chamadas extras
+        // API já retorna OBD2 e localização - não fazer chamadas extras
         // loadAllDevicesDetails(devices);  // REMOVIDO - causa delay
 
         const tbody2 = document.querySelector('#all-devices-table tbody');
@@ -14229,14 +14229,14 @@
         console.error('Erro ao carregar dispositivos:', e);
       }
 
-      // ✅ Carregar estatísticas OBD2
+      // Carregar estatísticas OBD2
       loadOBD2Stats();
     }
 
-    // ✅ Carregar estatísticas de OBD2
+    // Carregar estatísticas de OBD2
     async function loadOBD2Stats() {
       try {
-        // ✅ OTIMIZADO: Usar cache de dispositivos
+        // OTIMIZADO: Usar cache de dispositivos
         const devices = await fetchDevices();
 
         if (devices.length === 0) return;
@@ -14282,11 +14282,11 @@
     let mapMarkers = {};
     let markerClusterGroup = null; // Grupo de clusters para agrupamento de marcadores
 
-    // ✅ CORREÇÃO: Rastrear última atualização WebSocket por IMEI para evitar rollback
+    // CORREÇÃO: Rastrear última atualização WebSocket por IMEI para evitar rollback
     // Quando WebSocket atualiza, dados da API mais antigos são ignorados
     const wsUpdateTimestamps = {};
 
-    // ✅ FIX: Força refresh do mapa ao trocar seção
+    // FIX: Força refresh do mapa ao trocar seção
     function forceMapRefresh() {
       if (!map) return;
 
@@ -14303,14 +14303,14 @@
 
       // Se já existe, apenas atualizar marcadores
       if (map) {
-        map.invalidateSize(); // ✅ CORREÇÃO: Sempre recalcular dimensões
+        map.invalidateSize(); // CORREÇÃO: Sempre recalcular dimensões
         updateMapMarkers();
         return;
       }
 
       map = L.map('map').setView([-26.9, -49.0], 10); // Centro em SC
 
-      // ✅ CORREÇÃO: Recalcular tamanho após tiles carregarem (evita bug de dimensões)
+      // CORREÇÃO: Recalcular tamanho após tiles carregarem (evita bug de dimensões)
       map.whenReady(() => {
         setTimeout(() => map.invalidateSize(), 100);
         setTimeout(() => map.invalidateSize(), 500); // Segunda chamada de segurança
@@ -14420,13 +14420,13 @@
     async function _updateMapMarkersInternal() {
       try {
         console.log('[Mapa] Atualizando marcadores...');
-        // ✅ OTIMIZADO: Usar cache de dispositivos
+        // OTIMIZADO: Usar cache de dispositivos
         const allDevices = await fetchDevices();
         // Usar apenas dispositivos CONFIGURADOS no mapa
         const devices = allDevices.filter(d => d.configurado);
         console.log('[Mapa] Dispositivos recebidos:', devices.length, 'com localização:', devices.filter(d => d.latitude).length);
 
-        // ✅ API já retorna latitude/longitude - não fazer chamadas extras
+        // API já retorna latitude/longitude - não fazer chamadas extras
         // Dispositivos sem localização simplesmente não aparecem no mapa
         const devicesWithLocations = devices;
 
@@ -14503,7 +14503,7 @@
 
             // Se marcador já existe, apenas atualizar posição e ícone
             if (mapMarkers[d.imei]) {
-              // ✅ CORREÇÃO: Evitar rollback - não sobrescrever se WebSocket atualizou recentemente
+              // CORREÇÃO: Evitar rollback - não sobrescrever se WebSocket atualizou recentemente
               const wsLastUpdate = wsUpdateTimestamps[d.imei] || 0;
               const protectionWindow = 10000; // 10 segundos de proteção
               const isProtected = (Date.now() - wsLastUpdate) < protectionWindow;
@@ -14513,7 +14513,7 @@
                 mapMarkers[d.imei].setLatLng([lat, lng]);
                 mapMarkers[d.imei].setIcon(carIcon);
               }
-              // ✅ Cache da placa para atualizações via WebSocket
+              // Cache da placa para atualizações via WebSocket
               mapMarkers[d.imei]._placaCache = placaDisplay;
               // Atualizar popup (sempre, não afeta posição)
               mapMarkers[d.imei].setPopupContent(gerarPopupVeiculo(d));
@@ -14537,7 +14537,7 @@
               }
 
               mapMarkers[d.imei] = marker;
-              // ✅ Cache da placa para atualizações via WebSocket
+              // Cache da placa para atualizações via WebSocket
               marker._placaCache = placaDisplay;
             }
 
@@ -15413,7 +15413,7 @@
     }
 
     function openEditModal(imei) {
-      // ✅ 100% INSTANTÂNEO: Abre modal imediatamente, carrega dados em background
+      // 100% INSTANTÂNEO: Abre modal imediatamente, carrega dados em background
 
       // 1. Buscar do cache local (já carregado na tabela)
       const device = (window.dispositivosConfigurados || []).find(d => d.imei === imei);
@@ -15433,7 +15433,7 @@
         toggleOdometroField();
       }
 
-      // 4. ✅ ABRIR MODAL IMEDIATAMENTE
+      // 4. ABRIR MODAL IMEDIATAMENTE
       document.getElementById('device-modal').classList.add('active');
 
       // 5. Carregar dados extras em BACKGROUND (não bloqueia)
@@ -15578,7 +15578,7 @@
       }
     }
 
-    // ✅ Filtrar tabela de dispositivos por texto (busca)
+    // Filtrar tabela de dispositivos por texto (busca)
     function filtrarTabelaDispositivos() {
       const termo = document.getElementById('busca-dispositivo').value.toLowerCase().trim();
       const tbody = document.querySelector('#all-devices-table tbody');
@@ -15602,7 +15602,7 @@
       });
     }
 
-    // ✅ Filtrar dispositivos por status_uso
+    // Filtrar dispositivos por status_uso
     async function filtrarPorStatusUso() {
       const filtro = document.getElementById('filtro-status-uso').value;
       let url = `${API_URL}/dispositivos`;
@@ -15661,7 +15661,7 @@
       }
     }
 
-    // ✅ Alterar status de uso do dispositivo
+    // Alterar status de uso do dispositivo
     async function alterarStatusUso(imei, novoStatus) {
       const labels = { 'ativo': 'ativo', 'disponivel': 'disponível', 'inativo': 'inativo' };
       const msg = novoStatus === 'inativo'
@@ -15703,7 +15703,7 @@
         const tbody = document.querySelector('#heartbeat-table tbody');
         const devices = data.devices || [];
 
-        // ✅ OTIMIZADO: Usar cache de dispositivos
+        // OTIMIZADO: Usar cache de dispositivos
         let dispositivosMap = {};
         try {
           const devicesData = await fetchDevices();
@@ -15747,7 +15747,7 @@
     }
 
     async function checkServiceStatus() {
-      // ✅ OTIMIZADO: Uma única chamada para verificar HTTP, API e DB
+      // OTIMIZADO: Uma única chamada para verificar HTTP, API e DB
       try {
         const startTime = Date.now();
         const res = await authFetch(`${API_URL}/status`);
@@ -15905,16 +15905,16 @@
 
           const statusEl = document.getElementById('latency-status');
           if (avg <= 5) {
-            statusEl.textContent = '✅ Tempo real';
+            statusEl.textContent = 'Tempo real';
             statusEl.className = 'delay-ok';
           } else if (avg <= 30) {
-            statusEl.textContent = '⚠️ Leve atraso';
+            statusEl.textContent = 'Leve atraso';
             statusEl.className = 'delay-warning';
           } else if (avg <= 300) {
-            statusEl.textContent = '⚠️ Atraso moderado';
+            statusEl.textContent = 'Atraso moderado';
             statusEl.className = 'delay-warning';
           } else {
-            statusEl.textContent = '❌ Crítico!';
+            statusEl.textContent = 'Crítico!';
             statusEl.className = 'delay-error';
           }
         }
@@ -15940,19 +15940,19 @@
           // Diagnóstico
           const diagEl = document.getElementById('tp-diag');
           if (t.totalLag > 1000 && t.insertsPerMin < 50) {
-            diagEl.textContent = '❌ Processors lentos/parados';
+            diagEl.textContent = 'Processors lentos/parados';
             diagEl.className = 'delay-error';
           } else if (t.totalLag > 100) {
-            diagEl.textContent = '⚠️ Acumulando - monitorar';
+            diagEl.textContent = 'Acumulando - monitorar';
             diagEl.className = 'delay-warning';
           } else if (t.consumers < 4) {
-            diagEl.textContent = '⚠️ Processors faltando';
+            diagEl.textContent = 'Processors faltando';
             diagEl.className = 'delay-warning';
           } else if (t.connections === 0) {
-            diagEl.textContent = '⚠️ Sem conexões TCP';
+            diagEl.textContent = 'Sem conexões TCP';
             diagEl.className = 'delay-warning';
           } else {
-            diagEl.textContent = '✅ Normal';
+            diagEl.textContent = 'Normal';
             diagEl.className = 'delay-ok';
           }
         }
@@ -15975,10 +15975,10 @@
           alertsContainer.innerHTML = data.alerts.map(a => `
             <div class="alert-item alert-${a.type}" style="padding: 10px; margin-bottom: 8px; border-radius: 6px; background: ${a.type === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)'}; border-left: 3px solid ${a.type === 'error' ? 'var(--danger)' : 'var(--warning)'};">
               <div style="font-weight: 600; color: ${a.type === 'error' ? 'var(--danger)' : 'var(--warning)'};">
-                ${a.type === 'error' ? '❌' : '⚠️'} ${a.component}
+                ${a.type === 'error' ? '❌' : ''} ${a.component}
               </div>
               <div style="font-size: 12px; color: var(--text); margin: 4px 0;">${a.message}</div>
-              <div style="font-size: 11px; color: var(--text-muted);">💡 ${a.action}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">${a.action}</div>
             </div>
           `).join('');
         } else {
@@ -16321,7 +16321,7 @@
     // Carregar confiança por dispositivo (simplificado)
     async function carregarConfiancaDispositivos() {
       try {
-        // ✅ OTIMIZADO: Usar cache de dispositivos
+        // OTIMIZADO: Usar cache de dispositivos
         const devices = await fetchDevices();
         if (!devices || devices.length === 0) return;
 
@@ -19970,7 +19970,7 @@
     let statusCheckboxSelecionados = new Set();
     let motoristasCheckboxSelecionados = new Set();
 
-    // 🎯 Filtros Avançados
+    // Filtros Avançados
     let geofencesCache = [];
     let geofencesSelecionados = new Set();
     let alarmesSelecionados = new Set();
@@ -20385,7 +20385,7 @@
       const buscaGeral = document.getElementById('rel-busca-geral');
       if (buscaGeral) buscaGeral.value = '';
 
-      // 🎯 Limpar filtros avançados
+      // Limpar filtros avançados
 
       // Geofencing
       document.querySelectorAll('.geofence-checkbox').forEach(cb => cb.checked = false);
@@ -20722,7 +20722,7 @@
     }
     window.getModulosSelecionados = getModulosSelecionados;
 
-    // ============ 📍 GEOFENCING DROPDOWN ============
+    // ============ GEOFENCING DROPDOWN ============
 
     async function carregarGeofences() {
       try {
@@ -20747,7 +20747,7 @@
       container.innerHTML = geofencesCache.map(g => `
         <label class="dropdown-checkbox-item" data-nome="${g.nome.toLowerCase()}">
           <input type="checkbox" class="geofence-checkbox" value="${g.id}" onchange="atualizarGeofencingSelecionados()">
-          <span style="color: ${g.cor || '#eab308'};">📍</span>
+          <span style="color: ${g.cor || '#eab308'};"></span>
           ${escapeHtml(g.nome)}
           <span style="font-size: 10px; color: var(--text-muted); margin-left: auto;">${g.raio_metros}m</span>
         </label>
@@ -20806,7 +20806,7 @@
     }
     window.aplicarGeofencingSelecionados = aplicarGeofencingSelecionados;
 
-    // ============ ⚠️ ALARMES DROPDOWN ============
+    // ============ ALARMES DROPDOWN ============
 
     function toggleAlarmesDropdown() {
       closeAllDropdowns('alarmes-dropdown');
@@ -20855,7 +20855,7 @@
     }
     window.aplicarAlarmesSelecionados = aplicarAlarmesSelecionados;
 
-    // ============ 🚗 VIAGENS DROPDOWN ============
+    // ============ VIAGENS DROPDOWN ============
 
     function toggleViagensDropdown() {
       closeAllDropdowns('viagens-dropdown');
@@ -20898,7 +20898,7 @@
     }
     window.aplicarViagensFiltro = aplicarViagensFiltro;
 
-    // ============ 📋 MULTAS DROPDOWN ============
+    // ============ MULTAS DROPDOWN ============
 
     function toggleMultasDropdown() {
       closeAllDropdowns('multas-dropdown');
@@ -20999,7 +20999,7 @@
     }
     window.aplicarVelocidadeFiltro = aplicarVelocidadeFiltro;
 
-    // ============ 📊 PERFORMANCE DROPDOWN ============
+    // ============ PERFORMANCE DROPDOWN ============
 
     function togglePerformanceDropdown() {
       closeAllDropdowns('performance-dropdown');
@@ -21503,7 +21503,7 @@
             <td class="col-acoes">
               <div class="btn-acoes">
                 <button class="btn-ver" onclick="abrirDetalheVeiculo('${veiculo.imei}')" title="Ver detalhes">◎</button>
-                <button class="btn-xlsx" onclick="exportarRelatorioIndividual('${veiculo.imei}', 'xlsx')" title="Excel">📊</button>
+                <button class="btn-xlsx" onclick="exportarRelatorioIndividual('${veiculo.imei}', 'xlsx')" title="Excel"></button>
                 <button class="btn-csv" onclick="exportarRelatorioIndividual('${veiculo.imei}', 'csv')" title="CSV">☰</button>
                 <button class="btn-pdf" onclick="exportarRelatorioIndividual('${veiculo.imei}', 'pdf')" title="PDF">≡</button>
               </div>
@@ -21835,20 +21835,20 @@
           params.set('statusFiltro', statusFiltro);
         }
 
-        // 🎯 Adicionar filtros avançados
+        // Adicionar filtros avançados
         const filtrosAv = getFiltrosAvancados();
 
-        // 📍 Geofencing
+        // Geofencing
         if (filtrosAv.geofences.length > 0) {
           params.set('geofenceIds', filtrosAv.geofences.join(','));
         }
 
-        // ⚠️ Alarmes
+        // Alarmes
         if (filtrosAv.alarmes.length > 0) {
           params.set('tiposAlarme', filtrosAv.alarmes.join(','));
         }
 
-        // 🚗 Viagens
+        // Viagens
         if (filtrosAv.viagem.kmMin) params.set('viagemKmMin', filtrosAv.viagem.kmMin);
         if (filtrosAv.viagem.kmMax) params.set('viagemKmMax', filtrosAv.viagem.kmMax);
         if (filtrosAv.viagem.duracaoMin) params.set('viagemDuracaoMin', filtrosAv.viagem.duracaoMin);
@@ -21856,7 +21856,7 @@
         if (filtrosAv.viagem.velMaxMin) params.set('viagemVelMaxMin', filtrosAv.viagem.velMaxMin);
         if (filtrosAv.viagem.velMaxMax) params.set('viagemVelMaxMax', filtrosAv.viagem.velMaxMax);
 
-        // 📋 Multas
+        // Multas
         if (filtrosAv.multas.status.length > 0) {
           params.set('multaStatus', filtrosAv.multas.status.join(','));
         }
@@ -21872,7 +21872,7 @@
         if (filtrosAv.velocidade.acima100) params.set('velAcima100', 'true');
         if (filtrosAv.velocidade.acima120) params.set('velAcima120', 'true');
 
-        // 📊 Performance
+        // Performance
         if (filtrosAv.performance.scoreMin) params.set('scoreMin', filtrosAv.performance.scoreMin);
         if (filtrosAv.performance.scoreMax) params.set('scoreMax', filtrosAv.performance.scoreMax);
         if (filtrosAv.performance.excessosMax) params.set('excessosMax', filtrosAv.performance.excessosMax);
