@@ -20691,7 +20691,14 @@
         return;
       }
 
-      container.innerHTML = geofencesCache.map(g => `
+      // Adicionar opcao "Todos" no topo
+      let html = `
+        <label class="dropdown-checkbox-item" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;">
+          <input type="checkbox" id="geofencing-todos" onchange="toggleTodosGeofencing()">
+          <strong>Todos</strong>
+        </label>
+      `;
+      html += geofencesCache.map(g => `
         <label class="dropdown-checkbox-item" data-nome="${g.nome.toLowerCase()}">
           <input type="checkbox" class="geofence-checkbox" value="${g.id}" onchange="atualizarGeofencingSelecionados()">
           <span style="color: ${g.cor || '#eab308'};"></span>
@@ -20699,7 +20706,15 @@
           <span style="font-size: 10px; color: var(--text-muted); margin-left: auto;">${g.raio_metros}m</span>
         </label>
       `).join('');
+      container.innerHTML = html;
     }
+
+    function toggleTodosGeofencing() {
+      const todos = document.getElementById('geofencing-todos')?.checked || false;
+      document.querySelectorAll('.geofence-checkbox').forEach(cb => cb.checked = todos);
+      atualizarGeofencingSelecionados();
+    }
+    window.toggleTodosGeofencing = toggleTodosGeofencing;
 
     function toggleGeofencingDropdown() {
       closeAllDropdowns('geofencing-dropdown');
@@ -20723,13 +20738,22 @@
 
     function atualizarGeofencingSelecionados() {
       geofencesSelecionados.clear();
-      document.querySelectorAll('.geofence-checkbox:checked').forEach(cb => {
+      const checkboxes = document.querySelectorAll('.geofence-checkbox');
+      const checked = document.querySelectorAll('.geofence-checkbox:checked');
+      checked.forEach(cb => {
         geofencesSelecionados.add(parseInt(cb.value));
       });
+      // Sincronizar checkbox "Todos"
+      const todosCheckbox = document.getElementById('geofencing-todos');
+      if (todosCheckbox && checkboxes.length > 0) {
+        todosCheckbox.checked = checked.length === checkboxes.length;
+      }
     }
 
     function limparGeofencingSelecionados() {
       document.querySelectorAll('.geofence-checkbox').forEach(cb => cb.checked = false);
+      const todosCheckbox = document.getElementById('geofencing-todos');
+      if (todosCheckbox) todosCheckbox.checked = false;
       geofencesSelecionados.clear();
       document.getElementById('geofencing-label').textContent = 'Cercas';
       document.getElementById('geofencing-dropdown').style.display = 'none';
