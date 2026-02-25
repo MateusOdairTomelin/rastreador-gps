@@ -1127,6 +1127,22 @@
       animation: fadeIn 0.4s ease;
     }
 
+    /* ✅ FIX: Seção do mapa usa visibility ao invés de display para Leaflet funcionar */
+    #section-mapa {
+      display: block !important;
+      visibility: hidden;
+      position: absolute;
+      left: -9999px;
+      width: 100%;
+    }
+
+    #section-mapa.active {
+      visibility: visible;
+      position: relative;
+      left: 0;
+      animation: fadeIn 0.4s ease;
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
@@ -13795,31 +13811,15 @@
     // Quando WebSocket atualiza, dados da API mais antigos são ignorados
     const wsUpdateTimestamps = {};
 
-    // ✅ FIX: Força refresh completo do mapa (resolve tela verde)
+    // ✅ FIX: Força refresh do mapa ao trocar seção
     function forceMapRefresh() {
       if (!map) return;
 
-      // Aguardar animação CSS terminar (400ms fadeIn)
+      // Com visibility ao invés de display:none, apenas invalidateSize funciona
       setTimeout(() => {
-        // 1. Disparar evento resize para forçar recálculo de dimensões
-        window.dispatchEvent(new Event('resize'));
-
-        // 2. Invalidar tamanho explicitamente
-        map.invalidateSize({ animate: false, pan: false });
-
-        // 3. Pequeno pan para forçar reload das tiles
-        const center = map.getCenter();
-        map.panTo([center.lat + 0.0001, center.lng], { animate: false });
-        map.panTo(center, { animate: false });
-
-        // 4. Atualizar marcadores
+        map.invalidateSize({ animate: false });
         updateMapMarkers();
-
-        // 5. Segunda invalidação de segurança
-        setTimeout(() => {
-          map.invalidateSize({ animate: false });
-        }, 200);
-      }, 450);
+      }, 100);
     }
 
     function initMap() {
