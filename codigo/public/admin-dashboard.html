@@ -9387,9 +9387,6 @@
                 <!-- Conteúdo carregado dinamicamente -->
               </div>
               <div class="modal-footer-relatorio">
-                <button class="btn" style="background: #217346; color: white;" onclick="exportarRelatorioVeiculo('xlsx')">Exportar Excel</button>
-                <button class="btn btn-success" onclick="exportarRelatorioVeiculo('csv')">Exportar CSV</button>
-                <button class="btn btn-danger" onclick="exportarRelatorioVeiculo('pdf')">Exportar PDF</button>
                 <button class="btn btn-secondary" onclick="fecharDetalheRelatorio()">Fechar</button>
               </div>
             </div>
@@ -21019,11 +21016,7 @@
         const periodo = obterPeriodoRelatorio();
         const tipoRelatorio = document.getElementById('rel-filtro-tipo')?.value || 'geral';
 
-        // Calcular dias do período para mostrar aviso
-        const diasPeriodo = Math.ceil((periodo.fim - periodo.inicio) / (1000 * 60 * 60 * 24));
-        if (diasPeriodo > 7) {
-          toastInfo(`Gerando relatório de ${diasPeriodo} dias. Isso pode levar alguns minutos...`);
-        }
+        // Calcular dias do período (apenas para log)
 
         let url;
         const params = new URLSearchParams({

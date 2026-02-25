@@ -2881,7 +2881,7 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
     }
 
     // Buscar motoristas vinculados
-    const historico = await prisma.historicoMotoristaDispositivo.findMany({
+    const historico = await prisma.historicoMotorista.findMany({
       where: {
         dispositivo_id: dispositivo.id,
         inicio: { lte: fim },
