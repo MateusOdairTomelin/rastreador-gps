@@ -26,6 +26,11 @@ const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
+// Cache para lista de dispositivos (TTL 5s)
+let dispositivosCache = new Map();
+const DISPOSITIVOS_CACHE_TTL = 5000; // 5 segundos
+let dispositivosFetching = new Map(); // Evitar fetches paralelos
+
 // ✅ Multi-tenant: Verifica se dispositivo pertence à organização do usuário
 const verificarPropriedadeDispositivo = async (req, res, next) => {
   const { imei } = req.params;
@@ -493,8 +498,32 @@ router.post('/', verificarPermissao('veiculos', 'criar'), asyncHandler(async (re
 // GET /api/dispositivos - List all devices
 // ✅ Multi-tenant: Filtra por organizacao_id do usuário
 // ✅ Suporta filtro por status_uso: ?status_uso=ativo|disponivel|inativo
+// ✅ Cache com TTL de 5s para evitar sobrecarga
 router.get('/', asyncHandler(async (req, res) => {
   const { status_uso } = req.query;
+
+  // Gerar chave de cache: tenant_id + status_uso
+  const tenantId = req.tenant?.id || 'global';
+  const statusKey = status_uso || 'default';
+  const cacheKey = `${tenantId}:${statusKey}`;
+
+  // Verificar cache válido
+  const cached = dispositivosCache.get(cacheKey);
+  if (cached && (Date.now() - cached.time) < DISPOSITIVOS_CACHE_TTL) {
+    return res.json(cached.data);
+  }
+
+  // Evitar fetches paralelos para a mesma chave
+  if (dispositivosFetching.get(cacheKey)) {
+    // Aguardar um pouco e tentar cache novamente
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const retryCache = dispositivosCache.get(cacheKey);
+    if (retryCache && (Date.now() - retryCache.time) < DISPOSITIVOS_CACHE_TTL) {
+      return res.json(retryCache.data);
+    }
+  }
+
+  dispositivosFetching.set(cacheKey, true);
 
   // Construir filtro
   const filter = { ...(req.tenantFilter || {}) };
@@ -675,7 +704,7 @@ router.get('/', asyncHandler(async (req, res) => {
   const configurados = dados.filter(d => d.configurado);
   const pendentes = dados.filter(d => !d.configurado);
 
-  res.json({
+  const response = {
     sucesso: true,
     total: dados.length,
     total_configurados: configurados.length,
@@ -683,7 +712,13 @@ router.get('/', asyncHandler(async (req, res) => {
     dados,
     configurados,
     pendentes,
-  });
+  };
+
+  // Salvar no cache
+  dispositivosCache.set(cacheKey, { data: response, time: Date.now() });
+  dispositivosFetching.delete(cacheKey);
+
+  res.json(response);
 }));
 
 // GET /api/dispositivos/:imei/localizacao-atual
