@@ -3488,6 +3488,23 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
     const paradas = [];
     let paradaAtual = null;
 
+    // Helper para determinar status - IDENTICO ao usado na planilha Periodos Ocioso
+    const getStatusResumo = (loc) => {
+      const vel = loc.velocidade || 0;
+      if (loc.estado_ignicao) {
+        switch (loc.estado_ignicao) {
+          case 'moving': return 'movimento';
+          case 'idle': return 'ocioso';
+          case 'off': return 'parado';
+          default: return 'parado';
+        }
+      }
+      if (loc.ignicao === true || loc.ignicao === 1) {
+        return vel > 5 ? 'movimento' : 'ocioso';
+      }
+      return 'parado';
+    };
+
     for (let i = 1; i < localizacoes.length; i++) {
       const loc = localizacoes[i];
       const locAnterior = localizacoes[i - 1];
@@ -3506,7 +3523,10 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
         kmPorDia.set(diaKey, (kmPorDia.get(diaKey) || 0) + dist);
       }
 
-      if (loc.velocidade > 0) {
+      // Usar mesma logica de determinarStatusLoc para consistencia
+      const status = getStatusResumo(loc);
+
+      if (status === 'movimento') {
         if (dist < 5) distanciaTotal += dist;
         tempoMovimento += tempoMin;
         if (loc.velocidade > maxVelocidade) maxVelocidade = loc.velocidade;
@@ -3517,21 +3537,25 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
           paradas.push(paradaAtual);
         }
         paradaAtual = null;
-      } else {
-        // Parado - determinar se ocioso ou desligado
-        // Usar mesma logica de determinarStatusLoc para consistencia com planilha
-        let motorLigado = false;
-        if (loc.estado_ignicao) {
-          motorLigado = loc.estado_ignicao === 'idle' || loc.estado_ignicao === 'moving';
-        } else if (loc.ignicao === true || loc.ignicao === 1) {
-          motorLigado = true;
-        }
+      } else if (status === 'ocioso') {
+        tempoOcioso += tempoMin;
 
-        if (motorLigado) {
-          tempoOcioso += tempoMin;
+        // Rastrear parada ocioso
+        if (!paradaAtual) {
+          paradaAtual = {
+            inicio: loc.timestamp,
+            fim: loc.timestamp,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            tempoMinutos: 0
+          };
         } else {
-          tempoParado += tempoMin;
+          paradaAtual.fim = loc.timestamp;
+          paradaAtual.tempoMinutos += tempoMin;
         }
+      } else {
+        // parado
+        tempoParado += tempoMin;
 
         // Rastrear parada
         if (!paradaAtual) {
