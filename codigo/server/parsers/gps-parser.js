@@ -777,6 +777,7 @@ class GPSParser {
       const gpsMinute = buffer.readUInt8(offset + 4);
       const gpsSecond = buffer.readUInt8(offset + 5);
       let gpsTimestamp = new Date(Date.UTC(gpsYear, gpsMonth - 1, gpsDay, gpsHour, gpsMinute, gpsSecond));
+      console.log(`[X3Tech] GPS Timestamp RAW: ${gpsTimestamp.toISOString()} (Internal era: ${internalTimestamp.toISOString()})`);
       offset += 6;
 
       // ✅ AUTO-CORREÇÃO DE TIMEZONE: Detecta e corrige automaticamente

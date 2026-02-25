@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const prisma = require('../db/prisma');
 const dispositivosRoutes = require('./dispositivos.routes');
 const analiseRotaRoutes = require('./analise-rota.routes');
 const exportarRoutes = require('./exportar.routes');
@@ -93,35 +94,95 @@ router.get('/redis/status', autenticar, apenasAdmin, async (req, res) => {
 // Heartbeat monitoring endpoints (protegido + multi-tenant)
 const dispositivoService = require('../services/dispositivo.service');
 
+// Cache global para heartbeats (TTL 5s) - compartilhado entre requests
+let heartbeatsGlobalCache = null;
+let heartbeatsCacheTime = 0;
+const HEARTBEATS_CACHE_TTL = 5000; // 5 segundos
+let heartbeatsFetching = false; // Evita múltiplas requisições simultâneas
+
 router.get('/heartbeats', autenticar, tenantContext, async (req, res) => {
   try {
-    // ✅ Multi-tenant: Filtrar por dispositivos da organização
-    const dispositivos = await dispositivoService.getAll(req.tenantFilter || {});
-    const imeisOrg = dispositivos.map(d => d.imei);
+    const now = Date.now();
 
-    // Obter stats filtrados (async - usa Redis para compartilhar entre containers)
+    // Se cache válido, retorna imediatamente
+    if (heartbeatsGlobalCache && (now - heartbeatsCacheTime) < HEARTBEATS_CACHE_TTL) {
+      const orgId = req.tenantFilter?.organizacao_id;
+      const filtered = orgId
+        ? heartbeatsGlobalCache.devices.filter(d => d.orgId === orgId || !d.orgId)
+        : heartbeatsGlobalCache.devices;
+
+      return res.json({
+        sucesso: true,
+        dados: {
+          ...heartbeatsGlobalCache,
+          devices: filtered,
+          total_devices: filtered.length
+        },
+        timestamp: new Date().toISOString(),
+        cached: true
+      });
+    }
+
+    // Se já está buscando, aguarda um pouco e retorna cache antigo
+    if (heartbeatsFetching && heartbeatsGlobalCache) {
+      return res.json({
+        sucesso: true,
+        dados: heartbeatsGlobalCache,
+        timestamp: new Date().toISOString(),
+        cached: true
+      });
+    }
+
+    heartbeatsFetching = true;
+
+    // Buscar stats do heartbeat service (já usa Redis internamente)
     const allStats = await heartbeatService.getStats();
 
-    // Filtrar devices que pertencem à organização
-    const filteredDevices = (allStats.devices || []).filter(d => imeisOrg.includes(d.imei));
-
-    // Recalcular contadores
-    const stats = {
-      total_devices: filteredDevices.length,
-      connected: filteredDevices.filter(d => d.status === 'connected').length,
-      active: filteredDevices.filter(d => d.status === 'active').length,
-      idle: filteredDevices.filter(d => d.status === 'idle').length,
-      offline: filteredDevices.filter(d => d.status === 'offline').length,
-      total_heartbeats: filteredDevices.reduce((sum, d) => sum + (d.count || 0), 0),
-      devices: filteredDevices
+    // Montar cache global
+    heartbeatsGlobalCache = {
+      total_devices: allStats.total_devices || 0,
+      connected: allStats.connected || 0,
+      active: allStats.active || 0,
+      idle: allStats.idle || 0,
+      offline: allStats.offline || 0,
+      total_heartbeats: allStats.total_heartbeats || 0,
+      devices: allStats.devices || []
     };
+    heartbeatsCacheTime = now;
+    heartbeatsFetching = false;
+
+    // Filtrar por organização se necessário
+    const orgId = req.tenantFilter?.organizacao_id;
+    if (orgId) {
+      const imeisOrg = await prisma.dispositivo.findMany({
+        where: { organizacao_id: orgId },
+        select: { imei: true }
+      });
+      const imeiSet = new Set(imeisOrg.map(d => d.imei));
+      const filtered = heartbeatsGlobalCache.devices.filter(d => imeiSet.has(d.imei));
+
+      return res.json({
+        sucesso: true,
+        dados: {
+          ...heartbeatsGlobalCache,
+          devices: filtered,
+          total_devices: filtered.length,
+          connected: filtered.filter(d => d.status === 'connected').length,
+          active: filtered.filter(d => d.status === 'active').length,
+          idle: filtered.filter(d => d.status === 'idle').length,
+          offline: filtered.filter(d => d.status === 'offline').length
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     res.json({
       sucesso: true,
-      dados: stats,
+      dados: heartbeatsGlobalCache,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    heartbeatsFetching = false;
     console.error('Erro ao buscar heartbeats:', error);
     res.status(500).json({
       sucesso: false,

@@ -517,6 +517,7 @@ services:
     environment:
       - API_ID=api-1
       - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=768
       - API_PORT=62000
       - HTTP_PORT=62000
       - ENABLE_TCP=false
@@ -552,7 +553,9 @@ services:
       start_period: 20s
     deploy:
       resources:
-        # Sem limites - usa memória disponível do sistema
+        limits:
+          memory: 1G
+          cpus: '1.0'
         reservations:
           memory: 512M
 

@@ -15493,10 +15493,23 @@
     };
 
     function initPipelineCharts() {
+      console.log('[Charts] Inicializando gráficos...');
+
+      // Verificar se Chart.js está disponível
+      if (typeof Chart === 'undefined') {
+        console.error('[Charts] Chart.js não carregado! Tentando novamente em 500ms...');
+        setTimeout(initPipelineCharts, 500);
+        return;
+      }
+
       const ctxLatency = document.getElementById('chart-latency');
       const ctxThroughput = document.getElementById('chart-throughput');
       const ctxQueues = document.getElementById('chart-queues');
-      if (!ctxLatency || !ctxThroughput || !ctxQueues) return;
+      if (!ctxLatency || !ctxThroughput || !ctxQueues) {
+        console.error('[Charts] Canvas não encontrado:', { ctxLatency: !!ctxLatency, ctxThroughput: !!ctxThroughput, ctxQueues: !!ctxQueues });
+        return;
+      }
+      console.log('[Charts] Chart.js OK, Canvas OK, criando gráficos...');
 
       const chartOptions = {
         responsive: true,
@@ -15567,9 +15580,18 @@
       });
 
       window.chartLatency = chartLatency;
+      console.log('[Charts] Gráficos criados com sucesso!', { chartQueues, chartLatency, chartThroughput });
     }
 
     function updatePipelineCharts(latencyAvg, insertsPerMin, queues) {
+      console.log('[Charts] Atualizando com:', { latencyAvg, insertsPerMin, queues });
+
+      // Inicializar gráficos se ainda não existem
+      if (!chartQueues || !chartLatency || !chartThroughput) {
+        console.log('[Charts] Gráficos não existem, inicializando...');
+        initPipelineCharts();
+      }
+
       const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
       pipelineHistory.labels.push(now);
