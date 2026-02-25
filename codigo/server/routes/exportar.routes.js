@@ -667,6 +667,76 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       }
     }
 
+    // ============ MÓDULO: EXCESSOS (SEPARADO) ============
+    // Gera seção de excessos mesmo se 'localizacoes' não estiver selecionado
+    if (temModulo('excessos') && !temModulo('localizacoes')) {
+      // Buscar localizações para detectar excessos
+      let locsExcessos = await prisma.localizacao.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        },
+        orderBy: { timestamp: 'asc' }
+      });
+
+      // Aplicar filtro de status se selecionado
+      if (statusFiltroAtivo) {
+        locsExcessos = filtrarLocalizacoesPorStatus(locsExcessos, statusFiltro, dispositivo);
+      }
+
+      if (locsExcessos.length > 0) {
+        // Obter limites de velocidade
+        let limitesViaExc = new Map();
+        try {
+          const pontosExc = locsExcessos.map(l => ({ lat: l.latitude, lng: l.longitude }));
+          limitesViaExc = await velocidadeViaService.obterLimitesEmLote(pontosExc);
+        } catch (e) {
+          console.log('[CSV Excessos] Erro ao consultar limites:', e.message);
+        }
+
+        // Detectar excessos
+        const excessosCSV = [];
+        for (const loc of locsExcessos) {
+          const velocidade = loc.velocidade || 0;
+          const cacheKey = velocidadeViaService.getCacheKey(loc.latitude, loc.longitude);
+          const infoVia = limitesViaExc.get(cacheKey);
+          const limiteVia = infoVia?.limite || 60;
+          const nomeVia = (infoVia?.nome || 'N/A').replace(/,/g, ';');
+
+          if (velocidade > limiteVia) {
+            excessosCSV.push({
+              timestamp: loc.timestamp,
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              velocidade: velocidade,
+              limite: limiteVia,
+              excesso: velocidade - limiteVia,
+              nomeVia: nomeVia
+            });
+          }
+        }
+
+        if (excessosCSV.length > 0) {
+          csvContent += '\n\n';
+          csvContent += '[RESUMO EXCESSOS]\n';
+          csvContent += 'Metrica,Valor\n';
+          csvContent += `Total de Excessos,${excessosCSV.length}\n`;
+          csvContent += `Maior Excesso,+${Math.max(...excessosCSV.map(e => e.excesso))} km/h\n`;
+          csvContent += `Velocidade Maxima,${Math.max(...excessosCSV.map(e => e.velocidade))} km/h\n`;
+          csvContent += '\n\n';
+          csvContent += '[EXCESSOS DE VELOCIDADE]\n';
+          csvContent += 'Data/Hora,Via,Velocidade (km/h),Limite (km/h),Excesso (km/h),Latitude,Longitude\n';
+
+          const excessosOrd = [...excessosCSV].sort((a, b) => b.excesso - a.excesso);
+          for (const exc of excessosOrd) {
+            csvContent += `${formatDateTime(exc.timestamp)},${exc.nomeVia},${exc.velocidade},${exc.limite},+${exc.excesso},${exc.latitude},${exc.longitude}\n`;
+          }
+          csvContent += '\n';
+          totalRegistros += excessosCSV.length;
+        }
+      }
+    }
+
     // ============ MÓDULO: DADOS OBD2 ============
     // Só inclui OBD2 se o dispositivo SUPORTA OBD2 (não inclui para XT40_4F)
     const dispositivoSuportaOBD2 = supportsOBD2(dispositivo.tipo);
@@ -3784,6 +3854,82 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
       [20, 14, 14, 12, 10, 10].forEach((width, idx) => {
         locsSheet.getColumn(idx + 1).width = width;
       });
+    }
+
+    // ========== ABA: EXCESSOS DE VELOCIDADE ==========
+    if (temModulo('excessos')) {
+      // Detectar excessos de velocidade
+      let limitesViaExcel = new Map();
+      try {
+        const pontosExcel = localizacoes.map(l => ({ lat: l.latitude, lng: l.longitude }));
+        limitesViaExcel = await velocidadeViaService.obterLimitesEmLote(pontosExcel);
+      } catch (e) {
+        console.log('[Excel Excessos] Erro ao consultar limites:', e.message);
+      }
+
+      const excessosExcel = [];
+      for (const loc of localizacoes) {
+        const velocidade = loc.velocidade || 0;
+        const cacheKey = velocidadeViaService.getCacheKey(loc.latitude, loc.longitude);
+        const infoVia = limitesViaExcel.get(cacheKey);
+        const limiteVia = infoVia?.limite || 60;
+        const nomeVia = infoVia?.nome || 'N/A';
+
+        if (velocidade > limiteVia) {
+          excessosExcel.push({
+            timestamp: loc.timestamp,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            velocidade: velocidade,
+            limite: limiteVia,
+            excesso: velocidade - limiteVia,
+            nomeVia: nomeVia
+          });
+        }
+      }
+
+      if (excessosExcel.length > 0) {
+        const excessosSheet = workbook.addWorksheet('Excessos Velocidade');
+
+        // Resumo no topo
+        excessosSheet.mergeCells('A1:G1');
+        excessosSheet.getCell('A1').value = 'EXCESSOS DE VELOCIDADE';
+        excessosSheet.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FFC62828' } };
+        excessosSheet.getCell('A1').alignment = { horizontal: 'center' };
+
+        excessosSheet.addRow([]);
+        excessosSheet.addRow(['Total de Excessos:', excessosExcel.length]);
+        excessosSheet.addRow(['Maior Excesso:', `+${Math.max(...excessosExcel.map(e => e.excesso))} km/h`]);
+        excessosSheet.addRow(['Velocidade Maxima:', `${Math.max(...excessosExcel.map(e => e.velocidade))} km/h`]);
+        excessosSheet.addRow([]);
+
+        // Cabeçalho da tabela
+        excessosSheet.addRow(['Data/Hora', 'Via', 'Velocidade', 'Limite', 'Excesso', 'Latitude', 'Longitude']);
+        excessosSheet.getRow(7).eachCell(cell => Object.assign(cell, headerStyle));
+
+        // Ordenar por excesso (maior primeiro)
+        const excessosOrd = [...excessosExcel].sort((a, b) => b.excesso - a.excesso);
+        excessosOrd.forEach(exc => {
+          const row = excessosSheet.addRow([
+            formatDateTime(exc.timestamp),
+            exc.nomeVia,
+            exc.velocidade,
+            exc.limite,
+            `+${exc.excesso}`,
+            exc.latitude?.toFixed(6) || '',
+            exc.longitude?.toFixed(6) || ''
+          ]);
+          row.eachCell(cell => Object.assign(cell, cellStyle));
+          // Destacar excessos graves
+          if (exc.excesso > 20) {
+            row.eachCell(cell => cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCDD2' } });
+          }
+        });
+
+        [20, 30, 12, 10, 10, 14, 14].forEach((width, idx) => {
+          excessosSheet.getColumn(idx + 1).width = width;
+        });
+      }
     }
 
     // ========== ABA 8: MOTORISTAS (se houver vínculos) ==========
