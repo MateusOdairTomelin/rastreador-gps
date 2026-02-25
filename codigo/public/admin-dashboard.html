@@ -9161,6 +9161,10 @@
                   <input type="hidden" id="rel-filtro-status" value="todos">
                   <div id="status-dropdown" class="filtro-dropdown">
                     <div id="status-checkbox-list" class="dropdown-list" style="padding-top: 8px;">
+                      <label class="dropdown-checkbox-item" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;">
+                        <input type="checkbox" id="status-todos" onchange="toggleTodosStatus()">
+                        <strong>Todos</strong>
+                      </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="status-checkbox" value="movimento" onchange="atualizarStatusSelecionados()">
                         <span class="status-dot" style="background: #3b82f6;"></span>
@@ -9183,7 +9187,7 @@
                       </label>
                     </div>
                     <div class="dropdown-actions">
-                      <button onclick="limparStatusSelecionados()" class="dropdown-btn-cancel">Cancelar</button>
+                      <button onclick="limparStatusSelecionados()" class="dropdown-btn-cancel">Limpar</button>
                       <button onclick="aplicarStatusSelecionados()" class="dropdown-btn-apply">Aplicar</button>
                     </div>
                   </div>
@@ -9240,6 +9244,10 @@
                   </button>
                   <div id="modulos-dropdown" class="filtro-dropdown">
                     <div id="modulos-checkbox-list" class="dropdown-list" style="padding-top: 8px;">
+                      <label class="dropdown-checkbox-item" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;">
+                        <input type="checkbox" id="modulos-todos" onchange="toggleTodosModulos()">
+                        <strong>Todos</strong>
+                      </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="modulo-checkbox" value="resumo" checked onchange="atualizarModulosSelecionados()">
                         Resumo Geral
@@ -19690,7 +19698,14 @@
             return;
           }
 
-          container.innerHTML = data.tags.map(tag => `
+          // Adicionar opção "Todos" no topo
+          let tagsHtml = `
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 6px; border-radius: 4px; font-size: 0.85rem; border-bottom: 1px solid var(--border); margin-bottom: 4px; padding-bottom: 8px;">
+              <input type="checkbox" id="tags-todos" onchange="toggleTodosTags()">
+              <strong>Todos</strong>
+            </label>
+          `;
+          tagsHtml += data.tags.map(tag => `
             <label data-nome="${escapeHtml(tag.nome).toLowerCase()}" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 6px; border-radius: 4px; font-size: 0.85rem; transition: background 0.15s;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
               <input type="checkbox" class="tag-checkbox" value="${tag.id}" onchange="atualizarTagsSelecionadas()" style="display: none;">
               <div class="custom-check" style="width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0;"></div>
@@ -19698,6 +19713,7 @@
               <span style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(tag.nome)}</span>
             </label>
           `).join('');
+          container.innerHTML = tagsHtml;
 
           // Adicionar estilo visual para checkboxes customizados
           container.querySelectorAll('label').forEach(label => {
@@ -19981,14 +19997,30 @@
 
     // ============ STATUS DROPDOWN ============
 
+    function toggleTodosStatus() {
+      const todosCheckbox = document.getElementById('status-todos');
+      const checkboxes = document.querySelectorAll('.status-checkbox');
+      checkboxes.forEach(cb => cb.checked = todosCheckbox.checked);
+      atualizarStatusSelecionados();
+    }
+    window.toggleTodosStatus = toggleTodosStatus;
+
     function atualizarStatusSelecionados() {
       const checkboxes = document.querySelectorAll('.status-checkbox:checked');
+      const total = document.querySelectorAll('.status-checkbox').length;
       statusCheckboxSelecionados = new Set(Array.from(checkboxes).map(cb => cb.value));
+      // Atualizar checkbox "Todos"
+      const todosCheckbox = document.getElementById('status-todos');
+      if (todosCheckbox) {
+        todosCheckbox.checked = checkboxes.length === total;
+      }
     }
     window.atualizarStatusSelecionados = atualizarStatusSelecionados;
 
     function limparStatusSelecionados() {
       document.querySelectorAll('.status-checkbox').forEach(cb => cb.checked = false);
+      const todosCheckbox = document.getElementById('status-todos');
+      if (todosCheckbox) todosCheckbox.checked = false;
       statusCheckboxSelecionados.clear();
       document.getElementById('status-label').textContent = 'Status';
       document.getElementById('rel-filtro-status').value = 'todos';
@@ -20075,7 +20107,14 @@
         return;
       }
 
-      container.innerHTML = motoristas.map(m => {
+      // Adicionar opção "Todos" no topo
+      let html = `
+        <label class="dropdown-checkbox-item" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;">
+          <input type="checkbox" id="motoristas-todos" onchange="toggleTodosMotoristas()">
+          <strong>Todos</strong>
+        </label>
+      `;
+      html += motoristas.map(m => {
         const isChecked = motoristasCheckboxSelecionados.has(m.id.toString());
         return `
           <label data-nome="${escapeHtml(m.nome).toLowerCase()}" class="dropdown-checkbox-item">
@@ -20085,6 +20124,7 @@
           </label>
         `;
       }).join('');
+      container.innerHTML = html;
     }
 
     function filtrarMotoristasDropdown() {
@@ -20097,13 +20137,29 @@
     }
     window.filtrarMotoristasDropdown = filtrarMotoristasDropdown;
 
+    function toggleTodosMotoristas() {
+      const todosCheckbox = document.getElementById('motoristas-todos');
+      const checkboxes = document.querySelectorAll('.motorista-checkbox');
+      checkboxes.forEach(cb => cb.checked = todosCheckbox.checked);
+      atualizarMotoristasCheckbox();
+    }
+    window.toggleTodosMotoristas = toggleTodosMotoristas;
+
     function atualizarMotoristasCheckbox() {
       const checkboxes = document.querySelectorAll('.motorista-checkbox:checked');
+      const total = document.querySelectorAll('.motorista-checkbox').length;
       motoristasCheckboxSelecionados = new Set(Array.from(checkboxes).map(cb => cb.value));
+      // Atualizar checkbox "Todos"
+      const todosCheckbox = document.getElementById('motoristas-todos');
+      if (todosCheckbox && total > 0) {
+        todosCheckbox.checked = checkboxes.length === total;
+      }
     }
 
     function limparMotoristasSelecionados() {
       document.querySelectorAll('.motorista-checkbox').forEach(cb => cb.checked = false);
+      const todosCheckbox = document.getElementById('motoristas-todos');
+      if (todosCheckbox) todosCheckbox.checked = false;
       motoristasCheckboxSelecionados.clear();
       document.getElementById('motoristas-label').textContent = 'Motoristas';
       document.getElementById('motoristas-search').value = '';
@@ -20162,17 +20218,33 @@
     }
     window.toggleModulosDropdown = toggleModulosDropdown;
 
+    function toggleTodosModulos() {
+      const todosCheckbox = document.getElementById('modulos-todos');
+      const checkboxes = document.querySelectorAll('.modulo-checkbox');
+      checkboxes.forEach(cb => cb.checked = todosCheckbox.checked);
+      atualizarModulosSelecionados();
+    }
+    window.toggleTodosModulos = toggleTodosModulos;
+
     function atualizarModulosSelecionados() {
       const checkboxes = document.querySelectorAll('.modulo-checkbox:checked');
+      const total = document.querySelectorAll('.modulo-checkbox').length;
       modulosSelecionados = new Set(Array.from(checkboxes).map(cb => cb.value));
+      // Atualizar checkbox "Todos"
+      const todosCheckbox = document.getElementById('modulos-todos');
+      if (todosCheckbox) {
+        todosCheckbox.checked = checkboxes.length === total;
+      }
     }
     window.atualizarModulosSelecionados = atualizarModulosSelecionados;
 
     function selecionarTodosModulos() {
       const checkboxes = document.querySelectorAll('.modulo-checkbox');
       const todosChecked = Array.from(checkboxes).every(cb => cb.checked);
-
       checkboxes.forEach(cb => cb.checked = !todosChecked);
+      // Atualizar checkbox "Todos"
+      const todosCheckbox = document.getElementById('modulos-todos');
+      if (todosCheckbox) todosCheckbox.checked = !todosChecked;
       atualizarModulosSelecionados();
     }
     window.selecionarTodosModulos = selecionarTodosModulos;
@@ -20238,8 +20310,36 @@
 
     // ============ FIM NOVOS DROPDOWNS ============
 
+    function toggleTodosTags() {
+      const todosCheckbox = document.getElementById('tags-todos');
+      const checkboxes = document.querySelectorAll('.tag-checkbox');
+      checkboxes.forEach(cb => {
+        cb.checked = todosCheckbox.checked;
+        // Atualizar visual do custom check
+        const label = cb.closest('label');
+        if (label) {
+          const customCheck = label.querySelector('.custom-check');
+          if (customCheck) {
+            if (cb.checked) {
+              customCheck.style.background = 'var(--primary)';
+              customCheck.style.borderColor = 'var(--primary)';
+              customCheck.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            } else {
+              customCheck.style.background = 'transparent';
+              customCheck.style.borderColor = 'var(--border)';
+              customCheck.innerHTML = '';
+            }
+          }
+        }
+      });
+      atualizarTagsSelecionadas();
+    }
+    window.toggleTodosTags = toggleTodosTags;
+
     function limparTagsSelecionadas() {
       document.querySelectorAll('.tag-checkbox').forEach(cb => cb.checked = false);
+      const todosCheckbox = document.getElementById('tags-todos');
+      if (todosCheckbox) todosCheckbox.checked = false;
       atualizarTagsSelecionadas();
       document.getElementById('tags-search')?.value && (document.getElementById('tags-search').value = '');
       document.getElementById('tags-dropdown').style.display = 'none';
@@ -20247,7 +20347,14 @@
 
     function atualizarTagsSelecionadas() {
       const checkboxes = document.querySelectorAll('.tag-checkbox:checked');
+      const total = document.querySelectorAll('.tag-checkbox').length;
       const label = document.getElementById('tags-selecionadas-label');
+
+      // Atualizar checkbox "Todos"
+      const todosCheckbox = document.getElementById('tags-todos');
+      if (todosCheckbox && total > 0) {
+        todosCheckbox.checked = checkboxes.length === total;
+      }
 
       if (checkboxes.length === 0) {
         label.textContent = 'Tags';
