@@ -51,7 +51,7 @@ const PIPELINE_CONFIG = {
     osrmUrl: process.env.OSRM_URL || 'http://osrm-sul-brasil:5000/match/v1/driving',  // OSRM Docker
     valhallaUrl: 'http://localhost:8002/trace_attributes',
     batchSize: 5,                // Mais pontos = mais contexto para decisão correta
-    autoFlushMs: 15000,          // Flush automático a cada 15s se houver pontos pendentes
+    autoFlushMs: 10000,          // Flush automatico a cada 10s se houver pontos pendentes
     radiusMeters: 15,            // REDUZIDO: Raio menor para evitar snap em rua errada
     maxCorrectionMeters: 20,     // NOVO: Limite máximo de correção (ignora se > 20m)
     validateDirection: true,     // NOVO: Validar se correção é consistente com direção
