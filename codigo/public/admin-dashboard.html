@@ -19720,33 +19720,13 @@
             </label>
           `;
           tagsHtml += data.tags.map(tag => `
-            <label data-nome="${escapeHtml(tag.nome).toLowerCase()}" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 6px; border-radius: 4px; font-size: 0.85rem; transition: background 0.15s;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
-              <input type="checkbox" class="tag-checkbox" value="${tag.id}" onchange="atualizarTagsSelecionadas()" style="display: none;">
-              <div class="custom-check" style="width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0;"></div>
-              <div style="width: 8px; height: 8px; border-radius: 2px; background: ${tag.cor || '#3B82F6'}; flex-shrink: 0;"></div>
-              <span style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(tag.nome)}</span>
+            <label data-nome="${escapeHtml(tag.nome).toLowerCase()}" class="dropdown-checkbox-item">
+              <input type="checkbox" class="tag-checkbox" value="${tag.id}" data-nome="${escapeHtml(tag.nome)}" onchange="atualizarTagsSelecionadas()">
+              <div style="width: 10px; height: 10px; border-radius: 2px; background: ${tag.cor || '#3B82F6'}; flex-shrink: 0;"></div>
+              <span style="flex: 1;">${escapeHtml(tag.nome)}</span>
             </label>
           `).join('');
           container.innerHTML = tagsHtml;
-
-          // Adicionar estilo visual para checkboxes customizados
-          container.querySelectorAll('label').forEach(label => {
-            const checkbox = label.querySelector('.tag-checkbox');
-            const customCheck = label.querySelector('.custom-check');
-            const updateCheck = () => {
-              if (checkbox.checked) {
-                customCheck.style.background = 'var(--primary)';
-                customCheck.style.borderColor = 'var(--primary)';
-                customCheck.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-              } else {
-                customCheck.style.background = 'transparent';
-                customCheck.style.borderColor = 'var(--border)';
-                customCheck.innerHTML = '';
-              }
-            };
-            checkbox.addEventListener('change', updateCheck);
-            updateCheck();
-          });
 
           // Também renderizar tags como chips no dropdown de mais filtros
           renderizarTagsChips();
