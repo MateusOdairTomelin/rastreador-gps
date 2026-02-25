@@ -2872,11 +2872,15 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
     if (temModulo('viagens')) {
       viagens = await prisma.viagem.findMany({
         where: {
-          dispositivo_id: dispositivo.id,
-          inicio: { gte: inicio },
-          OR: [
-            { fim: { lte: fim } },
-            { fim: null }
+          AND: [
+            { dispositivo_id: dispositivo.id },
+            { inicio: { gte: inicio } },
+            {
+              OR: [
+                { fim: { lte: fim } },
+                { fim: null }
+              ]
+            }
           ]
         },
         orderBy: { inicio: 'asc' }
