@@ -278,10 +278,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
         });
 
         if (localizacoesFiltradas.length > 0 && temModulo('localizacoes')) {
-          csvContent += '\n\n';
-          csvContent += ',,,,,,,,,,\n';
-          csvContent += 'LOCALIZACOES,,,,,,,,,,,\n';
-          csvContent += ',,,,,,,,,,\n';
+          csvContent += '[LOCALIZACOES]\n';
           csvContent += 'Data/Hora,Estado,Latitude,Longitude,Velocidade (km/h),Limite Via,Nome Via,Excesso (km/h),Dist. Anterior (m),Tempo Anterior,Direcao,Corrigido\n';
 
           // Arrays para coletar dados extras
@@ -402,13 +399,13 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
           // ============ SEÇÃO DE EXCESSOS DE VELOCIDADE ============
           if (excessosDetalhados.length > 0) {
             csvContent += '\n\n';
-            csvContent += ',,,,,,,,\n';
-            csvContent += 'EXCESSOS DE VELOCIDADE,,,,,,,\n';
-            csvContent += ',,,,,,,,\n';
-            csvContent += `Total de Excessos,${excessosDetalhados.length},,,,,,\n`;
-            csvContent += `Maior Excesso,+${Math.max(...excessosDetalhados.map(e => e.excesso))} km/h,,,,,,\n`;
-            csvContent += `Velocidade Maxima Registrada,${Math.max(...excessosDetalhados.map(e => e.velocidade))} km/h,,,,,,\n`;
-            csvContent += ',,,,,,,,\n';
+            csvContent += '[RESUMO EXCESSOS]\n';
+            csvContent += 'Metrica,Valor\n';
+            csvContent += `Total de Excessos,${excessosDetalhados.length}\n`;
+            csvContent += `Maior Excesso,+${Math.max(...excessosDetalhados.map(e => e.excesso))} km/h\n`;
+            csvContent += `Velocidade Maxima,${Math.max(...excessosDetalhados.map(e => e.velocidade))} km/h\n`;
+            csvContent += '\n\n';
+            csvContent += '[EXCESSOS DE VELOCIDADE]\n';
             csvContent += 'Data/Hora,Via,Motorista,Velocidade (km/h),Limite (km/h),Excesso (km/h),Latitude,Longitude\n';
 
             // Ordenar por excesso (maior primeiro)
@@ -436,14 +433,14 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
             const maiorParada = Math.max(...paradasCSV.map(p => p.tempoMinutos));
 
             csvContent += '\n\n';
-            csvContent += ',,,,,,,\n';
-            csvContent += 'PARADAS SIGNIFICATIVAS (> 5 min),,,,,,\n';
-            csvContent += ',,,,,,,\n';
-            csvContent += `Total de Paradas,${paradasCSV.length},,,,,\n`;
-            csvContent += `Tempo Total Parado,${formatarTempoCSV(tempoTotalParadas)},,,,,\n`;
-            csvContent += `Maior Parada,${formatarTempoCSV(maiorParada)},,,,,\n`;
-            csvContent += ',,,,,,,\n';
-            csvContent += '#,Inicio,Fim,Duracao,Local/Via,Latitude,Longitude\n';
+            csvContent += '[RESUMO PARADAS]\n';
+            csvContent += 'Metrica,Valor\n';
+            csvContent += `Total de Paradas,${paradasCSV.length}\n`;
+            csvContent += `Tempo Total Parado,${formatarTempoCSV(tempoTotalParadas)}\n`;
+            csvContent += `Maior Parada,${formatarTempoCSV(maiorParada)}\n`;
+            csvContent += '\n\n';
+            csvContent += '[PARADAS DETALHADAS]\n';
+            csvContent += 'Numero,Inicio,Fim,Duracao,Local/Via,Latitude,Longitude\n';
 
             // Ordenar por duração (maior primeiro)
             const paradasOrdenadas = [...paradasCSV].sort((a, b) => b.tempoMinutos - a.tempoMinutos);
@@ -477,24 +474,22 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
         const tempDados = dadosOBD2.filter(o => o.temperatura_motor !== null && o.temperatura_motor !== undefined);
 
         csvContent += '\n\n';
-        csvContent += ',,,,,,,,,\n';
-        csvContent += 'DADOS OBD2/TELEMETRIA,,,,,,,,\n';
-        csvContent += ',,,,,,,,,\n';
 
         // Resumo de consumo se houver dados suficientes
         if (combustivelDados.length >= 2 || odometroDados.length >= 2) {
-          csvContent += 'Resumo do Periodo,,,,,,,,\n';
+          csvContent += '[RESUMO OBD2]\n';
+          csvContent += 'Metrica,Valor\n';
 
           if (combustivelDados.length >= 2) {
             const primeiroNivel = combustivelDados[0].nivel_combustivel;
             const ultimoNivel = combustivelDados[combustivelDados.length - 1].nivel_combustivel;
             const consumoPct = primeiroNivel - ultimoNivel;
-            csvContent += `Combustivel Inicial,${primeiroNivel}%,,,,,,,\n`;
-            csvContent += `Combustivel Final,${ultimoNivel}%,,,,,,,\n`;
+            csvContent += `Combustivel Inicial,${primeiroNivel}%\n`;
+            csvContent += `Combustivel Final,${ultimoNivel}%\n`;
             if (consumoPct > 0) {
-              csvContent += `Consumo no Periodo,${consumoPct.toFixed(1)}%,,,,,,,\n`;
+              csvContent += `Consumo no Periodo,${consumoPct.toFixed(1)}%\n`;
             } else if (consumoPct < 0) {
-              csvContent += `Abastecimento Detectado,+${Math.abs(consumoPct).toFixed(1)}%,,,,,,,\n`;
+              csvContent += `Abastecimento Detectado,+${Math.abs(consumoPct).toFixed(1)}%\n`;
             }
           }
 
@@ -502,19 +497,18 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
             const primeiroOdo = odometroDados[0].odometro_embarcado;
             const ultimoOdo = odometroDados[odometroDados.length - 1].odometro_embarcado;
             const distanciaOBD2 = ultimoOdo - primeiroOdo;
-            csvContent += `Odometro Inicial,${Math.round(primeiroOdo)} km,,,,,,,\n`;
-            csvContent += `Odometro Final,${Math.round(ultimoOdo)} km,,,,,,,\n`;
+            csvContent += `Odometro Inicial,${Math.round(primeiroOdo)} km\n`;
+            csvContent += `Odometro Final,${Math.round(ultimoOdo)} km\n`;
             if (distanciaOBD2 > 0) {
-              csvContent += `Distancia Percorrida (OBD2),${distanciaOBD2.toFixed(1)} km,,,,,,,\n`;
+              csvContent += `Distancia Percorrida OBD2,${distanciaOBD2.toFixed(1)} km\n`;
 
               // Calcular consumo médio se tiver ambos os dados
               if (combustivelDados.length >= 2) {
                 const consumoPct = combustivelDados[0].nivel_combustivel - combustivelDados[combustivelDados.length - 1].nivel_combustivel;
                 if (consumoPct > 0 && distanciaOBD2 > 1) {
-                  // Estimativa: assumindo tanque de 50L (pode ser configurável depois)
                   const litrosConsumidos = (consumoPct / 100) * 50;
                   const kmPorLitro = distanciaOBD2 / litrosConsumidos;
-                  csvContent += `Consumo Estimado,${kmPorLitro.toFixed(1)} km/L (tanque ~50L),,,,,,,\n`;
+                  csvContent += `Consumo Estimado,${kmPorLitro.toFixed(1)} km/L\n`;
                 }
               }
             }
@@ -523,21 +517,22 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
           if (rpmDados.length > 0) {
             const rpmMax = Math.max(...rpmDados.map(o => o.rpm));
             const rpmMedia = Math.round(rpmDados.reduce((sum, o) => sum + o.rpm, 0) / rpmDados.length);
-            csvContent += `RPM Maximo,${rpmMax},,,,,,,\n`;
-            csvContent += `RPM Medio,${rpmMedia},,,,,,,\n`;
+            csvContent += `RPM Maximo,${rpmMax}\n`;
+            csvContent += `RPM Medio,${rpmMedia}\n`;
           }
 
           if (tempDados.length > 0) {
             const tempMax = Math.max(...tempDados.map(o => o.temperatura_motor));
             const tempMedia = Math.round(tempDados.reduce((sum, o) => sum + o.temperatura_motor, 0) / tempDados.length);
-            csvContent += `Temperatura Maxima Motor,${tempMax}C,,,,,,,\n`;
-            csvContent += `Temperatura Media Motor,${tempMedia}C,,,,,,,\n`;
+            csvContent += `Temperatura Maxima Motor,${tempMax}C\n`;
+            csvContent += `Temperatura Media Motor,${tempMedia}C\n`;
           }
 
-          csvContent += ',,,,,,,,,\n';
+          csvContent += '\n\n';
         }
 
-        csvContent += 'Data/Hora,Ignicao,RPM,Temp. Motor (C),Combustivel (%),Odometro (km),Horimetro (h),Bateria (%),Tensao (V)\n';
+        csvContent += '[DADOS OBD2 DETALHADOS]\n';
+        csvContent += 'Data/Hora,Ignicao,RPM,Temp Motor (C),Combustivel (%),Odometro (km),Horimetro (h),Bateria (%),Tensao (V)\n';
 
         for (const obd of dadosOBD2) {
           // Determinar estado da ignição
@@ -580,9 +575,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
 
       if (alarmes.length > 0) {
         csvContent += '\n\n';
-        csvContent += ',,,,,,,\n';
-        csvContent += 'ALARMES,,,,,,\n';
-        csvContent += ',,,,,,,\n';
+        csvContent += '[ALARMES]\n';
         csvContent += 'Data/Hora,Tipo,Severidade,Descricao,Latitude,Longitude,Resolvido\n';
 
         for (const alarme of alarmes) {
@@ -764,50 +757,65 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     const diasComMovimento = kmPorDiaCSV.size;
     const mediaDiariaCSV = diasComMovimento > 0 ? distanciaTotal / diasComMovimento : 0;
 
-    // Adicionar cabeçalho do relatório com estatísticas
-    const header = `RELATORIO DE HISTORICO DO VEICULO,,,,,,,,,,
-,,,,,,,,,,
-Veiculo,${(dispositivo.veiculo || 'N/A').replace(/,/g, ';')},,,,,,,,,
-Placa,${dispositivo.placa || 'N/A'},,,,,,,,,
-IMEI,${dispositivo.imei},,,,,,,,,
-Tipo,${dispositivo.tipo || 'N/A'},,,,,,,,,
-Motorista(s),${motoristasTextoCSV.replace(/,/g, ';')},,,,,,,,,
-Periodo,${formatDateTime(inicio)} ate ${formatDateTime(fim)},,,,,,,,,
-Total de Registros,${totalRegistros},,,,,,,,,
-Gerado em,${formatDateTime(new Date())},,,,,,,,,
-${filtrosTexto.length > 0 ? `Filtros,${filtrosTexto.join(' | ').replace(/,/g, ';')}` : 'Filtros,Nenhum'},,,,,,,,,
+    // Adicionar cabeçalho do relatório com estatísticas em formato de tabela
+    let header = '';
 
-,,,,,,,,,,
-RESUMO ESTATISTICO,,,,,,,,,,
-,,,,,,,,,,
-Distancia Total,${distanciaTotal.toFixed(2)} km,,,,,,,,,
-Distancia em Movimento,${distanciaMovimento.toFixed(2)} km,,,,,,,,,
-Media Diaria,${mediaDiariaCSV.toFixed(2)} km/dia,,,,,,,,,
-Tempo em Movimento,${formatarTempoCSV(tempoMovimentoTotal)},,,,,,,,,
-Tempo Ocioso,${formatarTempoCSV(tempoOciosoTotal)},,,,,,,,,
-Tempo Parado,${formatarTempoCSV(tempoParadoTotal)},,,,,,,,,
-Velocidade Maxima,${maxVelocidadeRota} km/h,,,,,,,,,
-Limite de Velocidade,Dinamico por via (OpenStreetMap),,,,,,,,,
-Excessos de Velocidade,${excessosVelocidade} ocorrencias,,,,,,,,,
+    // TABELA 1: INFORMACOES DO VEICULO
+    header += '[INFORMACOES DO VEICULO]\n';
+    header += 'Campo,Valor\n';
+    header += `Veiculo,${(dispositivo.veiculo || 'N/A').replace(/,/g, ';')}\n`;
+    header += `Placa,${dispositivo.placa || 'N/A'}\n`;
+    header += `IMEI,${dispositivo.imei}\n`;
+    header += `Tipo,${dispositivo.tipo || 'N/A'}\n`;
+    header += `Motorista(s),${motoristasTextoCSV.replace(/,/g, ';')}\n`;
+    header += `Periodo,${formatDateTime(inicio)} ate ${formatDateTime(fim)}\n`;
+    header += `Total de Registros,${totalRegistros}\n`;
+    header += `Gerado em,${formatDateTime(new Date())}\n`;
+    header += `Filtros,${filtrosTexto.length > 0 ? filtrosTexto.join(' | ').replace(/,/g, ';') : 'Nenhum'}\n`;
+    header += '\n\n';
 
-,,,,,,,,,,
-SCORE DE CONDUCAO,,,,,,,,,,
-,,,,,,,,,,
-Pontuacao,${scoreConducaoCSV}/100 (${scoreTextoCSV}),,,,,,,,,
-Penalizacoes,Excessos (-${Math.min(40, excessosVelocidade)}pts)${tempoOciosoTotal / (tempoMovimentoTotal + tempoOciosoTotal + tempoParadoTotal) > 0.3 ? ' - Tempo ocioso elevado (-5 a -10pts)' : ''},,,,,,,,,
+    // TABELA 2: RESUMO ESTATISTICO
+    header += '[RESUMO ESTATISTICO]\n';
+    header += 'Metrica,Valor\n';
+    header += `Distancia Total,${distanciaTotal.toFixed(2)} km\n`;
+    header += `Distancia em Movimento,${distanciaMovimento.toFixed(2)} km\n`;
+    header += `Media Diaria,${mediaDiariaCSV.toFixed(2)} km/dia\n`;
+    header += `Tempo em Movimento,${formatarTempoCSV(tempoMovimentoTotal)}\n`;
+    header += `Tempo Ocioso,${formatarTempoCSV(tempoOciosoTotal)}\n`;
+    header += `Tempo Parado,${formatarTempoCSV(tempoParadoTotal)}\n`;
+    header += `Velocidade Maxima,${maxVelocidadeRota} km/h\n`;
+    header += `Excessos de Velocidade,${excessosVelocidade} ocorrencias\n`;
+    header += '\n\n';
 
-,,,,,,,,,,
-CONSUMO ESTIMADO,,,,,,,,,,
-,,,,,,,,,,
-Consumo Medio Considerado,${consumoMedioCSV} L/100km,,,,,,,,,
-Consumo Estimado Total,${consumoEstimadoCSV.toFixed(1)} litros,,,,,,,,,
+    // TABELA 3: SCORE DE CONDUCAO
+    header += '[SCORE DE CONDUCAO]\n';
+    header += 'Metrica,Valor\n';
+    header += `Pontuacao,${scoreConducaoCSV}/100\n`;
+    header += `Classificacao,${scoreTextoCSV}\n`;
+    header += `Penalizacao Excessos,-${Math.min(40, excessosVelocidade)} pts\n`;
+    if (tempoOciosoTotal / (tempoMovimentoTotal + tempoOciosoTotal + tempoParadoTotal) > 0.3) {
+      header += `Penalizacao Ociosidade,-5 a -10 pts\n`;
+    }
+    header += '\n\n';
 
-,,,,,,,,,,
-RESUMO POR DIA,,,,,,,,,,
-,,,,,,,,,,
-${Array.from(kmPorDiaCSV.entries()).map(([dia, km]) => `${dia},${km.toFixed(2)} km,,,,,,,,,`).join('\n') || 'Sem dados de movimento,,,,,,,,,,'}
+    // TABELA 4: CONSUMO ESTIMADO
+    header += '[CONSUMO ESTIMADO]\n';
+    header += 'Metrica,Valor\n';
+    header += `Consumo Medio,${consumoMedioCSV} L/100km\n`;
+    header += `Consumo Total Estimado,${consumoEstimadoCSV.toFixed(1)} litros\n`;
+    header += '\n\n';
 
-`;
+    // TABELA 5: KM POR DIA
+    header += '[KM POR DIA]\n';
+    header += 'Data,Quilometragem\n';
+    if (kmPorDiaCSV.size > 0) {
+      for (const [dia, km] of kmPorDiaCSV.entries()) {
+        header += `${dia},${km.toFixed(2)} km\n`;
+      }
+    } else {
+      header += 'Sem dados,0 km\n';
+    }
+    header += '\n\n';
 
     csvContent = header + csvContent;
 
