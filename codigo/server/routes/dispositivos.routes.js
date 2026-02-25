@@ -155,7 +155,7 @@ router.put('/:imei/tipo', asyncHandler(async (req, res) => {
  * Quando o dispositivo conectar, será automaticamente vinculado à organização
  */
 router.post('/pre-cadastro', asyncHandler(async (req, res) => {
-  const { imei, placa, tipo } = req.body;
+  const { imei, placa, tipo, odometro_total } = req.body;
 
   // Validação
   if (!imei) {
@@ -261,6 +261,7 @@ router.post('/pre-cadastro', asyncHandler(async (req, res) => {
         veiculo: nomeVeiculo || existente.veiculo,
         veiculo_id: veiculoCriado?.id || existente.veiculo_id,
         tipo: tipoDispositivo,
+        ...(odometro_total != null && { odometro_total: parseFloat(odometro_total) }),
       },
     });
     console.log(`[Pré-cadastro] IMEI ${imei} (existente) vinculado à org ${req.tenant?.id}`);
@@ -279,6 +280,7 @@ router.post('/pre-cadastro', asyncHandler(async (req, res) => {
         usa_ignicao_virtual: config.usa_ignicao_virtual,
         tensao_motor_ligado: config.tensao_motor_ligado,
         tensao_motor_deslig: config.tensao_motor_deslig,
+        odometro_total: odometro_total != null ? parseFloat(odometro_total) : 0,
       },
     });
     console.log(`[Pré-cadastro] IMEI ${imei} pré-cadastrado para org ${req.tenant?.id}`);

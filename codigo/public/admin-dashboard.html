@@ -14907,6 +14907,12 @@
                   <small style="color:var(--text-light);">Os dados do veículo serão consultados automaticamente</small>
                 </div>
 
+                <div class="form-group">
+                  <label>Odometro Inicial (km)</label>
+                  <input type="number" id="pre-cadastro-odometro" min="0" step="1" placeholder="Ex: 45000" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:16px;">
+                  <small style="color:var(--text-light);">Quilometragem atual do veiculo (opcional - usado para calcular medias)</small>
+                </div>
+
                 <!-- Área de resultado da consulta -->
                 <div id="pre-cadastro-resultado" style="display:none;background:#F0FDF4;border:1px solid #22C55E;border-radius:8px;padding:12px;margin-top:16px;">
                 </div>
@@ -14952,6 +14958,10 @@
         return;
       }
 
+      // Capturar odômetro (opcional)
+      const odometroInput = document.getElementById('pre-cadastro-odometro');
+      const odometro = odometroInput && odometroInput.value ? parseFloat(odometroInput.value) : null;
+
       // Mostrar loading
       btnSubmit.disabled = true;
       btnSubmit.innerHTML = '<span class="loading"></span> Consultando...';
@@ -14961,7 +14971,7 @@
         const response = await authFetch(`${API_URL}/dispositivos/pre-cadastro`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imei, placa })
+          body: JSON.stringify({ imei, placa, odometro_total: odometro })
         });
 
         const data = await response.json();
