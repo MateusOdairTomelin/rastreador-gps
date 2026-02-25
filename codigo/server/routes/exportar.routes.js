@@ -68,12 +68,10 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
       mostrarMotoristas = '', // 'todos' para mostrar todos os motoristas vinculados
       tagIds = '', // IDs das tags filtradas (separados por vírgula)
       statusFiltro = '', // Status filtrado (movimento, ocioso, parado, offline)
-      // Filtros Avançados
+      // Filtros Avancados
       geofenceIds = '', // IDs das cercas filtradas
       tiposAlarme = '', // Tipos de alarme
-      viagemKmMin = '', viagemKmMax = '', // Viagem: distância
-      viagemDuracaoMin = '', viagemDuracaoMax = '', // Viagem: duração
-      viagemVelMaxMin = '', viagemVelMaxMax = '', // Viagem: vel. máxima
+      incluirViagens = '', // Checkbox simples para incluir viagens
       multaStatus = '', multaGravidade = '', // Multas
       velAcima80 = '', velAcima100 = '', velAcima120 = '', // Velocidade
       scoreMin = '', scoreMax = '', // Performance
@@ -103,15 +101,8 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     const tiposAlarmeFiltro = tiposAlarme ? tiposAlarme.split(',').filter(t => t.trim()) : [];
     const filtroAlarmeAtivo = tiposAlarmeFiltro.length > 0;
 
-    const filtrosViagem = {
-      kmMin: viagemKmMin ? parseFloat(viagemKmMin) : null,
-      kmMax: viagemKmMax ? parseFloat(viagemKmMax) : null,
-      duracaoMin: viagemDuracaoMin ? parseFloat(viagemDuracaoMin) : null,
-      duracaoMax: viagemDuracaoMax ? parseFloat(viagemDuracaoMax) : null,
-      velMaxMin: viagemVelMaxMin ? parseFloat(viagemVelMaxMin) : null,
-      velMaxMax: viagemVelMaxMax ? parseFloat(viagemVelMaxMax) : null
-    };
-    const filtroViagemAtivo = Object.values(filtrosViagem).some(v => v !== null);
+    // Viagens: checkbox simples - inclui todas as viagens do periodo
+    const filtroViagemAtivo = incluirViagens === 'true';
 
     const multaStatusFiltro = multaStatus ? multaStatus.split(',').filter(s => s.trim()) : [];
     const multaGravidadeFiltro = multaGravidade ? multaGravidade.split(',').filter(g => g.trim()) : [];
@@ -303,21 +294,8 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     };
     const alarmesTexto = tiposAlarmeFiltro.map(t => alarmesTextoMap[t] || t).join('; ') || '';
 
-    // Viagens - Texto
-    let viagensTexto = '';
-    if (filtroViagemAtivo) {
-      const partes = [];
-      if (filtrosViagem.kmMin || filtrosViagem.kmMax) {
-        partes.push(`Dist: ${filtrosViagem.kmMin || 0}-${filtrosViagem.kmMax || '∞'} km`);
-      }
-      if (filtrosViagem.duracaoMin || filtrosViagem.duracaoMax) {
-        partes.push(`Duração: ${filtrosViagem.duracaoMin || 0}-${filtrosViagem.duracaoMax || '∞'} min`);
-      }
-      if (filtrosViagem.velMaxMin || filtrosViagem.velMaxMax) {
-        partes.push(`Vel.Max: ${filtrosViagem.velMaxMin || 0}-${filtrosViagem.velMaxMax || '∞'} km/h`);
-      }
-      viagensTexto = partes.join('; ');
-    }
+    // Viagens - Texto (checkbox simples)
+    const viagensTexto = filtroViagemAtivo ? 'Sim (todas do periodo)' : '';
 
     // Multas - Texto
     let multasTexto = '';
@@ -1081,10 +1059,9 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       mostrarMotoristas = '', // 'todos' para mostrar todos os motoristas vinculados
       tagIds = '', // IDs das tags filtradas (separados por vírgula)
       statusFiltro = '', // Status filtrado (movimento, ocioso, parado, offline)
-      // Filtros Avançados
+      // Filtros Avancados
       geofenceIds = '', tiposAlarme = '',
-      viagemKmMin = '', viagemKmMax = '', viagemDuracaoMin = '', viagemDuracaoMax = '',
-      viagemVelMaxMin = '', viagemVelMaxMax = '',
+      incluirViagens = '', // Checkbox simples
       multaStatus = '', multaGravidade = '',
       velAcima80 = '', velAcima100 = '', velAcima120 = '',
       scoreMin = '', scoreMax = '', excessosMax = '', ociosoMax = '', kmMinRodado = ''
@@ -1111,7 +1088,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     const filtroGeofenceAtivo = geofenceIdsFiltro.length > 0;
     const tiposAlarmeFiltro = tiposAlarme ? tiposAlarme.split(',').filter(t => t.trim()) : [];
     const filtroAlarmeAtivo = tiposAlarmeFiltro.length > 0;
-    const filtroViagemAtivo = viagemKmMin || viagemKmMax || viagemDuracaoMin || viagemDuracaoMax;
+    const filtroViagemAtivo = incluirViagens === 'true';
     const filtroMultaAtivo = multaStatus || multaGravidade;
     const filtroVelocidadeAvancado = velAcima80 === 'true' || velAcima100 === 'true' || velAcima120 === 'true';
     const filtroPerformanceAtivo = scoreMin || scoreMax || excessosMax || ociosoMax || kmMinRodado;
@@ -1315,10 +1292,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     }
     if (filtroViagemAtivo) {
       doc.font('Helvetica-Bold').fillColor('#6366f1');
-      const partes = [];
-      if (viagemKmMin || viagemKmMax) partes.push(`Dist: ${viagemKmMin || 0}-${viagemKmMax || '∞'} km`);
-      if (viagemDuracaoMin || viagemDuracaoMax) partes.push(`Dur: ${viagemDuracaoMin || 0}-${viagemDuracaoMax || '∞'} min`);
-      doc.text(`Viagens: ${partes.join(', ')}`);
+      doc.text('Viagens: Incluidas (todas do periodo)');
       doc.font('Helvetica').fillColor('#000');
     }
     if (filtroMultaAtivo) {
@@ -3141,10 +3115,9 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
       mostrarMotoristas = '', // 'todos' para mostrar todos os motoristas vinculados
       tagIds = '', // IDs das tags filtradas (separados por vírgula)
       statusFiltro = '', // Status filtrado (movimento, ocioso, parado, offline)
-      // Filtros Avançados
+      // Filtros Avancados
       geofenceIds = '', tiposAlarme = '',
-      viagemKmMin = '', viagemKmMax = '', viagemDuracaoMin = '', viagemDuracaoMax = '',
-      viagemVelMaxMin = '', viagemVelMaxMax = '',
+      incluirViagens = '', // Checkbox simples
       multaStatus = '', multaGravidade = '',
       velMin = '', velMax = '', soExcessos = '',
       velAcima80 = '', velAcima100 = '', velAcima120 = '',
@@ -3167,12 +3140,12 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
     const mostrarTodosMotoristas = mostrarMotoristas === 'todos';
     const filtroMotoristaAtivo = motoristaIdsFiltro.length > 0 || mostrarTodosMotoristas;
 
-    // Extrair filtros avançados (Excel)
+    // Extrair filtros avancados (Excel)
     const geofenceIdsFiltro = geofenceIds ? geofenceIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
     const filtroGeofenceAtivo = geofenceIdsFiltro.length > 0;
     const tiposAlarmeFiltro = tiposAlarme ? tiposAlarme.split(',').filter(t => t.trim()) : [];
     const filtroAlarmeAtivo = tiposAlarmeFiltro.length > 0;
-    const filtroViagemAtivo = viagemKmMin || viagemKmMax || viagemDuracaoMin || viagemDuracaoMax;
+    const filtroViagemAtivo = incluirViagens === 'true';
     const filtroMultaAtivo = multaStatus || multaGravidade;
     const filtroVelocidadeAvancado = velAcima80 === 'true' || velAcima100 === 'true' || velAcima120 === 'true' || velMin || velMax || soExcessos === 'true';
     const filtroPerformanceAtivo = scoreMin || scoreMax || excessosMax || ociosoMax || kmMinRodado;
@@ -3334,14 +3307,8 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
     };
     const alarmesTextoExcel = tiposAlarmeFiltro.map(t => alarmesTextoMapExcel[t] || t).join(', ') || '';
 
-    // Viagens
-    let viagensTextoExcel = '';
-    if (filtroViagemAtivo) {
-      const partes = [];
-      if (viagemKmMin || viagemKmMax) partes.push(`Dist: ${viagemKmMin || 0}-${viagemKmMax || '∞'} km`);
-      if (viagemDuracaoMin || viagemDuracaoMax) partes.push(`Dur: ${viagemDuracaoMin || 0}-${viagemDuracaoMax || '∞'} min`);
-      viagensTextoExcel = partes.join(', ');
-    }
+    // Viagens (checkbox simples)
+    const viagensTextoExcel = filtroViagemAtivo ? 'Incluidas (todas do periodo)' : '';
 
     // Velocidade
     let velocidadeTextoExcel = '';

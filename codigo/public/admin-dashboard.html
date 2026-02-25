@@ -9515,12 +9515,29 @@
                   </div>
                 </div>
 
-                <!-- Chip Viagens (Índigo) - Checkbox simples -->
+                <!-- Chip Viagens (Índigo) -->
                 <div class="filtro-chip-container" style="position: relative;">
-                  <label class="filtro-chip filtro-chip-viagens" style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                    <input type="checkbox" id="incluir-viagens-checkbox" onchange="toggleIncluirViagens()" style="width: 16px; height: 16px; cursor: pointer;">
+                  <button type="button" onclick="toggleViagensDropdown()" class="filtro-chip filtro-chip-viagens">
+                    <span class="chip-icon"></span>
                     <span id="viagens-label">Viagens</span>
-                  </label>
+                    <span class="chip-arrow">▾</span>
+                  </button>
+                  <div id="viagens-dropdown" class="filtro-dropdown">
+                    <div id="viagens-checkbox-list" class="dropdown-list" style="padding: 8px 0;">
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" id="viagem-incluir" class="viagem-checkbox" onchange="atualizarViagensSelecionadas()">
+                        Incluir Viagens no Relatorio
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" id="viagem-completa" class="viagem-checkbox" onchange="atualizarViagensSelecionadas()">
+                        Detalhes Completos (horarios, localizacoes)
+                      </label>
+                    </div>
+                    <div class="dropdown-actions">
+                      <button onclick="limparViagensFiltro()" class="dropdown-btn-cancel">Limpar</button>
+                      <button onclick="aplicarViagensFiltro()" class="dropdown-btn-apply">Aplicar</button>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Chip Multas (Rosa) -->
@@ -9578,7 +9595,7 @@
                   </div>
                 </div>
 
-                <!--  Chip Velocidade (Âmbar) -->
+                <!-- Chip Velocidade (Ambar) -->
                 <div class="filtro-chip-container" style="position: relative;">
                   <button type="button" onclick="toggleVelocidadeDropdown()" class="filtro-chip filtro-chip-velocidade">
                     <span class="chip-icon"></span>
@@ -9586,32 +9603,22 @@
                     <span class="chip-arrow">▾</span>
                   </button>
                   <div id="velocidade-dropdown" class="filtro-dropdown">
-                    <div class="dropdown-range-container">
-                      <div class="dropdown-range-label">
-                        <span>Vel. Faixa de Velocidade (km/h)</span>
-                      </div>
-                      <div class="dropdown-range-inputs">
-                        <input type="number" id="vel-filtro-min" class="dropdown-range-input" placeholder="Min" min="0" step="5">
-                        <span class="dropdown-range-separator">até</span>
-                        <input type="number" id="vel-filtro-max" class="dropdown-range-input" placeholder="Max" min="0" step="5">
-                      </div>
-                    </div>
-                    <div id="velocidade-checkbox-list" class="dropdown-list" style="padding-top: 8px; border-top: 1px solid var(--border);">
+                    <div id="velocidade-checkbox-list" class="dropdown-list" style="padding: 8px 0;">
                       <label class="dropdown-checkbox-item">
-                        <input type="checkbox" id="vel-apenas-excessos" onchange="atualizarVelocidadeFiltro()">
-                        <span style="color: #ef4444;"></span> Apenas Excessos de Velocidade
+                        <input type="checkbox" id="vel-apenas-excessos" class="vel-checkbox" onchange="atualizarVelocidadeFiltro()">
+                        Apenas Excessos de Velocidade
                       </label>
                       <label class="dropdown-checkbox-item">
-                        <input type="checkbox" id="vel-acima-80" onchange="atualizarVelocidadeFiltro()">
-                        <span style="color: #f59e0b;"></span> Acima de 80 km/h
+                        <input type="checkbox" id="vel-acima-80" class="vel-checkbox" onchange="atualizarVelocidadeFiltro()">
+                        Acima de 80 km/h
                       </label>
                       <label class="dropdown-checkbox-item">
-                        <input type="checkbox" id="vel-acima-100" onchange="atualizarVelocidadeFiltro()">
-                        <span style="color: #ef4444;"></span> Acima de 100 km/h
+                        <input type="checkbox" id="vel-acima-100" class="vel-checkbox" onchange="atualizarVelocidadeFiltro()">
+                        Acima de 100 km/h
                       </label>
                       <label class="dropdown-checkbox-item">
-                        <input type="checkbox" id="vel-acima-120" onchange="atualizarVelocidadeFiltro()">
-                        <span style="color: #dc2626;"></span> Acima de 120 km/h
+                        <input type="checkbox" id="vel-acima-120" class="vel-checkbox" onchange="atualizarVelocidadeFiltro()">
+                        Acima de 120 km/h
                       </label>
                     </div>
                     <div class="dropdown-actions">
@@ -9629,42 +9636,23 @@
                     <span class="chip-arrow">▾</span>
                   </button>
                   <div id="performance-dropdown" class="filtro-dropdown">
-                    <div class="dropdown-range-container">
-                      <div class="dropdown-range-label">
-                        <span>Score de Condução (0-100)</span>
-                      </div>
-                      <div class="dropdown-range-inputs">
-                        <input type="number" id="score-min" class="dropdown-range-input" placeholder="Min" min="0" max="100" step="5">
-                        <span class="dropdown-range-separator">até</span>
-                        <input type="number" id="score-max" class="dropdown-range-input" placeholder="Max" min="0" max="100" step="5">
-                      </div>
-                    </div>
-                    <div class="dropdown-range-container">
-                      <div class="dropdown-range-label">
-                        <span> Máx. Excessos de Velocidade</span>
-                      </div>
-                      <div class="dropdown-range-inputs">
-                        <input type="number" id="excessos-max" class="dropdown-range-input" placeholder="Máx" min="0" step="1" style="width: 100px;">
-                        <span style="font-size: 11px; color: var(--text-muted);">ocorrências</span>
-                      </div>
-                    </div>
-                    <div class="dropdown-range-container">
-                      <div class="dropdown-range-label">
-                        <span>Tempo Ocioso Máximo</span>
-                      </div>
-                      <div class="dropdown-range-inputs">
-                        <input type="number" id="ocioso-max" class="dropdown-range-input" placeholder="Máx" min="0" step="5" style="width: 100px;">
-                        <span style="font-size: 11px; color: var(--text-muted);">minutos</span>
-                      </div>
-                    </div>
-                    <div class="dropdown-range-container">
-                      <div class="dropdown-range-label">
-                        <span>Km Mínimo Rodado</span>
-                      </div>
-                      <div class="dropdown-range-inputs">
-                        <input type="number" id="km-min-rodado" class="dropdown-range-input" placeholder="Min" min="0" step="10" style="width: 100px;">
-                        <span style="font-size: 11px; color: var(--text-muted);">km</span>
-                      </div>
+                    <div id="performance-checkbox-list" class="dropdown-list" style="padding: 8px 0;">
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" id="perf-score" class="perf-checkbox" onchange="atualizarPerformanceSelecionada()">
+                        Score de Conducao
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" id="perf-excessos" class="perf-checkbox" onchange="atualizarPerformanceSelecionada()">
+                        Excessos de Velocidade
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" id="perf-ocioso" class="perf-checkbox" onchange="atualizarPerformanceSelecionada()">
+                        Tempo Ocioso
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" id="perf-km" class="perf-checkbox" onchange="atualizarPerformanceSelecionada()">
+                        Quilometragem
+                      </label>
                     </div>
                     <div class="dropdown-actions">
                       <button onclick="limparPerformanceFiltro()" class="dropdown-btn-cancel">Limpar</button>
@@ -19940,10 +19928,8 @@
     let multasStatusSelecionados = new Set();
     let multasGravidadeSelecionados = new Set();
 
-    // Filtros de range (viagens, velocidade, performance)
-    let filtrosViagem = { kmMin: null, kmMax: null, duracaoMin: null, duracaoMax: null, velMaxMin: null, velMaxMax: null };
-    let filtrosVelocidade = { min: null, max: null, apenasExcessos: false, acima80: false, acima100: false, acima120: false };
-    let filtrosPerformance = { scoreMin: null, scoreMax: null, excessosMax: null, ociosoMax: null, kmMinRodado: null };
+    // Filtros de velocidade (checkboxes)
+    let filtrosVelocidade = { apenasExcessos: false, acima80: false, acima100: false, acima120: false };
 
     // Buscar relatórios (chamado pelo botão "Buscar")
     async function buscarRelatorios() {
@@ -20363,13 +20349,8 @@
       document.getElementById('alarmes-label').textContent = 'Alarmes';
 
       // Viagens
-      document.getElementById('viagem-km-min').value = '';
-      document.getElementById('viagem-km-max').value = '';
-      document.getElementById('viagem-duracao-min').value = '';
-      document.getElementById('viagem-duracao-max').value = '';
-      document.getElementById('viagem-velmax-min').value = '';
-      document.getElementById('viagem-velmax-max').value = '';
-      filtrosViagem = { kmMin: null, kmMax: null, duracaoMin: null, duracaoMax: null, velMaxMin: null, velMaxMax: null };
+      document.querySelectorAll('.viagem-checkbox').forEach(cb => cb.checked = false);
+      viagensOpcoes = { incluir: false, detalhes: false };
       document.getElementById('viagens-label').textContent = 'Viagens';
 
       // Multas
@@ -20379,22 +20360,13 @@
       document.getElementById('multas-label').textContent = 'Multas';
 
       // Velocidade
-      document.getElementById('vel-filtro-min').value = '';
-      document.getElementById('vel-filtro-max').value = '';
-      document.getElementById('vel-apenas-excessos').checked = false;
-      document.getElementById('vel-acima-80').checked = false;
-      document.getElementById('vel-acima-100').checked = false;
-      document.getElementById('vel-acima-120').checked = false;
-      filtrosVelocidade = { min: null, max: null, apenasExcessos: false, acima80: false, acima100: false, acima120: false };
+      document.querySelectorAll('.vel-checkbox').forEach(cb => cb.checked = false);
+      filtrosVelocidade = { apenasExcessos: false, acima80: false, acima100: false, acima120: false };
       document.getElementById('velocidade-label').textContent = 'Velocidade';
 
       // Performance
-      document.getElementById('score-min').value = '';
-      document.getElementById('score-max').value = '';
-      document.getElementById('excessos-max').value = '';
-      document.getElementById('ocioso-max').value = '';
-      document.getElementById('km-min-rodado').value = '';
-      filtrosPerformance = { scoreMin: null, scoreMax: null, excessosMax: null, ociosoMax: null, kmMinRodado: null };
+      document.querySelectorAll('.perf-checkbox').forEach(cb => cb.checked = false);
+      performanceOpcoes = { score: false, excessos: false, ocioso: false, km: false };
       document.getElementById('performance-label').textContent = 'Performance';
 
       // Fechar todos os dropdowns
@@ -20818,27 +20790,41 @@
     }
     window.aplicarAlarmesSelecionados = aplicarAlarmesSelecionados;
 
-    // ============ VIAGENS CHECKBOX ============
+    // ============ VIAGENS DROPDOWN ============
 
-    let incluirViagens = false;
+    let viagensOpcoes = { incluir: false, detalhes: false };
 
-    function toggleIncluirViagens() {
-      const checkbox = document.getElementById('incluir-viagens-checkbox');
-      incluirViagens = checkbox.checked;
-      const label = document.getElementById('viagens-label');
-      label.style.fontWeight = incluirViagens ? 'bold' : 'normal';
+    function toggleViagensDropdown() {
+      closeAllDropdowns('viagens-dropdown');
+      const dropdown = document.getElementById('viagens-dropdown');
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
     }
-    window.toggleIncluirViagens = toggleIncluirViagens;
+    window.toggleViagensDropdown = toggleViagensDropdown;
 
-    // Manter compatibilidade com getFiltrosAvancados
+    function atualizarViagensSelecionadas() {
+      // Atualizar estado
+    }
+    window.atualizarViagensSelecionadas = atualizarViagensSelecionadas;
+
     function limparViagensFiltro() {
-      incluirViagens = false;
-      const checkbox = document.getElementById('incluir-viagens-checkbox');
-      if (checkbox) checkbox.checked = false;
-      const label = document.getElementById('viagens-label');
-      if (label) label.style.fontWeight = 'normal';
+      document.querySelectorAll('.viagem-checkbox').forEach(cb => cb.checked = false);
+      viagensOpcoes = { incluir: false, detalhes: false };
+      document.getElementById('viagens-label').textContent = 'Viagens';
+      document.getElementById('viagens-dropdown').style.display = 'none';
     }
     window.limparViagensFiltro = limparViagensFiltro;
+
+    function aplicarViagensFiltro() {
+      viagensOpcoes = {
+        incluir: document.getElementById('viagem-incluir')?.checked || false,
+        detalhes: document.getElementById('viagem-completa')?.checked || false
+      };
+      const label = document.getElementById('viagens-label');
+      const count = Object.values(viagensOpcoes).filter(v => v).length;
+      label.textContent = count > 0 ? `Viagens (${count})` : 'Viagens';
+      document.getElementById('viagens-dropdown').style.display = 'none';
+    }
+    window.aplicarViagensFiltro = aplicarViagensFiltro;
 
     // ============ MULTAS DROPDOWN ============
 
@@ -20896,13 +20882,8 @@
     }
 
     function limparVelocidadeFiltro() {
-      document.getElementById('vel-filtro-min').value = '';
-      document.getElementById('vel-filtro-max').value = '';
-      document.getElementById('vel-apenas-excessos').checked = false;
-      document.getElementById('vel-acima-80').checked = false;
-      document.getElementById('vel-acima-100').checked = false;
-      document.getElementById('vel-acima-120').checked = false;
-      filtrosVelocidade = { min: null, max: null, apenasExcessos: false, acima80: false, acima100: false, acima120: false };
+      document.querySelectorAll('.vel-checkbox').forEach(cb => cb.checked = false);
+      filtrosVelocidade = { apenasExcessos: false, acima80: false, acima100: false, acima120: false };
       document.getElementById('velocidade-label').textContent = 'Velocidade';
       document.getElementById('velocidade-dropdown').style.display = 'none';
     }
@@ -20910,18 +20891,14 @@
 
     function aplicarVelocidadeFiltro() {
       filtrosVelocidade = {
-        min: parseFloat(document.getElementById('vel-filtro-min').value) || null,
-        max: parseFloat(document.getElementById('vel-filtro-max').value) || null,
-        apenasExcessos: document.getElementById('vel-apenas-excessos').checked,
-        acima80: document.getElementById('vel-acima-80').checked,
-        acima100: document.getElementById('vel-acima-100').checked,
-        acima120: document.getElementById('vel-acima-120').checked
+        apenasExcessos: document.getElementById('vel-apenas-excessos')?.checked || false,
+        acima80: document.getElementById('vel-acima-80')?.checked || false,
+        acima100: document.getElementById('vel-acima-100')?.checked || false,
+        acima120: document.getElementById('vel-acima-120')?.checked || false
       };
 
       const label = document.getElementById('velocidade-label');
       const filtrosAtivos = [
-        filtrosVelocidade.min !== null,
-        filtrosVelocidade.max !== null,
         filtrosVelocidade.apenasExcessos,
         filtrosVelocidade.acima80,
         filtrosVelocidade.acima100,
@@ -20943,6 +20920,8 @@
 
     // ============ PERFORMANCE DROPDOWN ============
 
+    let performanceOpcoes = { score: false, excessos: false, ocioso: false, km: false };
+
     function togglePerformanceDropdown() {
       closeAllDropdowns('performance-dropdown');
       const dropdown = document.getElementById('performance-dropdown');
@@ -20950,36 +20929,29 @@
     }
     window.togglePerformanceDropdown = togglePerformanceDropdown;
 
+    function atualizarPerformanceSelecionada() {
+      // Atualizar estado
+    }
+    window.atualizarPerformanceSelecionada = atualizarPerformanceSelecionada;
+
     function limparPerformanceFiltro() {
-      document.getElementById('score-min').value = '';
-      document.getElementById('score-max').value = '';
-      document.getElementById('excessos-max').value = '';
-      document.getElementById('ocioso-max').value = '';
-      document.getElementById('km-min-rodado').value = '';
-      filtrosPerformance = { scoreMin: null, scoreMax: null, excessosMax: null, ociosoMax: null, kmMinRodado: null };
+      document.querySelectorAll('.perf-checkbox').forEach(cb => cb.checked = false);
+      performanceOpcoes = { score: false, excessos: false, ocioso: false, km: false };
       document.getElementById('performance-label').textContent = 'Performance';
       document.getElementById('performance-dropdown').style.display = 'none';
     }
     window.limparPerformanceFiltro = limparPerformanceFiltro;
 
     function aplicarPerformanceFiltro() {
-      filtrosPerformance = {
-        scoreMin: parseFloat(document.getElementById('score-min').value) || null,
-        scoreMax: parseFloat(document.getElementById('score-max').value) || null,
-        excessosMax: parseInt(document.getElementById('excessos-max').value) || null,
-        ociosoMax: parseInt(document.getElementById('ocioso-max').value) || null,
-        kmMinRodado: parseFloat(document.getElementById('km-min-rodado').value) || null
+      performanceOpcoes = {
+        score: document.getElementById('perf-score')?.checked || false,
+        excessos: document.getElementById('perf-excessos')?.checked || false,
+        ocioso: document.getElementById('perf-ocioso')?.checked || false,
+        km: document.getElementById('perf-km')?.checked || false
       };
-
       const label = document.getElementById('performance-label');
-      const filtrosAtivos = Object.values(filtrosPerformance).filter(v => v !== null).length;
-      if (filtrosAtivos === 0) {
-        label.textContent = 'Performance';
-      } else if (filtrosPerformance.scoreMin && filtrosPerformance.scoreMax) {
-        label.textContent = `Score ${filtrosPerformance.scoreMin}-${filtrosPerformance.scoreMax}`;
-      } else {
-        label.textContent = `${filtrosAtivos} filtro${filtrosAtivos > 1 ? 's' : ''}`;
-      }
+      const count = Object.values(performanceOpcoes).filter(v => v).length;
+      label.textContent = count > 0 ? `Performance (${count})` : 'Performance';
       document.getElementById('performance-dropdown').style.display = 'none';
     }
     window.aplicarPerformanceFiltro = aplicarPerformanceFiltro;
@@ -20990,13 +20962,13 @@
       return {
         geofences: Array.from(geofencesSelecionados),
         alarmes: Array.from(alarmesSelecionados),
-        viagem: { incluir: incluirViagens },
+        viagem: viagensOpcoes,
         multas: {
           status: Array.from(multasStatusSelecionados),
           gravidade: Array.from(multasGravidadeSelecionados)
         },
         velocidade: filtrosVelocidade,
-        performance: filtrosPerformance
+        performance: performanceOpcoes
       };
     }
     window.getFiltrosAvancados = getFiltrosAvancados;
@@ -21790,10 +21762,9 @@
           params.set('tiposAlarme', filtrosAv.alarmes.join(','));
         }
 
-        // Viagens - checkbox simples
-        if (filtrosAv.viagem.incluir) {
-          params.set('incluirViagens', 'true');
-        }
+        // Viagens
+        if (filtrosAv.viagem.incluir) params.set('incluirViagens', 'true');
+        if (filtrosAv.viagem.detalhes) params.set('viagemDetalhes', 'true');
 
         // Multas
         if (filtrosAv.multas.status.length > 0) {
@@ -21803,20 +21774,17 @@
           params.set('multaGravidade', filtrosAv.multas.gravidade.join(','));
         }
 
-        //  Velocidade
-        if (filtrosAv.velocidade.min) params.set('velMin', filtrosAv.velocidade.min);
-        if (filtrosAv.velocidade.max) params.set('velMax', filtrosAv.velocidade.max);
+        // Velocidade
         if (filtrosAv.velocidade.apenasExcessos) params.set('soExcessos', 'true');
         if (filtrosAv.velocidade.acima80) params.set('velAcima80', 'true');
         if (filtrosAv.velocidade.acima100) params.set('velAcima100', 'true');
         if (filtrosAv.velocidade.acima120) params.set('velAcima120', 'true');
 
         // Performance
-        if (filtrosAv.performance.scoreMin) params.set('scoreMin', filtrosAv.performance.scoreMin);
-        if (filtrosAv.performance.scoreMax) params.set('scoreMax', filtrosAv.performance.scoreMax);
-        if (filtrosAv.performance.excessosMax) params.set('excessosMax', filtrosAv.performance.excessosMax);
-        if (filtrosAv.performance.ociosoMax) params.set('ociosoMax', filtrosAv.performance.ociosoMax);
-        if (filtrosAv.performance.kmMinRodado) params.set('kmMinRodado', filtrosAv.performance.kmMinRodado);
+        if (filtrosAv.performance.score) params.set('perfScore', 'true');
+        if (filtrosAv.performance.excessos) params.set('perfExcessos', 'true');
+        if (filtrosAv.performance.ocioso) params.set('perfOcioso', 'true');
+        if (filtrosAv.performance.km) params.set('perfKm', 'true');
 
         switch (tipoRelatorio) {
           case 'velocidade':
