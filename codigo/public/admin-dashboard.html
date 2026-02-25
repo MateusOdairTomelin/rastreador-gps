@@ -13511,15 +13511,8 @@
           // ✅ FIX: Aguardar animação CSS (400ms) antes de inicializar
           setTimeout(initMap, 450);
         } else {
-          // ✅ FIX: Aguardar animação CSS terminar (400ms) e chamar múltiplas vezes
-          // para garantir que as tiles carregam corretamente
-          setTimeout(() => {
-            map.invalidateSize();
-            updateMapMarkers();
-          }, 100);
-          setTimeout(() => {
-            map.invalidateSize(); // Segunda chamada após animação
-          }, 450);
+          // ✅ FIX: Forçar refresh completo do mapa após animação CSS
+          forceMapRefresh();
         }
       }
 
@@ -13801,6 +13794,32 @@
     // ✅ CORREÇÃO: Rastrear última atualização WebSocket por IMEI para evitar rollback
     // Quando WebSocket atualiza, dados da API mais antigos são ignorados
     const wsUpdateTimestamps = {};
+
+    // ✅ FIX: Força refresh completo do mapa (resolve tela verde)
+    function forceMapRefresh() {
+      if (!map) return;
+
+      // Aguardar animação CSS terminar
+      setTimeout(() => {
+        // 1. Invalidar tamanho
+        map.invalidateSize();
+
+        // 2. Forçar redraw de todas as tile layers
+        map.eachLayer(layer => {
+          if (layer.redraw) {
+            layer.redraw();
+          }
+        });
+
+        // 3. Atualizar marcadores
+        updateMapMarkers();
+
+        // 4. Segunda invalidação após tiles iniciarem carregamento
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 300);
+      }, 100);
+    }
 
     function initMap() {
       const container = document.getElementById('map');
