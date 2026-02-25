@@ -36,6 +36,10 @@ let naoAtribuidosCache = null;
 let naoAtribuidosCacheTime = 0;
 const NAO_ATRIBUIDOS_CACHE_TTL = 10000;
 
+// Cache genérico por IMEI (TTL 3s) - evita múltiplas chamadas do mesmo endpoint
+const imeiCache = new Map();
+const IMEI_CACHE_TTL = 3000;
+
 // ✅ Multi-tenant: Verifica se dispositivo pertence à organização do usuário
 const verificarPropriedadeDispositivo = async (req, res, next) => {
   const { imei } = req.params;
@@ -729,6 +733,14 @@ router.get('/', asyncHandler(async (req, res) => {
 // GET /api/dispositivos/:imei/localizacao-atual
 router.get('/:imei/localizacao-atual', asyncHandler(async (req, res) => {
   const { imei } = req.params;
+
+  // Cache por IMEI (3s)
+  const cacheKey = `loc:${imei}`;
+  const cached = imeiCache.get(cacheKey);
+  if (cached && (Date.now() - cached.time) < IMEI_CACHE_TTL) {
+    return res.json(cached.data);
+  }
+
   const localizacao = await localizacaoService.getCurrent(imei);
 
   if (!localizacao) {
@@ -738,7 +750,7 @@ router.get('/:imei/localizacao-atual', asyncHandler(async (req, res) => {
     });
   }
 
-  res.json({
+  const response = {
     sucesso: true,
     dados: {
       id: localizacao.id,
@@ -750,7 +762,10 @@ router.get('/:imei/localizacao-atual', asyncHandler(async (req, res) => {
       precisao: localizacao.precisao,
       timestamp: localizacao.timestamp,
     },
-  });
+  };
+
+  imeiCache.set(cacheKey, { data: response, time: Date.now() });
+  res.json(response);
 }));
 
 // GET /api/dispositivos/:imei/historico
@@ -855,6 +870,14 @@ router.get('/:imei/historico', asyncHandler(async (req, res) => {
 // GET /api/dispositivos/:imei/obd2-atual
 router.get('/:imei/obd2-atual', asyncHandler(async (req, res) => {
   const { imei } = req.params;
+
+  // Cache por IMEI (3s)
+  const cacheKey = `obd2:${imei}`;
+  const cached = imeiCache.get(cacheKey);
+  if (cached && (Date.now() - cached.time) < IMEI_CACHE_TTL) {
+    return res.json(cached.data);
+  }
+
   const obd2 = await obd2Service.getCurrent(imei);
 
   if (!obd2) {
@@ -864,7 +887,7 @@ router.get('/:imei/obd2-atual', asyncHandler(async (req, res) => {
     });
   }
 
-  res.json({
+  const response = {
     sucesso: true,
     dados: {
       id: obd2.id,
@@ -880,7 +903,10 @@ router.get('/:imei/obd2-atual', asyncHandler(async (req, res) => {
       tensao_bateria: obd2.tensao_bateria,
       timestamp: obd2.timestamp,
     },
-  });
+  };
+
+  imeiCache.set(cacheKey, { data: response, time: Date.now() });
+  res.json(response);
 }));
 
 // GET /api/dispositivos/:imei/obd2-historico
