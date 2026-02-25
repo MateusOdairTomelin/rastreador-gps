@@ -9,6 +9,19 @@ const express = require('express');
 const router = express.Router();
 const insightService = require('../services/insight.service');
 
+// ✅ Cache de insights (TTL 10s)
+const insightsCache = new Map();
+const INSIGHTS_CACHE_TTL = 10000;
+
+// Helper para invalidar cache de uma organização
+function invalidateOrgCache(orgId) {
+  for (const key of insightsCache.keys()) {
+    if (key.startsWith(`${orgId}:`) || key.startsWith(`resumo:${orgId}`)) {
+      insightsCache.delete(key);
+    }
+  }
+}
+
 /**
  * GET /api/insights
  * Listar insights da organização
@@ -17,6 +30,13 @@ const insightService = require('../services/insight.service');
 router.get('/', async (req, res) => {
   try {
     const { lido, arquivado, tipo, prioridade, limit, offset } = req.query;
+
+    // Gerar chave de cache
+    const cacheKey = `${req.organizacao_id}:${lido}:${arquivado}:${tipo}:${prioridade}:${limit}:${offset}`;
+    const cached = insightsCache.get(cacheKey);
+    if (cached && (Date.now() - cached.time) < INSIGHTS_CACHE_TTL) {
+      return res.json(cached.data);
+    }
 
     const resultado = await insightService.listar(req.organizacao_id, {
       lido: lido === 'true' ? true : lido === 'false' ? false : undefined,
@@ -27,7 +47,10 @@ router.get('/', async (req, res) => {
       offset: parseInt(offset) || 0
     });
 
-    res.json({ sucesso: true, ...resultado });
+    const response = { sucesso: true, ...resultado };
+    insightsCache.set(cacheKey, { data: response, time: Date.now() });
+
+    res.json(response);
   } catch (error) {
     console.error('[Insights] Erro ao listar:', error.message);
     res.status(500).json({ sucesso: false, erro: error.message });
@@ -40,8 +63,18 @@ router.get('/', async (req, res) => {
  */
 router.get('/resumo', async (req, res) => {
   try {
+    // Cache para resumo (TTL 10s)
+    const cacheKey = `resumo:${req.organizacao_id}`;
+    const cached = insightsCache.get(cacheKey);
+    if (cached && (Date.now() - cached.time) < INSIGHTS_CACHE_TTL) {
+      return res.json(cached.data);
+    }
+
     const resumo = await insightService.getResumo(req.organizacao_id);
-    res.json({ sucesso: true, ...resumo });
+    const response = { sucesso: true, ...resumo };
+    insightsCache.set(cacheKey, { data: response, time: Date.now() });
+
+    res.json(response);
   } catch (error) {
     console.error('[Insights] Erro ao buscar resumo:', error.message);
     res.status(500).json({ sucesso: false, erro: error.message });
@@ -102,6 +135,7 @@ router.post('/:id/lido', async (req, res) => {
       req.organizacao_id
     );
 
+    invalidateOrgCache(req.organizacao_id);
     res.json({ sucesso: true, insight });
   } catch (error) {
     console.error('[Insights] Erro ao marcar como lido:', error.message);
@@ -116,6 +150,7 @@ router.post('/:id/lido', async (req, res) => {
 router.post('/marcar-todos-lidos', async (req, res) => {
   try {
     const resultado = await insightService.marcarTodosComoLidos(req.organizacao_id);
+    invalidateOrgCache(req.organizacao_id);
     res.json({ sucesso: true, ...resultado });
   } catch (error) {
     console.error('[Insights] Erro ao marcar todos como lidos:', error.message);

@@ -1632,6 +1632,49 @@
       color: #60a5fa !important;
     }
 
+    /* ====== LEAFLET CONTROLS (DARK THEME) ====== */
+    [data-theme="dark"] .leaflet-bar {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    [data-theme="dark"] .leaflet-bar a {
+      background-color: #1e293b;
+      color: #e2e8f0;
+      border-bottom: 1px solid #334155;
+    }
+
+    [data-theme="dark"] .leaflet-bar a:hover {
+      background-color: #334155;
+      color: #f1f5f9;
+    }
+
+    [data-theme="dark"] .leaflet-bar a:first-child {
+      border-top-left-radius: 4px;
+      border-top-right-radius: 4px;
+    }
+
+    [data-theme="dark"] .leaflet-bar a:last-child {
+      border-bottom-left-radius: 4px;
+      border-bottom-right-radius: 4px;
+      border-bottom: none;
+    }
+
+    [data-theme="dark"] .leaflet-control-layers {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+    }
+
+    [data-theme="dark"] .leaflet-control-layers-expanded {
+      background-color: #1e293b;
+    }
+
+    [data-theme="dark"] .leaflet-control-layers label {
+      color: #e2e8f0;
+    }
+
     /* ====== BUTTONS ====== */
     .btn {
       padding: 12px 24px;
@@ -13465,13 +13508,18 @@
         deviceCache.invalidate();
 
         if (!map) {
-          setTimeout(initMap, 100);
+          // ✅ FIX: Aguardar animação CSS (400ms) antes de inicializar
+          setTimeout(initMap, 450);
         } else {
-          // Recalcular tamanho do mapa e atualizar marcadores IMEDIATAMENTE
+          // ✅ FIX: Aguardar animação CSS terminar (400ms) e chamar múltiplas vezes
+          // para garantir que as tiles carregam corretamente
           setTimeout(() => {
             map.invalidateSize();
-            updateMapMarkers(); // ✅ Atualiza dados ao abrir o mapa
+            updateMapMarkers();
           }, 100);
+          setTimeout(() => {
+            map.invalidateSize(); // Segunda chamada após animação
+          }, 450);
         }
       }
 
@@ -13769,9 +13817,8 @@
 
       // ✅ CORREÇÃO: Recalcular tamanho após tiles carregarem (evita bug de dimensões)
       map.whenReady(() => {
-        setTimeout(() => {
-          map.invalidateSize();
-        }, 100);
+        setTimeout(() => map.invalidateSize(), 100);
+        setTimeout(() => map.invalidateSize(), 500); // Segunda chamada de segurança
       });
 
       // Google Maps Tiles (Gratuito)
