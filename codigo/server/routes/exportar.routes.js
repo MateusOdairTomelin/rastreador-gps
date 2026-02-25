@@ -78,14 +78,28 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     const filtrarSoExcessos = soExcessos === 'true';
     const aplicarCorrecao = corrigido === 'true' && gpsFilterService !== null;
 
-    // Buscar dispositivo
+    // Buscar dispositivo com tags do veículo
     const dispositivo = await prisma.dispositivo.findUnique({
-      where: { imei }
+      where: { imei },
+      include: {
+        veiculo_rel: {
+          include: {
+            tags: {
+              include: {
+                tag: { select: { id: true, nome: true, cor: true } }
+              }
+            }
+          }
+        }
+      }
     });
 
     if (!dispositivo) {
       return res.status(404).json({ sucesso: false, mensagem: 'Dispositivo não encontrado' });
     }
+
+    // Extrair tags do veículo
+    const tagsVeiculo = dispositivo.veiculo_rel?.tags?.map(vt => vt.tag.nome).join(', ') || 'Nenhuma';
 
     // Configurar período
     const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -773,6 +787,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     header += `Total de Registros,${totalRegistros}\n`;
     header += `Gerado em,${formatDateTime(new Date())}\n`;
     header += `Filtros,${filtrosTexto.length > 0 ? filtrosTexto.join(' | ').replace(/,/g, ';') : 'Nenhum'}\n`;
+    header += `Tags,${tagsVeiculo.replace(/,/g, ';')}\n`;
     header += '\n\n';
 
     // TABELA 2: RESUMO ESTATISTICO
@@ -882,14 +897,28 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     const filtrarSoExcessos = soExcessos === 'true';
     const aplicarCorrecao = corrigido === 'true' && gpsFilterService !== null;
 
-    // Buscar dispositivo
+    // Buscar dispositivo com tags do veículo
     const dispositivo = await prisma.dispositivo.findUnique({
-      where: { imei }
+      where: { imei },
+      include: {
+        veiculo_rel: {
+          include: {
+            tags: {
+              include: {
+                tag: { select: { id: true, nome: true, cor: true } }
+              }
+            }
+          }
+        }
+      }
     });
 
     if (!dispositivo) {
       return res.status(404).json({ sucesso: false, mensagem: 'Dispositivo não encontrado' });
     }
+
+    // Extrair tags do veículo
+    const tagsVeiculo = dispositivo.veiculo_rel?.tags?.map(vt => vt.tag.nome).join(', ') || 'Nenhuma';
 
     // Configurar período
     const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -1024,6 +1053,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     doc.text(`IMEI: ${dispositivo.imei}`);
     doc.text(`Tipo: ${dispositivo.tipo || 'N/A'}`);
     doc.text(`Status: ${dispositivo.status === 'online' ? 'Online' : 'Offline'}`);
+    doc.text(`Tags: ${tagsVeiculo}`);
 
     // ✅ Mostrar motorista(s) vinculado(s) com período
     if (motoristasVinculados.length > 0) {
@@ -2820,14 +2850,28 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
 
     console.log('[Excel] Módulos selecionados:', modulosSelecionados);
 
-    // Buscar dispositivo
+    // Buscar dispositivo com tags do veículo
     const dispositivo = await prisma.dispositivo.findUnique({
-      where: { imei }
+      where: { imei },
+      include: {
+        veiculo_rel: {
+          include: {
+            tags: {
+              include: {
+                tag: { select: { id: true, nome: true, cor: true } }
+              }
+            }
+          }
+        }
+      }
     });
 
     if (!dispositivo) {
       return res.status(404).json({ sucesso: false, mensagem: 'Dispositivo não encontrado' });
     }
+
+    // Extrair tags do veículo
+    const tagsVeiculo = dispositivo.veiculo_rel?.tags?.map(vt => vt.tag.nome).join(', ') || 'Nenhuma';
 
     // Configurar período
     const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -3034,6 +3078,7 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
         ['Placa', dispositivo.placa || 'N/A'],
         ['IMEI', dispositivo.imei],
         ['Tipo', dispositivo.tipo || 'N/A'],
+        ['Tags', tagsVeiculo],
         ['Motorista(s)', motoristasTexto],
         ['Periodo', `${formatDateTime(inicio)} até ${formatDateTime(fim)}`],
         ['Total de Registros', localizacoes.length]
