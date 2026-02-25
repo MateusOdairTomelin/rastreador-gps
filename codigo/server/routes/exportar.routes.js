@@ -33,7 +33,7 @@ const { supportsOBD2 } = require('../constants/device-types');
 /**
  * Filtra localizações baseado no status selecionado
  * @param {Array} localizacoes - Array de localizações
- * @param {string} statusFiltro - Status para filtrar (movimento, ocioso, parado, offline)
+ * @param {string} statusFiltro - Status para filtrar (movimento, ocioso, parado, offline ou multiplos separados por virgula)
  * @param {Object} dispositivo - Dispositivo (para verificar status online/offline)
  * @returns {Array} Localizações filtradas
  */
@@ -42,33 +42,34 @@ function filtrarLocalizacoesPorStatus(localizacoes, statusFiltro, dispositivo) {
     return localizacoes;
   }
 
-  return localizacoes.filter(loc => {
+  // Suporta multiplos status separados por virgula (ex: "movimento,ocioso")
+  const statusList = statusFiltro.split(',').map(s => s.trim().toLowerCase());
+
+  // Funcao helper para verificar se localização corresponde a um status
+  const matchStatus = (loc, status) => {
     const velocidade = loc.velocidade || 0;
     const estadoIgnicao = loc.estado_ignicao || '';
 
-    switch (statusFiltro) {
+    switch (status) {
       case 'movimento':
-        // Em movimento: velocidade > 0
         return velocidade > 0;
-
       case 'ocioso':
-        // Ocioso: motor ligado (ignicao=true ou estado_ignicao=idle) e velocidade = 0
         return velocidade === 0 && (loc.ignicao === true || estadoIgnicao === 'idle');
-
       case 'parado':
-        // Parado: motor desligado e velocidade = 0
         return velocidade === 0 && loc.ignicao !== true && estadoIgnicao !== 'idle';
-
       case 'offline':
-        // Offline: dispositivo offline (verificar timestamp antigo > 5min)
         const agora = new Date();
         const ultimoUpdate = new Date(loc.timestamp);
         const diffMinutos = (agora - ultimoUpdate) / (1000 * 60);
         return diffMinutos > 5;
-
       default:
-        return true;
+        return false;
     }
+  };
+
+  return localizacoes.filter(loc => {
+    // Retorna true se a localização corresponde a QUALQUER um dos status selecionados
+    return statusList.some(status => matchStatus(loc, status));
   });
 }
 
