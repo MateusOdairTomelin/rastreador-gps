@@ -4154,208 +4154,6 @@
       background: rgba(239, 68, 68, 0.1);
     }
 
-    /* ====== MODAL DE EXPORTAÇÃO MODULAR ====== */
-    .export-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 10000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .export-modal .modal-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.7);
-    }
-    .modal-content-export {
-      position: relative;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      width: 95%;
-      max-width: 720px;
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-    }
-    .modal-header-export {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 24px;
-      border-bottom: 1px solid var(--border);
-    }
-    .modal-header-export h3 {
-      margin: 0;
-      font-size: 18px;
-      color: var(--text);
-    }
-    .modal-body-export {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px 24px;
-    }
-    .modal-footer-export {
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-      padding: 16px 24px;
-      border-top: 1px solid var(--border);
-    }
-    .export-veiculo-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      background: var(--bg-card);
-      border-radius: 10px;
-      margin-bottom: 20px;
-    }
-    .export-veiculo-placa {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--primary);
-    }
-    .export-veiculo-modelo {
-      font-size: 14px;
-      color: var(--text-muted);
-    }
-    .export-section {
-      margin-bottom: 24px;
-    }
-    .export-section h4 {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text);
-      margin: 0 0 8px 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .export-section h4 .opcional {
-      font-size: 11px;
-      font-weight: 400;
-      color: var(--text-muted);
-    }
-    .export-hint {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin: 0 0 12px 0;
-    }
-    .export-modulos-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 10px;
-    }
-    .export-modulo-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 12px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .export-modulo-item:hover {
-      border-color: var(--primary);
-      background: var(--bg-card-hover);
-    }
-    .export-modulo-item:has(input:checked) {
-      border-color: var(--primary);
-      background: rgba(63, 207, 213, 0.15);
-    }
-    .export-modulo-item input[type="checkbox"] {
-      margin-top: 2px;
-    }
-    .modulo-icon {
-      font-size: 20px;
-      line-height: 1;
-    }
-    .modulo-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .modulo-nome {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-    }
-    .modulo-desc {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-    .export-modulos-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
-    .export-filtros-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 12px;
-    }
-    .export-filtros-grid .filtro-grupo {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .export-filtros-grid .filtro-grupo label {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .export-filtros-grid .filtro-grupo select,
-    .export-filtros-grid .filtro-grupo input {
-      padding: 8px 12px;
-      background: var(--input-bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--input-text);
-      font-size: 13px;
-    }
-    .export-filtros-extras {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin-top: 12px;
-    }
-    .export-checkbox-inline {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      font-size: 13px;
-      color: var(--text);
-    }
-    .export-checkbox-inline input {
-      margin: 0;
-    }
-    @media (max-width: 600px) {
-      .export-modulos-grid {
-        grid-template-columns: 1fr;
-      }
-      .export-filtros-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-      .modal-footer-export {
-        flex-wrap: wrap;
-      }
-      .modal-footer-export .btn {
-        flex: 1;
-        min-width: 120px;
-      }
-    }
-
     /* ====== CENTRAL DE RELATÓRIOS ====== */
 
     /* Tabs de Relatórios */
@@ -4919,6 +4717,16 @@
     .filtro-chip-motoristas:hover, .filtro-chip-motoristas.active {
       background: rgba(249, 115, 22, 0.25);
       border-color: #f97316;
+    }
+
+    .filtro-chip-modulos {
+      background: rgba(6, 182, 212, 0.15);
+      color: #06b6d4;
+      border-color: rgba(6, 182, 212, 0.3);
+    }
+    .filtro-chip-modulos:hover, .filtro-chip-modulos.active {
+      background: rgba(6, 182, 212, 0.25);
+      border-color: #06b6d4;
     }
 
     /* Dropdown dos chips */
@@ -9423,6 +9231,63 @@
                   </div>
                 </div>
 
+                <!-- Chip Modulos (Cyan) - Seções do Relatório -->
+                <div class="filtro-chip-container" style="position: relative;">
+                  <button type="button" onclick="toggleModulosDropdown()" class="filtro-chip filtro-chip-modulos">
+                    <span class="chip-icon">☷</span>
+                    <span id="modulos-label">Modulos</span>
+                    <span class="chip-arrow">▾</span>
+                  </button>
+                  <div id="modulos-dropdown" class="filtro-dropdown">
+                    <div id="modulos-checkbox-list" class="dropdown-list" style="padding-top: 8px;">
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="modulo-checkbox" value="resumo" checked onchange="atualizarModulosSelecionados()">
+                        Resumo Geral
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="modulo-checkbox" value="score" checked onchange="atualizarModulosSelecionados()">
+                        Score de Motorista
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="modulo-checkbox" value="consumo" checked onchange="atualizarModulosSelecionados()">
+                        Consumo de Combustivel
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="modulo-checkbox" value="kmdia" checked onchange="atualizarModulosSelecionados()">
+                        Km por Dia
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="modulo-checkbox" value="excessos" checked onchange="atualizarModulosSelecionados()">
+                        Excessos de Velocidade
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="modulo-checkbox" value="paradas" checked onchange="atualizarModulosSelecionados()">
+                        Paradas
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="modulo-checkbox" value="viagens" checked onchange="atualizarModulosSelecionados()">
+                        Viagens
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="modulo-checkbox" value="obd2" onchange="atualizarModulosSelecionados()">
+                        Dados OBD2
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="modulo-checkbox" value="alarmes" onchange="atualizarModulosSelecionados()">
+                        Alarmes
+                      </label>
+                      <label class="dropdown-checkbox-item">
+                        <input type="checkbox" class="modulo-checkbox" value="localizacoes" onchange="atualizarModulosSelecionados()">
+                        Localizacoes Detalhadas
+                      </label>
+                    </div>
+                    <div class="dropdown-actions">
+                      <button onclick="selecionarTodosModulos()" class="dropdown-btn-cancel">Todos</button>
+                      <button onclick="aplicarModulosSelecionados()" class="dropdown-btn-apply">Aplicar</button>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Spacer -->
                 <div style="flex: 1;"></div>
 
@@ -9543,170 +9408,6 @@
             </div>
           </div>
 
-          <!-- Modal de Exportação Modular -->
-          <div class="export-modal" id="export-modal" style="display:none;">
-            <div class="modal-overlay" onclick="fecharExportModal()"></div>
-            <div class="modal-content-export">
-              <div class="modal-header-export">
-                <h3 id="export-modal-titulo">Configurar Exportação</h3>
-                <button onclick="fecharExportModal()" class="btn-fechar">&times;</button>
-              </div>
-              <div class="modal-body-export">
-                <!-- Info do veículo selecionado -->
-                <div class="export-veiculo-info" id="export-veiculo-info">
-                  <span class="export-veiculo-placa" id="export-placa">-</span>
-                  <span class="export-veiculo-modelo" id="export-modelo">-</span>
-                </div>
-
-                <!-- Módulos selecionáveis -->
-                <div class="export-section">
-                  <h4>Módulos do Relatório</h4>
-                  <p class="export-hint">Selecione as seções que deseja incluir</p>
-                  <div class="export-modulos-grid">
-                    <label class="export-modulo-item">
-                      <input type="checkbox" id="mod-resumo" checked>
-                      <span class="modulo-icon">📊</span>
-                      <span class="modulo-info">
-                        <span class="modulo-nome">Resumo Estatístico</span>
-                        <span class="modulo-desc">Km, velocidades, tempos</span>
-                      </span>
-                    </label>
-                    <label class="export-modulo-item">
-                      <input type="checkbox" id="mod-score" checked>
-                      <span class="modulo-icon">🎯</span>
-                      <span class="modulo-info">
-                        <span class="modulo-nome">Score de Condução</span>
-                        <span class="modulo-desc">Pontuação 0-100</span>
-                      </span>
-                    </label>
-                    <label class="export-modulo-item">
-                      <input type="checkbox" id="mod-consumo" checked>
-                      <span class="modulo-icon">⛽</span>
-                      <span class="modulo-info">
-                        <span class="modulo-nome">Consumo Estimado</span>
-                        <span class="modulo-desc">Litros estimados</span>
-                      </span>
-                    </label>
-                    <label class="export-modulo-item">
-                      <input type="checkbox" id="mod-km-dia" checked>
-                      <span class="modulo-icon">📅</span>
-                      <span class="modulo-info">
-                        <span class="modulo-nome">Km por Dia</span>
-                        <span class="modulo-desc">Resumo diário</span>
-                      </span>
-                    </label>
-                    <label class="export-modulo-item">
-                      <input type="checkbox" id="mod-excessos" checked>
-                      <span class="modulo-icon">⚠️</span>
-                      <span class="modulo-info">
-                        <span class="modulo-nome">Excessos de Velocidade</span>
-                        <span class="modulo-desc">Detalhes por via</span>
-                      </span>
-                    </label>
-                    <label class="export-modulo-item">
-                      <input type="checkbox" id="mod-paradas" checked>
-                      <span class="modulo-icon">📍</span>
-                      <span class="modulo-info">
-                        <span class="modulo-nome">Paradas</span>
-                        <span class="modulo-desc">Locais com tempo > 5min</span>
-                      </span>
-                    </label>
-                    <label class="export-modulo-item">
-                      <input type="checkbox" id="mod-viagens" checked>
-                      <span class="modulo-icon">🛣️</span>
-                      <span class="modulo-info">
-                        <span class="modulo-nome">Viagens</span>
-                        <span class="modulo-desc">Lista de trajetos</span>
-                      </span>
-                    </label>
-                    <label class="export-modulo-item" id="mod-obd2-container">
-                      <input type="checkbox" id="mod-obd2" checked>
-                      <span class="modulo-icon">🔧</span>
-                      <span class="modulo-info">
-                        <span class="modulo-nome">Dados OBD2</span>
-                        <span class="modulo-desc">RPM, temperatura, combustível</span>
-                      </span>
-                    </label>
-                    <label class="export-modulo-item">
-                      <input type="checkbox" id="mod-alarmes" checked>
-                      <span class="modulo-icon">🔔</span>
-                      <span class="modulo-info">
-                        <span class="modulo-nome">Alarmes</span>
-                        <span class="modulo-desc">Alertas do período</span>
-                      </span>
-                    </label>
-                    <label class="export-modulo-item">
-                      <input type="checkbox" id="mod-localizacoes">
-                      <span class="modulo-icon">📌</span>
-                      <span class="modulo-info">
-                        <span class="modulo-nome">Localizações</span>
-                        <span class="modulo-desc">Todos os pontos GPS</span>
-                      </span>
-                    </label>
-                  </div>
-                  <div class="export-modulos-actions">
-                    <button type="button" class="btn btn-sm btn-ghost" onclick="selecionarTodosModulos()">Selecionar Todos</button>
-                    <button type="button" class="btn btn-sm btn-ghost" onclick="limparTodosModulos()">Limpar Todos</button>
-                  </div>
-                </div>
-
-                <!-- Filtros Avançados -->
-                <div class="export-section">
-                  <h4>Filtros Avançados <span class="opcional">(opcional)</span></h4>
-                  <div class="export-filtros-grid">
-                    <div class="filtro-grupo">
-                      <label>Estado do Veículo</label>
-                      <select id="export-estado">
-                        <option value="">Todos</option>
-                        <option value="movimento">Em Movimento</option>
-                        <option value="ocioso">Ocioso</option>
-                        <option value="parado">Parado</option>
-                        <option value="ligado">Motor Ligado</option>
-                      </select>
-                    </div>
-                    <div class="filtro-grupo">
-                      <label>Velocidade Mínima</label>
-                      <input type="number" id="export-vel-min" placeholder="km/h" min="0" max="300">
-                    </div>
-                    <div class="filtro-grupo">
-                      <label>Velocidade Máxima</label>
-                      <input type="number" id="export-vel-max" placeholder="km/h" min="0" max="300">
-                    </div>
-                    <div class="filtro-grupo">
-                      <label>Tipo de Alarme</label>
-                      <select id="export-tipo-alarme">
-                        <option value="">Todos</option>
-                        <option value="excesso_velocidade">Excesso de Velocidade</option>
-                        <option value="cerca_virtual">Cerca Virtual</option>
-                        <option value="bateria_baixa">Bateria Baixa</option>
-                        <option value="desconexao">Desconexão</option>
-                        <option value="panico">Pânico</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="export-filtros-extras">
-                    <label class="export-checkbox-inline">
-                      <input type="checkbox" id="export-so-excessos">
-                      <span>Apenas excessos de velocidade</span>
-                    </label>
-                    <label class="export-checkbox-inline">
-                      <input type="checkbox" id="export-corrigido" checked>
-                      <span>GPS corrigido (OSRM)</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div class="modal-footer-export">
-                <button class="btn btn-secondary" onclick="fecharExportModal()">Cancelar</button>
-                <button class="btn btn-success" onclick="executarExportacao('csv')">
-                  <span>≡</span> Exportar CSV
-                </button>
-                <button class="btn btn-primary" onclick="executarExportacao('pdf')">
-                  <span>☰</span> Exportar PDF
-                </button>
-              </div>
-            </div>
-          </div>
         </section>
 
       </div>
@@ -20044,7 +19745,7 @@
     }
 
     function closeAllDropdowns(except = null) {
-      ['tags-dropdown', 'status-dropdown', 'tipo-dropdown', 'veiculos-dropdown', 'motoristas-dropdown', 'export-dropdown', 'colunas-dropdown'].forEach(id => {
+      ['tags-dropdown', 'status-dropdown', 'tipo-dropdown', 'veiculos-dropdown', 'motoristas-dropdown', 'modulos-dropdown', 'export-dropdown', 'colunas-dropdown'].forEach(id => {
         if (id !== except) {
           const el = document.getElementById(id);
           if (el) el.style.display = 'none';
@@ -20054,7 +19755,7 @@
 
     // Fechar dropdowns ao clicar fora
     document.addEventListener('click', (e) => {
-      const isDropdownClick = e.target.closest('#tags-dropdown, #status-dropdown, #tipo-dropdown, #veiculos-dropdown, #motoristas-dropdown, #export-dropdown, #colunas-dropdown, [onclick*="toggle"]');
+      const isDropdownClick = e.target.closest('#tags-dropdown, #status-dropdown, #tipo-dropdown, #veiculos-dropdown, #motoristas-dropdown, #modulos-dropdown, #export-dropdown, #colunas-dropdown, [onclick*="toggle"]');
       if (!isDropdownClick) {
         closeAllDropdowns();
       }
@@ -20450,6 +20151,56 @@
       document.getElementById('motoristas-dropdown').style.display = 'none';
     }
     window.selecionarMotoristaEspecifico = selecionarMotoristaEspecifico;
+
+    // ============ MODULOS DROPDOWN ============
+    let modulosSelecionados = new Set(['resumo', 'score', 'consumo', 'kmdia', 'excessos', 'paradas', 'viagens']);
+
+    function toggleModulosDropdown() {
+      closeAllDropdowns('modulos-dropdown');
+      const dropdown = document.getElementById('modulos-dropdown');
+      dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+    window.toggleModulosDropdown = toggleModulosDropdown;
+
+    function atualizarModulosSelecionados() {
+      const checkboxes = document.querySelectorAll('.modulo-checkbox:checked');
+      modulosSelecionados = new Set(Array.from(checkboxes).map(cb => cb.value));
+    }
+    window.atualizarModulosSelecionados = atualizarModulosSelecionados;
+
+    function selecionarTodosModulos() {
+      const checkboxes = document.querySelectorAll('.modulo-checkbox');
+      const todosChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+      checkboxes.forEach(cb => cb.checked = !todosChecked);
+      atualizarModulosSelecionados();
+    }
+    window.selecionarTodosModulos = selecionarTodosModulos;
+
+    function aplicarModulosSelecionados() {
+      atualizarModulosSelecionados();
+      const label = document.getElementById('modulos-label');
+      const count = modulosSelecionados.size;
+      const total = document.querySelectorAll('.modulo-checkbox').length;
+
+      if (count === 0) {
+        label.textContent = 'Nenhum';
+      } else if (count === total) {
+        label.textContent = 'Todos';
+      } else {
+        label.textContent = `${count} modulos`;
+      }
+
+      document.getElementById('modulos-dropdown').style.display = 'none';
+    }
+    window.aplicarModulosSelecionados = aplicarModulosSelecionados;
+
+    function getModulosSelecionados() {
+      return Array.from(modulosSelecionados);
+    }
+    window.getModulosSelecionados = getModulosSelecionados;
+
+    // ============ FIM MODULOS DROPDOWN ============
 
     function toggleExportDropdown() {
       closeAllDropdowns('export-dropdown');
@@ -21043,282 +20794,21 @@
       veiculoDetalheAtual = null;
     }
 
-    // ============ MODAL DE EXPORTAÇÃO MODULAR ============
-    let exportModalConfig = {
-      imeis: [],      // IMEIs a exportar (único ou múltiplos)
-      modo: 'single', // 'single' ou 'lote'
-      veiculo: null   // Info do veículo (para single)
-    };
-
-    // Abrir modal de exportação
-    function abrirExportModal(imei, veiculo = null) {
-      exportModalConfig.imeis = [imei];
-      exportModalConfig.modo = 'single';
-      exportModalConfig.veiculo = veiculo || relatoriosVeiculos.find(v => v.imei === imei);
-
-      // Atualizar info do veículo no modal
-      document.getElementById('export-placa').textContent = exportModalConfig.veiculo?.placa || imei;
-      document.getElementById('export-modelo').textContent = exportModalConfig.veiculo?.veiculo || exportModalConfig.veiculo?.modelo || '';
-
-      // Verificar se suporta OBD2
-      const tipoDispositivo = exportModalConfig.veiculo?.tipo || '';
-      const suportaOBD2 = tipoDispositivo.includes('OBD2');
-      const obd2Container = document.getElementById('mod-obd2-container');
-      if (obd2Container) {
-        obd2Container.style.display = suportaOBD2 ? 'flex' : 'none';
-        if (!suportaOBD2) {
-          document.getElementById('mod-obd2').checked = false;
-        }
-      }
-
-      // Mostrar modal
-      document.getElementById('export-modal').style.display = 'flex';
-    }
-
-    // Abrir modal para exportação em lote
-    function abrirExportModalLote() {
-      if (veiculosSelecionados.size === 0) {
-        toastWarning('Selecione pelo menos um veículo para exportar.');
-        return;
-      }
-
-      exportModalConfig.imeis = Array.from(veiculosSelecionados);
-      exportModalConfig.modo = 'lote';
-      exportModalConfig.veiculo = null;
-
-      // Atualizar info no modal
-      document.getElementById('export-placa').textContent = `${veiculosSelecionados.size} veículo(s)`;
-      document.getElementById('export-modelo').textContent = 'Exportação em lote';
-
-      // Ocultar OBD2 em lote (nem todos podem suportar)
-      const obd2Container = document.getElementById('mod-obd2-container');
-      if (obd2Container) {
-        obd2Container.style.display = 'none';
-        document.getElementById('mod-obd2').checked = false;
-      }
-
-      // Mostrar modal
-      document.getElementById('export-modal').style.display = 'flex';
-    }
-
-    // Fechar modal de exportação
-    function fecharExportModal() {
-      document.getElementById('export-modal').style.display = 'none';
-      exportModalConfig = { imeis: [], modo: 'single', veiculo: null };
-    }
-    window.fecharExportModal = fecharExportModal;
-
-    // Selecionar todos os módulos
-    function selecionarTodosModulos() {
-      document.querySelectorAll('#export-modal input[id^="mod-"]').forEach(cb => {
-        // Não marcar OBD2 se estiver oculto
-        if (cb.id === 'mod-obd2' && cb.closest('.export-modulo-item')?.style.display === 'none') return;
-        cb.checked = true;
-      });
-    }
-    window.selecionarTodosModulos = selecionarTodosModulos;
-
-    // Limpar todos os módulos
-    function limparTodosModulos() {
-      document.querySelectorAll('#export-modal input[id^="mod-"]').forEach(cb => {
-        cb.checked = false;
-      });
-    }
-    window.limparTodosModulos = limparTodosModulos;
-
-    // Coletar módulos selecionados
-    function obterModulosSelecionados() {
-      const modulos = [];
-      if (document.getElementById('mod-resumo')?.checked) modulos.push('resumo');
-      if (document.getElementById('mod-score')?.checked) modulos.push('score');
-      if (document.getElementById('mod-consumo')?.checked) modulos.push('consumo');
-      if (document.getElementById('mod-km-dia')?.checked) modulos.push('kmDia');
-      if (document.getElementById('mod-excessos')?.checked) modulos.push('excessos');
-      if (document.getElementById('mod-paradas')?.checked) modulos.push('paradas');
-      if (document.getElementById('mod-viagens')?.checked) modulos.push('viagens');
-      if (document.getElementById('mod-obd2')?.checked) modulos.push('obd2');
-      if (document.getElementById('mod-alarmes')?.checked) modulos.push('alarmes');
-      if (document.getElementById('mod-localizacoes')?.checked) modulos.push('localizacoes');
-      return modulos;
-    }
-
-    // Coletar filtros avançados
-    function obterFiltrosExportacao() {
-      return {
-        estado: document.getElementById('export-estado')?.value || '',
-        velMin: document.getElementById('export-vel-min')?.value || '',
-        velMax: document.getElementById('export-vel-max')?.value || '',
-        tipoAlarme: document.getElementById('export-tipo-alarme')?.value || '',
-        soExcessos: document.getElementById('export-so-excessos')?.checked ? 'true' : 'false',
-        corrigido: document.getElementById('export-corrigido')?.checked ? 'true' : 'false'
-      };
-    }
-
-    // Executar exportação com módulos selecionados
-    async function executarExportacao(formato) {
-      const modulos = obterModulosSelecionados();
-      if (modulos.length === 0) {
-        toastWarning('Selecione pelo menos um módulo para exportar.');
-        return;
-      }
-
-      const filtros = obterFiltrosExportacao();
-
-      // Fechar modal
-      fecharExportModal();
-
-      if (exportModalConfig.modo === 'lote') {
-        // Exportar em lote
-        await exportarEmLoteComModulos(exportModalConfig.imeis, formato, modulos, filtros);
-      } else {
-        // Exportar individual
-        await exportarIndividualComModulos(exportModalConfig.imeis[0], formato, modulos, filtros);
-      }
-    }
-    window.executarExportacao = executarExportacao;
-
-    // Exportar individual com módulos
-    async function exportarIndividualComModulos(imei, formato, modulos, filtros) {
-      console.log('[Exportar Modular] IMEI:', imei, 'Formato:', formato, 'Módulos:', modulos);
-
-      if (downloadEmAndamento) {
-        toastWarning('Aguarde o download atual terminar.');
-        return;
-      }
-      downloadEmAndamento = true;
-
-      try {
-        const periodo = obterPeriodoRelatorio();
-
-        // Montar parâmetros
-        const params = new URLSearchParams({
-          dataInicio: periodo.inicio.toISOString(),
-          dataFim: periodo.fim.toISOString(),
-          modulos: modulos.join(','),
-          ...filtros
-        });
-
-        const url = `${API_URL}/exportar/${imei}/${formato}?${params.toString()}`;
-        console.log('[Exportar Modular] URL:', url);
-
-        mostrarLoadingExportacao(formato, 'modular');
-
-        const response = await authFetch(url);
-        if (!response.ok) {
-          const err = await response.json().catch(() => ({}));
-          throw new Error(err.mensagem || `Erro ${response.status}`);
-        }
-
-        const blob = await response.blob();
-        const downloadUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-
-        const veiculo = relatoriosVeiculos.find(v => v.imei === imei);
-        a.download = `relatorio_${veiculo?.placa || imei}.${formato}`;
-
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(downloadUrl);
-
-        ocultarLoadingExportacao(true, a.download);
-
-      } catch (error) {
-        console.error('[Exportar Modular] Erro:', error);
-        ocultarLoadingExportacao(false, error.message);
-        toastError('Erro: ' + error.message);
-      } finally {
-        downloadEmAndamento = false;
-      }
-    }
-
-    // Exportar em lote com módulos
-    async function exportarEmLoteComModulos(imeis, formato, modulos, filtros) {
-      console.log('[Exportar Lote] IMEIs:', imeis.length, 'Formato:', formato);
-
-      if (downloadEmAndamento) {
-        toastWarning('Aguarde o download atual terminar.');
-        return;
-      }
-      downloadEmAndamento = true;
-
-      // Mostrar loading
-      const loadingMsg = document.createElement('div');
-      loadingMsg.id = 'export-loading';
-      loadingMsg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.85);color:white;padding:24px 40px;border-radius:12px;z-index:9999;text-align:center;';
-      loadingMsg.innerHTML = `<div style="font-size:32px;margin-bottom:12px;">⏳</div><div>Exportando 0/${imeis.length} veículos...</div>`;
-      document.body.appendChild(loadingMsg);
-
-      let exportados = 0;
-      let erros = 0;
-
-      for (const imei of imeis) {
-        try {
-          const periodo = obterPeriodoRelatorio();
-          const params = new URLSearchParams({
-            dataInicio: periodo.inicio.toISOString(),
-            dataFim: periodo.fim.toISOString(),
-            modulos: modulos.join(','),
-            ...filtros
-          });
-
-          const url = `${API_URL}/exportar/${imei}/${formato}?${params.toString()}`;
-          const response = await authFetch(url);
-
-          if (response.ok) {
-            const blob = await response.blob();
-            const downloadUrl = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            const veiculo = relatoriosVeiculos.find(v => v.imei === imei);
-            a.download = `relatorio_${veiculo?.placa || imei}.${formato}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(downloadUrl);
-            exportados++;
-          } else {
-            erros++;
-          }
-        } catch (e) {
-          console.error('[Exportar Lote] Erro em', imei, e.message);
-          erros++;
-        }
-
-        // Atualizar loading
-        loadingMsg.innerHTML = `<div style="font-size:32px;margin-bottom:12px;">⏳</div><div>Exportando ${exportados + erros}/${imeis.length} veículos...</div>`;
-
-        // Delay entre downloads
-        await new Promise(r => setTimeout(r, 800));
-      }
-
-      document.getElementById('export-loading')?.remove();
-      downloadEmAndamento = false;
-
-      if (erros > 0) {
-        toastWarning(`${exportados} exportados, ${erros} com erro.`);
-      } else {
-        toastSuccess(`${exportados} relatório(s) exportado(s) com sucesso!`);
-      }
-    }
-
-    // Expor funções do modal
-    window.abrirExportModal = abrirExportModal;
-    window.abrirExportModalLote = abrirExportModalLote;
-
-    // Exportar relatório individual
     // Flag para evitar múltiplos downloads simultâneos
     let downloadEmAndamento = false;
 
-    // Função antiga - agora abre modal
+    // Exportar relatório individual - usa módulos do dropdown chip
     async function exportarRelatorioIndividual(imei, formato) {
-      // Abrir modal em vez de exportar diretamente
-      abrirExportModal(imei);
+      const modulos = getModulosSelecionados();
+      if (modulos.length === 0) {
+        toastWarning('Selecione pelo menos um modulo no filtro "Modulos" antes de exportar.');
+        return;
+      }
+      await exportarRelatorioIndividualDireto(imei, formato, modulos);
     }
 
-    // Função legada para exportar sem modal (uso interno)
-    async function exportarRelatorioIndividualDireto(imei, formato) {
+    // Função principal de exportação
+    async function exportarRelatorioIndividualDireto(imei, formato, modulos = null) {
       console.log('[Relatório] Exportando:', imei, formato);
 
       // Evitar cliques múltiplos
@@ -21351,6 +20841,11 @@
           dataFim: periodo.fim.toISOString(),
           formato: formato
         });
+
+        // Adicionar módulos selecionados
+        if (modulos && modulos.length > 0) {
+          params.set('modulos', modulos.join(','));
+        }
 
         switch (tipoRelatorio) {
           case 'velocidade':
@@ -21432,27 +20927,27 @@
 
     function exportarRelatorioVeiculo(formato) {
       if (veiculoDetalheAtual) {
-        // Fechar modal de detalhe e abrir modal de exportação
         fecharDetalheRelatorio();
-        abrirExportModal(veiculoDetalheAtual.imei, veiculoDetalheAtual);
+        exportarRelatorioIndividual(veiculoDetalheAtual.imei, formato);
       }
     }
     window.exportarRelatorioVeiculo = exportarRelatorioVeiculo;
 
-    // Exportar em lote - agora abre modal
+    // Exportar em lote - usa módulos do dropdown chip
     async function exportarRelatorioLote(formato) {
       console.log('[Relatório Lote] Formato:', formato, 'Selecionados:', veiculosSelecionados.size);
 
       if (veiculosSelecionados.size === 0) {
-        toastWarning('Selecione pelo menos um veículo para exportar. Use as caixas de seleção na primeira coluna.');
+        toastWarning('Selecione pelo menos um veiculo para exportar. Use as caixas de selecao na primeira coluna.');
         return;
       }
 
-      // Abrir modal de exportação em lote
-      abrirExportModalLote();
-      return; // Modal vai cuidar do resto
+      const modulos = getModulosSelecionados();
+      if (modulos.length === 0) {
+        toastWarning('Selecione pelo menos um modulo no filtro "Modulos" antes de exportar.');
+        return;
+      }
 
-      // Código legado abaixo não será executado
       const tipoRelatorio = document.getElementById('rel-filtro-tipo')?.value || 'geral';
 
       if (tipoRelatorio === 'geral') {
