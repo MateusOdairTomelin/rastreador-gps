@@ -1327,23 +1327,18 @@ router.get('/frota', async (req, res) => {
           }
         } else {
           // Parado - verificar se é ocioso ou desligado
-          let motorLigado = false;
+          // Usar mesma logica do Excel para consistencia
+          let isOcioso = false;
 
-          if (loc.ignicao === true || loc.estado_ignicao === 'idle') {
-            // Ignição ligada ou estado idle = ocioso
-            motorLigado = true;
-          } else if (dispositivo.tipo === 'XT40_OBD2' || dispositivo.tipo === 'XT40_4F') {
-            // Fallback para dispositivos com ignição não confiável:
-            // Se houve movimento recente (últimos 30 pontos = ~5 min), considera ocioso
-            for (let j = i - 1; j >= 0 && j >= i - 30; j--) {
-              if (localizacoes[j].velocidade > 3) {
-                motorLigado = true;
-                break;
-              }
-            }
+          if (loc.estado_ignicao) {
+            // estado_ignicao é a fonte mais confiável
+            isOcioso = loc.estado_ignicao === 'idle';
+          } else if (loc.ignicao === true || loc.ignicao === 1) {
+            // Fallback: ignicao ligada com velocidade 0 = ocioso
+            isOcioso = true;
           }
 
-          if (motorLigado) {
+          if (isOcioso) {
             tempoOcioso += tempoMinutos;
           }
         }

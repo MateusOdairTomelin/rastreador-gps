@@ -132,30 +132,27 @@ router.get('/:imei/analisar', verificarDispositivoTenant, async (req, res) => {
         motorLigado = loc.ignicao === true && loc.velocidade === 0;
         motorDesligado = loc.ignicao === false && loc.velocidade === 0;
       } else if (dispositivo.tipo === 'XT40_OBD2') {
-        // XT40_OBD2: Primeiro tenta RPM, senão usa estado de ignição
-        const temRPM = obd2 && obd2.rpm !== null && obd2.rpm !== undefined;
-        if (temRPM) {
-          // RPM disponível - usar dados reais da ECU
-          motorLigado = obd2.rpm >= 500 && loc.velocidade === 0;
-          motorDesligado = obd2.rpm < 500 && loc.velocidade === 0;
-        } else {
-          // ✅ FALLBACK: Sem RPM - detectar ocioso se houve movimento recente
-          if (loc.velocidade === 0) {
-            // Verificar se houve movimento nos últimos 10 minutos
-            let temMovimentoRecente = false;
-            for (let j = i - 1; j >= 0 && j > i - 30; j--) {
-              const locPassada = dispositivo.localizacoes[j];
-              const diffTempo = (new Date(loc.timestamp) - new Date(locPassada.timestamp)) / (1000 * 60);
-              if (diffTempo > 10) break; // Só olhar últimos 10 minutos
-              if (locPassada.velocidade > 3) {
-                temMovimentoRecente = true;
-                break;
-              }
-            }
-            // Se houve movimento recente = OCIOSO (motor provavelmente ligado)
-            // Se não houve movimento recente = PARADO (motor desligado)
-            motorLigado = temMovimentoRecente;
-            motorDesligado = !temMovimentoRecente;
+        // XT40_OBD2: Prioridade: RPM > Tensao > estado_ignicao
+        const temRPM = obd2 && obd2.rpm !== null && obd2.rpm !== undefined && obd2.rpm > 0;
+        const temTensao = obd2 && obd2.tensao_principal !== null && obd2.tensao_principal !== undefined;
+
+        if (loc.velocidade === 0) {
+          if (temRPM) {
+            // RPM disponível - motor ligado se RPM >= 500
+            motorLigado = obd2.rpm >= 500;
+            motorDesligado = obd2.rpm < 500;
+          } else if (temTensao) {
+            // Sem RPM, usar tensão - motor ligado se tensão > 13.5V
+            motorLigado = obd2.tensao_principal > 13.5;
+            motorDesligado = obd2.tensao_principal <= 13.5;
+          } else if (loc.estado_ignicao) {
+            // Usar estado_ignicao como fallback
+            motorLigado = loc.estado_ignicao === 'idle';
+            motorDesligado = loc.estado_ignicao === 'off';
+          } else {
+            // Fallback final: usar ignicao
+            motorLigado = loc.ignicao === true;
+            motorDesligado = loc.ignicao === false;
           }
         }
       } else {
