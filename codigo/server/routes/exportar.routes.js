@@ -956,26 +956,23 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
           motorLigado = loc.ignicao === true && loc.velocidade === 0;
           motorDesligado = loc.ignicao === false && loc.velocidade === 0;
         } else if (dispositivo.tipo === 'XT40_OBD2') {
-          // XT40_OBD2: Primeiro tenta RPM, senão usa estado de ignição
-          const temRPM = obd2 && obd2.rpm !== null && obd2.rpm !== undefined;
-          if (temRPM) {
-            motorLigado = obd2.rpm >= 500 && loc.velocidade === 0;
-            motorDesligado = obd2.rpm < 500 && loc.velocidade === 0;
-          } else {
-            // FALLBACK: Sem RPM - detectar ocioso se houve movimento recente
-            if (loc.velocidade === 0) {
-              let temMovimentoRecente = false;
-              for (let j = i - 1; j >= 0 && j > i - 30; j--) {
-                const locPassada = todasLocalizacoes[j];
-                const diffTempo = (new Date(loc.timestamp) - new Date(locPassada.timestamp)) / (1000 * 60);
-                if (diffTempo > 10) break;
-                if (locPassada.velocidade > 3) {
-                  temMovimentoRecente = true;
-                  break;
-                }
-              }
-              motorLigado = temMovimentoRecente;
-              motorDesligado = !temMovimentoRecente;
+          // XT40_OBD2: Prioridade: RPM > Tensao > Estado ignicao
+          const temRPM = obd2 && obd2.rpm !== null && obd2.rpm !== undefined && obd2.rpm > 0;
+          const temTensao = obd2 && obd2.tensao_principal !== null && obd2.tensao_principal !== undefined;
+
+          if (loc.velocidade === 0) {
+            if (temRPM) {
+              // RPM disponivel - motor ligado se RPM >= 500
+              motorLigado = obd2.rpm >= 500;
+              motorDesligado = obd2.rpm < 500;
+            } else if (temTensao) {
+              // Sem RPM, usar tensao - motor ligado se tensao > 13.5V
+              motorLigado = obd2.tensao_principal > 13.5;
+              motorDesligado = obd2.tensao_principal <= 13.5;
+            } else {
+              // Sem RPM nem tensao - usar estado de ignicao
+              motorLigado = loc.ignicao === true;
+              motorDesligado = loc.ignicao === false;
             }
           }
         } else {
@@ -1632,26 +1629,23 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
             motorLigado = loc.ignicao === true && loc.velocidade === 0;
             motorDesligado = loc.ignicao === false && loc.velocidade === 0;
           } else if (dispositivo.tipo === 'XT40_OBD2') {
-            // XT40_OBD2: Primeiro tenta RPM, senão usa estado de ignição
-            const temRPM = obd2 && obd2.rpm !== null && obd2.rpm !== undefined;
-            if (temRPM) {
-              motorLigado = obd2.rpm >= 500 && loc.velocidade === 0;
-              motorDesligado = obd2.rpm < 500 && loc.velocidade === 0;
-            } else {
-              // FALLBACK: Sem RPM - detectar ocioso se houve movimento recente
-              if (loc.velocidade === 0) {
-                let temMovimentoRecente = false;
-                for (let j = i - 1; j >= 0 && j > i - 30; j--) {
-                  const locPassada = localizacoes[j];
-                  const diffTempo = (new Date(loc.timestamp) - new Date(locPassada.timestamp)) / (1000 * 60);
-                  if (diffTempo > 10) break;
-                  if (locPassada.velocidade > 3) {
-                    temMovimentoRecente = true;
-                    break;
-                  }
-                }
-                motorLigado = temMovimentoRecente;
-                motorDesligado = !temMovimentoRecente;
+            // XT40_OBD2: Prioridade: RPM > Tensao > Estado ignicao
+            const temRPM = obd2 && obd2.rpm !== null && obd2.rpm !== undefined && obd2.rpm > 0;
+            const temTensao = obd2 && obd2.tensao_principal !== null && obd2.tensao_principal !== undefined;
+
+            if (loc.velocidade === 0) {
+              if (temRPM) {
+                // RPM disponivel - motor ligado se RPM >= 500
+                motorLigado = obd2.rpm >= 500;
+                motorDesligado = obd2.rpm < 500;
+              } else if (temTensao) {
+                // Sem RPM, usar tensao - motor ligado se tensao > 13.5V
+                motorLigado = obd2.tensao_principal > 13.5;
+                motorDesligado = obd2.tensao_principal <= 13.5;
+              } else {
+                // Sem RPM nem tensao - usar estado de ignicao
+                motorLigado = loc.ignicao === true;
+                motorDesligado = loc.ignicao === false;
               }
             }
           } else {
@@ -3525,15 +3519,12 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
         paradaAtual = null;
       } else {
         // Parado - determinar se ocioso ou desligado
-        let motorLigado = loc.ignicao === true || loc.estado_ignicao === 'idle';
-
-        if (!motorLigado && (dispositivo.tipo === 'XT40_OBD2' || dispositivo.tipo === 'XT40_4F')) {
-          for (let j = i - 1; j >= 0 && j >= i - 30; j--) {
-            if (localizacoes[j].velocidade > 3) {
-              motorLigado = true;
-              break;
-            }
-          }
+        // Usar mesma logica de determinarStatusLoc para consistencia com planilha
+        let motorLigado = false;
+        if (loc.estado_ignicao) {
+          motorLigado = loc.estado_ignicao === 'idle' || loc.estado_ignicao === 'moving';
+        } else if (loc.ignicao === true || loc.ignicao === 1) {
+          motorLigado = true;
         }
 
         if (motorLigado) {
