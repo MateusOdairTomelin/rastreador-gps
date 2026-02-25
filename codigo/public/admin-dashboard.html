@@ -7121,25 +7121,25 @@
               </div>
               <div class="pipeline-arrow">→</div>
               <div class="pipeline-step" id="pipe-redis">
-                <div class="pipe-icon">🔴</div>
+                <div class="pipe-icon">●</div>
                 <div class="pipe-label">Redis Streams</div>
                 <div class="pipe-value" id="pipe-redis-val">-</div>
               </div>
               <div class="pipeline-arrow">→</div>
               <div class="pipeline-step" id="pipe-processor">
-                <div class="pipe-icon">⚙️</div>
+                <div class="pipe-icon">*</div>
                 <div class="pipe-label">Processors</div>
                 <div class="pipe-value" id="pipe-processor-val">-</div>
               </div>
               <div class="pipeline-arrow">→</div>
               <div class="pipeline-step" id="pipe-db">
-                <div class="pipe-icon">🗄️</div>
+                <div class="pipe-icon">DB</div>
                 <div class="pipe-label">PostgreSQL</div>
                 <div class="pipe-value" id="pipe-db-val">-</div>
               </div>
               <div class="pipeline-arrow">→</div>
               <div class="pipeline-step" id="pipe-api">
-                <div class="pipe-icon">🌐</div>
+                <div class="pipe-icon">API</div>
                 <div class="pipe-label">API</div>
                 <div class="pipe-value" id="pipe-api-val">-</div>
               </div>
@@ -7205,7 +7205,7 @@
                 <div class="debug-content" id="debug-throughput">
                   <div class="debug-row"><span>🔌 Conexões TCP:</span> <span id="tp-connections">-</span></div>
                   <div class="debug-row"><span>📥 Na fila:</span> <span id="tp-lag">-</span></div>
-                  <div class="debug-row"><span>⚙️ Consumers:</span> <span id="tp-consumers">-</span></div>
+                  <div class="debug-row"><span>* Consumers:</span> <span id="tp-consumers">-</span></div>
                   <div style="border-top: 1px solid var(--border); margin: 8px 0;"></div>
                   <div class="debug-row"><span>📤 Inserções/min:</span> <span id="tp-inserts">-</span></div>
                   <div class="debug-row"><span>📤 Inserções/5min:</span> <span id="tp-inserts5">-</span></div>
@@ -9545,7 +9545,7 @@
                     </div>
                     <div class="dropdown-range-container">
                       <div class="dropdown-range-label">
-                        <span>🏎️ Vel. Máxima (km/h)</span>
+                        <span>Vel. Vel. Máxima (km/h)</span>
                       </div>
                       <div class="dropdown-range-inputs">
                         <input type="number" id="viagem-velmax-min" class="dropdown-range-input" placeholder="Min" min="0" step="1">
@@ -9582,14 +9582,14 @@
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="multa-status-checkbox" value="vencida" onchange="atualizarMultasSelecionadas()">
-                        <span style="color: #ef4444;">❌</span> Vencida
+                        <span style="color: #ef4444;">X</span> Vencida
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="multa-status-checkbox" value="recorrida" onchange="atualizarMultasSelecionadas()">
-                        <span style="color: #3b82f6;">📝</span> Recorrida
+                        <span style="color: #3b82f6;">R</span> Recorrida
                       </label>
                       <label class="dropdown-checkbox-item" style="border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px;">
-                        <strong>⚖️ Gravidade</strong>
+                        <strong>Gravidade Gravidade</strong>
                       </label>
                       <label class="dropdown-checkbox-item">
                         <input type="checkbox" class="multa-gravidade-checkbox" value="leve" onchange="atualizarMultasSelecionadas()">
@@ -9625,7 +9625,7 @@
                   <div id="velocidade-dropdown" class="filtro-dropdown">
                     <div class="dropdown-range-container">
                       <div class="dropdown-range-label">
-                        <span>🏎️ Faixa de Velocidade (km/h)</span>
+                        <span>Vel. Faixa de Velocidade (km/h)</span>
                       </div>
                       <div class="dropdown-range-inputs">
                         <input type="number" id="vel-filtro-min" class="dropdown-range-input" placeholder="Min" min="0" step="5">
@@ -9824,7 +9824,7 @@
     <div class="sidebar-right collapsed" id="sidebar-right">
       <div class="sidebar-right-header">
         <h3>
-          <span>⏱️</span>
+          <span>T</span>
           Veículos Ociosos
         </h3>
         <span class="badge" id="idle-count">0</span>
@@ -9857,7 +9857,7 @@
 
     <!-- Toast de notificação de veículos ociosos -->
     <div class="idle-toast hidden" id="idle-toast" onclick="abrirSidebarEFocar()">
-      <span class="idle-toast-icon">⏱️</span>
+      <span class="idle-toast-icon">T</span>
       <div class="idle-toast-content">
         <div class="idle-toast-title" id="idle-toast-title">Veículo Ocioso</div>
         <div class="idle-toast-message" id="idle-toast-message">Novo veículo parado detectado</div>
@@ -15975,7 +15975,7 @@
           alertsContainer.innerHTML = data.alerts.map(a => `
             <div class="alert-item alert-${a.type}" style="padding: 10px; margin-bottom: 8px; border-radius: 6px; background: ${a.type === 'error' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)'}; border-left: 3px solid ${a.type === 'error' ? 'var(--danger)' : 'var(--warning)'};">
               <div style="font-weight: 600; color: ${a.type === 'error' ? 'var(--danger)' : 'var(--warning)'};">
-                ${a.type === 'error' ? '❌' : ''} ${a.component}
+                ${a.type === 'error' ? 'X' : ''} ${a.component}
               </div>
               <div style="font-size: 12px; color: var(--text); margin: 4px 0;">${a.message}</div>
               <div style="font-size: 11px; color: var(--text-muted);">${a.action}</div>
@@ -23654,7 +23654,7 @@
             <td style="white-space: nowrap;">
               <button onclick="editarVeiculoSecao(${v.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✎</button>
               ${dispositivo
-                ? `<button onclick="desvincularDispositivoSecao(${v.id}, ${dispositivo.id})" class="btn btn-sm btn-warning" style="padding: 4px 8px; margin-right: 4px;" title="Desvincular">✂️</button>`
+                ? `<button onclick="desvincularDispositivoSecao(${v.id}, ${dispositivo.id})" class="btn btn-sm btn-warning" style="padding: 4px 8px; margin-right: 4px;" title="Desvincular">[-]</button>`
                 : `<button onclick="abrirModalVincularSecao(${v.id}, '${v.placa}')" class="btn btn-sm btn-success" style="padding: 4px 8px; margin-right: 4px;" title="Vincular">◦</button>`
               }
               <button onclick="excluirVeiculoSecao(${v.id}, '${v.placa}')" class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Excluir">🗑</button>
