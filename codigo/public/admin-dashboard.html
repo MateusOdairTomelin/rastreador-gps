@@ -2649,6 +2649,54 @@
     .delay-warning { color: var(--warning); }
     .delay-error { color: var(--danger); }
 
+    /* Queue bars */
+    .queue-row {
+      margin-bottom: 6px;
+    }
+
+    .queue-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+
+    .queue-bar {
+      height: 8px;
+      background: var(--bg);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .queue-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+
+    .queue-fill.ok { background: var(--success); }
+    .queue-fill.warning { background: var(--warning); }
+    .queue-fill.error { background: var(--danger); }
+
+    /* Latency big display */
+    .latency-big {
+      font-size: 32px;
+      font-weight: 700;
+      text-align: center;
+      font-family: 'Monaco', monospace;
+    }
+
+    .latency-big.ok { color: var(--success); }
+    .latency-big.warning { color: var(--warning); }
+    .latency-big.error { color: var(--danger); }
+
+    .latency-label {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
     .grid-3 {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -6915,14 +6963,25 @@
             <div class="grid-3" style="gap: 12px; margin-bottom: 16px;">
               <!-- Redis Queues -->
               <div class="debug-card">
-                <div class="debug-title">📊 Filas Redis (Location)</div>
+                <div class="debug-title">📊 Filas Redis (Location) <span style="font-size:10px;color:var(--text-muted);">MAXLEN: 5000</span></div>
                 <div class="debug-content" id="debug-redis-queues">
-                  <div class="debug-row"><span>Partição 0:</span> <span id="redis-q0">-</span></div>
-                  <div class="debug-row"><span>Partição 1:</span> <span id="redis-q1">-</span></div>
-                  <div class="debug-row"><span>Partição 2:</span> <span id="redis-q2">-</span></div>
-                  <div class="debug-row"><span>Partição 3:</span> <span id="redis-q3">-</span></div>
-                  <div class="debug-row total"><span>Total:</span> <span id="redis-qtotal">-</span></div>
-                  <div class="debug-row" style="margin-top: 8px; font-size: 11px;"><span>MAXLEN:</span> <span id="redis-maxlen">5000</span></div>
+                  <div class="queue-row" id="queue-row-0">
+                    <div class="queue-header"><span>P0:</span> <span id="redis-q0">-</span></div>
+                    <div class="queue-bar"><div class="queue-fill" id="redis-bar-0"></div></div>
+                  </div>
+                  <div class="queue-row" id="queue-row-1">
+                    <div class="queue-header"><span>P1:</span> <span id="redis-q1">-</span></div>
+                    <div class="queue-bar"><div class="queue-fill" id="redis-bar-1"></div></div>
+                  </div>
+                  <div class="queue-row" id="queue-row-2">
+                    <div class="queue-header"><span>P2:</span> <span id="redis-q2">-</span></div>
+                    <div class="queue-bar"><div class="queue-fill" id="redis-bar-2"></div></div>
+                  </div>
+                  <div class="queue-row" id="queue-row-3">
+                    <div class="queue-header"><span>P3:</span> <span id="redis-q3">-</span></div>
+                    <div class="queue-bar"><div class="queue-fill" id="redis-bar-3"></div></div>
+                  </div>
+                  <div class="debug-row total" style="margin-top: 8px;"><span>Total:</span> <span id="redis-qtotal">-</span></div>
                   <div class="debug-row"><span>Status:</span> <span id="redis-status">-</span></div>
                 </div>
               </div>
@@ -6931,12 +6990,12 @@
               <div class="debug-card">
                 <div class="debug-title">⏱️ Latência (GPS → DB)</div>
                 <div class="debug-content" id="debug-latency">
-                  <div class="debug-row"><span>Média:</span> <span id="latency-avg">-</span></div>
-                  <div class="debug-row"><span>Mínima:</span> <span id="latency-min">-</span></div>
-                  <div class="debug-row"><span>Máxima:</span> <span id="latency-max">-</span></div>
+                  <div class="latency-big" id="latency-big">--</div>
+                  <div class="latency-label" id="latency-label">Delay médio</div>
+                  <div class="debug-row" style="margin-top: 10px;"><span>Mínimo:</span> <span id="latency-min">-</span></div>
+                  <div class="debug-row"><span>Máximo:</span> <span id="latency-max">-</span></div>
                   <div class="debug-row"><span>Última inserção:</span> <span id="latency-last">-</span></div>
                   <div class="debug-row total"><span>Status:</span> <span id="latency-status">-</span></div>
-                  <div class="debug-row" style="margin-top: 8px; font-size: 11px;"><span>Detalhe:</span> <span id="latency-detail">-</span></div>
                 </div>
               </div>
 
@@ -6944,12 +7003,14 @@
               <div class="debug-card">
                 <div class="debug-title">📈 Throughput</div>
                 <div class="debug-content" id="debug-throughput">
-                  <div class="debug-row"><span>Conexões TCP:</span> <span id="tp-connections">-</span></div>
-                  <div class="debug-row"><span>Pacotes/min:</span> <span id="tp-packets">-</span></div>
-                  <div class="debug-row"><span>Inserções/min:</span> <span id="tp-inserts">-</span></div>
-                  <div class="debug-row"><span>Inserções 5min:</span> <span id="tp-inserts5">-</span></div>
-                  <div class="debug-row"><span>Consumers:</span> <span id="tp-consumers">-</span></div>
-                  <div class="debug-row total"><span>Lag total:</span> <span id="tp-lag">-</span></div>
+                  <div class="debug-row"><span>🔌 Conexões TCP:</span> <span id="tp-connections">-</span></div>
+                  <div class="debug-row"><span>📥 Na fila:</span> <span id="tp-lag">-</span></div>
+                  <div class="debug-row"><span>⚙️ Consumers:</span> <span id="tp-consumers">-</span></div>
+                  <div style="border-top: 1px solid var(--border); margin: 8px 0;"></div>
+                  <div class="debug-row"><span>📤 Inserções/min:</span> <span id="tp-inserts">-</span></div>
+                  <div class="debug-row"><span>📤 Inserções/5min:</span> <span id="tp-inserts5">-</span></div>
+                  <div class="debug-row" style="margin-top: 8px;"><span>📊 Estimado/min:</span> <span id="tp-packets">-</span></div>
+                  <div class="debug-row total"><span>Diagnóstico:</span> <span id="tp-diag">-</span></div>
                 </div>
               </div>
             </div>
@@ -15201,46 +15262,101 @@
         atualizarPipelineStep('pipe-api', data.api);
         atualizarPipelineStep('pipe-frontend', data.frontend);
 
-        // Atualizar Filas Redis
+        // Atualizar Filas Redis com barras de progresso
         if (data.redis?.queues) {
-          document.getElementById('redis-q0').textContent = data.redis.queues[0] || 0;
-          document.getElementById('redis-q1').textContent = data.redis.queues[1] || 0;
-          document.getElementById('redis-q2').textContent = data.redis.queues[2] || 0;
-          document.getElementById('redis-q3').textContent = data.redis.queues[3] || 0;
+          const maxlen = data.redis.maxlen || 5000;
+          data.redis.queues.forEach((q, i) => {
+            const percent = Math.min((q / maxlen) * 100, 100);
+            const status = percent >= 100 ? 'error' : percent > 20 ? 'warning' : 'ok';
+
+            document.getElementById(`redis-q${i}`).textContent = q.toLocaleString();
+            const bar = document.getElementById(`redis-bar-${i}`);
+            bar.style.width = `${percent}%`;
+            bar.className = `queue-fill ${status}`;
+          });
+
           const total = (data.redis.queues || []).reduce((a, b) => a + b, 0);
-          document.getElementById('redis-qtotal').textContent = total;
-          document.getElementById('pipe-redis-val').textContent = `${total} msgs`;
+          document.getElementById('redis-qtotal').textContent = total.toLocaleString();
+          document.getElementById('pipe-redis-val').textContent = `${total.toLocaleString()} msgs`;
         }
 
-        // Atualizar Latência
+        // Atualizar Latência com display grande
         if (data.latency) {
-          document.getElementById('latency-avg').textContent = `${data.latency.avg || '-'}s`;
-          document.getElementById('latency-min').textContent = `${data.latency.min || '-'}s`;
-          document.getElementById('latency-max').textContent = `${data.latency.max || '-'}s`;
+          const avg = data.latency.avg || 0;
+          const bigEl = document.getElementById('latency-big');
+          const labelEl = document.getElementById('latency-label');
+
+          // Formatar valor grande
+          if (avg >= 3600) {
+            bigEl.textContent = `${Math.round(avg / 3600)}h`;
+            labelEl.textContent = 'Delay médio (horas!)';
+          } else if (avg >= 60) {
+            bigEl.textContent = `${Math.round(avg / 60)}min`;
+            labelEl.textContent = 'Delay médio (minutos)';
+          } else {
+            bigEl.textContent = `${avg}s`;
+            labelEl.textContent = 'Delay médio';
+          }
+
+          // Cor baseada no status
+          bigEl.className = `latency-big ${avg <= 5 ? 'ok' : avg <= 60 ? 'warning' : 'error'}`;
+
+          document.getElementById('latency-min').textContent = avg >= 60 ? `${Math.round(data.latency.min / 60)}min` : `${data.latency.min}s`;
+          document.getElementById('latency-max').textContent = avg >= 60 ? `${Math.round(data.latency.max / 60)}min` : `${data.latency.max}s`;
           document.getElementById('latency-last').textContent = data.latency.lastInsert || '-';
 
           const statusEl = document.getElementById('latency-status');
-          if (data.latency.avg <= 5) {
-            statusEl.textContent = '✅ Normal';
+          if (avg <= 5) {
+            statusEl.textContent = '✅ Tempo real';
             statusEl.className = 'delay-ok';
-          } else if (data.latency.avg <= 30) {
-            statusEl.textContent = '⚠️ Lento';
+          } else if (avg <= 30) {
+            statusEl.textContent = '⚠️ Leve atraso';
+            statusEl.className = 'delay-warning';
+          } else if (avg <= 300) {
+            statusEl.textContent = '⚠️ Atraso moderado';
             statusEl.className = 'delay-warning';
           } else {
-            statusEl.textContent = '❌ Crítico';
+            statusEl.textContent = '❌ Crítico!';
             statusEl.className = 'delay-error';
           }
         }
 
-        // Atualizar Throughput
+        // Atualizar Throughput com diagnóstico
         if (data.throughput) {
-          document.getElementById('tp-connections').textContent = data.throughput.connections || 0;
-          document.getElementById('tp-packets').textContent = data.throughput.packetsPerMin || '-';
-          document.getElementById('tp-inserts').textContent = data.throughput.insertsPerMin || '-';
-          document.getElementById('tp-inserts5').textContent = data.throughput.inserts5Min || '-';
-          document.getElementById('tp-consumers').textContent = `${data.throughput.consumers || 0}/4`;
-          document.getElementById('tp-lag').textContent = data.throughput.totalLag || 0;
-          document.getElementById('pipe-gateway-val').textContent = `${data.throughput.connections || 0} conn`;
+          const t = data.throughput;
+          document.getElementById('tp-connections').textContent = t.connections || 0;
+          document.getElementById('tp-packets').textContent = t.packetsPerMin || '-';
+          document.getElementById('tp-inserts').textContent = t.insertsPerMin || '-';
+          document.getElementById('tp-inserts5').textContent = t.inserts5Min || '-';
+
+          const consumersEl = document.getElementById('tp-consumers');
+          consumersEl.textContent = `${t.consumers || 0}/4`;
+          consumersEl.style.color = t.consumers >= 4 ? 'var(--success)' : t.consumers > 0 ? 'var(--warning)' : 'var(--danger)';
+
+          const lagEl = document.getElementById('tp-lag');
+          lagEl.textContent = (t.totalLag || 0).toLocaleString();
+          lagEl.style.color = t.totalLag < 100 ? 'var(--success)' : t.totalLag < 1000 ? 'var(--warning)' : 'var(--danger)';
+
+          document.getElementById('pipe-gateway-val').textContent = `${t.connections || 0} conn`;
+
+          // Diagnóstico
+          const diagEl = document.getElementById('tp-diag');
+          if (t.totalLag > 1000 && t.insertsPerMin < 50) {
+            diagEl.textContent = '❌ Processors lentos/parados';
+            diagEl.className = 'delay-error';
+          } else if (t.totalLag > 100) {
+            diagEl.textContent = '⚠️ Acumulando - monitorar';
+            diagEl.className = 'delay-warning';
+          } else if (t.consumers < 4) {
+            diagEl.textContent = '⚠️ Processors faltando';
+            diagEl.className = 'delay-warning';
+          } else if (t.connections === 0) {
+            diagEl.textContent = '⚠️ Sem conexões TCP';
+            diagEl.className = 'delay-warning';
+          } else {
+            diagEl.textContent = '✅ Normal';
+            diagEl.className = 'delay-ok';
+          }
         }
 
         // Atualizar detalhes extras
