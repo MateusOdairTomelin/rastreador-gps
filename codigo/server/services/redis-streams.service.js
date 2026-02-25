@@ -58,17 +58,17 @@ const CONSUMER_GROUPS = {
 const NUM_PARTITIONS = parseInt(process.env.LOCATION_PARTITIONS) || 4;
 
 /**
- * Calcula a partição de um IMEI usando hash simples
- * Usa djb2 hash que é rápido e distribui bem
+ * Calcula a partição de um IMEI usando os últimos 4 dígitos
+ * IMEIs são muito similares nos primeiros dígitos (356354871...)
+ * Os últimos 4 dígitos são mais variáveis e distribuem melhor
  */
 function getPartitionForImei(imei) {
   if (!imei) return 0;
-  let hash = 5381;
-  for (let i = 0; i < imei.length; i++) {
-    hash = ((hash << 5) + hash) + imei.charCodeAt(i);
-    hash = hash & 0x7FFFFFFF; // Manter positivo
-  }
-  return hash % NUM_PARTITIONS;
+
+  // Usar últimos 4 dígitos do IMEI como número
+  // Exemplo: 356354871414190 -> 4190 % 4 = 2
+  const lastDigits = parseInt(imei.slice(-4)) || 0;
+  return lastDigits % NUM_PARTITIONS;
 }
 
 /**
