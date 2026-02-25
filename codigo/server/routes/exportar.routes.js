@@ -528,10 +528,19 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
               }
             }
 
-            // Determinar estado
+            // Determinar estado (usar estado_ignicao se disponivel)
             let estadoTexto = 'Parado';
-            if (loc.ignicao === true || loc.ignicao === 1) {
-              estadoTexto = (loc.velocidade || 0) > 5 ? 'Em Movimento' : 'Ocioso';
+            const velocidadeLoc = loc.velocidade || 0;
+            if (loc.estado_ignicao) {
+              // Usar campo estado_ignicao se disponivel
+              switch (loc.estado_ignicao) {
+                case 'moving': estadoTexto = 'Em Movimento'; break;
+                case 'idle': estadoTexto = 'Ocioso'; break;
+                case 'off': estadoTexto = 'Parado'; break;
+                default: estadoTexto = loc.estado_ignicao;
+              }
+            } else if (loc.ignicao === true || loc.ignicao === 1) {
+              estadoTexto = velocidadeLoc > 5 ? 'Em Movimento' : 'Ocioso';
             }
 
             // Obter limite de velocidade da via (cache preciso)
@@ -3827,32 +3836,137 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
     }
 
     // ========== ABA 7: LOCALIZACOES ==========
+    // Helper para determinar status
+    const determinarStatusLoc = (loc) => {
+      const vel = loc.velocidade || 0;
+      if (loc.estado_ignicao) {
+        switch (loc.estado_ignicao) {
+          case 'moving': return 'Em Movimento';
+          case 'idle': return 'Ocioso';
+          case 'off': return 'Parado';
+          default: return loc.estado_ignicao;
+        }
+      }
+      if (loc.ignicao === true || loc.ignicao === 1) {
+        return vel > 5 ? 'Em Movimento' : 'Ocioso';
+      }
+      return 'Parado';
+    };
+
     if (temModulo('localizacoes') && localizacoes.length > 0) {
       const locsSheet = workbook.addWorksheet('Localizacoes');
 
-      locsSheet.addRow(['Data/Hora', 'Latitude', 'Longitude', 'Velocidade', 'Ignicao', 'Satelites']);
+      locsSheet.addRow(['Data/Hora', 'Status', 'Latitude', 'Longitude', 'Velocidade', 'Ignicao', 'Satelites']);
       locsSheet.getRow(1).eachCell(cell => Object.assign(cell, headerStyle));
 
       // Limitar a 10000 registros para não travar o Excel
       const locsLimitadas = localizacoes.slice(0, 10000);
 
       locsLimitadas.forEach(loc => {
-        locsSheet.addRow([
+        const status = determinarStatusLoc(loc);
+        const row = locsSheet.addRow([
           formatDateTime(loc.timestamp),
+          status,
           loc.latitude?.toFixed(6) || '',
           loc.longitude?.toFixed(6) || '',
           loc.velocidade || 0,
           loc.ignicao ? 'Sim' : 'Nao',
           loc.satelites || ''
-        ]).eachCell(cell => Object.assign(cell, cellStyle));
+        ]);
+        row.eachCell(cell => Object.assign(cell, cellStyle));
+        // Cores por status
+        if (status === 'Em Movimento') {
+          row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE3F2FD' } };
+        } else if (status === 'Ocioso') {
+          row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8E1' } };
+        } else if (status === 'Parado') {
+          row.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+        }
       });
 
       if (localizacoes.length > 10000) {
         locsSheet.addRow([`... mais ${localizacoes.length - 10000} registros omitidos`]);
       }
 
-      [20, 14, 14, 12, 10, 10].forEach((width, idx) => {
+      [20, 14, 14, 14, 12, 10, 10].forEach((width, idx) => {
         locsSheet.getColumn(idx + 1).width = width;
+      });
+    }
+
+    // ========== ABA: PERIODOS OCIOSO ==========
+    // Detectar períodos de ociosidade (motor ligado, parado)
+    const periodosOcioso = [];
+    let periodoAtual = null;
+    for (let i = 0; i < localizacoes.length; i++) {
+      const loc = localizacoes[i];
+      const status = determinarStatusLoc(loc);
+
+      if (status === 'Ocioso') {
+        if (!periodoAtual) {
+          periodoAtual = {
+            inicio: loc.timestamp,
+            fim: loc.timestamp,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            duracao: 0
+          };
+        } else {
+          periodoAtual.fim = loc.timestamp;
+        }
+      } else {
+        if (periodoAtual) {
+          periodoAtual.duracao = (new Date(periodoAtual.fim) - new Date(periodoAtual.inicio)) / (1000 * 60);
+          if (periodoAtual.duracao >= 1) { // Apenas periodos >= 1 minuto
+            periodosOcioso.push({ ...periodoAtual });
+          }
+          periodoAtual = null;
+        }
+      }
+    }
+    // Finalizar ultimo periodo
+    if (periodoAtual) {
+      periodoAtual.duracao = (new Date(periodoAtual.fim) - new Date(periodoAtual.inicio)) / (1000 * 60);
+      if (periodoAtual.duracao >= 1) {
+        periodosOcioso.push({ ...periodoAtual });
+      }
+    }
+
+    if (periodosOcioso.length > 0) {
+      const ociosoSheet = workbook.addWorksheet('Periodos Ocioso');
+
+      // Resumo
+      ociosoSheet.mergeCells('A1:F1');
+      ociosoSheet.getCell('A1').value = 'PERIODOS DE OCIOSIDADE (Motor Ligado, Parado)';
+      ociosoSheet.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FFF59E0B' } };
+      ociosoSheet.getCell('A1').alignment = { horizontal: 'center' };
+
+      const tempoTotalOcioso = periodosOcioso.reduce((sum, p) => sum + p.duracao, 0);
+      const maiorOcioso = Math.max(...periodosOcioso.map(p => p.duracao));
+
+      ociosoSheet.addRow([]);
+      ociosoSheet.addRow(['Total de Periodos:', periodosOcioso.length]);
+      ociosoSheet.addRow(['Tempo Total Ocioso:', `${Math.floor(tempoTotalOcioso / 60)}h ${Math.round(tempoTotalOcioso % 60)}min`]);
+      ociosoSheet.addRow(['Maior Periodo:', `${Math.round(maiorOcioso)} min`]);
+      ociosoSheet.addRow([]);
+
+      // Cabecalho
+      ociosoSheet.addRow(['Inicio', 'Fim', 'Duracao', 'Latitude', 'Longitude']);
+      ociosoSheet.getRow(7).eachCell(cell => Object.assign(cell, headerStyle));
+
+      // Ordenar por duracao (maior primeiro)
+      const ociosoOrd = [...periodosOcioso].sort((a, b) => b.duracao - a.duracao);
+      ociosoOrd.forEach(p => {
+        ociosoSheet.addRow([
+          formatDateTime(p.inicio),
+          formatDateTime(p.fim),
+          `${Math.round(p.duracao)} min`,
+          p.latitude?.toFixed(6) || '',
+          p.longitude?.toFixed(6) || ''
+        ]).eachCell(cell => Object.assign(cell, cellStyle));
+      });
+
+      [20, 20, 12, 14, 14].forEach((width, idx) => {
+        ociosoSheet.getColumn(idx + 1).width = width;
       });
     }
 
