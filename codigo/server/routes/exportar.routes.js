@@ -79,9 +79,11 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
     } = req.query;
 
     // Extrair filtro de tags
-    const tagIdsFiltro = tagIds
+    // Se mais de 50 tags forem enviadas, ignorar filtro (significa "Todos" selecionado)
+    const tagIdsFiltroRaw = tagIds
       ? tagIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id))
       : [];
+    const tagIdsFiltro = tagIdsFiltroRaw.length > 50 ? [] : tagIdsFiltroRaw;
     const filtroTagAtivo = tagIdsFiltro.length > 0;
 
     // Extrair filtro de status
@@ -1068,9 +1070,11 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
     } = req.query;
 
     // Extrair filtro de tags
-    const tagIdsFiltro = tagIds
+    // Se mais de 50 tags forem enviadas, ignorar filtro (significa "Todos" selecionado)
+    const tagIdsFiltroRaw = tagIds
       ? tagIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id))
       : [];
+    const tagIdsFiltro = tagIdsFiltroRaw.length > 50 ? [] : tagIdsFiltroRaw;
     const filtroTagAtivo = tagIdsFiltro.length > 0;
 
     // Extrair filtro de status
@@ -3125,9 +3129,11 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
     } = req.query;
 
     // Extrair filtro de tags
-    const tagIdsFiltro = tagIds
+    // Se mais de 50 tags forem enviadas, ignorar filtro (significa "Todos" selecionado)
+    const tagIdsFiltroRaw = tagIds
       ? tagIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id))
       : [];
+    const tagIdsFiltro = tagIdsFiltroRaw.length > 50 ? [] : tagIdsFiltroRaw;
     const filtroTagAtivo = tagIdsFiltro.length > 0;
 
     // Extrair filtro de status
