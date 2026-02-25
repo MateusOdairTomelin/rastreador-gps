@@ -2537,6 +2537,135 @@
     .log-success { color: var(--success); }
     .log-error { color: var(--danger); }
     .log-info { color: var(--accent-light); }
+
+    /* Pipeline Debug Styles */
+    .pipeline-container {
+      background: linear-gradient(135deg, var(--bg), var(--bg-card));
+      border: 1px solid var(--border);
+    }
+
+    .pipeline-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 16px;
+      background: var(--bg-card);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      min-width: 90px;
+      transition: all 0.3s ease;
+    }
+
+    .pipeline-step:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .pipeline-step.ok { border-color: var(--success); background: rgba(16, 185, 129, 0.1); }
+    .pipeline-step.warning { border-color: var(--warning); background: rgba(245, 158, 11, 0.1); }
+    .pipeline-step.error { border-color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+
+    .pipe-icon { font-size: 24px; margin-bottom: 4px; }
+    .pipe-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+    .pipe-value { font-size: 13px; color: var(--text); font-weight: 600; margin-top: 4px; }
+
+    .pipeline-arrow {
+      font-size: 20px;
+      color: var(--text-muted);
+      font-weight: bold;
+    }
+
+    .debug-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .debug-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .debug-content {
+      font-size: 12px;
+    }
+
+    .debug-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      color: var(--text-muted);
+    }
+
+    .debug-row span:last-child {
+      color: var(--text);
+      font-weight: 500;
+      font-family: 'Monaco', monospace;
+    }
+
+    .debug-row.total {
+      border-top: 1px solid var(--border);
+      margin-top: 6px;
+      padding-top: 8px;
+      font-weight: 600;
+    }
+
+    .debug-row.total span:last-child {
+      color: var(--primary);
+    }
+
+    .debug-table {
+      width: 100%;
+      font-size: 12px;
+    }
+
+    .debug-table th {
+      background: var(--bg);
+      padding: 8px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .debug-table td {
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+      font-family: 'Monaco', monospace;
+      font-size: 11px;
+    }
+
+    .debug-table tr:hover td {
+      background: var(--bg);
+    }
+
+    .delay-ok { color: var(--success); }
+    .delay-warning { color: var(--warning); }
+    .delay-error { color: var(--danger); }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 1024px) {
+      .grid-3 { grid-template-columns: repeat(2, 1fr); }
+      .pipeline-container { justify-content: center; }
+    }
+
+    @media (max-width: 768px) {
+      .grid-3 { grid-template-columns: 1fr; }
+      .pipeline-step { min-width: 70px; padding: 8px 12px; }
+      .pipe-icon { font-size: 18px; }
+      .pipe-label { font-size: 10px; }
+    }
     .log-warning { color: var(--warning); }
 
     .mb-20 { margin-bottom: 20px; }
@@ -6726,6 +6855,114 @@
             </div>
             <label style="margin-bottom: 12px;">Log de Operações:</label>
             <div class="log-output" id="diagnostic-log"></div>
+          </div>
+
+          <!-- DEBUG PIPELINE GPS -->
+          <div class="card" style="margin-top: 28px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <div class="section-title" style="margin-bottom: 0;">🔍 Debug Pipeline GPS</div>
+              <button class="btn btn-primary btn-sm" onclick="atualizarPipelineDebug()">↻ Atualizar</button>
+            </div>
+
+            <!-- Pipeline Visual -->
+            <div class="pipeline-container" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; padding: 16px; background: var(--bg); border-radius: 8px;">
+              <div class="pipeline-step" id="pipe-gateway">
+                <div class="pipe-icon">📡</div>
+                <div class="pipe-label">TCP Gateway</div>
+                <div class="pipe-value" id="pipe-gateway-val">-</div>
+              </div>
+              <div class="pipeline-arrow">→</div>
+              <div class="pipeline-step" id="pipe-redis">
+                <div class="pipe-icon">🔴</div>
+                <div class="pipe-label">Redis Streams</div>
+                <div class="pipe-value" id="pipe-redis-val">-</div>
+              </div>
+              <div class="pipeline-arrow">→</div>
+              <div class="pipeline-step" id="pipe-processor">
+                <div class="pipe-icon">⚙️</div>
+                <div class="pipe-label">Processors</div>
+                <div class="pipe-value" id="pipe-processor-val">-</div>
+              </div>
+              <div class="pipeline-arrow">→</div>
+              <div class="pipeline-step" id="pipe-db">
+                <div class="pipe-icon">🗄️</div>
+                <div class="pipe-label">PostgreSQL</div>
+                <div class="pipe-value" id="pipe-db-val">-</div>
+              </div>
+              <div class="pipeline-arrow">→</div>
+              <div class="pipeline-step" id="pipe-api">
+                <div class="pipe-icon">🌐</div>
+                <div class="pipe-label">API</div>
+                <div class="pipe-value" id="pipe-api-val">-</div>
+              </div>
+              <div class="pipeline-arrow">→</div>
+              <div class="pipeline-step" id="pipe-frontend">
+                <div class="pipe-icon">📱</div>
+                <div class="pipe-label">Frontend</div>
+                <div class="pipe-value" id="pipe-frontend-val">-</div>
+              </div>
+            </div>
+
+            <!-- Métricas Detalhadas -->
+            <div class="grid-3" style="gap: 12px; margin-bottom: 16px;">
+              <!-- Redis Queues -->
+              <div class="debug-card">
+                <div class="debug-title">📊 Filas Redis (Location)</div>
+                <div class="debug-content" id="debug-redis-queues">
+                  <div class="debug-row"><span>Partição 0:</span> <span id="redis-q0">-</span></div>
+                  <div class="debug-row"><span>Partição 1:</span> <span id="redis-q1">-</span></div>
+                  <div class="debug-row"><span>Partição 2:</span> <span id="redis-q2">-</span></div>
+                  <div class="debug-row"><span>Partição 3:</span> <span id="redis-q3">-</span></div>
+                  <div class="debug-row total"><span>Total:</span> <span id="redis-qtotal">-</span></div>
+                </div>
+              </div>
+
+              <!-- Latência -->
+              <div class="debug-card">
+                <div class="debug-title">⏱️ Latência (GPS → DB)</div>
+                <div class="debug-content" id="debug-latency">
+                  <div class="debug-row"><span>Média:</span> <span id="latency-avg">-</span></div>
+                  <div class="debug-row"><span>Mínima:</span> <span id="latency-min">-</span></div>
+                  <div class="debug-row"><span>Máxima:</span> <span id="latency-max">-</span></div>
+                  <div class="debug-row"><span>Última inserção:</span> <span id="latency-last">-</span></div>
+                  <div class="debug-row total"><span>Status:</span> <span id="latency-status">-</span></div>
+                </div>
+              </div>
+
+              <!-- Throughput -->
+              <div class="debug-card">
+                <div class="debug-title">📈 Throughput</div>
+                <div class="debug-content" id="debug-throughput">
+                  <div class="debug-row"><span>Conexões TCP:</span> <span id="tp-connections">-</span></div>
+                  <div class="debug-row"><span>Pacotes/min:</span> <span id="tp-packets">-</span></div>
+                  <div class="debug-row"><span>Inserções/min:</span> <span id="tp-inserts">-</span></div>
+                  <div class="debug-row"><span>Consumers ativos:</span> <span id="tp-consumers">-</span></div>
+                  <div class="debug-row total"><span>Lag total:</span> <span id="tp-lag">-</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Últimos Dados por Veículo -->
+            <div class="debug-card" style="margin-top: 12px;">
+              <div class="debug-title">🚗 Últimos Dados Recebidos (10 mais recentes)</div>
+              <div class="table-wrapper" style="max-height: 300px; overflow-y: auto;">
+                <table class="debug-table" id="debug-latest-data">
+                  <thead>
+                    <tr>
+                      <th>Placa</th>
+                      <th>IMEI</th>
+                      <th>Timestamp GPS</th>
+                      <th>Inserido em</th>
+                      <th>Delay</th>
+                      <th>Velocidade</th>
+                    </tr>
+                  </thead>
+                  <tbody id="debug-latest-tbody">
+                    <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Clique em Atualizar</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -14933,6 +15170,106 @@
         addLog('⊗ WebSocket falhou: ' + e.message, 'error');
       }
     }
+
+    // ============ DEBUG PIPELINE GPS ============
+    async function atualizarPipelineDebug() {
+      try {
+        addLog('◎ Atualizando debug do pipeline...', 'info');
+
+        const res = await authFetch(`${API_URL}/system/pipeline-debug`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+
+        // Atualizar Pipeline Visual
+        atualizarPipelineStep('pipe-gateway', data.gateway);
+        atualizarPipelineStep('pipe-redis', data.redis);
+        atualizarPipelineStep('pipe-processor', data.processors);
+        atualizarPipelineStep('pipe-db', data.database);
+        atualizarPipelineStep('pipe-api', data.api);
+        atualizarPipelineStep('pipe-frontend', data.frontend);
+
+        // Atualizar Filas Redis
+        if (data.redis?.queues) {
+          document.getElementById('redis-q0').textContent = data.redis.queues[0] || 0;
+          document.getElementById('redis-q1').textContent = data.redis.queues[1] || 0;
+          document.getElementById('redis-q2').textContent = data.redis.queues[2] || 0;
+          document.getElementById('redis-q3').textContent = data.redis.queues[3] || 0;
+          const total = (data.redis.queues || []).reduce((a, b) => a + b, 0);
+          document.getElementById('redis-qtotal').textContent = total;
+          document.getElementById('pipe-redis-val').textContent = `${total} msgs`;
+        }
+
+        // Atualizar Latência
+        if (data.latency) {
+          document.getElementById('latency-avg').textContent = `${data.latency.avg || '-'}s`;
+          document.getElementById('latency-min').textContent = `${data.latency.min || '-'}s`;
+          document.getElementById('latency-max').textContent = `${data.latency.max || '-'}s`;
+          document.getElementById('latency-last').textContent = data.latency.lastInsert || '-';
+
+          const statusEl = document.getElementById('latency-status');
+          if (data.latency.avg <= 5) {
+            statusEl.textContent = '✅ Normal';
+            statusEl.className = 'delay-ok';
+          } else if (data.latency.avg <= 30) {
+            statusEl.textContent = '⚠️ Lento';
+            statusEl.className = 'delay-warning';
+          } else {
+            statusEl.textContent = '❌ Crítico';
+            statusEl.className = 'delay-error';
+          }
+        }
+
+        // Atualizar Throughput
+        if (data.throughput) {
+          document.getElementById('tp-connections').textContent = data.throughput.connections || 0;
+          document.getElementById('tp-packets').textContent = data.throughput.packetsPerMin || '-';
+          document.getElementById('tp-inserts').textContent = data.throughput.insertsPerMin || '-';
+          document.getElementById('tp-consumers').textContent = data.throughput.consumers || '-';
+          document.getElementById('tp-lag').textContent = data.throughput.totalLag || 0;
+          document.getElementById('pipe-gateway-val').textContent = `${data.throughput.connections || 0} conn`;
+        }
+
+        // Atualizar tabela de últimos dados
+        if (data.recentData && data.recentData.length > 0) {
+          const tbody = document.getElementById('debug-latest-tbody');
+          tbody.innerHTML = data.recentData.map(r => {
+            const delayClass = r.delay <= 5 ? 'delay-ok' : r.delay <= 30 ? 'delay-warning' : 'delay-error';
+            return `
+              <tr>
+                <td>${r.placa || '-'}</td>
+                <td>${r.imei}</td>
+                <td>${r.timestampGps}</td>
+                <td>${r.createdAt}</td>
+                <td class="${delayClass}">${r.delay}s</td>
+                <td>${r.velocidade} km/h</td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        addLog('◉ Debug pipeline atualizado', 'success');
+      } catch (e) {
+        console.error('Erro ao atualizar pipeline debug:', e);
+        addLog('⊗ Erro ao buscar dados: ' + e.message, 'error');
+      }
+    }
+
+    function atualizarPipelineStep(id, data) {
+      const el = document.getElementById(id);
+      if (!el || !data) return;
+
+      el.classList.remove('ok', 'warning', 'error');
+      if (data.status === 'ok') el.classList.add('ok');
+      else if (data.status === 'warning') el.classList.add('warning');
+      else if (data.status === 'error') el.classList.add('error');
+
+      const valueEl = el.querySelector('.pipe-value');
+      if (valueEl && data.value) valueEl.textContent = data.value;
+    }
+
+    // Expor função globalmente
+    window.atualizarPipelineDebug = atualizarPipelineDebug;
 
     async function loadLocations() {
       try {

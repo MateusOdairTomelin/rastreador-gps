@@ -1159,6 +1159,146 @@ router.post('/system/memory/cleanup', autenticar, apenasAdmin, async (req, res) 
   }
 });
 
+// GET /api/system/pipeline-debug - Debug do pipeline GPS (admin)
+router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) => {
+  try {
+    const redis = redisService.getClient();
+    const prisma = require('@prisma/client').PrismaClient ? new (require('@prisma/client').PrismaClient)() : require('../services/prisma.service');
+
+    // 1. Filas Redis (partições de location)
+    const queues = [];
+    let totalLag = 0;
+    for (let i = 0; i < 4; i++) {
+      try {
+        const len = await redis.xlen(`gps:packets:location:${i}`);
+        queues.push(len || 0);
+        totalLag += len || 0;
+      } catch (e) {
+        queues.push(0);
+      }
+    }
+
+    // 2. Conexões TCP ativas
+    let connections = 0;
+    try {
+      connections = await redis.hlen('gps:connections');
+    } catch (e) {}
+
+    // 3. Consumers ativos
+    let consumers = 0;
+    try {
+      const groupInfo = await redis.xinfo('GROUPS', 'gps:packets:location:0');
+      if (groupInfo && groupInfo.length > 0) {
+        consumers = groupInfo[0]?.consumers || 0;
+      }
+    } catch (e) {}
+
+    // 4. Latência (últimos 10 registros)
+    let latencyData = { avg: 0, min: 0, max: 0, lastInsert: '-' };
+    let recentData = [];
+    try {
+      const recentLocs = await prisma.localizacao.findMany({
+        take: 10,
+        orderBy: { created_at: 'desc' },
+        select: {
+          timestamp: true,
+          created_at: true,
+          velocidade: true,
+          dispositivo: {
+            select: {
+              imei: true,
+              placa: true
+            }
+          }
+        }
+      });
+
+      if (recentLocs.length > 0) {
+        const delays = recentLocs.map(l => {
+          const ts = new Date(l.timestamp);
+          const ca = new Date(l.created_at);
+          return Math.round((ca - ts) / 1000);
+        }).filter(d => d >= 0 && d < 86400); // Filtrar valores absurdos
+
+        if (delays.length > 0) {
+          latencyData.avg = Math.round(delays.reduce((a, b) => a + b, 0) / delays.length);
+          latencyData.min = Math.min(...delays);
+          latencyData.max = Math.max(...delays);
+        }
+
+        latencyData.lastInsert = new Date(recentLocs[0].created_at).toLocaleTimeString('pt-BR');
+
+        recentData = recentLocs.map(l => ({
+          imei: l.dispositivo?.imei || '-',
+          placa: l.dispositivo?.placa || '-',
+          timestampGps: new Date(l.timestamp).toLocaleString('pt-BR'),
+          createdAt: new Date(l.created_at).toLocaleTimeString('pt-BR'),
+          delay: Math.round((new Date(l.created_at) - new Date(l.timestamp)) / 1000),
+          velocidade: l.velocidade || 0
+        }));
+      }
+    } catch (e) {
+      console.error('Erro ao buscar latência:', e);
+    }
+
+    // 5. Throughput (inserções no último minuto)
+    let insertsPerMin = 0;
+    try {
+      const oneMinAgo = new Date(Date.now() - 60000);
+      insertsPerMin = await prisma.localizacao.count({
+        where: { created_at: { gte: oneMinAgo } }
+      });
+    } catch (e) {}
+
+    // Montar resposta
+    const response = {
+      gateway: {
+        status: connections > 0 ? 'ok' : 'warning',
+        value: `${connections} conn`
+      },
+      redis: {
+        status: totalLag < 100 ? 'ok' : totalLag < 1000 ? 'warning' : 'error',
+        value: `${totalLag} msgs`,
+        queues
+      },
+      processors: {
+        status: consumers >= 4 ? 'ok' : consumers > 0 ? 'warning' : 'error',
+        value: `${consumers} ativos`
+      },
+      database: {
+        status: insertsPerMin > 0 ? 'ok' : 'warning',
+        value: `${insertsPerMin}/min`
+      },
+      api: {
+        status: 'ok',
+        value: 'Online'
+      },
+      frontend: {
+        status: 'ok',
+        value: 'WebSocket'
+      },
+      latency: latencyData,
+      throughput: {
+        connections,
+        packetsPerMin: '-',
+        insertsPerMin,
+        consumers,
+        totalLag
+      },
+      recentData
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error('Erro em pipeline-debug:', error);
+    res.status(500).json({
+      sucesso: false,
+      mensagem: 'Erro ao obter debug do pipeline',
+      erro: error.message
+    });
+  }
+});
+
 // ============ ENDPOINTS DE LOGS ============
 
 // GET /api/logs - Buscar logs (admin)
