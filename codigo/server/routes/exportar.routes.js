@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const PDFDocument = require('pdfkit');
+const ExcelJS = require('exceljs');
 const prisma = require('../db/prisma');
 const https = require('https');
 const http = require('http');
@@ -2791,5 +2792,480 @@ async function downloadOSMTiles(bounds, zoom, maxTiles = 16) {
     tileSize: 256
   };
 }
+
+// ============ EXPORTAR EXCEL (.XLSX) ============
+
+/**
+ * GET /api/exportar/:imei/xlsx
+ * Exporta histórico do veículo em formato Excel (.xlsx) com múltiplas abas
+ *
+ * Query params:
+ * - dataInicio: Data inicial (ISO string)
+ * - dataFim: Data final (ISO string)
+ * - modulos: string - lista separada por vírgula dos módulos a incluir
+ */
+router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
+  try {
+    const { imei } = req.params;
+    const {
+      dataInicio,
+      dataFim,
+      modulos = 'resumo,score,consumo,kmDia,excessos,paradas,viagens,obd2,alarmes,localizacoes',
+      corrigido = 'true'
+    } = req.query;
+
+    // Parsear módulos selecionados
+    const modulosSelecionados = modulos.split(',').map(m => m.trim().toLowerCase());
+    const temModulo = (nome) => modulosSelecionados.includes(nome.toLowerCase());
+
+    console.log('[Excel] Módulos selecionados:', modulosSelecionados);
+
+    // Buscar dispositivo
+    const dispositivo = await prisma.dispositivo.findUnique({
+      where: { imei }
+    });
+
+    if (!dispositivo) {
+      return res.status(404).json({ sucesso: false, mensagem: 'Dispositivo não encontrado' });
+    }
+
+    // Configurar período
+    const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const fim = dataFim ? new Date(dataFim) : new Date();
+
+    // Buscar localizações
+    const localizacoes = await prisma.localizacao.findMany({
+      where: {
+        dispositivo_id: dispositivo.id,
+        timestamp: { gte: inicio, lte: fim }
+      },
+      orderBy: { timestamp: 'asc' }
+    });
+
+    // Buscar OBD2 (se aplicável)
+    const isOBD2Device = supportsOBD2(dispositivo.tipo);
+    let dadosOBD2 = [];
+    if (isOBD2Device && temModulo('obd2')) {
+      dadosOBD2 = await prisma.dadosOBD2.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        },
+        orderBy: { timestamp: 'asc' }
+      });
+    }
+
+    // Buscar alarmes
+    let alarmes = [];
+    if (temModulo('alarmes')) {
+      alarmes = await prisma.alarme.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        },
+        orderBy: { timestamp: 'asc' }
+      });
+    }
+
+    // Buscar viagens
+    let viagens = [];
+    if (temModulo('viagens')) {
+      viagens = await prisma.viagem.findMany({
+        where: {
+          dispositivo_id: dispositivo.id,
+          inicio: { gte: inicio },
+          OR: [
+            { fim: { lte: fim } },
+            { fim: null }
+          ]
+        },
+        orderBy: { inicio: 'asc' }
+      });
+    }
+
+    // Buscar motoristas vinculados
+    const historico = await prisma.historicoMotoristaDispositivo.findMany({
+      where: {
+        dispositivo_id: dispositivo.id,
+        inicio: { lte: fim },
+        OR: [{ fim: { gte: inicio } }, { fim: null }]
+      },
+      include: { motorista: true }
+    });
+    const motoristasTexto = historico.length > 0
+      ? historico.map(h => h.motorista.nome).join(', ')
+      : 'Nenhum';
+
+    // Calcular estatísticas
+    let distanciaTotal = 0;
+    let tempoMovimento = 0;
+    let tempoOcioso = 0;
+    let tempoParado = 0;
+    let maxVelocidade = 0;
+    let excessosVelocidade = 0;
+    const kmPorDia = new Map();
+    const paradas = [];
+    let paradaAtual = null;
+
+    for (let i = 1; i < localizacoes.length; i++) {
+      const loc = localizacoes[i];
+      const locAnterior = localizacoes[i - 1];
+      const tempoMin = (new Date(loc.timestamp) - new Date(locAnterior.timestamp)) / (1000 * 60);
+
+      if (tempoMin > 30) continue;
+
+      const dist = calcularDistancia(
+        locAnterior.latitude, locAnterior.longitude,
+        loc.latitude, loc.longitude
+      );
+
+      // KM por dia
+      const diaKey = new Date(loc.timestamp).toISOString().split('T')[0];
+      if (dist < 5 && loc.velocidade > 0) {
+        kmPorDia.set(diaKey, (kmPorDia.get(diaKey) || 0) + dist);
+      }
+
+      if (loc.velocidade > 0) {
+        if (dist < 5) distanciaTotal += dist;
+        tempoMovimento += tempoMin;
+        if (loc.velocidade > maxVelocidade) maxVelocidade = loc.velocidade;
+        if (loc.velocidade > 80) excessosVelocidade++;
+
+        // Finalizar parada
+        if (paradaAtual && paradaAtual.tempoMinutos >= 5) {
+          paradas.push(paradaAtual);
+        }
+        paradaAtual = null;
+      } else {
+        // Parado - determinar se ocioso ou desligado
+        let motorLigado = loc.ignicao === true || loc.estado_ignicao === 'idle';
+
+        if (!motorLigado && (dispositivo.tipo === 'XT40_OBD2' || dispositivo.tipo === 'XT40_4F')) {
+          for (let j = i - 1; j >= 0 && j >= i - 30; j--) {
+            if (localizacoes[j].velocidade > 3) {
+              motorLigado = true;
+              break;
+            }
+          }
+        }
+
+        if (motorLigado) {
+          tempoOcioso += tempoMin;
+        } else {
+          tempoParado += tempoMin;
+        }
+
+        // Rastrear parada
+        if (!paradaAtual) {
+          paradaAtual = {
+            inicio: loc.timestamp,
+            fim: loc.timestamp,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            tempoMinutos: 0
+          };
+        } else {
+          paradaAtual.fim = loc.timestamp;
+          paradaAtual.tempoMinutos += tempoMin;
+        }
+      }
+    }
+
+    // Finalizar última parada
+    if (paradaAtual && paradaAtual.tempoMinutos >= 5) {
+      paradas.push(paradaAtual);
+    }
+
+    // Criar workbook Excel
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Sistema Rastreador GPS';
+    workbook.created = new Date();
+
+    // Estilo padrão para cabeçalhos
+    const headerStyle = {
+      font: { bold: true, color: { argb: 'FFFFFFFF' } },
+      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1565C0' } },
+      alignment: { horizontal: 'center', vertical: 'middle' },
+      border: {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      }
+    };
+
+    const cellStyle = {
+      border: {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      }
+    };
+
+    // Função auxiliar para formatar tempo
+    const formatarTempo = (minutos) => {
+      const horas = Math.floor(minutos / 60);
+      const mins = Math.round(minutos % 60);
+      return horas > 0 ? `${horas}h ${mins}min` : `${mins}min`;
+    };
+
+    // Função auxiliar para formatar data/hora
+    const formatDateTime = (date) => {
+      return new Date(date).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    };
+
+    // ========== ABA 1: RESUMO ==========
+    if (temModulo('resumo') || temModulo('score') || temModulo('consumo')) {
+      const resumoSheet = workbook.addWorksheet('Resumo');
+
+      // Título
+      resumoSheet.mergeCells('A1:B1');
+      resumoSheet.getCell('A1').value = 'RELATORIO DO VEICULO';
+      resumoSheet.getCell('A1').font = { bold: true, size: 16 };
+      resumoSheet.getCell('A1').alignment = { horizontal: 'center' };
+
+      // Info do veículo
+      resumoSheet.addRow([]);
+      resumoSheet.addRow(['INFORMACOES DO VEICULO', '']);
+      const infoHeaderRow = resumoSheet.lastRow;
+      infoHeaderRow.eachCell(cell => Object.assign(cell, headerStyle));
+      resumoSheet.mergeCells(`A${infoHeaderRow.number}:B${infoHeaderRow.number}`);
+
+      const infoData = [
+        ['Veiculo', dispositivo.veiculo || 'N/A'],
+        ['Placa', dispositivo.placa || 'N/A'],
+        ['IMEI', dispositivo.imei],
+        ['Tipo', dispositivo.tipo || 'N/A'],
+        ['Motorista(s)', motoristasTexto],
+        ['Periodo', `${formatDateTime(inicio)} até ${formatDateTime(fim)}`],
+        ['Total de Registros', localizacoes.length]
+      ];
+
+      infoData.forEach(row => {
+        const addedRow = resumoSheet.addRow(row);
+        addedRow.eachCell(cell => Object.assign(cell, cellStyle));
+      });
+
+      // Estatísticas
+      resumoSheet.addRow([]);
+      resumoSheet.addRow(['RESUMO ESTATISTICO', '']);
+      const statsHeaderRow = resumoSheet.lastRow;
+      statsHeaderRow.eachCell(cell => Object.assign(cell, headerStyle));
+      resumoSheet.mergeCells(`A${statsHeaderRow.number}:B${statsHeaderRow.number}`);
+
+      const statsData = [
+        ['Distancia Total', `${distanciaTotal.toFixed(2)} km`],
+        ['Tempo em Movimento', formatarTempo(tempoMovimento)],
+        ['Tempo Ocioso', formatarTempo(tempoOcioso)],
+        ['Tempo Parado', formatarTempo(tempoParado)],
+        ['Velocidade Maxima', `${maxVelocidade} km/h`],
+        ['Excessos de Velocidade', `${excessosVelocidade} ocorrencias`]
+      ];
+
+      statsData.forEach(row => {
+        const addedRow = resumoSheet.addRow(row);
+        addedRow.eachCell(cell => Object.assign(cell, cellStyle));
+      });
+
+      // Score de condução
+      if (temModulo('score')) {
+        let scoreConducao = 100;
+        scoreConducao -= Math.min(40, excessosVelocidade);
+        const tempoTotal = tempoMovimento + tempoOcioso + tempoParado;
+        if (tempoTotal > 0 && (tempoOcioso / tempoTotal) > 0.5) scoreConducao -= 10;
+        else if (tempoTotal > 0 && (tempoOcioso / tempoTotal) > 0.3) scoreConducao -= 5;
+        scoreConducao = Math.max(0, Math.min(100, scoreConducao));
+        const scoreTexto = scoreConducao >= 80 ? 'BOM' : scoreConducao >= 60 ? 'REGULAR' : 'ATENCAO';
+
+        resumoSheet.addRow([]);
+        resumoSheet.addRow(['SCORE DE CONDUCAO', '']);
+        const scoreHeaderRow = resumoSheet.lastRow;
+        scoreHeaderRow.eachCell(cell => Object.assign(cell, headerStyle));
+        resumoSheet.mergeCells(`A${scoreHeaderRow.number}:B${scoreHeaderRow.number}`);
+
+        resumoSheet.addRow(['Pontuacao', `${scoreConducao}/100`]).eachCell(cell => Object.assign(cell, cellStyle));
+        resumoSheet.addRow(['Classificacao', scoreTexto]).eachCell(cell => Object.assign(cell, cellStyle));
+      }
+
+      // Consumo estimado
+      if (temModulo('consumo')) {
+        const consumoMedio = 10; // L/100km
+        const consumoEstimado = (distanciaTotal * consumoMedio) / 100;
+
+        resumoSheet.addRow([]);
+        resumoSheet.addRow(['CONSUMO ESTIMADO', '']);
+        const consumoHeaderRow = resumoSheet.lastRow;
+        consumoHeaderRow.eachCell(cell => Object.assign(cell, headerStyle));
+        resumoSheet.mergeCells(`A${consumoHeaderRow.number}:B${consumoHeaderRow.number}`);
+
+        resumoSheet.addRow(['Consumo Medio', '10 L/100km']).eachCell(cell => Object.assign(cell, cellStyle));
+        resumoSheet.addRow(['Consumo Total Estimado', `${consumoEstimado.toFixed(1)} litros`]).eachCell(cell => Object.assign(cell, cellStyle));
+      }
+
+      // Ajustar largura das colunas
+      resumoSheet.getColumn(1).width = 25;
+      resumoSheet.getColumn(2).width = 40;
+    }
+
+    // ========== ABA 2: KM POR DIA ==========
+    if (temModulo('kmdia') && kmPorDia.size > 0) {
+      const kmSheet = workbook.addWorksheet('KM por Dia');
+
+      kmSheet.addRow(['Data', 'Quilometragem (km)']);
+      kmSheet.getRow(1).eachCell(cell => Object.assign(cell, headerStyle));
+
+      for (const [dia, km] of kmPorDia.entries()) {
+        kmSheet.addRow([dia, parseFloat(km.toFixed(2))]).eachCell(cell => Object.assign(cell, cellStyle));
+      }
+
+      kmSheet.getColumn(1).width = 15;
+      kmSheet.getColumn(2).width = 20;
+    }
+
+    // ========== ABA 3: PARADAS ==========
+    if (temModulo('paradas') && paradas.length > 0) {
+      const paradasSheet = workbook.addWorksheet('Paradas');
+
+      paradasSheet.addRow(['#', 'Inicio', 'Fim', 'Duracao', 'Latitude', 'Longitude']);
+      paradasSheet.getRow(1).eachCell(cell => Object.assign(cell, headerStyle));
+
+      paradas.sort((a, b) => b.tempoMinutos - a.tempoMinutos);
+
+      paradas.forEach((parada, idx) => {
+        paradasSheet.addRow([
+          idx + 1,
+          formatDateTime(parada.inicio),
+          formatDateTime(parada.fim),
+          formatarTempo(parada.tempoMinutos),
+          parada.latitude.toFixed(6),
+          parada.longitude.toFixed(6)
+        ]).eachCell(cell => Object.assign(cell, cellStyle));
+      });
+
+      [5, 20, 20, 12, 14, 14].forEach((width, idx) => {
+        paradasSheet.getColumn(idx + 1).width = width;
+      });
+    }
+
+    // ========== ABA 4: VIAGENS ==========
+    if (temModulo('viagens') && viagens.length > 0) {
+      const viagensSheet = workbook.addWorksheet('Viagens');
+
+      viagensSheet.addRow(['#', 'Inicio', 'Fim', 'Duracao', 'Distancia (km)', 'Status']);
+      viagensSheet.getRow(1).eachCell(cell => Object.assign(cell, headerStyle));
+
+      viagens.forEach((viagem, idx) => {
+        const duracao = viagem.fim
+          ? (new Date(viagem.fim) - new Date(viagem.inicio)) / (1000 * 60)
+          : 0;
+
+        viagensSheet.addRow([
+          idx + 1,
+          formatDateTime(viagem.inicio),
+          viagem.fim ? formatDateTime(viagem.fim) : 'Em andamento',
+          formatarTempo(duracao),
+          viagem.distancia_km ? parseFloat(viagem.distancia_km.toFixed(2)) : 0,
+          viagem.fim ? 'Finalizada' : 'Em andamento'
+        ]).eachCell(cell => Object.assign(cell, cellStyle));
+      });
+
+      [5, 20, 20, 12, 15, 15].forEach((width, idx) => {
+        viagensSheet.getColumn(idx + 1).width = width;
+      });
+    }
+
+    // ========== ABA 5: ALARMES ==========
+    if (temModulo('alarmes') && alarmes.length > 0) {
+      const alarmesSheet = workbook.addWorksheet('Alarmes');
+
+      alarmesSheet.addRow(['#', 'Data/Hora', 'Tipo', 'Descricao', 'Latitude', 'Longitude']);
+      alarmesSheet.getRow(1).eachCell(cell => Object.assign(cell, headerStyle));
+
+      alarmes.forEach((alarme, idx) => {
+        alarmesSheet.addRow([
+          idx + 1,
+          formatDateTime(alarme.timestamp),
+          alarme.tipo || 'N/A',
+          alarme.descricao || '',
+          alarme.latitude?.toFixed(6) || '',
+          alarme.longitude?.toFixed(6) || ''
+        ]).eachCell(cell => Object.assign(cell, cellStyle));
+      });
+
+      [5, 20, 15, 30, 14, 14].forEach((width, idx) => {
+        alarmesSheet.getColumn(idx + 1).width = width;
+      });
+    }
+
+    // ========== ABA 6: OBD2 ==========
+    if (temModulo('obd2') && dadosOBD2.length > 0) {
+      const obd2Sheet = workbook.addWorksheet('Dados OBD2');
+
+      obd2Sheet.addRow(['Data/Hora', 'RPM', 'Velocidade', 'Temperatura Motor', 'Carga Motor %', 'Tensao']);
+      obd2Sheet.getRow(1).eachCell(cell => Object.assign(cell, headerStyle));
+
+      dadosOBD2.forEach(obd2 => {
+        obd2Sheet.addRow([
+          formatDateTime(obd2.timestamp),
+          obd2.rpm || '',
+          obd2.velocidade || '',
+          obd2.temperatura_motor || '',
+          obd2.carga_motor || '',
+          obd2.tensao_principal?.toFixed(1) || ''
+        ]).eachCell(cell => Object.assign(cell, cellStyle));
+      });
+
+      [20, 10, 12, 18, 15, 10].forEach((width, idx) => {
+        obd2Sheet.getColumn(idx + 1).width = width;
+      });
+    }
+
+    // ========== ABA 7: LOCALIZACOES ==========
+    if (temModulo('localizacoes') && localizacoes.length > 0) {
+      const locsSheet = workbook.addWorksheet('Localizacoes');
+
+      locsSheet.addRow(['Data/Hora', 'Latitude', 'Longitude', 'Velocidade', 'Ignicao', 'Satelites']);
+      locsSheet.getRow(1).eachCell(cell => Object.assign(cell, headerStyle));
+
+      // Limitar a 10000 registros para não travar o Excel
+      const locsLimitadas = localizacoes.slice(0, 10000);
+
+      locsLimitadas.forEach(loc => {
+        locsSheet.addRow([
+          formatDateTime(loc.timestamp),
+          loc.latitude?.toFixed(6) || '',
+          loc.longitude?.toFixed(6) || '',
+          loc.velocidade || 0,
+          loc.ignicao ? 'Sim' : 'Nao',
+          loc.satelites || ''
+        ]).eachCell(cell => Object.assign(cell, cellStyle));
+      });
+
+      if (localizacoes.length > 10000) {
+        locsSheet.addRow([`... mais ${localizacoes.length - 10000} registros omitidos`]);
+      }
+
+      [20, 14, 14, 12, 10, 10].forEach((width, idx) => {
+        locsSheet.getColumn(idx + 1).width = width;
+      });
+    }
+
+    // Gerar buffer e enviar
+    const filename = `relatorio_${dispositivo.placa || imei}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+    console.log(`[Excel] Gerado: ${filename} (${localizacoes.length} registros)`);
+
+  } catch (error) {
+    console.error('[Exportar Excel] Erro:', error);
+    res.status(500).json({ sucesso: false, mensagem: 'Erro ao gerar Excel', erro: error.message });
+  }
+});
 
 module.exports = router;
