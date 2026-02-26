@@ -103,31 +103,55 @@ let heartbeatsFetching = false; // Evita múltiplas requisições simultâneas
 router.get('/heartbeats', autenticar, tenantContext, async (req, res) => {
   try {
     const now = Date.now();
+    const orgId = req.tenantFilter?.organizacao_id;
 
-    // Se cache válido, retorna imediatamente
+    // Função para filtrar por organização (multi-tenant)
+    const filterByOrg = async (devices) => {
+      if (!orgId) return devices; // Super admin vê tudo
+
+      // Buscar IMEIs da organização
+      const imeisOrg = await prisma.dispositivo.findMany({
+        where: { organizacao_id: orgId },
+        select: { imei: true }
+      });
+      const imeiSet = new Set(imeisOrg.map(d => d.imei));
+      return devices.filter(d => imeiSet.has(d.imei));
+    };
+
+    // Se cache válido, retorna imediatamente (mas sempre filtra por org)
     if (heartbeatsGlobalCache && (now - heartbeatsCacheTime) < HEARTBEATS_CACHE_TTL) {
-      const orgId = req.tenantFilter?.organizacao_id;
-      const filtered = orgId
-        ? heartbeatsGlobalCache.devices.filter(d => d.orgId === orgId || !d.orgId)
-        : heartbeatsGlobalCache.devices;
+      const filtered = await filterByOrg(heartbeatsGlobalCache.devices);
 
       return res.json({
         sucesso: true,
         dados: {
           ...heartbeatsGlobalCache,
           devices: filtered,
-          total_devices: filtered.length
+          total_devices: filtered.length,
+          connected: filtered.filter(d => d.status === 'connected').length,
+          active: filtered.filter(d => d.status === 'active').length,
+          idle: filtered.filter(d => d.status === 'idle').length,
+          offline: filtered.filter(d => d.status === 'offline').length
         },
         timestamp: new Date().toISOString(),
         cached: true
       });
     }
 
-    // Se já está buscando, aguarda um pouco e retorna cache antigo
+    // Se já está buscando, aguarda um pouco e retorna cache antigo (filtrado por org)
     if (heartbeatsFetching && heartbeatsGlobalCache) {
+      const filtered = await filterByOrg(heartbeatsGlobalCache.devices);
       return res.json({
         sucesso: true,
-        dados: heartbeatsGlobalCache,
+        dados: {
+          ...heartbeatsGlobalCache,
+          devices: filtered,
+          total_devices: filtered.length,
+          connected: filtered.filter(d => d.status === 'connected').length,
+          active: filtered.filter(d => d.status === 'active').length,
+          idle: filtered.filter(d => d.status === 'idle').length,
+          offline: filtered.filter(d => d.status === 'offline').length
+        },
         timestamp: new Date().toISOString(),
         cached: true
       });
@@ -151,34 +175,20 @@ router.get('/heartbeats', autenticar, tenantContext, async (req, res) => {
     heartbeatsCacheTime = now;
     heartbeatsFetching = false;
 
-    // Filtrar por organização se necessário
-    const orgId = req.tenantFilter?.organizacao_id;
-    if (orgId) {
-      const imeisOrg = await prisma.dispositivo.findMany({
-        where: { organizacao_id: orgId },
-        select: { imei: true }
-      });
-      const imeiSet = new Set(imeisOrg.map(d => d.imei));
-      const filtered = heartbeatsGlobalCache.devices.filter(d => imeiSet.has(d.imei));
-
-      return res.json({
-        sucesso: true,
-        dados: {
-          ...heartbeatsGlobalCache,
-          devices: filtered,
-          total_devices: filtered.length,
-          connected: filtered.filter(d => d.status === 'connected').length,
-          active: filtered.filter(d => d.status === 'active').length,
-          idle: filtered.filter(d => d.status === 'idle').length,
-          offline: filtered.filter(d => d.status === 'offline').length
-        },
-        timestamp: new Date().toISOString(),
-      });
-    }
+    // Sempre filtrar por organização (multi-tenant security)
+    const filtered = await filterByOrg(heartbeatsGlobalCache.devices);
 
     res.json({
       sucesso: true,
-      dados: heartbeatsGlobalCache,
+      dados: {
+        ...heartbeatsGlobalCache,
+        devices: filtered,
+        total_devices: filtered.length,
+        connected: filtered.filter(d => d.status === 'connected').length,
+        active: filtered.filter(d => d.status === 'active').length,
+        idle: filtered.filter(d => d.status === 'idle').length,
+        offline: filtered.filter(d => d.status === 'offline').length
+      },
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
