@@ -88,6 +88,7 @@ async function buscarHistoricoRastreadores(veiculo_id, inicio, fim) {
   if (!veiculo_id) return [];
 
   try {
+    // 1. Buscar histórico de trocas (tabela VeiculoDispositivoHistorico)
     const historico = await prisma.veiculoDispositivoHistorico.findMany({
       where: {
         veiculo_id,
@@ -111,7 +112,7 @@ async function buscarHistoricoRastreadores(veiculo_id, inicio, fim) {
       orderBy: { data_vinculo: 'asc' }
     });
 
-    return historico.map(h => ({
+    const resultado = historico.map(h => ({
       imei: h.dispositivo?.imei || 'N/A',
       tipo: h.dispositivo?.tipo || 'N/A',
       status: h.dispositivo?.status || 'offline',
@@ -119,6 +120,29 @@ async function buscarHistoricoRastreadores(veiculo_id, inicio, fim) {
       data_desvinculo: h.data_desvinculo,
       ativo: h.ativo
     }));
+
+    // 2. Buscar rastreador atual vinculado ao veículo (mesmo sem histórico de trocas)
+    const dispositivoAtual = await prisma.dispositivo.findFirst({
+      where: { veiculo_id },
+      select: { id: true, imei: true, tipo: true, status: true, created_at: true }
+    });
+
+    // Se há dispositivo atual e ele NÃO está no histórico, adicionar
+    if (dispositivoAtual) {
+      const jaNoHistorico = resultado.some(r => r.imei === dispositivoAtual.imei);
+      if (!jaNoHistorico) {
+        resultado.push({
+          imei: dispositivoAtual.imei,
+          tipo: dispositivoAtual.tipo || 'N/A',
+          status: dispositivoAtual.status || 'offline',
+          data_vinculo: dispositivoAtual.created_at, // Usar data de criação como aproximação
+          data_desvinculo: null,
+          ativo: true
+        });
+      }
+    }
+
+    return resultado;
   } catch (error) {
     console.error('[Exportar] Erro ao buscar histórico de rastreadores:', error.message);
     return [];
