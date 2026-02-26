@@ -370,22 +370,39 @@ const tcpServer = net.createServer((socket) => {
         }
 
         // Preparar dados do stream
+        const serverReceivedAt = new Date().toISOString();
+        const traceId = `${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
         const streamData = {
           ...parsedData.data,
           timestamp: parsedData.timestamp.toISOString(),
           protocol_number: parsedData.protocolNumber,
           serial_number: parsedData.serialNumber,
-          raw_hex: parsedData.raw.substring(0, 200) // Limitar tamanho
+          raw_hex: parsedData.raw.substring(0, 200), // Limitar tamanho
+          // ✅ TRACE: Tags para rastrear delay no pipeline
+          trace_id: traceId,
+          gateway_received_at: serverReceivedAt
         };
+
+        // ✅ TRACE LOG: Pacotes em movimento (velocidade > 0)
+        const velocidade = parsedData.data?.velocidade || parsedData.data?.speed || 0;
+        if (velocidade > 0 && parsedData.type === 'location') {
+          const gpsTimestamp = parsedData.timestamp;
+          const diffSeconds = (new Date(serverReceivedAt) - gpsTimestamp) / 1000;
+          console.log(`🔍 [TRACE:${traceId}] GATEWAY ${imei}: GPS_TS=${gpsTimestamp.toISOString()} | SERVER_TS=${serverReceivedAt} | DIFF=${diffSeconds.toFixed(1)}s | vel=${velocidade}km/h`);
+        }
 
         // Publicar no Redis em background (não bloqueia ACK que já foi enviado)
         // Usar Promise.all para operações paralelas, mas sem await para não bloquear
         const publishPromise = (async () => {
+          const publishStartTime = Date.now();
           try {
             // Atualizar atividade da sessão
+            const sessionStartTime = Date.now();
             await redisStreams.updateSessionActivity(imei);
+            const sessionTime = Date.now() - sessionStartTime;
 
             // Publicar no stream apropriado
+            const streamStartTime = Date.now();
             switch (parsedData.type) {
               case 'login':
                 await redisStreams.publishStatus(imei, { ...streamData, event: 'login' }, GATEWAY_ID);
@@ -415,6 +432,15 @@ const tcpServer = net.createServer((socket) => {
               default:
                 await redisStreams.publishStatus(imei, { ...streamData, event: parsedData.type }, GATEWAY_ID);
             }
+            const streamTime = Date.now() - streamStartTime;
+            const totalPublishTime = Date.now() - publishStartTime;
+
+            // ✅ TRACE LOG: Timing detalhado do publish (apenas para location em movimento)
+            const vel = parsedData.data?.velocidade || parsedData.data?.speed || 0;
+            if (vel > 0 && parsedData.type === 'location' && traceId) {
+              console.log(`🔍 [TRACE:${traceId}] GW_TIMING ${imei}: session=${sessionTime}ms | stream=${streamTime}ms | total=${totalPublishTime}ms`);
+            }
+
             stats.packetsPublished++;
           } catch (err) {
             stats.errors++;

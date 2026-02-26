@@ -27,7 +27,9 @@ const REDIS_CONFIG = {
     return Math.min(times * 200, 5000);
   },
   maxRetriesPerRequest: 3,
-  lazyConnect: true
+  lazyConnect: false, // ✅ Conectar imediatamente para evitar delay na primeira operação
+  enableOfflineQueue: true,
+  connectTimeout: 5000 // 5 segundos timeout de conexão
 };
 
 // Nomes dos streams
@@ -114,8 +116,12 @@ class RedisStreamsService {
     }
 
     try {
+      // ✅ Cliente principal para publicação (hset, xadd, etc)
       this.client = new Redis(REDIS_CONFIG);
+      // ✅ Cliente para subscrições
       this.subscriber = new Redis(REDIS_CONFIG);
+      // ✅ Cliente separado para XREAD BLOCK (evita bloquear o client principal)
+      this.commandsClient = new Redis(REDIS_CONFIG);
 
       this.client.on('connect', () => {
         this.isConnected = true;
@@ -127,14 +133,16 @@ class RedisStreamsService {
         this.isConnected = false;
       });
 
-      await this.client.connect();
-      await this.subscriber.connect();
+      // ✅ Com lazyConnect: false, o ioredis já conecta automaticamente
+      // Apenas esperamos a conexão estar pronta e fazemos ping para verificar
       await this.client.ping();
+      await this.subscriber.ping();
+      await this.commandsClient.ping();
 
       // Criar consumer groups para cada stream
       await this.ensureConsumerGroups();
 
-      console.log('[RedisStreams] Serviço pronto');
+      console.log('[RedisStreams] Serviço pronto (3 conexões: client, subscriber, commands)');
       return true;
     } catch (error) {
       console.error('[RedisStreams] Falha ao conectar:', error.message);
@@ -212,6 +220,13 @@ class RedisStreamsService {
   async publishLocationPartitioned(imei, data, gatewayId = 'gw-1') {
     const partition = getPartitionForImei(imei);
     const partitionedStream = `${STREAMS.LOCATION}:${partition}`;
+    const redisPublishAt = new Date().toISOString();
+
+    // ✅ TRACE LOG: Pacotes em movimento
+    const velocidade = data?.velocidade || data?.speed || 0;
+    if (velocidade > 0 && data?.trace_id) {
+      console.log(`🔍 [TRACE:${data.trace_id}] REDIS_PUB ${imei}: redis_publish_at=${redisPublishAt} | partition=${partition}`);
+    }
 
     return this.publish(partitionedStream, {
       imei,
@@ -219,7 +234,7 @@ class RedisStreamsService {
       data,
       gateway_id: gatewayId,
       partition, // Incluir partição para debug
-      timestamp: new Date().toISOString()
+      redis_published_at: redisPublishAt // ✅ TRACE: Renomeado para clareza
     });
   }
 
@@ -384,8 +399,8 @@ class RedisStreamsService {
     if (!this.isAvailable()) return [];
 
     try {
-      // Ler mensagens pendentes primeiro
-      const messages = await this.client.xread(
+      // ✅ Usar cliente separado para XREAD BLOCK (não bloqueia operações de publicação)
+      const messages = await this.commandsClient.xread(
         'COUNT', count,
         'BLOCK', blockMs,
         'STREAMS', STREAMS.COMMANDS, '$'
@@ -678,6 +693,7 @@ class RedisStreamsService {
     try {
       if (this.client) await this.client.quit();
       if (this.subscriber) await this.subscriber.quit();
+      if (this.commandsClient) await this.commandsClient.quit();
       this.isConnected = false;
       console.log('[RedisStreams] Desconectado');
     } catch (error) {

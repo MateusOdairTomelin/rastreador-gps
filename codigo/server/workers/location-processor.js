@@ -254,10 +254,33 @@ async function processLocationMessage(message) {
     return;
   }
 
-  const { imei, data, gateway_id } = message;
+  const { imei, data, gateway_id, redis_published_at } = message;
+  const processorReceivedAt = new Date();
 
   try {
     const locationData = typeof data === 'string' ? JSON.parse(data) : data;
+
+    // ✅ TRACE LOG: Pacotes em movimento - rastrear todo o fluxo
+    const velocidade = locationData?.velocidade || locationData?.speed || 0;
+    const traceId = locationData?.trace_id;
+    if (velocidade > 0 && traceId) {
+      const gpsTimestamp = locationData.timestamp ? new Date(locationData.timestamp) : null;
+      const gatewayReceivedAt = locationData.gateway_received_at ? new Date(locationData.gateway_received_at) : null;
+      const redisPublishedAt = redis_published_at ? new Date(redis_published_at) : null;
+
+      // Calcular deltas
+      const gpsToGateway = gatewayReceivedAt && gpsTimestamp ? (gatewayReceivedAt - gpsTimestamp) / 1000 : 'N/A';
+      const gatewayToRedis = redisPublishedAt && gatewayReceivedAt ? (redisPublishedAt - gatewayReceivedAt) / 1000 : 'N/A';
+      const redisToProcessor = redisPublishedAt ? (processorReceivedAt - redisPublishedAt) / 1000 : 'N/A';
+      const totalDelay = gpsTimestamp ? (processorReceivedAt - gpsTimestamp) / 1000 : 'N/A';
+
+      console.log(`🔍 [TRACE:${traceId}] PROCESSOR ${imei}:`);
+      console.log(`   GPS_TS=${gpsTimestamp?.toISOString() || 'N/A'} | vel=${velocidade}km/h`);
+      console.log(`   GPS→GW: ${typeof gpsToGateway === 'number' ? gpsToGateway.toFixed(1) + 's' : gpsToGateway}`);
+      console.log(`   GW→REDIS: ${typeof gatewayToRedis === 'number' ? gatewayToRedis.toFixed(1) + 's' : gatewayToRedis}`);
+      console.log(`   REDIS→PROC: ${typeof redisToProcessor === 'number' ? redisToProcessor.toFixed(1) + 's' : redisToProcessor}`);
+      console.log(`   TOTAL: ${typeof totalDelay === 'number' ? totalDelay.toFixed(1) + 's' : totalDelay}`);
+    }
 
     // Validar coordenadas
     if (locationData.latitude == null || locationData.longitude == null) {
@@ -483,6 +506,15 @@ async function processLocationMessage(message) {
     if (!localizacaoSalva) {
       console.log(`[${WORKER_ID}] ⏭️ ${imei}: Ponto rejeitado pelo filtro do localizacaoService`);
       return;
+    }
+
+    // ✅ TRACE LOG: Após salvar no banco - medir delay total até DB
+    if (velocidade > 0 && traceId) {
+      const dbSavedAt = new Date();
+      const gpsTimestamp = locationData.timestamp ? new Date(locationData.timestamp) : null;
+      const totalDelayToDb = gpsTimestamp ? (dbSavedAt - gpsTimestamp) / 1000 : 'N/A';
+      const processingTime = (dbSavedAt - processorReceivedAt) / 1000;
+      console.log(`🔍 [TRACE:${traceId}] DB_SAVED ${imei}: total_delay=${typeof totalDelayToDb === 'number' ? totalDelayToDb.toFixed(1) + 's' : totalDelayToDb} | processing_time=${processingTime.toFixed(2)}s`);
     }
 
     // ✅ Publicar no Redis Pub/Sub para notificar API Server (WebSocket)
