@@ -110,7 +110,7 @@ router.get('/tipos/:tipoId', (req, res) => {
 });
 
 // PUT /api/dispositivos/:imei/tipo - Update device type
-router.put('/:imei/tipo', asyncHandler(async (req, res) => {
+router.put('/:imei/tipo', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const { tipo } = req.body;
 
@@ -733,7 +733,7 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/dispositivos/:imei/localizacao-atual
-router.get('/:imei/localizacao-atual', asyncHandler(async (req, res) => {
+router.get('/:imei/localizacao-atual', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
 
   // Cache por IMEI (3s)
@@ -772,7 +772,7 @@ router.get('/:imei/localizacao-atual', asyncHandler(async (req, res) => {
 
 // GET /api/dispositivos/:imei/historico
 // ✅ Agora usa gpsFilterService com interpolação para rotas suaves (igual ao card de GPS)
-router.get('/:imei/historico', asyncHandler(async (req, res) => {
+router.get('/:imei/historico', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const { dataInicio, dataFim, horas, corrigido } = req.query;
 
@@ -870,7 +870,7 @@ router.get('/:imei/historico', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/dispositivos/:imei/obd2-atual
-router.get('/:imei/obd2-atual', asyncHandler(async (req, res) => {
+router.get('/:imei/obd2-atual', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
 
   // Cache por IMEI (3s)
@@ -912,7 +912,7 @@ router.get('/:imei/obd2-atual', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/dispositivos/:imei/obd2-historico
-router.get('/:imei/obd2-historico', asyncHandler(async (req, res) => {
+router.get('/:imei/obd2-historico', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const horas = parseInt(req.query.horas) || 24;
 
@@ -942,7 +942,7 @@ router.get('/:imei/obd2-historico', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/dispositivos/:imei/alarmes
-router.get('/:imei/alarmes', asyncHandler(async (req, res) => {
+router.get('/:imei/alarmes', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const limit = parseInt(req.query.limit) || 50;
 
@@ -963,7 +963,7 @@ router.get('/:imei/alarmes', asyncHandler(async (req, res) => {
 }));
 
 // ✅ NOVO: GET /api/dispositivos/:imei/estatisticas - Get statistics for device
-router.get('/:imei/estatisticas', asyncHandler(async (req, res) => {
+router.get('/:imei/estatisticas', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const horas = parseInt(req.query.horas) || 24;
 
@@ -1053,7 +1053,7 @@ router.get('/:imei/estatisticas', asyncHandler(async (req, res) => {
 
 // PUT /api/dispositivos/:imei - Update device
 // ✅ Verifica permissão de editar veículos
-router.put('/:imei', verificarPermissao('veiculos', 'editar'), asyncHandler(async (req, res) => {
+router.put('/:imei', verificarPropriedadeDispositivo, verificarPermissao('veiculos', 'editar'), asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const updates = req.body;
 
@@ -1068,7 +1068,7 @@ router.put('/:imei', verificarPermissao('veiculos', 'editar'), asyncHandler(asyn
 
 // PUT /api/dispositivos/:imei/status-uso - Alterar status de uso do dispositivo
 // Status: ativo (em uso), disponivel (livre para vincular), inativo (guardado/removido)
-router.put('/:imei/status-uso', verificarPermissao('veiculos', 'editar'), asyncHandler(async (req, res) => {
+router.put('/:imei/status-uso', verificarPropriedadeDispositivo, verificarPermissao('veiculos', 'editar'), asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const { status_uso } = req.body;
 
@@ -1099,7 +1099,7 @@ router.put('/:imei/status-uso', verificarPermissao('veiculos', 'editar'), asyncH
 // ============ IGNIÇÃO VIRTUAL ============
 
 // PUT /api/dispositivos/:imei/ignicao-virtual - Configure virtual ignition
-router.put('/:imei/ignicao-virtual', asyncHandler(async (req, res) => {
+router.put('/:imei/ignicao-virtual', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const { ativar, tensao_motor_ligado, tensao_motor_deslig } = req.body;
 
@@ -1148,7 +1148,7 @@ router.put('/:imei/ignicao-virtual', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/dispositivos/:imei/ignicao-virtual - Get virtual ignition config
-router.get('/:imei/ignicao-virtual', asyncHandler(async (req, res) => {
+router.get('/:imei/ignicao-virtual', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
 
   const device = await prisma.dispositivo.findUnique({
@@ -1240,7 +1240,7 @@ router.get('/perfis-veiculo/sugerir/:ano', (req, res) => {
 });
 
 // PUT /api/dispositivos/:imei/perfil-veiculo - Define perfil de veículo
-router.put('/:imei/perfil-veiculo', asyncHandler(async (req, res) => {
+router.put('/:imei/perfil-veiculo', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const { perfil, ano, tensao_motor_ligado, tensao_motor_deslig } = req.body;
 
@@ -1278,7 +1278,7 @@ router.put('/:imei/perfil-veiculo', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/dispositivos/:imei/perfil-veiculo - Obtém configuração de perfil
-router.get('/:imei/perfil-veiculo', asyncHandler(async (req, res) => {
+router.get('/:imei/perfil-veiculo', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
 
   const status = await calibracaoService.getStatusCalibracao(imei);
@@ -1290,7 +1290,7 @@ router.get('/:imei/perfil-veiculo', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/dispositivos/:imei/calibracao/processar - Força processamento de calibração
-router.post('/:imei/calibracao/processar', asyncHandler(async (req, res) => {
+router.post('/:imei/calibracao/processar', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
 
   const resultado = await calibracaoService.processarCalibracao(imei);
@@ -1302,7 +1302,7 @@ router.post('/:imei/calibracao/processar', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/dispositivos/:imei/calibracao/aplicar - Aplica sugestão de calibração
-router.post('/:imei/calibracao/aplicar', asyncHandler(async (req, res) => {
+router.post('/:imei/calibracao/aplicar', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
 
   const device = await calibracaoService.aplicarSugestao(imei);
@@ -1315,7 +1315,7 @@ router.post('/:imei/calibracao/aplicar', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/dispositivos/:imei/calibracao/rejeitar - Rejeita sugestão de calibração
-router.post('/:imei/calibracao/rejeitar', asyncHandler(async (req, res) => {
+router.post('/:imei/calibracao/rejeitar', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
 
   const device = await calibracaoService.rejeitarSugestao(imei);
@@ -1328,7 +1328,7 @@ router.post('/:imei/calibracao/rejeitar', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/dispositivos/:imei/calibracao/anomalias - Detecta anomalias de tensão
-router.get('/:imei/calibracao/anomalias', asyncHandler(async (req, res) => {
+router.get('/:imei/calibracao/anomalias', verificarPropriedadeDispositivo, asyncHandler(async (req, res) => {
   const { imei } = req.params;
 
   const resultado = await calibracaoService.detectarAnomalias(imei);
@@ -1341,7 +1341,7 @@ router.get('/:imei/calibracao/anomalias', asyncHandler(async (req, res) => {
 
 // DELETE /api/dispositivos/:imei - Delete device
 // ✅ Verifica permissão de excluir veículos
-router.delete('/:imei', verificarPermissao('veiculos', 'excluir'), asyncHandler(async (req, res) => {
+router.delete('/:imei', verificarPropriedadeDispositivo, verificarPermissao('veiculos', 'excluir'), asyncHandler(async (req, res) => {
   const { imei } = req.params;
 
   await dispositivoService.delete(imei);
