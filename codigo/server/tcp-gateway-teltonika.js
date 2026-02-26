@@ -236,6 +236,10 @@ async function processBuffer(socket, session) {
           percentual_bateria: record.percentual_bateria,
           sinal_gsm: record.sinal_gsm,
           movimento: record.movimento,
+          // Dados OBD2 extras
+          rpm: record.rpm,
+          temperatura_motor: record.temperatura_motor,
+          nivel_combustivel: record.nivel_combustivel,
           timestamp: record.timestamp.toISOString(),
           protocol: 'teltonika',
           codec: `0x${parsed.codecId.toString(16).padStart(2, '0')}`,

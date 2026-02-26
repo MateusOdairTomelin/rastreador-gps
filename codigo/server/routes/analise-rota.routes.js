@@ -6,6 +6,9 @@ const fetch = require('node-fetch');
 // ✅ Multi-tenant: Middleware de verificação de propriedade
 const { verificarDispositivoTenant } = require('../middleware/tenant-device.middleware');
 
+// ✅ Suporte a dispositivos OBD2 (Teltonika, X3Tech, etc)
+const { supportsOBD2 } = require('../constants/device-types');
+
 // Serviço de filtro GPS com Kalman, Hampel, etc.
 const gpsFilterService = require('../services/gps-filter.service');
 
@@ -126,13 +129,14 @@ router.get('/:imei/analisar', verificarDispositivoTenant, async (req, res) => {
       // ✅ Lógica diferenciada por tipo de dispositivo
       let motorLigado = false;
       let motorDesligado = false;
+      const isOBD2DeviceAnalise = supportsOBD2(dispositivo.tipo);
 
       if (dispositivo.tipo === 'XT40_4F') {
         // XT40_4F: Usa ignição virtual (baseada na tensão da bateria)
         motorLigado = loc.ignicao === true && loc.velocidade === 0;
         motorDesligado = loc.ignicao === false && loc.velocidade === 0;
-      } else if (dispositivo.tipo === 'XT40_OBD2') {
-        // XT40_OBD2: Prioridade: RPM > Tensao > estado_ignicao
+      } else if (isOBD2DeviceAnalise) {
+        // Dispositivos OBD2 (XT40_OBD2, Teltonika FMB010, etc): Prioridade: RPM > Tensao > estado_ignicao
         const temRPM = obd2 && obd2.rpm !== null && obd2.rpm !== undefined && obd2.rpm > 0;
         const temTensao = obd2 && obd2.tensao_principal !== null && obd2.tensao_principal !== undefined;
 

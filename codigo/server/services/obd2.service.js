@@ -396,24 +396,22 @@ class OBD2Service {
 
     // ✅ Atualizar estado_ignicao APENAS para dispositivos OBD2 REAIS
     // NÃO sobrescrever estado de ignição para:
-    // - XT40_4F (rastreador com cabo) - usa detectarEstadoIgnicao() do location-processor
+    // - Dispositivos que não suportam OBD2 (XT40_4F, etc) - usa detectarEstadoIgnicao() do location-processor
     // - Dispositivos com usa_ignicao_virtual=true - usa lógica de tensão do location-processor
     // - Dispositivos com conexao_pos_chave=true - usa lógica de tensão do location-processor
-    const isOBD2Device = dispositivo.tipo === 'XT40_OBD2';
-    const isXT40_4F = dispositivo.tipo === 'XT40_4F';
     const usaIgnicaoVirtual = dispositivo.usa_ignicao_virtual === true;
     const conexaoPosChave = dispositivo.conexao_pos_chave === true;
     const tensao = validFields.tensao_principal || 0;
     const temDadosOBD2Reais = tensao > 0;
 
     // ⚠️ NÃO SOBRESCREVER estado de ignição para dispositivos que usam detectarEstadoIgnicao()
-    if (isXT40_4F || usaIgnicaoVirtual || conexaoPosChave) {
+    if (!suportaOBD2 || usaIgnicaoVirtual || conexaoPosChave) {
       console.log(`[OBD2] ${imei}: ${dispositivo.tipo} (virtual=${usaIgnicaoVirtual}, posChave=${conexaoPosChave}) - NÃO sobrescrevendo estado_ignicao`);
-    } else if ((suportaOBD2 || isOBD2Device) && temDadosOBD2Reais) {
+    } else if (suportaOBD2 && temDadosOBD2Reais) {
       const velocidade = validFields.velocidade || 0;
       let estadoIgnicao;
 
-      // Para XT40_OBD2 com dados reais:
+      // Para dispositivos OBD2 (XT40_OBD2, Teltonika FMB010, etc) com dados reais:
       // - ignicao=true explicitamente OU tensao >= 13.5V = motor ligado
       // - ignicao=false OU tensao < 13V = motor desligado
       const ignicaoLigada = validFields.ignicao === true || tensao >= 13.5;
@@ -433,10 +431,10 @@ class OBD2Service {
       });
 
       console.log(`[OBD2] ${imei}: Estado ignição atualizado -> ${estadoIgnicao} (ignicao=${validFields.ignicao}, tensao=${tensao}V, vel=${velocidade})`);
-    } else if (isOBD2Device) {
-      // XT40_OBD2 sem dados OBD2 reais: não atualizar estado_ignicao aqui
+    } else if (suportaOBD2 && !temDadosOBD2Reais) {
+      // Dispositivo OBD2 sem dados OBD2 reais: não atualizar estado_ignicao aqui
       // O location-processor já definiu o estado baseado em velocidade
-      console.log(`[OBD2] ${imei}: XT40_OBD2 sem dados OBD2 reais (tensao=${tensao}V) - mantendo estado do location-processor`);
+      console.log(`[OBD2] ${imei}: ${dispositivo.tipo} sem dados OBD2 reais (tensao=${tensao}V) - mantendo estado do location-processor`);
     }
 
     return await prisma.dadosOBD2.create({

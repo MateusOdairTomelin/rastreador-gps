@@ -22,6 +22,7 @@ const viagemService = require('../services/viagem.service');
 const heartbeatService = require('../services/heartbeat.service');
 const obd2Service = require('../services/obd2.service');
 const { pipeline: gpsPipeline } = require('../services/gps-pipeline.service');
+const { supportsOBD2 } = require('../constants/device-types');
 const redisService = require('../services/redis.service');
 
 // ========== HELPER: Calcular distância entre coordenadas ==========
@@ -415,10 +416,10 @@ async function processLocationMessage(message) {
     }
 
     // Detectar ignição (com fallback por voltagem para instalações com ACC errado)
-    // ⚠️ Para XT40_OBD2: NÃO usar detecção de ignição dos location packets
-    // A tensão e ACC dos location packets são INCORRETOS para XT40_OBD2
+    // ⚠️ Para dispositivos OBD2 (XT40_OBD2, Teltonika FMB010, etc): NÃO usar detecção de ignição dos location packets
+    // A tensão e ACC dos location packets podem ser INCORRETOS para dispositivos OBD2
     // O estado_ignicao correto vem APENAS do obd2Service.create()
-    const isOBD2Device = dispositivo?.tipo === 'XT40_OBD2';
+    const isOBD2Device = supportsOBD2(dispositivo?.tipo);
 
     let estadoIgnicao = null;
     if (!isOBD2Device) {
@@ -558,11 +559,14 @@ async function processLocationMessage(message) {
       }
     }
 
-    // Se pacote tem dados OBD2 extras (0x22) ou tensão principal (para ignição virtual)
-    // ✅ Para XT40_OBD2: SEMPRE chamar obd2Service para atualizar estado_ignicao
+    // Se pacote tem dados OBD2 extras ou tensão principal (para ignição virtual)
+    // ✅ Para dispositivos OBD2 (XT40_OBD2, Teltonika FMB010, etc): SEMPRE chamar obd2Service
     if (locationData.odometro_embarcado !== undefined ||
         locationData.hora_motor_embarcada !== undefined ||
         locationData.tensao_principal !== undefined ||
+        locationData.rpm !== undefined ||
+        locationData.temperatura_motor !== undefined ||
+        locationData.nivel_combustivel !== undefined ||
         isOBD2Device) {
       await obd2Service.create(imei, locationData);
     }

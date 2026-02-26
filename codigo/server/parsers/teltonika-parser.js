@@ -59,10 +59,22 @@ class TeltonikaParser {
       253: { name: 'green_driving_type', description: 'Tipo evento Green Driving' },
       254: { name: 'green_driving_value', description: 'Valor Green Driving' },
       255: { name: 'overspeeding', description: 'Excesso velocidade' },
+      // OBD2 IOs
+      31: { name: 'obd_total_mileage', description: 'Odômetro OBD2 (km)' },
+      83: { name: 'obd_engine_rpm', description: 'RPM Motor OBD2' },
+      84: { name: 'obd_fuel_level', description: 'Nível Combustível OBD2 (%)' },
+      85: { name: 'obd_vehicle_speed', description: 'Velocidade OBD2 (km/h)' },
+      86: { name: 'obd_coolant_temp', description: 'Temperatura Motor OBD2 (°C)' },
+      87: { name: 'obd_engine_load', description: 'Carga Motor OBD2 (%)' },
+      89: { name: 'obd_fuel_level_liters', description: 'Combustível OBD2 (litros)' },
+      90: { name: 'obd_throttle', description: 'Acelerador OBD2 (%)' },
       // IOs estendidos (Codec 8E - 2 bytes)
       256: { name: 'vin', description: 'VIN do veículo' },
       281: { name: 'fault_codes', description: 'Códigos de falha' },
       385: { name: 'beacon_ids', description: 'IDs Beacons' },
+      389: { name: 'obd_oem_total_mileage', description: 'Odômetro OEM OBD2 (km)' },
+      390: { name: 'obd_fuel_consumed', description: 'Combustível Consumido OBD2' },
+      391: { name: 'obd_average_fuel', description: 'Consumo Médio OBD2 (L/100km)' },
     };
 
     // Tabela CRC-16/IBM (polinômio 0xA001)
@@ -425,7 +437,13 @@ class TeltonikaParser {
         io: io.elements,
         // Mapear IOs comuns para campos padrão
         ignicao: io.elements.ignition === 1 || io.elements.digital_input_1 === 1,
-        odometro_embarcado: io.elements.total_odometer ? Math.round(io.elements.total_odometer / 1000) : null, // metros -> km
+        // Preferir odômetro OBD2 (IO 389/31) sobre GPS (IO 16)
+        odometro_embarcado: io.elements.obd_oem_total_mileage || io.elements.obd_total_mileage ||
+          (io.elements.total_odometer ? Math.round(io.elements.total_odometer / 1000) : null), // metros -> km para GPS
+        // Dados OBD2 adicionais
+        rpm: io.elements.obd_engine_rpm || null,
+        temperatura_motor: io.elements.obd_coolant_temp || null,
+        nivel_combustivel: io.elements.obd_fuel_level || null,
         tensao_bateria: io.elements.battery_voltage ? io.elements.battery_voltage / 1000 : null, // mV -> V
         tensao_principal: io.elements.external_voltage ? io.elements.external_voltage / 1000 : null, // mV -> V
         percentual_bateria: io.elements.battery_level || null,

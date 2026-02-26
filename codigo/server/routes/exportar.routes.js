@@ -1050,13 +1050,14 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
         // Lógica diferenciada por tipo de dispositivo
         let motorLigado = false;
         let motorDesligado = false;
+        const isOBD2DeviceCSV = supportsOBD2(dispositivo.tipo);
 
         if (dispositivo.tipo === 'XT40_4F') {
           // XT40_4F: Usa ignição virtual (baseada na tensão da bateria)
           motorLigado = loc.ignicao === true && loc.velocidade === 0;
           motorDesligado = loc.ignicao === false && loc.velocidade === 0;
-        } else if (dispositivo.tipo === 'XT40_OBD2') {
-          // XT40_OBD2: Prioridade: RPM > Tensao > Estado ignicao
+        } else if (isOBD2DeviceCSV) {
+          // Dispositivos OBD2 (XT40_OBD2, Teltonika FMB010, etc): Prioridade: RPM > Tensao > Estado ignicao
           const temRPM = obd2 && obd2.rpm !== null && obd2.rpm !== undefined && obd2.rpm > 0;
           const temTensao = obd2 && obd2.tensao_principal !== null && obd2.tensao_principal !== undefined;
 
@@ -1723,13 +1724,14 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
           // Lógica diferenciada por tipo de dispositivo
           let motorLigado = false;
           let motorDesligado = false;
+          const isOBD2DevicePDF = supportsOBD2(dispositivo.tipo);
 
           if (dispositivo.tipo === 'XT40_4F') {
             // XT40_4F: Usa ignição virtual (baseada na tensão da bateria)
             motorLigado = loc.ignicao === true && loc.velocidade === 0;
             motorDesligado = loc.ignicao === false && loc.velocidade === 0;
-          } else if (dispositivo.tipo === 'XT40_OBD2') {
-            // XT40_OBD2: Prioridade: RPM > Tensao > Estado ignicao
+          } else if (isOBD2DevicePDF) {
+            // Dispositivos OBD2 (XT40_OBD2, Teltonika FMB010, etc): Prioridade: RPM > Tensao > Estado ignicao
             const temRPM = obd2 && obd2.rpm !== null && obd2.rpm !== undefined && obd2.rpm > 0;
             const temTensao = obd2 && obd2.tensao_principal !== null && obd2.tensao_principal !== undefined;
 

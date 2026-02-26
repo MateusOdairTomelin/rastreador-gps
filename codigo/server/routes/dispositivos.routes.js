@@ -7,7 +7,7 @@ const obd2Service = require('../services/obd2.service');
 const alarmeService = require('../services/alarme.service');
 const heartbeatService = require('../services/heartbeat.service');
 const consultaPlacaService = require('../services/consulta-placa.service');
-const { getAllDeviceTypes, getDeviceTypeInfo, getHomologatedDeviceTypes, getDefaultConfig } = require('../constants/device-types');
+const { getAllDeviceTypes, getDeviceTypeInfo, getHomologatedDeviceTypes, getDefaultConfig, supportsOBD2 } = require('../constants/device-types');
 const { getAllVehicleProfiles, getVehicleProfile, suggestProfileByYear } = require('../constants/vehicle-profiles');
 const calibracaoService = require('../services/calibracao.service');
 const { verificarPermissao } = require('../middleware/permissao.middleware');
@@ -639,14 +639,14 @@ router.get('/', asyncHandler(async (req, res) => {
     let estadoIgnicaoFinal = 'off';
     const velocidadeAtual = localizacaoRecente?.velocidade || 0;
     const ignicaoAtiva = localizacaoRecente?.ignicao === true;
-    const isOBD2Device = d.tipo === 'XT40_OBD2';
+    const isOBD2DeviceDisp = supportsOBD2(d.tipo);
 
     if (actualStatus === 'offline') {
       // Se offline, sempre 'off'
       estadoIgnicaoFinal = 'off';
-    } else if (isOBD2Device && d.estado_ignicao) {
-      // ⚠️ Para XT40_OBD2: usar SEMPRE o estado do dispositivo (vem do obd2Service, é confiável)
-      // Os location packets de XT40_OBD2 têm dados de ignição incorretos
+    } else if (isOBD2DeviceDisp && d.estado_ignicao) {
+      // ⚠️ Para dispositivos OBD2: usar SEMPRE o estado do dispositivo (vem do obd2Service, é confiável)
+      // Os location packets de dispositivos OBD2 podem ter dados de ignição incorretos
       estadoIgnicaoFinal = d.estado_ignicao;
     } else if (localizacaoRecente?.estado_ignicao) {
       // Se tem estado_ignicao na localização, usar esse (mais confiável)
