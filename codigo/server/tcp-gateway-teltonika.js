@@ -127,6 +127,8 @@ async function processBuffer(socket, session) {
   // Se não autenticado, esperar IMEI
   if (!session.authenticated) {
     // IMEI packet: [length:2][IMEI:15-16]
+    console.log(`[Teltonika:${GATEWAY_ID}] 📥 Buffer recebido: ${session.buffer.length} bytes - ${session.buffer.slice(0, Math.min(30, session.buffer.length)).toString('hex')}`);
+
     if (session.buffer.length >= 17) {
       const imei = teltonikaParser.parseImei(session.buffer);
 
