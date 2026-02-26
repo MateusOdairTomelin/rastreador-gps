@@ -276,11 +276,12 @@ router.get('/localizacoes', autenticar, tenantContext, async (req, res) => {
 
       const dispositivoIds = dispositivos.map(d => d.id);
 
-      // Contar localizações da última hora para esses dispositivos
+      // Contar localizações INSERIDAS na última hora para esses dispositivos
+      // Usa created_at (hora de inserção) em vez de timestamp (hora GPS)
       const locCount = await prisma.localizacao.count({
         where: {
           dispositivo_id: { in: dispositivoIds },
-          timestamp: { gte: umaHoraAtras }
+          created_at: { gte: umaHoraAtras }
         }
       });
 
