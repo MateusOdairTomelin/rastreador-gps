@@ -667,6 +667,101 @@ class VeiculoService {
       total_dispositivos: dispositivoIds.length
     };
   }
+
+  /**
+   * Buscar IDs de dispositivos de um veículo em um período
+   * Usado para buscar localizações considerando trocas de rastreador
+   *
+   * @param {number} veiculo_id - ID do veículo
+   * @param {Date} dataInicio - Data início do período (opcional)
+   * @param {Date} dataFim - Data fim do período (opcional)
+   * @returns {Promise<number[]>} Array de dispositivo_ids
+   */
+  async getDispositivoIdsPorPeriodo(veiculo_id, dataInicio = null, dataFim = null) {
+    // Buscar histórico de dispositivos do veículo
+    const whereHistorico = { veiculo_id };
+
+    // Se tem período, filtrar dispositivos que estavam vinculados nesse período
+    if (dataInicio || dataFim) {
+      whereHistorico.AND = [];
+
+      // Dispositivo estava vinculado antes do fim do período
+      if (dataFim) {
+        whereHistorico.AND.push({
+          data_vinculo: { lte: new Date(dataFim) }
+        });
+      }
+
+      // Dispositivo foi desvinculado depois do início do período (ou ainda está vinculado)
+      if (dataInicio) {
+        whereHistorico.AND.push({
+          OR: [
+            { data_desvinculo: null }, // Ainda vinculado
+            { data_desvinculo: { gte: new Date(dataInicio) } } // Desvinculado depois do início
+          ]
+        });
+      }
+    }
+
+    const historico = await prisma.veiculoDispositivoHistorico.findMany({
+      where: whereHistorico,
+      select: { dispositivo_id: true }
+    });
+
+    // Retornar IDs únicos
+    return [...new Set(historico.map(h => h.dispositivo_id))];
+  }
+
+  /**
+   * Buscar dispositivo atual E todos os históricos de um veículo
+   * Retorna informações completas para exibição
+   */
+  async getDispositivosComHistorico(veiculo_id, organizacao_id) {
+    const veiculo = await prisma.veiculo.findFirst({
+      where: { id: veiculo_id, organizacao_id },
+      include: {
+        dispositivos: {
+          select: {
+            id: true,
+            imei: true,
+            tipo: true,
+            status: true,
+            ultima_conexao: true
+          }
+        }
+      }
+    });
+
+    if (!veiculo) {
+      throw new Error('Veículo não encontrado');
+    }
+
+    const historico = await prisma.veiculoDispositivoHistorico.findMany({
+      where: { veiculo_id },
+      include: {
+        dispositivo: {
+          select: {
+            id: true,
+            imei: true,
+            tipo: true,
+            status: true
+          }
+        }
+      },
+      orderBy: { data_vinculo: 'desc' }
+    });
+
+    return {
+      veiculo,
+      dispositivo_atual: veiculo.dispositivos[0] || null,
+      historico: historico.map(h => ({
+        dispositivo: h.dispositivo,
+        data_vinculo: h.data_vinculo,
+        data_desvinculo: h.data_desvinculo,
+        ativo: h.ativo
+      }))
+    };
+  }
 }
 
 module.exports = new VeiculoService();

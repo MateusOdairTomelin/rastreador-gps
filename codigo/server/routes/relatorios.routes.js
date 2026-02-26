@@ -18,6 +18,9 @@ const { verificarDispositivoTenant } = require('../middleware/tenant-device.midd
 // Serviço de limite de velocidade por via
 const velocidadeViaService = require('../services/velocidade-via.service');
 
+// Serviço de veículos (para histórico de dispositivos)
+const veiculoService = require('../services/veiculo.service');
+
 // ============ HELPERS ============
 
 function formatDateTime(date) {
@@ -51,6 +54,56 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 
 function toRad(deg) {
   return deg * (Math.PI / 180);
+}
+
+/**
+ * Expande um dispositivo_id para incluir TODOS os dispositivos do mesmo veículo
+ * Isso permite buscar histórico completo mesmo após troca de rastreador
+ *
+ * @param {number} dispositivo_id - ID do dispositivo atual
+ * @param {Date} inicio - Data início do período
+ * @param {Date} fim - Data fim do período
+ * @returns {Promise<number[]>} Array de dispositivo_ids (inclui o original + histórico)
+ */
+async function expandirDispositivosDoVeiculo(dispositivo_id, inicio, fim) {
+  try {
+    // Buscar o dispositivo para ver se tem veículo vinculado
+    const dispositivo = await prisma.dispositivo.findUnique({
+      where: { id: dispositivo_id },
+      select: { id: true, veiculo_id: true }
+    });
+
+    if (!dispositivo) {
+      return [dispositivo_id];
+    }
+
+    // Se não tem veículo, retorna apenas o dispositivo atual
+    if (!dispositivo.veiculo_id) {
+      return [dispositivo_id];
+    }
+
+    // Buscar todos os dispositivos que já estiveram vinculados a este veículo no período
+    const dispositivoIds = await veiculoService.getDispositivoIdsPorPeriodo(
+      dispositivo.veiculo_id,
+      inicio,
+      fim
+    );
+
+    // Se não encontrou histórico, retorna apenas o dispositivo atual
+    if (!dispositivoIds || dispositivoIds.length === 0) {
+      return [dispositivo_id];
+    }
+
+    // Garantir que o dispositivo atual está incluído
+    if (!dispositivoIds.includes(dispositivo_id)) {
+      dispositivoIds.push(dispositivo_id);
+    }
+
+    return dispositivoIds;
+  } catch (error) {
+    console.error('[Relatórios] Erro ao expandir dispositivos do veículo:', error.message);
+    return [dispositivo_id];
+  }
 }
 
 function formatarTempo(minutos) {
@@ -201,10 +254,13 @@ router.get('/velocidade/:imei', verificarDispositivoTenant, async (req, res) => 
     const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 24 * 60 * 60 * 1000);
     const fim = dataFim ? new Date(dataFim) : new Date();
 
-    // Buscar localizações
+    // Expandir para todos os dispositivos do veículo (histórico de trocas de rastreador)
+    const dispositivoIds = await expandirDispositivosDoVeiculo(dispositivo.id, inicio, fim);
+
+    // Buscar localizações de TODOS os dispositivos do veículo
     const localizacoes = await prisma.localizacao.findMany({
       where: {
-        dispositivo_id: dispositivo.id,
+        dispositivo_id: { in: dispositivoIds },
         timestamp: { gte: inicio, lte: fim }
       },
       orderBy: { timestamp: 'asc' }
@@ -667,10 +723,13 @@ router.get('/ocioso/:imei', verificarDispositivoTenant, async (req, res) => {
     const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 24 * 60 * 60 * 1000);
     const fim = dataFim ? new Date(dataFim) : new Date();
 
-    // Buscar localizações
+    // Expandir para todos os dispositivos do veículo (histórico de trocas de rastreador)
+    const dispositivoIds = await expandirDispositivosDoVeiculo(dispositivo.id, inicio, fim);
+
+    // Buscar localizações de TODOS os dispositivos do veículo
     const localizacoes = await prisma.localizacao.findMany({
       where: {
-        dispositivo_id: dispositivo.id,
+        dispositivo_id: { in: dispositivoIds },
         timestamp: { gte: inicio, lte: fim }
       },
       orderBy: { timestamp: 'asc' }
@@ -924,10 +983,13 @@ router.get('/quilometragem/:imei', verificarDispositivoTenant, async (req, res) 
     const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // Último 7 dias
     const fim = dataFim ? new Date(dataFim) : new Date();
 
-    // Buscar localizações
+    // Expandir para todos os dispositivos do veículo (histórico de trocas de rastreador)
+    const dispositivoIds = await expandirDispositivosDoVeiculo(dispositivo.id, inicio, fim);
+
+    // Buscar localizações de TODOS os dispositivos do veículo
     const localizacoes = await prisma.localizacao.findMany({
       where: {
-        dispositivo_id: dispositivo.id,
+        dispositivo_id: { in: dispositivoIds },
         timestamp: { gte: inicio, lte: fim }
       },
       orderBy: { timestamp: 'asc' }
