@@ -10318,13 +10318,24 @@
           </div>
         </div>
 
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label>Vincular a Veículo Existente</label>
+          <div style="display: flex; gap: 8px;">
+            <select id="form-veiculo-existente" style="flex: 1; padding: 10px; border: 1px solid #374151; border-radius: 6px; background: #1f2937; color: #f3f4f6;">
+              <option value="">-- Selecione um veículo --</option>
+            </select>
+            <button type="button" class="btn btn-secondary" onclick="carregarVeiculosParaVincular()" style="padding: 10px 12px;" title="Atualizar lista">↻</button>
+          </div>
+          <small style="color: #9CA3AF; font-size: 0.85em;">Selecione um veículo cadastrado OU preencha os campos abaixo manualmente</small>
+        </div>
+
         <div class="form-group-row">
           <div class="form-group">
-            <label>Veículo</label>
+            <label>Veículo (manual)</label>
             <input type="text" id="form-veiculo" placeholder="Nome do veículo">
           </div>
           <div class="form-group">
-            <label>Placa</label>
+            <label>Placa (manual)</label>
             <input type="text" id="form-placa" placeholder="ABC-1234">
           </div>
         </div>
@@ -15430,6 +15441,9 @@
       // 4. ABRIR MODAL IMEDIATAMENTE
       document.getElementById('device-modal').classList.add('active');
 
+      // 4.1 Carregar veículos para vincular
+      carregarVeiculosParaVincular();
+
       // 5. Carregar dados extras em BACKGROUND (não bloqueia)
       const loadExtras = async () => {
         try {
@@ -15478,6 +15492,54 @@
       loadExtras();
     }
 
+    // Carregar veículos disponíveis para vincular
+    async function carregarVeiculosParaVincular() {
+      const select = document.getElementById('form-veiculo-existente');
+      if (!select) return;
+
+      select.innerHTML = '<option value="">Carregando...</option>';
+
+      try {
+        const response = await authFetch(`${API_URL}/veiculos`);
+        const data = await response.json();
+        const veiculos = data.veiculos || [];
+
+        select.innerHTML = '<option value="">-- Selecione um veículo --</option>';
+        veiculos.forEach(v => {
+          const desc = [v.marca, v.modelo].filter(Boolean).join(' ');
+          const opt = document.createElement('option');
+          opt.value = v.id;
+          opt.textContent = `${v.placa} - ${desc || 'Sem descrição'}`;
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        console.error('Erro ao carregar veículos:', e);
+        select.innerHTML = '<option value="">Erro ao carregar</option>';
+      }
+    }
+
+    // Atualizar campos quando seleciona um veículo existente
+    document.getElementById('form-veiculo-existente')?.addEventListener('change', async function() {
+      const veiculoId = this.value;
+      if (!veiculoId) return;
+
+      // Buscar dados do veículo selecionado
+      try {
+        const response = await authFetch(`${API_URL}/veiculos/${veiculoId}`);
+        const data = await response.json();
+        if (data.sucesso && data.veiculo) {
+          const v = data.veiculo;
+          document.getElementById('form-veiculo').value = [v.marca, v.modelo].filter(Boolean).join(' ') || '';
+          document.getElementById('form-placa').value = v.placa || '';
+          if (v.ano) {
+            document.getElementById('form-ano-veiculo').value = v.ano;
+          }
+        }
+      } catch (e) {
+        console.warn('Erro ao carregar dados do veículo:', e);
+      }
+    });
+
     function closeModal() {
       document.getElementById('device-modal').classList.remove('active');
       document.getElementById('device-form').reset();
@@ -15485,6 +15547,9 @@
       // Ocultar campos condicionais ao fechar
       document.getElementById('odometro-group').style.display = 'none';
       document.getElementById('tensao-info-group').style.display = 'none';
+      // Resetar select de veículo
+      const selectVeiculo = document.getElementById('form-veiculo-existente');
+      if (selectVeiculo) selectVeiculo.value = '';
     }
 
     document.getElementById('device-form')?.addEventListener('submit', async (e) => {
@@ -15541,11 +15606,32 @@
         const data = await response.json();
         console.log('Dispositivo salvo:', data);
 
-        // Mostrar mensagem apropriada
-        if (data.acao === 'atualizado') {
-          toastSuccess('Dispositivo ' + imei + ' atualizado com sucesso!');
+        // Vincular ao veículo existente se selecionado
+        const veiculoIdSelecionado = document.getElementById('form-veiculo-existente')?.value;
+        if (veiculoIdSelecionado && data.dispositivo?.id) {
+          try {
+            const vincularRes = await authFetch(`${API_URL}/veiculos/${veiculoIdSelecionado}/vincular`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ dispositivo_id: data.dispositivo.id })
+            });
+            const vincularData = await vincularRes.json();
+            if (vincularData.sucesso) {
+              toastSuccess('Dispositivo vinculado ao veículo com sucesso!');
+            } else {
+              toastWarning('Dispositivo salvo, mas erro ao vincular: ' + (vincularData.erro || ''));
+            }
+          } catch (vincErr) {
+            console.error('Erro ao vincular:', vincErr);
+            toastWarning('Dispositivo salvo, mas erro ao vincular ao veículo');
+          }
         } else {
-          toastSuccess('Novo dispositivo adicionado com sucesso!');
+          // Mostrar mensagem apropriada
+          if (data.acao === 'atualizado') {
+            toastSuccess('Dispositivo ' + imei + ' atualizado com sucesso!');
+          } else {
+            toastSuccess('Novo dispositivo adicionado com sucesso!');
+          }
         }
 
         closeModal();
