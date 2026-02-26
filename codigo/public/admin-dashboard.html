@@ -10913,7 +10913,8 @@
         // Se tem mais de uma organização, mostrar seletor
         if (minhasOrganizacoes.length > 1) {
           renderizarSeletorOrganizacoes();
-          document.getElementById('org-selector-container').style.display = 'flex';
+          const selectorContainer = document.getElementById('org-selector-container');
+          if (selectorContainer) selectorContainer.style.display = 'flex';
         }
       } catch (error) {
         console.error('[Orgs] Erro ao carregar organizações:', error);
@@ -16913,31 +16914,75 @@
       root.style.setProperty('--bg-main', corFundo);
       root.style.setProperty('--text', corTexto);
       root.style.setProperty('--text-light', corTextoSec);
+      root.style.setProperty('--text-muted', corTextoSec);
 
-      // Variáveis de card e hover baseadas no tema
+      // Variáveis de card, surface e hover baseadas no tema
       if (isTemaClaro) {
         root.style.setProperty('--bg-card', 'rgba(255, 255, 255, 0.95)');
         root.style.setProperty('--bg-card-hover', 'rgba(255, 255, 255, 1)');
         root.style.setProperty('--bg-hover', 'rgba(0, 0, 0, 0.05)');
-        root.style.setProperty('--border', 'rgba(0, 0, 0, 0.1)');
-        root.style.setProperty('--shadow', '0 2px 8px rgba(0, 0, 0, 0.1)');
+        root.style.setProperty('--bg-white', 'rgba(255, 255, 255, 0.9)');
+        root.style.setProperty('--border', 'rgba(0, 0, 0, 0.12)');
+        root.style.setProperty('--border-light', 'rgba(0, 0, 0, 0.08)');
+        root.style.setProperty('--surface', '#ffffff');
+        root.style.setProperty('--surface-alt', '#f8fafc');
+        root.style.setProperty('--input-bg', '#ffffff');
+        root.style.setProperty('--input-text', '#1e293b');
+        root.style.setProperty('--card-shadow', '0 4px 20px rgba(0, 0, 0, 0.08)');
+        root.style.setProperty('--card-shadow-hover', '0 8px 30px rgba(0, 0, 0, 0.12)');
       } else {
         root.style.setProperty('--bg-card', `rgba(${hexToRgb(corPrimaria)}, 0.08)`);
         root.style.setProperty('--bg-card-hover', `rgba(${hexToRgb(corPrimaria)}, 0.12)`);
         root.style.setProperty('--bg-hover', `rgba(${hexToRgb(corPrimaria)}, 0.1)`);
-        root.style.setProperty('--border', `rgba(${hexToRgb(corPrimaria)}, 0.2)`);
-        root.style.setProperty('--shadow', '0 2px 8px rgba(0, 0, 0, 0.3)');
+        root.style.setProperty('--bg-white', `rgba(${hexToRgb(corFundoSec)}, 0.6)`);
+        root.style.setProperty('--border', `rgba(${hexToRgb(corPrimaria)}, 0.25)`);
+        root.style.setProperty('--border-light', `rgba(${hexToRgb(corPrimaria)}, 0.15)`);
+        root.style.setProperty('--surface', corFundoSec);
+        root.style.setProperty('--surface-alt', corFundo);
+        root.style.setProperty('--input-bg', corFundoSec);
+        root.style.setProperty('--input-text', corTexto);
+        root.style.setProperty('--card-shadow', `0 4px 20px rgba(${hexToRgb(corSecundaria)}, 0.3)`);
+        root.style.setProperty('--card-shadow-hover', `0 8px 30px rgba(${hexToRgb(corPrimaria)}, 0.2)`);
       }
 
       // Aplicar gradiente de fundo no body
       document.body.style.background = `linear-gradient(135deg, ${corFundo} 0%, ${corFundoSec} 50%, ${corFundo} 100%)`;
 
+      // Atualizar sidebar
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar) {
+        if (isTemaClaro) {
+          sidebar.style.background = 'linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%)';
+          sidebar.style.borderRight = '1px solid rgba(0,0,0,0.1)';
+        } else {
+          sidebar.style.background = `linear-gradient(180deg, ${corFundoSec} 0%, ${corFundo} 100%)`;
+          sidebar.style.borderRight = `1px solid rgba(${hexToRgb(corPrimaria)}, 0.2)`;
+        }
+      }
+
+      // Atualizar topbar
+      const topbar = document.querySelector('.topbar');
+      if (topbar) {
+        if (isTemaClaro) {
+          topbar.style.background = 'rgba(255, 255, 255, 0.95)';
+          topbar.style.borderBottom = '1px solid rgba(0,0,0,0.1)';
+        } else {
+          topbar.style.background = `rgba(${hexToRgb(corFundoSec)}, 0.95)`;
+          topbar.style.borderBottom = `1px solid rgba(${hexToRgb(corPrimaria)}, 0.2)`;
+        }
+      }
+
       // Atualizar cores das esferas flutuantes (orbs)
       const orbs = document.querySelectorAll('.floating-orb');
       orbs.forEach((orb, i) => {
-        if (i === 0) orb.style.background = `radial-gradient(circle, ${corPrimaria}40 0%, transparent 70%)`;
-        else if (i === 1) orb.style.background = `radial-gradient(circle, ${corSecundaria}30 0%, transparent 70%)`;
-        else orb.style.background = `radial-gradient(circle, ${corPrimaria}25 0%, transparent 70%)`;
+        if (isTemaClaro) {
+          orb.style.display = 'none'; // Esconder orbs no tema claro
+        } else {
+          orb.style.display = 'block';
+          if (i === 0) orb.style.background = `radial-gradient(circle, ${corPrimaria}40 0%, transparent 70%)`;
+          else if (i === 1) orb.style.background = `radial-gradient(circle, ${corSecundaria}30 0%, transparent 70%)`;
+          else orb.style.background = `radial-gradient(circle, ${corPrimaria}25 0%, transparent 70%)`;
+        }
       });
 
       // Salvar tema atual no window para uso em outras funções
