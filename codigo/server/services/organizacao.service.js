@@ -228,6 +228,8 @@ class OrganizacaoService {
       ...(cnpj !== undefined && { cnpj })
     };
 
+    console.log('[Org] Atualizando org', id, '- config_tema recebido:', config_tema, '- dadosAtualizacao:', JSON.stringify(dadosAtualizacao));
+
     const organizacao = await prisma.organizacao.update({
       where: { id },
       data: dadosAtualizacao
