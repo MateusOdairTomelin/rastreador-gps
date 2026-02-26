@@ -75,6 +75,8 @@ const tcpServer = net.createServer((socket) => {
     session.lastActivity = Date.now();
     stats.packetsReceived++;
 
+    console.log(`[Teltonika:${GATEWAY_ID}] 📦 DATA recebido: ${data.length} bytes - HEX: ${data.toString('hex').substring(0, 60)}`);
+
     try {
       // Acumular dados no buffer
       session.buffer = Buffer.concat([session.buffer, data]);
