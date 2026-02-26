@@ -23,6 +23,7 @@ RUN npx prisma generate
 
 # Copiar código do gateway
 COPY server/tcp-gateway.js ./server/
+COPY server/tcp-gateway-teltonika.js ./server/
 COPY server/tcp-packet-buffer.js ./server/
 COPY server/parsers ./server/parsers/
 COPY server/services/redis-streams.service.js ./server/services/

@@ -217,6 +217,7 @@ services:
       dockerfile: Dockerfile.tcp-gateway
     container_name: rastreador-teltonika-gw-1
     restart: unless-stopped
+    command: ["node", "server/tcp-gateway-teltonika.js"]
     environment:
       - GATEWAY_ID=teltonika-1
       - GATEWAY_TYPE=teltonika
