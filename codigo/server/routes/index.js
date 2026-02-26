@@ -1442,10 +1442,10 @@ router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) =
         SELECT
           d.tipo,
           COUNT(DISTINCT d.id) as total_devices,
-          COUNT(CASE WHEN d.status = 'online' THEN 1 END) as online,
+          COUNT(DISTINCT CASE WHEN d.status = 'online' THEN d.id END) as online,
           COUNT(l.id) FILTER (WHERE l.created_at >= ${oneMinAgo}) as inserts_1min,
           COUNT(l.id) FILTER (WHERE l.created_at >= ${fiveMinAgo}) as inserts_5min,
-          ROUND(AVG(EXTRACT(EPOCH FROM (l.created_at - l.timestamp)))::numeric, 1) FILTER (WHERE l.created_at >= ${fiveMinAgo}) as avg_delay_sec
+          ROUND((AVG(EXTRACT(EPOCH FROM (l.created_at - l.timestamp))) FILTER (WHERE l.created_at >= ${fiveMinAgo}))::numeric, 1) as avg_delay_sec
         FROM dispositivos d
         LEFT JOIN localizacoes l ON l.dispositivo_id = d.id AND l.created_at >= ${fiveMinAgo}
         WHERE d.tipo IS NOT NULL
