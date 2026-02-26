@@ -59,6 +59,21 @@ const DEVICE_TYPES = {
     homologado: true,
   },
 
+  // Teltonika FMB010 - OBD2 Plug & Play 2G
+  // ✅ HOMOLOGADO - Disponível para seleção na dashboard
+  TELTONIKA_FMB010: {
+    id: 'TELTONIKA_FMB010',
+    nome: 'Teltonika FMB010',
+    descricao: 'Rastreador OBD2 Plug & Play 2G GPRS',
+    conexao: 'obd2',
+    protocolo: 'teltonika',
+    porta_tcp: 8879,
+    suporta_obd2: true,
+    usa_ignicao_virtual: false,
+    firmware_pattern: /FMB010/i,
+    homologado: true,
+  },
+
   // Teltonika FMB125 - 2G GPRS com antenas internas
   // ✅ HOMOLOGADO - Disponível para seleção na dashboard
   TELTONIKA_FMB125: {
