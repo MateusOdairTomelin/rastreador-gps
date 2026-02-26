@@ -667,20 +667,14 @@
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #080b2a 0%, #0d1042 25%, #131E7D 50%, #212492 75%, #131E7D 100%) !important;
-      background-attachment: fixed !important;
-      color: var(--text) !important;
+      background: linear-gradient(135deg, var(--bg) 0%, var(--bg-light) 50%, var(--bg) 100%);
+      background-attachment: fixed;
+      color: var(--text);
       line-height: 1.6;
       min-height: 100vh;
       position: relative;
       overflow-x: hidden;
       max-width: 100vw;
-    }
-
-    /* Garantir fundo Unifique em ambos os modos */
-    [data-theme="light"] body,
-    [data-theme="dark"] body {
-      background: linear-gradient(135deg, #080b2a 0%, #0d1042 25%, #131E7D 50%, #212492 75%, #131E7D 100%) !important;
     }
 
     /* Aurora animated background - UNIFIQUE */
@@ -803,18 +797,18 @@
       overflow-x: hidden;
     }
 
-    /* ====== SIDEBAR UNIFIQUE ====== */
+    /* ====== SIDEBAR ====== */
     .sidebar {
       width: 260px;
-      background: rgba(19, 30, 125, 0.5);
+      background: var(--bg-white);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      color: white;
+      color: var(--text);
       display: flex;
       flex-direction: column;
       overflow-y: auto;
       position: relative;
-      border-right: 1px solid rgba(63, 207, 213, 0.2);
+      border-right: 1px solid var(--border);
     }
 
     .sidebar::before {
@@ -824,9 +818,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background:
-        radial-gradient(ellipse at top left, rgba(63, 207, 213, 0.15) 0%, transparent 50%),
-        radial-gradient(ellipse at bottom right, rgba(0, 162, 255, 0.1) 0%, transparent 50%);
+      background: none;
       pointer-events: none;
     }
 
@@ -1045,8 +1037,8 @@
     /* ====== TOPBAR UNIFIQUE ====== */
     .topbar {
       height: 70px;
-      background: rgba(19, 30, 125, 0.4);
-      border-bottom: 1px solid rgba(63, 207, 213, 0.2);
+      background: var(--bg-white);
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1064,7 +1056,7 @@
       left: 0;
       right: 0;
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.3), transparent);
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
     }
 
     .topbar-title {
