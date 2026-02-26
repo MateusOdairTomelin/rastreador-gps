@@ -135,6 +135,9 @@ class ConsultaPlacaService {
    * Formata resultado para padrão único
    */
   formatarResultado(dados) {
+    // Inferir tipo de veículo baseado na marca/modelo
+    const tipo = this.inferirTipoVeiculo(dados.marca, dados.modelo);
+
     return {
       placa: dados.placa,
       marca: dados.marca || null,
@@ -142,6 +145,7 @@ class ConsultaPlacaService {
       ano: dados.ano ? parseInt(dados.ano) : null,
       anoFabricacao: dados.anoFabricacao ? parseInt(dados.anoFabricacao) : null,
       cor: dados.cor || null,
+      tipo: tipo, // ✅ NOVO: Tipo de veículo inferido
       municipio: dados.municipio || null,
       uf: dados.uf || null,
       origem: dados.origem || null,
@@ -150,6 +154,58 @@ class ConsultaPlacaService {
       fonte: dados.fonte,
       consultadoEm: new Date().toISOString()
     };
+  }
+
+  /**
+   * ✅ NOVO: Infere o tipo de veículo baseado na marca/modelo
+   */
+  inferirTipoVeiculo(marca, modelo) {
+    if (!marca && !modelo) return null;
+
+    const texto = `${marca || ''} ${modelo || ''}`.toUpperCase();
+
+    // Motos
+    const marcasMoto = ['HONDA', 'YAMAHA', 'SUZUKI', 'KAWASAKI', 'HARLEY', 'BMW MOTORRAD', 'DAFRA', 'SHINERAY', 'HAOJUE'];
+    const modelosMoto = ['CG', 'BIZ', 'POP', 'TITAN', 'FAN', 'XRE', 'CB', 'NXR', 'BROS', 'YBR', 'FAZER', 'XTZ', 'LANDER', 'CROSSER', 'MT-', 'MT03', 'MT07', 'MT09', 'NINJA', 'Z400', 'Z900', 'BURGMAN', 'VESPA', 'PCX', 'SH', 'LEAD', 'ADV', 'SCOOTER'];
+
+    for (const m of marcasMoto) {
+      if (texto.includes(m)) return 'MOTOCICLETA';
+    }
+    for (const m of modelosMoto) {
+      if (texto.includes(m)) return 'MOTOCICLETA';
+    }
+
+    // Caminhões
+    const marcasCaminhao = ['SCANIA', 'VOLVO TRUCK', 'DAF', 'MAN', 'IVECO'];
+    const modelosCaminhao = ['CARGO', 'CONSTELLATION', 'ACCELO', 'ATEGO', 'AXOR', 'ACTROS', 'DELIVERY', 'WORKER', 'TITAN', 'FH', 'FM', 'VM', 'NH', 'STRALIS', 'TECTOR', 'DAILY CHASSI', '1016', '1116', '1316', '1516', '1716', '1719', '1723', '1729', '1933', '2429', '2533', '2536', '3033', '1319', '1419', '1519', '1619', '1719', '1819', '1919', '2019', '2419', '2429', '2629', '2635', '3030', '4030', '4430'];
+
+    for (const m of marcasCaminhao) {
+      if (texto.includes(m)) return 'CAMINHAO';
+    }
+    for (const m of modelosCaminhao) {
+      if (texto.includes(m)) return 'CAMINHAO';
+    }
+
+    // Ônibus
+    const modelosOnibus = ['ONIBUS', 'ÔNIBUS', 'BUS', 'COMIL', 'MARCOPOLO', 'BUSSCAR', 'CAIO', 'NEOBUS', 'MASCARELLO', 'VOLARE', 'AGRALE MA', 'MICRO ONIBUS', 'MICROONIBUS', 'SENIOR', 'URBANO'];
+    for (const m of modelosOnibus) {
+      if (texto.includes(m)) return 'ONIBUS';
+    }
+
+    // Vans
+    const modelosVan = ['SPRINTER', 'DUCATO', 'MASTER', 'BOXER', 'TRANSIT', 'DAILY', 'JUMPER', 'IVECO DAILY', 'H100', 'H350', 'HR', 'BONGO', 'TOPIC', 'SPACE VAN', 'FURGAO'];
+    for (const m of modelosVan) {
+      if (texto.includes(m)) return 'VAN';
+    }
+
+    // Utilitários (Pickups e SUVs grandes)
+    const modelosUtilitario = ['HILUX', 'S10', 'RANGER', 'AMAROK', 'FRONTIER', 'L200', 'TRITON', 'SAVEIRO', 'STRADA', 'MONTANA', 'TORO', 'OROCH', 'MAVERICK', 'F-250', 'F250', 'SILVERADO', 'RAM', 'TITAN PICKUP'];
+    for (const m of modelosUtilitario) {
+      if (texto.includes(m)) return 'UTILITARIO';
+    }
+
+    // Se não identificou, provavelmente é carro
+    return 'AUTOMOVEL';
   }
 
   /**

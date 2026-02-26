@@ -23721,6 +23721,25 @@
         veiculo = veiculosSecaoCache.find(v => v.id === veiculoId);
       }
 
+      // Carregar tags disponíveis
+      let tagsDisponiveis = [];
+      let tagsVeiculo = [];
+      try {
+        const [tagsResp, veiculoTagsResp] = await Promise.all([
+          authFetch(`${API_URL}/tags`),
+          veiculoId ? authFetch(`${API_URL}/tags/veiculo/${veiculoId}`) : Promise.resolve(null)
+        ]);
+        const tagsData = await tagsResp.json();
+        if (tagsData.sucesso) tagsDisponiveis = tagsData.dados || [];
+        if (veiculoTagsResp) {
+          const veiculoTagsData = await veiculoTagsResp.json();
+          if (veiculoTagsData.sucesso) tagsVeiculo = veiculoTagsData.dados || [];
+        }
+      } catch (e) {
+        console.warn('Erro ao carregar tags:', e);
+      }
+      const tagsVeiculoIds = tagsVeiculo.map(t => t.id);
+
       const modal = document.createElement('div');
       modal.id = 'modal-veiculo';
       modal.className = 'modal-backdrop';
@@ -23763,17 +23782,26 @@
                 <input type="text" id="veiculo-cor" value="${veiculo?.cor || ''}" placeholder="Ex: Branco, Prata..." style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px;">
               </div>
             </div>
-            <div class="form-group">
-              <label>Tipo de Veiculo</label>
-              <select id="veiculo-tipo" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px;">
-                <option value="">Selecione...</option>
-                <option value="carro" ${veiculo?.tipo_veiculo === 'carro' ? 'selected' : ''}>Carro</option>
-                <option value="moto" ${veiculo?.tipo_veiculo === 'moto' ? 'selected' : ''}>Moto</option>
-                <option value="caminhao" ${veiculo?.tipo_veiculo === 'caminhao' ? 'selected' : ''}>Caminhao</option>
-                <option value="van" ${veiculo?.tipo_veiculo === 'van' ? 'selected' : ''}>Van</option>
-                <option value="onibus" ${veiculo?.tipo_veiculo === 'onibus' ? 'selected' : ''}>Onibus</option>
-                <option value="utilitario" ${veiculo?.tipo_veiculo === 'utilitario' ? 'selected' : ''}>Utilitario</option>
-              </select>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div class="form-group">
+                <label>Tipo de Veiculo</label>
+                <select id="veiculo-tipo" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px;">
+                  <option value="">Selecione...</option>
+                  <option value="carro" ${veiculo?.tipo_veiculo === 'carro' ? 'selected' : ''}>Carro</option>
+                  <option value="moto" ${veiculo?.tipo_veiculo === 'moto' ? 'selected' : ''}>Moto</option>
+                  <option value="caminhao" ${veiculo?.tipo_veiculo === 'caminhao' ? 'selected' : ''}>Caminhao</option>
+                  <option value="van" ${veiculo?.tipo_veiculo === 'van' ? 'selected' : ''}>Van</option>
+                  <option value="onibus" ${veiculo?.tipo_veiculo === 'onibus' ? 'selected' : ''}>Onibus</option>
+                  <option value="utilitario" ${veiculo?.tipo_veiculo === 'utilitario' ? 'selected' : ''}>Utilitario</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Tags</label>
+                <select id="veiculo-tags" multiple style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; min-height: 80px;">
+                  ${tagsDisponiveis.map(t => `<option value="${t.id}" ${tagsVeiculoIds.includes(t.id) ? 'selected' : ''} style="padding: 4px; color: ${t.cor || '#666'};">${t.nome}</option>`).join('')}
+                </select>
+                <small style="color: var(--text-light); font-size: 11px;">Ctrl+clique para selecionar multiplas</small>
+              </div>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <div class="form-group">
@@ -23838,6 +23866,7 @@
               'MOTOCICLETA': 'moto',
               'CAMINHAO': 'caminhao',
               'ONIBUS': 'onibus',
+              'VAN': 'van',
               'UTILITARIO': 'utilitario'
             };
             const tipoNormalizado = tipoMap[dados.tipo.toUpperCase()] || '';
@@ -23894,6 +23923,21 @@
 
         const result = await response.json();
         if (result.sucesso) {
+          // Salvar tags do veículo
+          const veiculoIdFinal = veiculoId || result.dados?.id;
+          if (veiculoIdFinal) {
+            const tagsSelect = document.getElementById('veiculo-tags');
+            const tagsSelecionadas = Array.from(tagsSelect?.selectedOptions || []).map(opt => parseInt(opt.value));
+            try {
+              await authFetch(`${API_URL}/tags/veiculo/${veiculoIdFinal}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tag_ids: tagsSelecionadas })
+              });
+            } catch (e) {
+              console.warn('Erro ao salvar tags:', e);
+            }
+          }
           toastSuccess(veiculoId ? 'Veiculo atualizado!' : 'Veiculo cadastrado!');
           fecharModalVeiculo();
           carregarVeiculosSecao();
