@@ -254,7 +254,11 @@ router.get('/heartbeats/:imei', autenticar, tenantContext, async (req, res) => {
 router.get('/localizacoes', autenticar, tenantContext, async (req, res) => {
   try {
     const orgId = req.tenantFilter?.organizacao_id;
-    const umaHoraAtras = new Date(Date.now() - 60 * 60 * 1000);
+
+    // Calcular início da hora atual (ex: 14:00:00 se agora é 14:35)
+    const agora = new Date();
+    const inicioHoraAtual = new Date(agora);
+    inicioHoraAtual.setMinutes(0, 0, 0); // Zera minutos, segundos, milissegundos
 
     // ✅ Multi-tenant: Contar apenas localizações dos dispositivos da organização
     if (orgId) {
@@ -276,12 +280,12 @@ router.get('/localizacoes', autenticar, tenantContext, async (req, res) => {
 
       const dispositivoIds = dispositivos.map(d => d.id);
 
-      // Contar localizações INSERIDAS na última hora para esses dispositivos
-      // Usa created_at (hora de inserção) em vez de timestamp (hora GPS)
+      // Contar localizações INSERIDAS desde o início da hora atual
+      // Ex: se são 14:35, conta desde 14:00:00
       const locCount = await prisma.localizacao.count({
         where: {
           dispositivo_id: { in: dispositivoIds },
-          created_at: { gte: umaHoraAtras }
+          created_at: { gte: inicioHoraAtual }
         }
       });
 
@@ -293,23 +297,29 @@ router.get('/localizacoes', autenticar, tenantContext, async (req, res) => {
         }
       });
 
+      // Calcular minutos desde início da hora
+      const minutosDaHora = agora.getMinutes();
+
       return res.json({
         sucesso: true,
         total: locCount,
-        heartbeats: onlineCount * 60, // Estimativa: dispositivos online * heartbeats esperados/hora
-        periodo: 'última hora',
+        heartbeats: onlineCount * minutosDaHora, // Estimativa baseada nos minutos transcorridos
+        periodo: `esta hora (${minutosDaHora} min)`,
+        inicioHora: inicioHoraAtual.toISOString(),
         timestamp: new Date().toISOString(),
       });
     }
 
-    // Super admin vê stats globais
+    // Super admin vê stats globais (também reseta por hora)
     const hourlyStats = await heartbeatService.getHourlyStats();
+    const minutosDaHora = agora.getMinutes();
 
     res.json({
       sucesso: true,
       total: hourlyStats.locations,
       heartbeats: hourlyStats.heartbeats,
-      periodo: 'última hora',
+      periodo: `esta hora (${minutosDaHora} min)`,
+      inicioHora: inicioHoraAtual.toISOString(),
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
