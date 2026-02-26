@@ -319,29 +319,45 @@ class MapMatcher {
 
   /**
    * Auto-flush: processa todos os batches pendentes
+   * ✅ CORRIGIDO: Também limpa pontos órfãos (apenas 1 ponto que nunca será processado)
    */
   async autoFlush() {
     const imeis = Array.from(this.pendingPoints.keys());
     let processados = 0;
+    let limpos = 0;
+    const now = Date.now();
 
     for (const imei of imeis) {
       const pending = this.pendingPoints.get(imei);
+
       if (pending && pending.length >= 2) {
+        // Batch com 2+ pontos - processar normalmente
         try {
           const matched = await this.processBatch(imei);
           if (matched.length > 0 && matched[0].matched) {
-            // Guardar último ponto matched para uso futuro
             this.lastMatchedPoints.set(imei, matched[matched.length - 1]);
             processados += matched.length;
           }
         } catch (e) {
           console.warn(`[MapMatch] Auto-flush erro ${imei}: ${e.message}`);
         }
+      } else if (pending && pending.length === 1) {
+        // ✅ NOVO: Ponto órfão (apenas 1) - verificar idade
+        // Se o ponto está pendente há mais de 30 segundos, descartar
+        // Isso evita acúmulo de pontos que nunca serão processados
+        const pontoUnico = pending[0];
+        const timestamp = pontoUnico.timestamp ? new Date(pontoUnico.timestamp).getTime() : 0;
+        const idade = now - timestamp;
+
+        if (idade > 30000) { // 30 segundos
+          this.pendingPoints.delete(imei);
+          limpos++;
+        }
       }
     }
 
-    if (processados > 0) {
-      console.log(`[MapMatch] Auto-flush: ${processados} pontos processados de ${imeis.length} dispositivos`);
+    if (processados > 0 || limpos > 0) {
+      console.log(`[MapMatch] Auto-flush: ${processados} processados, ${limpos} órfãos limpos (${this.pendingPoints.size} pendentes)`);
     }
   }
 
@@ -549,6 +565,9 @@ class GPSCorrectionPipeline {
     // Filtros de Kalman por dispositivo
     this.kalmanFilters = new Map();
 
+    // ✅ NOVO: Rastrear última atividade de cada IMEI para limpeza
+    this.lastActivity = new Map(); // imei -> timestamp
+
     // Map-Matcher compartilhado
     this.mapMatcher = new MapMatcher(this.config.mapMatching);
 
@@ -560,7 +579,11 @@ class GPSCorrectionPipeline {
       mapMatched: 0,
       errors: 0,
       totalCorrectionMeters: 0,
-      avgProcessingTimeMs: 0
+      avgProcessingTimeMs: 0,
+      // ✅ NOVO: Métricas de memória
+      kalmanFiltersSize: 0,
+      pendingPointsSize: 0,
+      lastCleanup: Date.now()
     };
 
     // Log de estatísticas periódico
@@ -568,11 +591,58 @@ class GPSCorrectionPipeline {
       setInterval(() => this.logStats(), this.config.logging.statsIntervalMs);
     }
 
+    // ✅ NOVO: Limpeza periódica de dispositivos inativos (a cada 5 minutos)
+    setInterval(() => this.cleanupInactiveDevices(), 5 * 60 * 1000);
+
     console.log('[GPS Pipeline] Inicializado com configuração:', {
       kalman: this.config.kalman.enabled,
       ai: this.config.ai.enabled,
       mapMatching: this.config.mapMatching.enabled
     });
+  }
+
+  /**
+   * ✅ NOVO: Limpa dispositivos inativos dos Maps
+   * Remove filtros Kalman e pontos pendentes de dispositivos sem atividade há 30+ minutos
+   */
+  cleanupInactiveDevices() {
+    const now = Date.now();
+    const maxInactiveMs = 30 * 60 * 1000; // 30 minutos
+    let kalmanCleaned = 0;
+    let pendingCleaned = 0;
+
+    // Limpar Kalman filters inativos
+    for (const [imei, lastTime] of this.lastActivity.entries()) {
+      if (now - lastTime > maxInactiveMs) {
+        if (this.kalmanFilters.has(imei)) {
+          this.kalmanFilters.delete(imei);
+          kalmanCleaned++;
+        }
+        this.lastActivity.delete(imei);
+      }
+    }
+
+    // Limpar pontos pendentes do MapMatcher
+    if (this.mapMatcher && this.mapMatcher.pendingPoints) {
+      for (const [imei, points] of this.mapMatcher.pendingPoints.entries()) {
+        const lastActivityTime = this.lastActivity.get(imei);
+        if (!lastActivityTime || now - lastActivityTime > maxInactiveMs) {
+          this.mapMatcher.pendingPoints.delete(imei);
+          this.mapMatcher.lastMatchedPoints.delete(imei);
+          pendingCleaned++;
+        }
+      }
+    }
+
+    // Atualizar métricas
+    this.stats.kalmanFiltersSize = this.kalmanFilters.size;
+    this.stats.pendingPointsSize = this.mapMatcher?.pendingPoints?.size || 0;
+    this.stats.lastCleanup = now;
+
+    if (kalmanCleaned > 0 || pendingCleaned > 0) {
+      console.log(`[GPS Pipeline] 🧹 Cleanup: ${kalmanCleaned} Kalman, ${pendingCleaned} pendingPoints removidos`);
+      console.log(`[GPS Pipeline] 📊 Estado atual: ${this.kalmanFilters.size} Kalman, ${this.mapMatcher?.pendingPoints?.size || 0} pendingPoints`);
+    }
   }
 
   /**
@@ -585,6 +655,9 @@ class GPSCorrectionPipeline {
   async processar(position, imei) {
     const inicio = Date.now();
     this.stats.processed++;
+
+    // ✅ NOVO: Registrar última atividade do IMEI
+    this.lastActivity.set(imei, inicio);
 
     let resultado = {
       lat: position.latitude,
@@ -953,7 +1026,23 @@ class GPSCorrectionPipeline {
   logStats() {
     if (this.stats.processed > 0) {
       const stats = this.getStats();
+
+      // ✅ NOVO: Atualizar métricas de tamanho dos Maps
+      this.stats.kalmanFiltersSize = this.kalmanFilters.size;
+      this.stats.pendingPointsSize = this.mapMatcher?.pendingPoints?.size || 0;
+
       console.log(`[GPS Pipeline] Stats: ${stats.processed} processados, Kalman=${stats.kalmanRate}, IA=${stats.aiRate}, MapMatch=${stats.mapMatchRate}, Correção média=${stats.avgCorrectionMeters.toFixed(1)}m, Tempo médio=${stats.avgProcessingTimeMs.toFixed(1)}ms`);
+
+      // ✅ NOVO: Log de estado dos Maps (IMPORTANTE para diagnóstico de delay)
+      console.log(`[GPS Pipeline] 📊 Maps: ${this.kalmanFilters.size} kalman, ${this.mapMatcher?.pendingPoints?.size || 0} pendingPoints, ${this.lastActivity.size} tracked`);
+
+      // ✅ ALERTA: Se Maps estão muito grandes, pode indicar problema
+      if (this.kalmanFilters.size > 5000) {
+        console.warn(`[GPS Pipeline] ⚠️ ALERTA: kalmanFilters muito grande (${this.kalmanFilters.size}), pode causar lentidão!`);
+      }
+      if ((this.mapMatcher?.pendingPoints?.size || 0) > 1000) {
+        console.warn(`[GPS Pipeline] ⚠️ ALERTA: pendingPoints muito grande (${this.mapMatcher?.pendingPoints?.size}), pode causar delay!`);
+      }
     }
   }
 
