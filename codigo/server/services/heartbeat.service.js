@@ -83,15 +83,26 @@ class HeartbeatService {
   }
 
   /**
-   * Verifica se deve resetar estatísticas (a cada hora)
+   * Verifica se deve resetar estatísticas (no início de cada hora: 14:00, 15:00, etc.)
    */
   checkAndResetStats() {
-    const now = Date.now();
-    if (now - this.lastStatsReset >= STATS_RESET_INTERVAL) {
-      console.log(`[Heartbeat] 🔄 Resetando contadores horários (heartbeats: ${this.hourlyHeartbeats}, locations: ${this.hourlyLocations})`);
+    const now = new Date();
+    const currentHour = now.getHours();
+
+    // Verificar se mudou de hora desde o último reset
+    const lastResetDate = new Date(this.lastStatsReset);
+    const lastResetHour = lastResetDate.getHours();
+
+    // Se a hora atual é diferente da hora do último reset, reseta
+    // Também reseta se passou mais de 1 hora (caso servidor ficou parado)
+    const hourChanged = currentHour !== lastResetHour;
+    const tooOld = (now.getTime() - this.lastStatsReset) > STATS_RESET_INTERVAL;
+
+    if (hourChanged || tooOld) {
+      console.log(`[Heartbeat] 🔄 Resetando contadores (hora ${lastResetHour}→${currentHour}, heartbeats: ${this.hourlyHeartbeats}, locations: ${this.hourlyLocations})`);
       this.hourlyHeartbeats = 0;
       this.hourlyLocations = 0;
-      this.lastStatsReset = now;
+      this.lastStatsReset = now.getTime();
 
       // Resetar contador global no Redis também
       if (this.isRedisAvailable()) {
