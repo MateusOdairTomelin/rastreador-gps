@@ -23734,11 +23734,11 @@
           veiculoId ? authFetch(`${API_URL}/tags/veiculo/${veiculoId}`) : Promise.resolve(null)
         ]);
         const tagsData = await tagsResp.json();
-        if (tagsData.sucesso) veiculoTagsDisponiveis = tagsData.dados || [];
+        if (tagsData.sucesso) veiculoTagsDisponiveis = tagsData.tags || [];
         if (veiculoTagsResp) {
           const veiculoTagsData = await veiculoTagsResp.json();
           if (veiculoTagsData.sucesso) {
-            (veiculoTagsData.dados || []).forEach(t => veiculoTagsSelecionadas.add(t.id));
+            (veiculoTagsData.tags || []).forEach(t => veiculoTagsSelecionadas.add(t.id));
           }
         }
       } catch (e) {
