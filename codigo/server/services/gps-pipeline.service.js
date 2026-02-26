@@ -319,45 +319,31 @@ class MapMatcher {
 
   /**
    * Auto-flush: processa todos os batches pendentes
-   * ✅ CORRIGIDO: Também limpa pontos órfãos (apenas 1 ponto que nunca será processado)
    */
   async autoFlush() {
     const imeis = Array.from(this.pendingPoints.keys());
     let processados = 0;
-    let limpos = 0;
-    const now = Date.now();
 
     for (const imei of imeis) {
       const pending = this.pendingPoints.get(imei);
-
       if (pending && pending.length >= 2) {
-        // Batch com 2+ pontos - processar normalmente
         try {
           const matched = await this.processBatch(imei);
           if (matched.length > 0 && matched[0].matched) {
+            // Guardar último ponto matched para uso futuro
             this.lastMatchedPoints.set(imei, matched[matched.length - 1]);
             processados += matched.length;
           }
         } catch (e) {
           console.warn(`[MapMatch] Auto-flush erro ${imei}: ${e.message}`);
         }
-      } else if (pending && pending.length === 1) {
-        // ✅ NOVO: Ponto órfão (apenas 1) - verificar idade
-        // Se o ponto está pendente há mais de 30 segundos, descartar
-        // Isso evita acúmulo de pontos que nunca serão processados
-        const pontoUnico = pending[0];
-        const timestamp = pontoUnico.timestamp ? new Date(pontoUnico.timestamp).getTime() : 0;
-        const idade = now - timestamp;
-
-        if (idade > 30000) { // 30 segundos
-          this.pendingPoints.delete(imei);
-          limpos++;
-        }
       }
+      // ✅ Pontos órfãos (apenas 1) são limpos pelo cleanupInactiveDevices()
+      // após 30 minutos de inatividade - não é agressivo demais
     }
 
-    if (processados > 0 || limpos > 0) {
-      console.log(`[MapMatch] Auto-flush: ${processados} processados, ${limpos} órfãos limpos (${this.pendingPoints.size} pendentes)`);
+    if (processados > 0) {
+      console.log(`[MapMatch] Auto-flush: ${processados} pontos processados de ${imeis.length} dispositivos`);
     }
   }
 
