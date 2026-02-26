@@ -23998,22 +23998,80 @@
       const dropdown = document.getElementById('veiculo-tags-dropdown');
       if (!dropdown) return;
 
-      const buscaLower = busca.toLowerCase();
+      const buscaLower = busca.toLowerCase().trim();
       const tagsNaoSelecionadas = veiculoTagsDisponiveis.filter(t =>
         !veiculoTagsSelecionadas.has(t.id) &&
         t.nome.toLowerCase().includes(buscaLower)
       );
 
-      if (tagsNaoSelecionadas.length === 0) {
-        dropdown.innerHTML = `<div style="padding: 12px; color: var(--text-light); text-align: center;">${veiculoTagsDisponiveis.length === 0 ? 'Nenhuma tag cadastrada' : 'Nenhuma tag disponivel'}</div>`;
+      // Verificar se existe tag com nome exato
+      const tagExisteExata = veiculoTagsDisponiveis.some(t => t.nome.toLowerCase() === buscaLower);
+
+      let html = '';
+
+      // Se digitou algo e não existe tag com esse nome, mostrar opção de criar
+      if (busca.trim() && !tagExisteExata) {
+        html += `
+          <div onclick="criarTagRapida('${escapeHtml(busca.trim())}')"
+            style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; border-bottom: 1px solid var(--border); background: var(--primary)11;"
+            onmouseover="this.style.background='var(--primary)22'" onmouseout="this.style.background='var(--primary)11'">
+            <span style="width: 20px; height: 20px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: bold;">+</span>
+            <span style="color: var(--primary); font-weight: 500;">Criar tag "${escapeHtml(busca.trim())}"</span>
+          </div>
+        `;
+      }
+
+      if (tagsNaoSelecionadas.length === 0 && !busca.trim()) {
+        html += `<div style="padding: 12px; color: var(--text-light); text-align: center;">${veiculoTagsDisponiveis.length === 0 ? 'Nenhuma tag cadastrada' : 'Nenhuma tag disponivel'}</div>`;
       } else {
-        dropdown.innerHTML = tagsNaoSelecionadas.map(tag => `
+        html += tagsNaoSelecionadas.map(tag => `
           <div onclick="adicionarTagVeiculo(${tag.id})" style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s;"
             onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
             <span style="width: 12px; height: 12px; border-radius: 50%; background: ${tag.cor || '#666'};"></span>
             <span>${tag.nome}</span>
           </div>
         `).join('');
+      }
+
+      dropdown.innerHTML = html;
+    }
+
+    // Criar tag rapidamente e adicionar ao veículo
+    async function criarTagRapida(nome) {
+      if (!nome.trim()) return;
+
+      try {
+        // Gerar cor aleatória
+        const cores = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+        const corAleatoria = cores[Math.floor(Math.random() * cores.length)];
+
+        const response = await authFetch(`${API_URL}/tags`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome: nome.trim(), cor: corAleatoria })
+        });
+
+        const data = await response.json();
+        if (data.sucesso && data.tag) {
+          // Adicionar à lista de tags disponíveis
+          veiculoTagsDisponiveis.push(data.tag);
+          // Selecionar a nova tag
+          veiculoTagsSelecionadas.add(data.tag.id);
+          // Atualizar interface
+          renderizarChipsTags();
+          // Limpar input e fechar dropdown
+          const input = document.getElementById('veiculo-tags-input');
+          if (input) input.value = '';
+          const dropdown = document.getElementById('veiculo-tags-dropdown');
+          if (dropdown) dropdown.style.display = 'none';
+
+          console.log('[Tags] Tag criada e adicionada:', data.tag);
+        } else {
+          alert(data.mensagem || 'Erro ao criar tag');
+        }
+      } catch (error) {
+        console.error('[Tags] Erro ao criar tag:', error);
+        alert('Erro ao criar tag: ' + error.message);
       }
     }
 
