@@ -149,21 +149,25 @@ router.get('/heartbeats', autenticar, tenantContext, async (req, res) => {
       return devices.filter(d => imeiSet.has(d.imei));
     };
 
+    // Função para calcular stats filtrados
+    const calcFilteredStats = (filtered) => ({
+      total_devices: filtered.length,
+      connected: filtered.filter(d => d.status === 'connected').length,
+      active: filtered.filter(d => d.status === 'active').length,
+      idle: filtered.filter(d => d.status === 'idle').length,
+      offline: filtered.filter(d => d.status === 'offline').length,
+      // Somar contagens de heartbeats apenas dos dispositivos filtrados
+      total_heartbeats: filtered.reduce((sum, d) => sum + (d.count || 0), 0),
+      devices: filtered
+    });
+
     // Se cache válido, retorna imediatamente (mas sempre filtra por org)
     if (heartbeatsGlobalCache && (now - heartbeatsCacheTime) < HEARTBEATS_CACHE_TTL) {
       const filtered = await filterByOrg(heartbeatsGlobalCache.devices);
 
       return res.json({
         sucesso: true,
-        dados: {
-          ...heartbeatsGlobalCache,
-          devices: filtered,
-          total_devices: filtered.length,
-          connected: filtered.filter(d => d.status === 'connected').length,
-          active: filtered.filter(d => d.status === 'active').length,
-          idle: filtered.filter(d => d.status === 'idle').length,
-          offline: filtered.filter(d => d.status === 'offline').length
-        },
+        dados: calcFilteredStats(filtered),
         timestamp: new Date().toISOString(),
         cached: true
       });
@@ -174,15 +178,7 @@ router.get('/heartbeats', autenticar, tenantContext, async (req, res) => {
       const filtered = await filterByOrg(heartbeatsGlobalCache.devices);
       return res.json({
         sucesso: true,
-        dados: {
-          ...heartbeatsGlobalCache,
-          devices: filtered,
-          total_devices: filtered.length,
-          connected: filtered.filter(d => d.status === 'connected').length,
-          active: filtered.filter(d => d.status === 'active').length,
-          idle: filtered.filter(d => d.status === 'idle').length,
-          offline: filtered.filter(d => d.status === 'offline').length
-        },
+        dados: calcFilteredStats(filtered),
         timestamp: new Date().toISOString(),
         cached: true
       });
@@ -211,15 +207,7 @@ router.get('/heartbeats', autenticar, tenantContext, async (req, res) => {
 
     res.json({
       sucesso: true,
-      dados: {
-        ...heartbeatsGlobalCache,
-        devices: filtered,
-        total_devices: filtered.length,
-        connected: filtered.filter(d => d.status === 'connected').length,
-        active: filtered.filter(d => d.status === 'active').length,
-        idle: filtered.filter(d => d.status === 'idle').length,
-        offline: filtered.filter(d => d.status === 'offline').length
-      },
+      dados: calcFilteredStats(filtered),
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
@@ -265,7 +253,55 @@ router.get('/heartbeats/:imei', autenticar, tenantContext, async (req, res) => {
 // Localizações endpoint - retorna contadores horários (protegido + multi-tenant)
 router.get('/localizacoes', autenticar, tenantContext, async (req, res) => {
   try {
-    // Usar contadores horários do heartbeatService (reseta a cada hora)
+    const orgId = req.tenantFilter?.organizacao_id;
+    const umaHoraAtras = new Date(Date.now() - 60 * 60 * 1000);
+
+    // ✅ Multi-tenant: Contar apenas localizações dos dispositivos da organização
+    if (orgId) {
+      // Buscar dispositivos da organização
+      const dispositivos = await prisma.dispositivo.findMany({
+        where: { organizacao_id: orgId },
+        select: { id: true }
+      });
+
+      if (dispositivos.length === 0) {
+        return res.json({
+          sucesso: true,
+          total: 0,
+          heartbeats: 0,
+          periodo: 'última hora',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const dispositivoIds = dispositivos.map(d => d.id);
+
+      // Contar localizações da última hora para esses dispositivos
+      const locCount = await prisma.localizacao.count({
+        where: {
+          dispositivo_id: { in: dispositivoIds },
+          timestamp: { gte: umaHoraAtras }
+        }
+      });
+
+      // Para heartbeats, usar contagem de dispositivos online
+      const onlineCount = await prisma.dispositivo.count({
+        where: {
+          id: { in: dispositivoIds },
+          status: 'online'
+        }
+      });
+
+      return res.json({
+        sucesso: true,
+        total: locCount,
+        heartbeats: onlineCount * 60, // Estimativa: dispositivos online * heartbeats esperados/hora
+        periodo: 'última hora',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Super admin vê stats globais
     const hourlyStats = await heartbeatService.getHourlyStats();
 
     res.json({
