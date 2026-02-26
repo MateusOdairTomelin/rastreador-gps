@@ -467,7 +467,8 @@ router.post('/organizacoes/:id/trocar-contexto', autenticar, async (req, res) =>
         slug: organizacao.slug,
         logo_url: organizacao.logo_url,
         cor_primaria: organizacao.cor_primaria,
-        cor_secundaria: organizacao.cor_secundaria
+        cor_secundaria: organizacao.cor_secundaria,
+        config_tema: organizacao.config_tema // White-label completo
       },
       role_org: associacao?.role || 'visualizador',
       mensagem: `Contexto alterado para ${organizacao.nome}`

@@ -91,6 +91,8 @@ class AuthService {
         slug: org.slug,
         logo_url: org.logo_url,
         cor_primaria: org.cor_primaria,
+        cor_secundaria: org.cor_secundaria,
+        config_tema: org.config_tema,
         role: 'super_admin',
         is_default: org.id === defaultOrgId,
         plano: org.plano?.nome || 'basico',
@@ -117,6 +119,8 @@ class AuthService {
       slug: a.organizacao.slug,
       logo_url: a.organizacao.logo_url,
       cor_primaria: a.organizacao.cor_primaria,
+      cor_secundaria: a.organizacao.cor_secundaria,
+      config_tema: a.organizacao.config_tema,
       role: a.role,
       is_default: a.is_default,
       plano: a.organizacao.plano?.nome || 'basico',
@@ -163,7 +167,8 @@ class AuthService {
           slug: organizacao.slug,
           logo_url: organizacao.logo_url,
           cor_primaria: organizacao.cor_primaria,
-          cor_secundaria: organizacao.cor_secundaria
+          cor_secundaria: organizacao.cor_secundaria,
+          config_tema: organizacao.config_tema
         },
         role: 'super_admin'
       };
@@ -210,7 +215,8 @@ class AuthService {
         slug: associacao.organizacao.slug,
         logo_url: associacao.organizacao.logo_url,
         cor_primaria: associacao.organizacao.cor_primaria,
-        cor_secundaria: associacao.organizacao.cor_secundaria
+        cor_secundaria: associacao.organizacao.cor_secundaria,
+        config_tema: associacao.organizacao.config_tema
       },
       role: associacao.role
     };
