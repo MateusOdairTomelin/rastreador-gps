@@ -94,6 +94,37 @@ router.get('/redis/status', autenticar, apenasAdmin, async (req, res) => {
 // Heartbeat monitoring endpoints (protegido + multi-tenant)
 const dispositivoService = require('../services/dispositivo.service');
 
+// ✅ Multi-tenant: Verifica se dispositivo pertence à organização do usuário
+const verificarDispositivoComando = async (req, res, next) => {
+  const { imei } = req.params;
+  if (!imei) return next();
+
+  const dispositivo = await dispositivoService.getByImei(imei);
+  if (!dispositivo) {
+    return res.status(404).json({
+      sucesso: false,
+      mensagem: 'Dispositivo não encontrado',
+    });
+  }
+
+  // Super admin pode acessar qualquer dispositivo
+  if (req.tenant?.isSuperAdmin) {
+    req.dispositivo = dispositivo;
+    return next();
+  }
+
+  // Verificar se pertence à organização do usuário
+  if (req.tenant?.id && dispositivo.organizacao_id !== req.tenant.id) {
+    return res.status(403).json({
+      sucesso: false,
+      mensagem: 'Dispositivo não pertence à sua organização',
+    });
+  }
+
+  req.dispositivo = dispositivo;
+  next();
+};
+
 // Cache global para heartbeats (TTL 5s) - compartilhado entre requests
 let heartbeatsGlobalCache = null;
 let heartbeatsCacheTime = 0;
@@ -548,7 +579,8 @@ router.get('/conexoes', autenticar, (req, res) => {
 });
 
 // Enviar comando para dispositivo
-router.post('/comandos/:imei', autenticar, (req, res) => {
+// ✅ Multi-tenant: Verifica propriedade do dispositivo antes de enviar comando
+router.post('/comandos/:imei', autenticar, tenantContext, verificarDispositivoComando, (req, res) => {
   const { imei } = req.params;
   const { comando, comandoRaw } = req.body;
 
@@ -643,7 +675,8 @@ router.post('/comandos/:imei', autenticar, (req, res) => {
 });
 
 // Enviar todos os comandos de inicialização
-router.post('/comandos/:imei/init', autenticar, async (req, res) => {
+// ✅ Multi-tenant: Verifica propriedade do dispositivo
+router.post('/comandos/:imei/init', autenticar, tenantContext, verificarDispositivoComando, async (req, res) => {
   const { imei } = req.params;
 
   if (!activeConnections) {
@@ -721,7 +754,8 @@ router.get('/comandos/disponiveis', autenticar, (req, res) => {
 });
 
 // Enviar comando via protocolo 0x80 (método correto)
-router.post('/comandos/:imei/enviar', autenticar, async (req, res) => {
+// ✅ Multi-tenant: Verifica propriedade do dispositivo
+router.post('/comandos/:imei/enviar', autenticar, tenantContext, verificarDispositivoComando, async (req, res) => {
   const { imei } = req.params;
   const { comando } = req.body;
 
@@ -763,7 +797,8 @@ router.post('/comandos/:imei/enviar', autenticar, async (req, res) => {
 });
 
 // Ativar configuração completa automaticamente (SETLOCX22# + outros)
-router.post('/comandos/:imei/ativar', autenticar, async (req, res) => {
+// ✅ Multi-tenant: Verifica propriedade do dispositivo
+router.post('/comandos/:imei/ativar', autenticar, tenantContext, verificarDispositivoComando, async (req, res) => {
   const { imei } = req.params;
 
   if (!comandoService.isOnline(imei)) {
@@ -803,7 +838,8 @@ router.post('/comandos/:imei/ativar', autenticar, async (req, res) => {
 // IMPORTANTE: Verificações de segurança antes de cortar combustível
 
 // Cortar combustível (RELAY OFF) - APENAS ADMIN
-router.post('/comandos/:imei/cortar-combustivel', autenticar, apenasAdmin, async (req, res) => {
+// ✅ Multi-tenant: CRÍTICO - Verifica propriedade do dispositivo antes de cortar combustível
+router.post('/comandos/:imei/cortar-combustivel', autenticar, tenantContext, verificarDispositivoComando, apenasAdmin, async (req, res) => {
   const { imei } = req.params;
   const { forcarCorte } = req.body; // Para ignorar verificações de segurança
 
@@ -879,7 +915,8 @@ router.post('/comandos/:imei/cortar-combustivel', autenticar, apenasAdmin, async
 });
 
 // Restaurar combustível (RELAY ON) - APENAS ADMIN
-router.post('/comandos/:imei/restaurar-combustivel', autenticar, apenasAdmin, async (req, res) => {
+// ✅ Multi-tenant: Verifica propriedade do dispositivo
+router.post('/comandos/:imei/restaurar-combustivel', autenticar, tenantContext, verificarDispositivoComando, apenasAdmin, async (req, res) => {
   const { imei } = req.params;
 
   if (!comandoService.isOnline(imei)) {
@@ -915,7 +952,8 @@ router.post('/comandos/:imei/restaurar-combustivel', autenticar, apenasAdmin, as
 });
 
 // Consultar status do relé (se possível)
-router.get('/comandos/:imei/status-rele', autenticar, async (req, res) => {
+// ✅ Multi-tenant: Verifica propriedade do dispositivo
+router.get('/comandos/:imei/status-rele', autenticar, tenantContext, verificarDispositivoComando, async (req, res) => {
   const { imei } = req.params;
 
   if (!comandoService.isOnline(imei)) {
