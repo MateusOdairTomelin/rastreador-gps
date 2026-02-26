@@ -1448,6 +1448,9 @@ router.get('/frota', async (req, res) => {
     // Processar todos os veículos em paralelo
     const resumoFrota = await Promise.all(dispositivos.map(processarVeiculo));
 
+    // Debug: mostrar excessos calculados
+    console.log('[Relatórios/frota] Excessos calculados:', resumoFrota.map(v => ({ placa: v.placa, excessos: v.excessosVelocidade, registros: v.totalRegistros })));
+
     // Ordenar por distância (maior primeiro)
     resumoFrota.sort((a, b) => parseFloat(b.distanciaTotal) - parseFloat(a.distanciaTotal));
 
