@@ -21655,7 +21655,7 @@
 
     // ============ GEOFENCING DROPDOWN ============
 
-    async function carregarGeofences() {
+    async function carregarGeofencesDropdown() {
       try {
         const response = await authFetch(`${API_URL}/geofencing`);
         if (response.ok) {
@@ -21706,7 +21706,7 @@
       const isVisible = dropdown.style.display === 'block';
       dropdown.style.display = isVisible ? 'none' : 'block';
       if (!isVisible && geofencesCache.length === 0) {
-        carregarGeofences();
+        carregarGeofencesDropdown();
       }
     }
     window.toggleGeofencingDropdown = toggleGeofencingDropdown;
