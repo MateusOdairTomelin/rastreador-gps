@@ -4003,13 +4003,11 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
 
     // ========== ABA: HISTORICO RASTREADORES ==========
     if (temModulo('rastreadores')) {
-      console.log('[Excel] Módulo rastreadores ativo. veiculo_id:', dispositivo.veiculo_id);
       const historicoRastreadores = await buscarHistoricoRastreadores(
         dispositivo.veiculo_id,
         inicio,
         fim
       );
-      console.log('[Excel] Histórico rastreadores encontrados:', historicoRastreadores.length, historicoRastreadores);
 
       if (historicoRastreadores.length > 0) {
         const rastreadoresSheet = workbook.addWorksheet('Historico Rastreadores');
