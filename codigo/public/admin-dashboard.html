@@ -23715,6 +23715,10 @@
       renderizarTabelaVeiculos();
     }
 
+    // Variável global para tags selecionadas no modal
+    let veiculoTagsSelecionadas = new Set();
+    let veiculoTagsDisponiveis = [];
+
     async function abrirModalVeiculo(veiculoId = null) {
       let veiculo = null;
       if (veiculoId) {
@@ -23722,23 +23726,24 @@
       }
 
       // Carregar tags disponíveis
-      let tagsDisponiveis = [];
-      let tagsVeiculo = [];
+      veiculoTagsDisponiveis = [];
+      veiculoTagsSelecionadas = new Set();
       try {
         const [tagsResp, veiculoTagsResp] = await Promise.all([
           authFetch(`${API_URL}/tags`),
           veiculoId ? authFetch(`${API_URL}/tags/veiculo/${veiculoId}`) : Promise.resolve(null)
         ]);
         const tagsData = await tagsResp.json();
-        if (tagsData.sucesso) tagsDisponiveis = tagsData.dados || [];
+        if (tagsData.sucesso) veiculoTagsDisponiveis = tagsData.dados || [];
         if (veiculoTagsResp) {
           const veiculoTagsData = await veiculoTagsResp.json();
-          if (veiculoTagsData.sucesso) tagsVeiculo = veiculoTagsData.dados || [];
+          if (veiculoTagsData.sucesso) {
+            (veiculoTagsData.dados || []).forEach(t => veiculoTagsSelecionadas.add(t.id));
+          }
         }
       } catch (e) {
         console.warn('Erro ao carregar tags:', e);
       }
-      const tagsVeiculoIds = tagsVeiculo.map(t => t.id);
 
       const modal = document.createElement('div');
       modal.id = 'modal-veiculo';
@@ -23782,26 +23787,27 @@
                 <input type="text" id="veiculo-cor" value="${veiculo?.cor || ''}" placeholder="Ex: Branco, Prata..." style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px;">
               </div>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-              <div class="form-group">
-                <label>Tipo de Veiculo</label>
-                <select id="veiculo-tipo" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px;">
-                  <option value="">Selecione...</option>
-                  <option value="carro" ${veiculo?.tipo_veiculo === 'carro' ? 'selected' : ''}>Carro</option>
-                  <option value="moto" ${veiculo?.tipo_veiculo === 'moto' ? 'selected' : ''}>Moto</option>
-                  <option value="caminhao" ${veiculo?.tipo_veiculo === 'caminhao' ? 'selected' : ''}>Caminhao</option>
-                  <option value="van" ${veiculo?.tipo_veiculo === 'van' ? 'selected' : ''}>Van</option>
-                  <option value="onibus" ${veiculo?.tipo_veiculo === 'onibus' ? 'selected' : ''}>Onibus</option>
-                  <option value="utilitario" ${veiculo?.tipo_veiculo === 'utilitario' ? 'selected' : ''}>Utilitario</option>
-                </select>
+            <div class="form-group">
+              <label>Tipo de Veiculo</label>
+              <select id="veiculo-tipo" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px;">
+                <option value="">Selecione...</option>
+                <option value="carro" ${veiculo?.tipo_veiculo === 'carro' ? 'selected' : ''}>Carro</option>
+                <option value="moto" ${veiculo?.tipo_veiculo === 'moto' ? 'selected' : ''}>Moto</option>
+                <option value="caminhao" ${veiculo?.tipo_veiculo === 'caminhao' ? 'selected' : ''}>Caminhao</option>
+                <option value="van" ${veiculo?.tipo_veiculo === 'van' ? 'selected' : ''}>Van</option>
+                <option value="onibus" ${veiculo?.tipo_veiculo === 'onibus' ? 'selected' : ''}>Onibus</option>
+                <option value="utilitario" ${veiculo?.tipo_veiculo === 'utilitario' ? 'selected' : ''}>Utilitario</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Tags</label>
+              <div id="veiculo-tags-container" style="border: 1px solid var(--border); border-radius: 6px; padding: 8px; min-height: 42px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; cursor: text; background: var(--bg-main);" onclick="document.getElementById('veiculo-tags-input').focus()">
+                <div id="veiculo-tags-chips" style="display: contents;"></div>
+                <input type="text" id="veiculo-tags-input" placeholder="${veiculoTagsSelecionadas.size > 0 ? '' : 'Buscar tags...'}"
+                  style="border: none; outline: none; background: transparent; flex: 1; min-width: 100px; padding: 4px; color: var(--text);"
+                  onfocus="mostrarDropdownTags()" oninput="filtrarDropdownTags(this.value)">
               </div>
-              <div class="form-group">
-                <label>Tags</label>
-                <select id="veiculo-tags" multiple style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; min-height: 80px;">
-                  ${tagsDisponiveis.map(t => `<option value="${t.id}" ${tagsVeiculoIds.includes(t.id) ? 'selected' : ''} style="padding: 4px; color: ${t.cor || '#666'};">${t.nome}</option>`).join('')}
-                </select>
-                <small style="color: var(--text-light); font-size: 11px;">Ctrl+clique para selecionar multiplas</small>
-              </div>
+              <div id="veiculo-tags-dropdown" style="display: none; position: absolute; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 200px; overflow-y: auto; z-index: 10001; margin-top: 4px;"></div>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <div class="form-group">
@@ -23823,13 +23829,107 @@
 
       document.body.appendChild(modal);
 
+      // Renderizar chips das tags já selecionadas
+      renderizarChipsTags();
+
+      // Fechar dropdown ao clicar fora
+      document.addEventListener('click', fecharDropdownTagsHandler);
+
       document.getElementById('form-veiculo-secao').onsubmit = async (e) => {
         e.preventDefault();
         await salvarVeiculoSecao(veiculoId);
       };
     }
 
+    function fecharDropdownTagsHandler(e) {
+      const container = document.getElementById('veiculo-tags-container');
+      const dropdown = document.getElementById('veiculo-tags-dropdown');
+      if (container && dropdown && !container.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    }
+
+    function renderizarChipsTags() {
+      const chipsContainer = document.getElementById('veiculo-tags-chips');
+      const input = document.getElementById('veiculo-tags-input');
+      if (!chipsContainer) return;
+
+      chipsContainer.innerHTML = '';
+      veiculoTagsSelecionadas.forEach(tagId => {
+        const tag = veiculoTagsDisponiveis.find(t => t.id === tagId);
+        if (tag) {
+          const chip = document.createElement('span');
+          chip.style.cssText = `display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 12px; font-size: 12px; background: ${tag.cor || '#666'}22; color: ${tag.cor || '#666'}; border: 1px solid ${tag.cor || '#666'}44;`;
+          chip.innerHTML = `
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${tag.cor || '#666'};"></span>
+            ${tag.nome}
+            <span onclick="removerTagVeiculo(${tag.id}, event)" style="cursor: pointer; margin-left: 2px; font-weight: bold;">&times;</span>
+          `;
+          chipsContainer.appendChild(chip);
+        }
+      });
+
+      if (input) {
+        input.placeholder = veiculoTagsSelecionadas.size > 0 ? '' : 'Buscar tags...';
+      }
+    }
+
+    function mostrarDropdownTags() {
+      const dropdown = document.getElementById('veiculo-tags-dropdown');
+      const container = document.getElementById('veiculo-tags-container');
+      if (!dropdown || !container) return;
+
+      // Posicionar dropdown
+      const rect = container.getBoundingClientRect();
+      dropdown.style.width = rect.width + 'px';
+      dropdown.style.left = rect.left + 'px';
+      dropdown.style.top = (rect.bottom + window.scrollY) + 'px';
+      dropdown.style.position = 'fixed';
+      dropdown.style.top = (rect.bottom) + 'px';
+
+      filtrarDropdownTags('');
+      dropdown.style.display = 'block';
+    }
+
+    function filtrarDropdownTags(busca) {
+      const dropdown = document.getElementById('veiculo-tags-dropdown');
+      if (!dropdown) return;
+
+      const buscaLower = busca.toLowerCase();
+      const tagsNaoSelecionadas = veiculoTagsDisponiveis.filter(t =>
+        !veiculoTagsSelecionadas.has(t.id) &&
+        t.nome.toLowerCase().includes(buscaLower)
+      );
+
+      if (tagsNaoSelecionadas.length === 0) {
+        dropdown.innerHTML = `<div style="padding: 12px; color: var(--text-light); text-align: center;">${veiculoTagsDisponiveis.length === 0 ? 'Nenhuma tag cadastrada' : 'Nenhuma tag disponivel'}</div>`;
+      } else {
+        dropdown.innerHTML = tagsNaoSelecionadas.map(tag => `
+          <div onclick="adicionarTagVeiculo(${tag.id})" style="padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s;"
+            onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+            <span style="width: 12px; height: 12px; border-radius: 50%; background: ${tag.cor || '#666'};"></span>
+            <span>${tag.nome}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    function adicionarTagVeiculo(tagId) {
+      veiculoTagsSelecionadas.add(tagId);
+      renderizarChipsTags();
+      document.getElementById('veiculo-tags-input').value = '';
+      filtrarDropdownTags('');
+    }
+
+    function removerTagVeiculo(tagId, event) {
+      event.stopPropagation();
+      veiculoTagsSelecionadas.delete(tagId);
+      renderizarChipsTags();
+      filtrarDropdownTags(document.getElementById('veiculo-tags-input')?.value || '');
+    }
+
     function fecharModalVeiculo() {
+      document.removeEventListener('click', fecharDropdownTagsHandler);
       document.getElementById('modal-veiculo')?.remove();
     }
 
@@ -23925,14 +24025,12 @@
         if (result.sucesso) {
           // Salvar tags do veículo
           const veiculoIdFinal = veiculoId || result.dados?.id;
-          if (veiculoIdFinal) {
-            const tagsSelect = document.getElementById('veiculo-tags');
-            const tagsSelecionadas = Array.from(tagsSelect?.selectedOptions || []).map(opt => parseInt(opt.value));
+          if (veiculoIdFinal && veiculoTagsSelecionadas) {
             try {
               await authFetch(`${API_URL}/tags/veiculo/${veiculoIdFinal}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tag_ids: tagsSelecionadas })
+                body: JSON.stringify({ tag_ids: Array.from(veiculoTagsSelecionadas) })
               });
             } catch (e) {
               console.warn('Erro ao salvar tags:', e);
