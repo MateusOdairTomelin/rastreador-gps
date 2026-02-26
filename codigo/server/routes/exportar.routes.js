@@ -17,6 +17,9 @@ const { verificarDispositivoTenant } = require('../middleware/tenant-device.midd
 // Serviço de limite de velocidade por via
 const velocidadeViaService = require('../services/velocidade-via.service');
 
+// Serviço de veículos (histórico de rastreadores)
+const veiculoService = require('../services/veiculo.service');
+
 // Serviço de correção GPS (OSRM)
 let gpsFilterService = null;
 try {
@@ -71,6 +74,55 @@ function filtrarLocalizacoesPorStatus(localizacoes, statusFiltro, dispositivo) {
     // Retorna true se a localização corresponde a QUALQUER um dos status selecionados
     return statusList.some(status => matchStatus(loc, status));
   });
+}
+
+// ============ HELPER: BUSCAR HISTÓRICO DE RASTREADORES DO VEÍCULO ============
+/**
+ * Busca o histórico de rastreadores vinculados ao veículo em um período
+ * @param {number} veiculo_id - ID do veículo
+ * @param {Date} inicio - Data início do período
+ * @param {Date} fim - Data fim do período
+ * @returns {Promise<Array>} Array com histórico de rastreadores
+ */
+async function buscarHistoricoRastreadores(veiculo_id, inicio, fim) {
+  if (!veiculo_id) return [];
+
+  try {
+    const historico = await prisma.veiculoDispositivoHistorico.findMany({
+      where: {
+        veiculo_id,
+        // Rastreadores que estavam vinculados durante o período
+        data_vinculo: { lte: fim },
+        OR: [
+          { data_desvinculo: null }, // Ainda vinculado
+          { data_desvinculo: { gte: inicio } } // Desvinculado depois do início
+        ]
+      },
+      include: {
+        dispositivo: {
+          select: {
+            id: true,
+            imei: true,
+            tipo: true,
+            status: true
+          }
+        }
+      },
+      orderBy: { data_vinculo: 'asc' }
+    });
+
+    return historico.map(h => ({
+      imei: h.dispositivo?.imei || 'N/A',
+      tipo: h.dispositivo?.tipo || 'N/A',
+      status: h.dispositivo?.status || 'offline',
+      data_vinculo: h.data_vinculo,
+      data_desvinculo: h.data_desvinculo,
+      ativo: h.ativo
+    }));
+  } catch (error) {
+    console.error('[Exportar] Erro ao buscar histórico de rastreadores:', error.message);
+    return [];
+  }
 }
 
 // ============ EXPORTAR CSV ============
@@ -875,6 +927,30 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
         }
         csvContent += '\n';
         totalRegistros += alarmes.length;
+      }
+    }
+
+    // ============ MÓDULO: HISTORICO RASTREADORES ============
+    if (temModulo('rastreadores')) {
+      const historicoRastreadores = await buscarHistoricoRastreadores(
+        dispositivo.veiculo_id,
+        inicio,
+        fim
+      );
+
+      if (historicoRastreadores.length > 0) {
+        csvContent += '\n\n';
+        csvContent += '[HISTORICO RASTREADORES]\n';
+        csvContent += 'IMEI,Tipo,Data Vinculo,Data Desvinculo,Status\n';
+
+        for (const rastreador of historicoRastreadores) {
+          const dataVinculo = rastreador.data_vinculo ? formatDateTime(rastreador.data_vinculo) : 'N/A';
+          const dataDesvinculo = rastreador.data_desvinculo ? formatDateTime(rastreador.data_desvinculo) : 'Atual';
+          const status = rastreador.ativo ? 'Ativo' : 'Inativo';
+          csvContent += `${rastreador.imei},${rastreador.tipo},${dataVinculo},${dataDesvinculo},${status}\n`;
+        }
+        csvContent += '\n';
+        totalRegistros += historicoRastreadores.length;
       }
     }
 
@@ -2676,6 +2752,57 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
       }
     }
 
+    // ============ MÓDULO: HISTORICO RASTREADORES ============
+    if (temModulo('rastreadores')) {
+      const historicoRastreadores = await buscarHistoricoRastreadores(
+        dispositivo.veiculo_id,
+        inicio,
+        fim
+      );
+
+      if (historicoRastreadores.length > 0) {
+        doc.addPage();
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#000').text(`Histórico de Rastreadores (${historicoRastreadores.length} registros)`);
+        doc.moveDown(0.5);
+
+        // Cabeçalho da tabela
+        const tableTop = doc.y;
+        doc.fontSize(9).font('Helvetica-Bold').fillColor('#333');
+        doc.text('IMEI', 50, tableTop);
+        doc.text('Tipo', 180, tableTop);
+        doc.text('Data Vínculo', 280, tableTop);
+        doc.text('Data Desvínculo', 380, tableTop);
+        doc.text('Status', 500, tableTop);
+        doc.moveDown(0.3);
+
+        // Linha separadora
+        doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#e2e8f0');
+        doc.moveDown(0.3);
+
+        doc.font('Helvetica').fontSize(8).fillColor('#000');
+        for (const rastreador of historicoRastreadores) {
+          const dataVinculo = rastreador.data_vinculo ? formatDateTime(rastreador.data_vinculo) : 'N/A';
+          const dataDesvinculo = rastreador.data_desvinculo ? formatDateTime(rastreador.data_desvinculo) : 'Atual';
+          const status = rastreador.ativo ? 'Ativo' : 'Inativo';
+          const statusCor = rastreador.ativo ? '#48bb78' : '#a0aec0';
+
+          const rowY = doc.y;
+          doc.text(rastreador.imei, 50, rowY);
+          doc.text(rastreador.tipo, 180, rowY);
+          doc.text(dataVinculo, 280, rowY);
+          doc.text(dataDesvinculo, 380, rowY);
+          doc.fillColor(statusCor).text(status, 500, rowY);
+          doc.fillColor('#000');
+
+          doc.moveDown(0.5);
+
+          if (doc.y > 750) {
+            doc.addPage();
+          }
+        }
+      }
+    }
+
     // ============ RODAPÉ ============
     const addFooter = () => {
       doc.fontSize(8).fillColor('#999');
@@ -3848,6 +3975,49 @@ router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
       [20, 10, 12, 18, 15, 10].forEach((width, idx) => {
         obd2Sheet.getColumn(idx + 1).width = width;
       });
+    }
+
+    // ========== ABA: HISTORICO RASTREADORES ==========
+    if (temModulo('rastreadores')) {
+      const historicoRastreadores = await buscarHistoricoRastreadores(
+        dispositivo.veiculo_id,
+        inicio,
+        fim
+      );
+
+      if (historicoRastreadores.length > 0) {
+        const rastreadoresSheet = workbook.addWorksheet('Historico Rastreadores');
+
+        rastreadoresSheet.addRow(['#', 'IMEI', 'Tipo', 'Data Vinculo', 'Data Desvinculo', 'Status']);
+        rastreadoresSheet.getRow(1).eachCell(cell => Object.assign(cell, headerStyle));
+
+        historicoRastreadores.forEach((rastreador, idx) => {
+          const dataVinculo = rastreador.data_vinculo ? formatDateTime(rastreador.data_vinculo) : 'N/A';
+          const dataDesvinculo = rastreador.data_desvinculo ? formatDateTime(rastreador.data_desvinculo) : 'Atual';
+          const status = rastreador.ativo ? 'Ativo' : 'Inativo';
+
+          const row = rastreadoresSheet.addRow([
+            idx + 1,
+            rastreador.imei,
+            rastreador.tipo,
+            dataVinculo,
+            dataDesvinculo,
+            status
+          ]);
+          row.eachCell(cell => Object.assign(cell, cellStyle));
+
+          // Cor verde para ativo, cinza para inativo
+          if (rastreador.ativo) {
+            row.getCell(6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+          } else {
+            row.getCell(6).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECEFF1' } };
+          }
+        });
+
+        [5, 20, 15, 20, 20, 12].forEach((width, idx) => {
+          rastreadoresSheet.getColumn(idx + 1).width = width;
+        });
+      }
     }
 
     // ========== ABA 7: LOCALIZACOES ==========
