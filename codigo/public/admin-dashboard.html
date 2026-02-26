@@ -16897,6 +16897,10 @@
       const corTexto = tema.cor_texto || temaDefault.cor_texto;
       const corTextoSec = tema.cor_texto_secundario || temaDefault.cor_texto_secundario;
 
+      // Detectar se é tema claro (fundo claro)
+      const isTemaClaro = corFundo.toLowerCase() === '#f1f5f9' || corFundo.toLowerCase() === '#ffffff' ||
+                          parseInt(corFundo.slice(1), 16) > 0x888888;
+
       // Aplicar CSS variables
       const root = document.documentElement;
       root.style.setProperty('--primary', corPrimaria);
@@ -16906,8 +16910,24 @@
       root.style.setProperty('--unifique-blue', corSecundaria);
       root.style.setProperty('--bg', corFundo);
       root.style.setProperty('--bg-light', corFundoSec);
+      root.style.setProperty('--bg-main', corFundo);
       root.style.setProperty('--text', corTexto);
       root.style.setProperty('--text-light', corTextoSec);
+
+      // Variáveis de card e hover baseadas no tema
+      if (isTemaClaro) {
+        root.style.setProperty('--bg-card', 'rgba(255, 255, 255, 0.95)');
+        root.style.setProperty('--bg-card-hover', 'rgba(255, 255, 255, 1)');
+        root.style.setProperty('--bg-hover', 'rgba(0, 0, 0, 0.05)');
+        root.style.setProperty('--border', 'rgba(0, 0, 0, 0.1)');
+        root.style.setProperty('--shadow', '0 2px 8px rgba(0, 0, 0, 0.1)');
+      } else {
+        root.style.setProperty('--bg-card', `rgba(${hexToRgb(corPrimaria)}, 0.08)`);
+        root.style.setProperty('--bg-card-hover', `rgba(${hexToRgb(corPrimaria)}, 0.12)`);
+        root.style.setProperty('--bg-hover', `rgba(${hexToRgb(corPrimaria)}, 0.1)`);
+        root.style.setProperty('--border', `rgba(${hexToRgb(corPrimaria)}, 0.2)`);
+        root.style.setProperty('--shadow', '0 2px 8px rgba(0, 0, 0, 0.3)');
+      }
 
       // Aplicar gradiente de fundo no body
       document.body.style.background = `linear-gradient(135deg, ${corFundo} 0%, ${corFundoSec} 50%, ${corFundo} 100%)`;
@@ -16921,9 +16941,9 @@
       });
 
       // Salvar tema atual no window para uso em outras funções
-      window.temaAtual = { corPrimaria, corSecundaria, corFundo, corFundoSec, corTexto, corTextoSec };
+      window.temaAtual = { corPrimaria, corSecundaria, corFundo, corFundoSec, corTexto, corTextoSec, isTemaClaro };
 
-      console.log('Tema aplicado:', { corPrimaria, corSecundaria, corFundo, corFundoSec });
+      console.log('Tema aplicado:', { corPrimaria, corSecundaria, corFundo, corFundoSec, isTemaClaro });
     }
 
     // Atualizar preview do white-label (completo)
