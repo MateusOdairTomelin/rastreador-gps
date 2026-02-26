@@ -1431,6 +1431,108 @@ router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) =
       });
     } catch (e) {}
 
+    // 5b. ✅ NOVO: Estatísticas por tipo de dispositivo
+    let deviceTypeStats = [];
+    try {
+      const oneMinAgo = new Date(Date.now() - 60000);
+      const fiveMinAgo = new Date(Date.now() - 300000);
+
+      // Buscar contagem por tipo de dispositivo
+      const tipoStats = await prisma.$queryRaw`
+        SELECT
+          d.tipo,
+          COUNT(DISTINCT d.id) as total_devices,
+          COUNT(CASE WHEN d.status = 'online' THEN 1 END) as online,
+          COUNT(l.id) FILTER (WHERE l.created_at >= ${oneMinAgo}) as inserts_1min,
+          COUNT(l.id) FILTER (WHERE l.created_at >= ${fiveMinAgo}) as inserts_5min,
+          ROUND(AVG(EXTRACT(EPOCH FROM (l.created_at - l.timestamp)))::numeric, 1) FILTER (WHERE l.created_at >= ${fiveMinAgo}) as avg_delay_sec
+        FROM dispositivos d
+        LEFT JOIN localizacoes l ON l.dispositivo_id = d.id AND l.created_at >= ${fiveMinAgo}
+        WHERE d.tipo IS NOT NULL
+        GROUP BY d.tipo
+        ORDER BY d.tipo
+      `;
+
+      deviceTypeStats = tipoStats.map(s => ({
+        tipo: s.tipo || 'Desconhecido',
+        totalDevices: Number(s.total_devices) || 0,
+        online: Number(s.online) || 0,
+        inserts1min: Number(s.inserts_1min) || 0,
+        inserts5min: Number(s.inserts_5min) || 0,
+        avgDelaySec: Number(s.avg_delay_sec) || 0
+      }));
+    } catch (e) {
+      console.warn('[PipelineDebug] Erro ao buscar stats por tipo:', e.message);
+    }
+
+    // 5c. ✅ NOVO: Estatísticas detalhadas por partição
+    let partitionStats = [];
+    try {
+      const redisPartitions = new Redis({
+        host: process.env.REDIS_HOST || 'redis',
+        port: parseInt(process.env.REDIS_PORT) || 6379,
+        password: process.env.REDIS_PASSWORD || undefined,
+        db: 2,
+        lazyConnect: false
+      });
+
+      for (let i = 0; i < 4; i++) {
+        const stream = `gps:packets:location:${i}`;
+        const groupName = `location-processors-p${i}`;
+
+        let partInfo = {
+          id: i,
+          length: queues[i] || 0,
+          consumers: 0,
+          pendingCount: 0,
+          lastDelivered: null,
+          oldestPending: null
+        };
+
+        try {
+          // Info do grupo
+          const groupInfo = await redisPartitions.xinfo('GROUPS', stream);
+          if (Array.isArray(groupInfo) && groupInfo.length > 0) {
+            for (const group of groupInfo) {
+              const groupData = {};
+              for (let j = 0; j < group.length; j += 2) {
+                groupData[group[j]] = group[j + 1];
+              }
+              if (groupData.name === groupName) {
+                partInfo.consumers = groupData.consumers || 0;
+                partInfo.pendingCount = groupData.pending || 0;
+                partInfo.lastDelivered = groupData['last-delivered-id'] || null;
+              }
+            }
+          }
+
+          // Consumers ativos
+          const consumerInfo = await redisPartitions.xinfo('CONSUMERS', stream, groupName);
+          if (Array.isArray(consumerInfo)) {
+            partInfo.activeConsumers = consumerInfo.map(c => {
+              const consumerData = {};
+              for (let j = 0; j < c.length; j += 2) {
+                consumerData[c[j]] = c[j + 1];
+              }
+              return {
+                name: consumerData.name,
+                pending: consumerData.pending || 0,
+                idle: Math.round((consumerData.idle || 0) / 1000)
+              };
+            });
+          }
+        } catch (e) {
+          // Stream ou grupo pode não existir ainda
+        }
+
+        partitionStats.push(partInfo);
+      }
+
+      await redisPartitions.quit();
+    } catch (e) {
+      console.warn('[PipelineDebug] Erro ao buscar stats de partição:', e.message);
+    }
+
     // 6. Gerar alertas baseados nos dados
     const alerts = [];
     const MAXLEN = 5000;
@@ -1638,6 +1740,10 @@ router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) =
       },
       // ✅ NOVO: Métricas do GPS Pipeline
       gpsPipeline: pipelineMetrics,
+      // ✅ NOVO: Estatísticas por tipo de dispositivo
+      deviceTypeStats,
+      // ✅ NOVO: Estatísticas detalhadas por partição
+      partitionStats,
       alerts,
       recentData,
       timestamp: new Date().toISOString()

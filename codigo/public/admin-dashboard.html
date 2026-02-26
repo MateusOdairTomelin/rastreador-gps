@@ -7586,6 +7586,44 @@
               </div>
             </div>
 
+            <!-- ✅ NOVO: Estatísticas por Tipo de Dispositivo -->
+            <div class="grid-2" style="gap: 12px; margin-bottom: 16px;">
+              <div class="debug-card">
+                <div class="debug-title">📊 Métricas por Tipo de Dispositivo</div>
+                <div class="table-wrapper" style="max-height: 200px; overflow-y: auto;">
+                  <table class="debug-table" id="device-type-table">
+                    <thead>
+                      <tr>
+                        <th>Tipo</th>
+                        <th>Total</th>
+                        <th>Online</th>
+                        <th>Ins/1min</th>
+                        <th>Ins/5min</th>
+                        <th>Delay</th>
+                      </tr>
+                    </thead>
+                    <tbody id="device-type-tbody">
+                      <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Carregando...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="debug-card">
+                <div class="debug-title">📈 Inserções por Tipo (5 min)</div>
+                <div style="height: 160px; position: relative;">
+                  <canvas id="chart-device-types"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- ✅ NOVO: Detalhes por Partição Redis -->
+            <div class="debug-card" style="margin-bottom: 16px;">
+              <div class="debug-title">🔀 Detalhes por Partição Redis</div>
+              <div class="grid-4" style="gap: 12px;" id="partition-details">
+                <!-- Preenchido via JS -->
+              </div>
+            </div>
+
             <!-- Gráficos de Histórico -->
             <div class="debug-card" style="margin-top: 16px;">
               <div class="debug-title">Filas Redis P0-P3 (tempo real)</div>
@@ -16451,6 +16489,52 @@
           alertsCard.style.display = 'none';
         }
 
+        // ✅ NOVO: Atualizar tabela de estatísticas por tipo de dispositivo
+        if (data.deviceTypeStats && data.deviceTypeStats.length > 0) {
+          const tbody = document.getElementById('device-type-tbody');
+          tbody.innerHTML = data.deviceTypeStats.map(d => {
+            const delayClass = d.avgDelaySec <= 5 ? 'delay-ok' : d.avgDelaySec <= 30 ? 'delay-warning' : 'delay-error';
+            const delayText = d.avgDelaySec > 60 ? `${Math.round(d.avgDelaySec / 60)}min` : `${d.avgDelaySec}s`;
+            const onlinePercent = d.totalDevices > 0 ? Math.round((d.online / d.totalDevices) * 100) : 0;
+            return `
+              <tr>
+                <td><strong>${d.tipo}</strong></td>
+                <td>${d.totalDevices}</td>
+                <td><span style="color: ${onlinePercent >= 80 ? 'var(--success)' : onlinePercent >= 50 ? 'var(--warning)' : 'var(--danger)'};">${d.online} (${onlinePercent}%)</span></td>
+                <td>${d.inserts1min}</td>
+                <td>${d.inserts5min}</td>
+                <td class="${delayClass}">${delayText}</td>
+              </tr>
+            `;
+          }).join('');
+        } else {
+          document.getElementById('device-type-tbody').innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Sem dados</td></tr>';
+        }
+
+        // ✅ NOVO: Atualizar detalhes por partição
+        if (data.partitionStats && data.partitionStats.length > 0) {
+          const container = document.getElementById('partition-details');
+          container.innerHTML = data.partitionStats.map(p => {
+            const statusColor = p.length === 0 ? 'var(--success)' : p.length < 100 ? 'var(--warning)' : 'var(--danger)';
+            const consumerStatus = p.consumers > 0 ? 'var(--success)' : 'var(--danger)';
+            return `
+              <div style="background: var(--bg); border-radius: 8px; padding: 12px; border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-weight: 600; color: var(--text);">Partição ${p.id}</span>
+                  <span style="background: ${statusColor}; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px;">${p.length}</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted);">
+                  <div style="margin-bottom: 4px;">Consumers: <span style="color: ${consumerStatus};">${p.consumers}</span></div>
+                  <div style="margin-bottom: 4px;">Pendentes: ${p.pendingCount || 0}</div>
+                  ${p.activeConsumers && p.activeConsumers.length > 0 ?
+                    p.activeConsumers.map(c => `<div style="font-size: 11px;">└ ${c.name}: ${c.pending} pend, idle ${c.idle}s</div>`).join('') :
+                    '<div style="font-size: 11px; color: var(--danger);">Sem consumers ativos</div>'}
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
         // Atualizar tabela de últimos dados
         if (data.recentData && data.recentData.length > 0) {
           const tbody = document.getElementById('debug-latest-tbody');
@@ -16475,6 +16559,11 @@
         const insertsPerMin = data.throughput?.insertsPerMin || 0;
         const queues = data.redis?.queues || [0, 0, 0, 0];
         updatePipelineCharts(latencyAvg, insertsPerMin, queues);
+
+        // ✅ NOVO: Atualizar gráfico de tipos de dispositivo
+        if (data.deviceTypeStats && data.deviceTypeStats.length > 0) {
+          updateDeviceTypeChart(data.deviceTypeStats);
+        }
 
         addLog('◉ Debug pipeline atualizado', 'success');
       } catch (e) {
@@ -16502,6 +16591,7 @@
     let chartLatency = null;
     let chartThroughput = null;
     let chartQueues = null;
+    let chartDeviceTypes = null; // ✅ NOVO
     const pipelineHistory = {
       labels: [],
       latency: [],
@@ -16509,6 +16599,82 @@
       p0: [], p1: [], p2: [], p3: [],
       maxPoints: 60 // ~10 minutos com updates de 10s
     };
+
+    // ✅ NOVO: Função para atualizar gráfico de tipos de dispositivo
+    function updateDeviceTypeChart(deviceTypeStats) {
+      const ctx = document.getElementById('chart-device-types');
+      if (!ctx) return;
+
+      const labels = deviceTypeStats.map(d => d.tipo.replace('XT40_', '').replace('TELTONIKA_', 'T-'));
+      const data5min = deviceTypeStats.map(d => d.inserts5min);
+      const dataDelay = deviceTypeStats.map(d => d.avgDelaySec);
+
+      if (chartDeviceTypes) {
+        chartDeviceTypes.data.labels = labels;
+        chartDeviceTypes.data.datasets[0].data = data5min;
+        chartDeviceTypes.data.datasets[1].data = dataDelay;
+        chartDeviceTypes.update('none');
+      } else if (typeof Chart !== 'undefined') {
+        chartDeviceTypes = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Inserções 5min',
+                data: data5min,
+                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                borderColor: 'rgb(59, 130, 246)',
+                borderWidth: 1,
+                yAxisID: 'y'
+              },
+              {
+                label: 'Delay (s)',
+                data: dataDelay,
+                type: 'line',
+                borderColor: 'rgb(245, 158, 11)',
+                backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                fill: true,
+                tension: 0.3,
+                yAxisID: 'y1'
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+              x: {
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#888', font: { size: 10 } }
+              },
+              y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                beginAtZero: true,
+                grid: { color: 'rgba(255,255,255,0.1)' },
+                ticks: { color: '#3b82f6' },
+                title: { display: true, text: 'Inserções', color: '#3b82f6', font: { size: 10 } }
+              },
+              y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                beginAtZero: true,
+                grid: { drawOnChartArea: false },
+                ticks: { color: '#f59e0b' },
+                title: { display: true, text: 'Delay (s)', color: '#f59e0b', font: { size: 10 } }
+              }
+            },
+            plugins: {
+              legend: { display: true, position: 'top', labels: { color: '#888', font: { size: 10 } } }
+            }
+          }
+        });
+      }
+    }
 
     function initPipelineCharts() {
       console.log('[Charts] Inicializando gráficos...');
