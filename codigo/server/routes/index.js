@@ -1417,6 +1417,89 @@ router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) =
       });
     }
 
+    // 7. ✅ NOVO: Métricas do GPS Pipeline (dos location-processors via Redis)
+    let pipelineMetrics = {
+      totalKalmanFilters: 0,
+      totalPendingPoints: 0,
+      totalTrackedDevices: 0,
+      totalProcessed: 0,
+      avgProcessingTimeMs: 0,
+      workers: [],
+      alerts: []
+    };
+
+    try {
+      const redisPipeline = new Redis({
+        host: process.env.REDIS_HOST || 'redis',
+        port: parseInt(process.env.REDIS_PORT) || 6379,
+        password: process.env.REDIS_PASSWORD || undefined,
+        db: 0,
+        lazyConnect: false
+      });
+
+      // Buscar métricas de todos os workers
+      const keys = await redisPipeline.keys('gps:pipeline:metrics:*');
+      for (const key of keys) {
+        try {
+          const data = await redisPipeline.get(key);
+          if (data) {
+            const metrics = JSON.parse(data);
+            const age = Date.now() - metrics.timestamp;
+
+            // Só considerar métricas recentes (< 2 min)
+            if (age < 120000) {
+              pipelineMetrics.workers.push({
+                id: metrics.workerId,
+                kalmanFilters: metrics.kalmanFiltersSize,
+                pendingPoints: metrics.pendingPointsSize,
+                trackedDevices: metrics.trackedDevices,
+                processed: metrics.processed,
+                avgTimeMs: Math.round(metrics.avgProcessingTimeMs * 10) / 10,
+                age: Math.round(age / 1000)
+              });
+
+              pipelineMetrics.totalKalmanFilters += metrics.kalmanFiltersSize || 0;
+              pipelineMetrics.totalPendingPoints += metrics.pendingPointsSize || 0;
+              pipelineMetrics.totalTrackedDevices += metrics.trackedDevices || 0;
+              pipelineMetrics.totalProcessed += metrics.processed || 0;
+            }
+          }
+        } catch (e) {}
+      }
+
+      // Calcular média de tempo de processamento
+      if (pipelineMetrics.workers.length > 0) {
+        const avgTimes = pipelineMetrics.workers.map(w => w.avgTimeMs).filter(t => t > 0);
+        if (avgTimes.length > 0) {
+          pipelineMetrics.avgProcessingTimeMs = Math.round(avgTimes.reduce((a, b) => a + b, 0) / avgTimes.length * 10) / 10;
+        }
+      }
+
+      // Alertas de GPS Pipeline
+      if (pipelineMetrics.totalKalmanFilters > 5000) {
+        alerts.push({
+          type: 'warning',
+          component: 'GPS Pipeline',
+          message: `Muitos filtros Kalman ativos (${pipelineMetrics.totalKalmanFilters})`,
+          action: 'Pode causar lentidão - aguardar cleanup automático'
+        });
+        pipelineMetrics.alerts.push('kalman_high');
+      }
+      if (pipelineMetrics.totalPendingPoints > 1000) {
+        alerts.push({
+          type: 'warning',
+          component: 'GPS Pipeline',
+          message: `Muitos pontos pendentes MapMatch (${pipelineMetrics.totalPendingPoints})`,
+          action: 'Verificar OSRM ou aguardar cleanup'
+        });
+        pipelineMetrics.alerts.push('pending_high');
+      }
+
+      await redisPipeline.quit();
+    } catch (e) {
+      console.warn('[PipelineDebug] Erro ao ler métricas GPS Pipeline:', e.message);
+    }
+
     // Montar resposta
     const response = {
       gateway: {
@@ -1469,6 +1552,8 @@ router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) =
         consumers,
         totalLag
       },
+      // ✅ NOVO: Métricas do GPS Pipeline
+      gpsPipeline: pipelineMetrics,
       alerts,
       recentData,
       timestamp: new Date().toISOString()

@@ -7215,6 +7215,36 @@
               </div>
             </div>
 
+            <!-- GPS Pipeline Metrics -->
+            <div class="debug-card" style="margin-bottom: 16px;">
+              <div class="debug-title">🧠 GPS Pipeline (Filtros e Buffers)</div>
+              <div class="debug-content" id="debug-gps-pipeline">
+                <div class="grid-4" style="gap: 16px; margin-bottom: 12px;">
+                  <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: var(--primary);" id="gp-kalman">-</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Kalman Filters</div>
+                  </div>
+                  <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: var(--warning);" id="gp-pending">-</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Pending Points</div>
+                  </div>
+                  <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: var(--success);" id="gp-tracked">-</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Dispositivos</div>
+                  </div>
+                  <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: var(--text);" id="gp-time">-</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Tempo Médio</div>
+                  </div>
+                </div>
+                <div style="border-top: 1px solid var(--border); padding-top: 10px;">
+                  <div class="debug-row"><span>Workers ativos:</span> <span id="gp-workers">-</span></div>
+                  <div class="debug-row"><span>Total processado:</span> <span id="gp-processed">-</span></div>
+                  <div class="debug-row total" id="gp-status-row"><span>Status:</span> <span id="gp-status">-</span></div>
+                </div>
+              </div>
+            </div>
+
             <!-- Gráficos de Histórico -->
             <div class="debug-card" style="margin-top: 16px;">
               <div class="debug-title">Filas Redis P0-P3 (tempo real)</div>
@@ -15927,6 +15957,46 @@
             statusEl.textContent = data.redis.detail || '-';
             statusEl.className = data.redis.status === 'ok' ? 'delay-ok' :
                                  data.redis.status === 'warning' ? 'delay-warning' : 'delay-error';
+          }
+        }
+
+        // ✅ NOVO: Atualizar GPS Pipeline Metrics
+        if (data.gpsPipeline) {
+          const gp = data.gpsPipeline;
+
+          // Valores principais
+          const kalmanEl = document.getElementById('gp-kalman');
+          kalmanEl.textContent = gp.totalKalmanFilters.toLocaleString();
+          kalmanEl.style.color = gp.totalKalmanFilters > 5000 ? 'var(--danger)' :
+                                  gp.totalKalmanFilters > 2000 ? 'var(--warning)' : 'var(--primary)';
+
+          const pendingEl = document.getElementById('gp-pending');
+          pendingEl.textContent = gp.totalPendingPoints.toLocaleString();
+          pendingEl.style.color = gp.totalPendingPoints > 1000 ? 'var(--danger)' :
+                                   gp.totalPendingPoints > 500 ? 'var(--warning)' : 'var(--warning)';
+
+          document.getElementById('gp-tracked').textContent = gp.totalTrackedDevices.toLocaleString();
+          document.getElementById('gp-time').textContent = gp.avgProcessingTimeMs > 0 ? `${gp.avgProcessingTimeMs}ms` : '-';
+
+          // Workers e processados
+          document.getElementById('gp-workers').textContent = `${gp.workers.length}/4`;
+          document.getElementById('gp-processed').textContent = gp.totalProcessed.toLocaleString();
+
+          // Status
+          const statusEl = document.getElementById('gp-status');
+          const hasAlerts = gp.alerts && gp.alerts.length > 0;
+          if (gp.workers.length === 0) {
+            statusEl.textContent = 'Sem dados (aguardando)';
+            statusEl.className = 'delay-warning';
+          } else if (hasAlerts) {
+            statusEl.textContent = 'Atenção - Maps crescendo';
+            statusEl.className = 'delay-warning';
+          } else if (gp.totalKalmanFilters > 3000 || gp.totalPendingPoints > 500) {
+            statusEl.textContent = 'Monitorar - uso elevado';
+            statusEl.className = 'delay-warning';
+          } else {
+            statusEl.textContent = 'Normal';
+            statusEl.className = 'delay-ok';
           }
         }
 

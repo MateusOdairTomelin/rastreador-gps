@@ -1029,6 +1029,51 @@ class GPSCorrectionPipeline {
       if ((this.mapMatcher?.pendingPoints?.size || 0) > 1000) {
         console.warn(`[GPS Pipeline] ⚠️ ALERTA: pendingPoints muito grande (${this.mapMatcher?.pendingPoints?.size}), pode causar delay!`);
       }
+
+      // ✅ NOVO: Publicar métricas no Redis para o frontend
+      this.publishMetricsToRedis();
+    }
+  }
+
+  /**
+   * ✅ NOVO: Publica métricas no Redis para exibição no frontend
+   */
+  async publishMetricsToRedis() {
+    try {
+      const Redis = require('ioredis');
+      const workerId = process.env.WORKER_ID || process.env.PARTITION_ID || 'unknown';
+
+      // Criar conexão temporária ao Redis DB 0
+      const redis = new Redis({
+        host: process.env.REDIS_HOST || 'redis',
+        port: parseInt(process.env.REDIS_PORT) || 6379,
+        password: process.env.REDIS_PASSWORD || undefined,
+        db: 0,
+        lazyConnect: false
+      });
+
+      const metrics = {
+        workerId,
+        kalmanFiltersSize: this.kalmanFilters.size,
+        pendingPointsSize: this.mapMatcher?.pendingPoints?.size || 0,
+        lastMatchedPointsSize: this.mapMatcher?.lastMatchedPoints?.size || 0,
+        trackedDevices: this.lastActivity.size,
+        processed: this.stats.processed,
+        kalmanApplied: this.stats.kalmanApplied,
+        aiCorrected: this.stats.aiCorrected,
+        mapMatched: this.stats.mapMatched,
+        errors: this.stats.errors,
+        avgProcessingTimeMs: this.stats.avgProcessingTimeMs,
+        lastCleanup: this.stats.lastCleanup,
+        timestamp: Date.now()
+      };
+
+      // Salvar com TTL de 2 minutos (expira se processor parar)
+      await redis.setex(`gps:pipeline:metrics:${workerId}`, 120, JSON.stringify(metrics));
+      await redis.quit();
+    } catch (e) {
+      // Silencioso - não falhar processamento por causa de métricas
+      console.warn(`[GPS Pipeline] Erro ao publicar métricas: ${e.message}`);
     }
   }
 
