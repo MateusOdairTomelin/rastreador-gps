@@ -23799,15 +23799,18 @@
                 <option value="utilitario" ${veiculo?.tipo_veiculo === 'utilitario' ? 'selected' : ''}>Utilitario</option>
               </select>
             </div>
-            <div class="form-group">
+            <div class="form-group" style="position: relative;">
               <label>Tags</label>
-              <div id="veiculo-tags-container" style="border: 1px solid var(--border); border-radius: 6px; padding: 8px; min-height: 42px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; cursor: text; background: var(--bg-main);" onclick="document.getElementById('veiculo-tags-input').focus()">
-                <div id="veiculo-tags-chips" style="display: contents;"></div>
-                <input type="text" id="veiculo-tags-input" placeholder="${veiculoTagsSelecionadas.size > 0 ? '' : 'Buscar tags...'}"
-                  style="border: none; outline: none; background: transparent; flex: 1; min-width: 100px; padding: 4px; color: var(--text);"
-                  onfocus="mostrarDropdownTags()" oninput="filtrarDropdownTags(this.value)">
+              <div id="veiculo-tags-wrapper" style="position: relative;">
+                <div id="veiculo-tags-container" style="border: 1px solid var(--border); border-radius: 6px; padding: 8px; min-height: 42px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; cursor: text; background: var(--bg-main);" onclick="toggleDropdownTags()">
+                  <div id="veiculo-tags-chips" style="display: contents;"></div>
+                  <input type="text" id="veiculo-tags-input" placeholder="Buscar tags..."
+                    style="border: none; outline: none; background: transparent; flex: 1; min-width: 80px; padding: 4px; color: var(--text);"
+                    oninput="filtrarDropdownTags(this.value)" onclick="event.stopPropagation(); mostrarDropdownTags()">
+                  <span style="color: var(--text-light); font-size: 14px; padding: 0 4px;">&#9662;</span>
+                </div>
+                <div id="veiculo-tags-dropdown" style="display: none; position: absolute; left: 0; right: 0; top: 100%; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); max-height: 180px; overflow-y: auto; z-index: 10001; margin-top: 4px;"></div>
               </div>
-              <div id="veiculo-tags-dropdown" style="display: none; position: absolute; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 200px; overflow-y: auto; z-index: 10001; margin-top: 4px;"></div>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <div class="form-group">
@@ -23842,9 +23845,9 @@
     }
 
     function fecharDropdownTagsHandler(e) {
-      const container = document.getElementById('veiculo-tags-container');
+      const wrapper = document.getElementById('veiculo-tags-wrapper');
       const dropdown = document.getElementById('veiculo-tags-dropdown');
-      if (container && dropdown && !container.contains(e.target) && !dropdown.contains(e.target)) {
+      if (wrapper && dropdown && !wrapper.contains(e.target)) {
         dropdown.style.display = 'none';
       }
     }
@@ -23874,20 +23877,20 @@
       }
     }
 
+    function toggleDropdownTags() {
+      const dropdown = document.getElementById('veiculo-tags-dropdown');
+      if (!dropdown) return;
+      if (dropdown.style.display === 'block') {
+        dropdown.style.display = 'none';
+      } else {
+        mostrarDropdownTags();
+      }
+    }
+
     function mostrarDropdownTags() {
       const dropdown = document.getElementById('veiculo-tags-dropdown');
-      const container = document.getElementById('veiculo-tags-container');
-      if (!dropdown || !container) return;
-
-      // Posicionar dropdown
-      const rect = container.getBoundingClientRect();
-      dropdown.style.width = rect.width + 'px';
-      dropdown.style.left = rect.left + 'px';
-      dropdown.style.top = (rect.bottom + window.scrollY) + 'px';
-      dropdown.style.position = 'fixed';
-      dropdown.style.top = (rect.bottom) + 'px';
-
-      filtrarDropdownTags('');
+      if (!dropdown) return;
+      filtrarDropdownTags(document.getElementById('veiculo-tags-input')?.value || '');
       dropdown.style.display = 'block';
     }
 
