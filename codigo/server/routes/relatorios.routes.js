@@ -1226,6 +1226,7 @@ router.get('/frota', async (req, res) => {
     // Configurar período
     const inicio = dataInicio ? new Date(dataInicio) : new Date(Date.now() - 24 * 60 * 60 * 1000);
     const fim = dataFim ? new Date(dataFim) : new Date();
+    console.log('[Relatórios/frota] Período recebido:', { dataInicio, dataFim, inicio: inicio.toISOString(), fim: fim.toISOString() });
 
     // Buscar dispositivos (filtrar por IMEI(s) se especificado)
     const whereClause = { ...tenantFilter };
