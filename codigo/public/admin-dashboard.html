@@ -2981,19 +2981,82 @@
     }
 
     .debug-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
+      background: linear-gradient(145deg, rgba(30, 35, 45, 0.95), rgba(22, 27, 35, 0.98));
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .debug-card:hover {
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
     .debug-title {
       font-size: 13px;
       font-weight: 600;
-      color: var(--text);
-      margin-bottom: 10px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
+      color: #e0e0e0;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .debug-title::before {
+      content: '';
+      width: 3px;
+      height: 14px;
+      background: linear-gradient(180deg, var(--primary), var(--accent));
+      border-radius: 2px;
+    }
+
+    /* Cards de gráficos - estilo premium */
+    .chart-card {
+      background: linear-gradient(160deg, rgba(35, 42, 55, 0.98), rgba(20, 25, 35, 0.95)) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      overflow: hidden;
+    }
+
+    .chart-card:hover {
+      border-color: rgba(100, 200, 255, 0.15) !important;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 0 40px rgba(63, 207, 213, 0.05) !important;
+    }
+
+    .chart-container {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent);
+      border-radius: 10px;
+      padding: 12px;
+      position: relative;
+    }
+
+    .chart-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    }
+
+    .chart-card canvas {
+      filter: drop-shadow(0 3px 12px rgba(0, 0, 0, 0.25));
+    }
+
+    /* Animação sutil de respiração */
+    @keyframes chartBreath {
+      0%, 100% { filter: drop-shadow(0 3px 12px rgba(0, 0, 0, 0.25)); }
+      50% { filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.3)); }
+    }
+
+    .chart-card canvas {
+      animation: chartBreath 6s ease-in-out infinite;
     }
 
     .debug-content {
@@ -7624,23 +7687,23 @@
               </div>
             </div>
 
-            <!-- Gráficos de Histórico -->
-            <div class="debug-card" style="margin-top: 16px;">
-              <div class="debug-title">Filas Redis P0-P3 (tempo real)</div>
-              <div style="height: 160px; position: relative;">
+            <!-- Gráficos de Histórico - Estilo Premium -->
+            <div class="debug-card chart-card" style="margin-top: 16px;">
+              <div class="debug-title">📊 Filas Redis P0-P3 (tempo real)</div>
+              <div class="chart-container" style="height: 180px; position: relative;">
                 <canvas id="chart-queues"></canvas>
               </div>
             </div>
-            <div class="grid-2" style="gap: 12px; margin-top: 12px;">
-              <div class="debug-card">
-                <div class="debug-title">Latência (histórico)</div>
-                <div style="height: 140px; position: relative;">
+            <div class="grid-2" style="gap: 16px; margin-top: 16px;">
+              <div class="debug-card chart-card">
+                <div class="debug-title">⏱️ Latência (histórico)</div>
+                <div class="chart-container" style="height: 160px; position: relative;">
                   <canvas id="chart-latency"></canvas>
                 </div>
               </div>
-              <div class="debug-card">
-                <div class="debug-title">Throughput (histórico)</div>
-                <div style="height: 140px; position: relative;">
+              <div class="debug-card chart-card">
+                <div class="debug-title">📈 Throughput (histórico)</div>
+                <div class="chart-container" style="height: 160px; position: relative;">
                   <canvas id="chart-throughput"></canvas>
                 </div>
               </div>
@@ -16695,72 +16758,256 @@
       }
       console.log('[Charts] Chart.js OK, Canvas OK, criando gráficos...');
 
+      // Criar gradientes para os gráficos
+      const createGradient = (ctx, colorStart, colorEnd) => {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+        gradient.addColorStop(0, colorStart);
+        gradient.addColorStop(1, colorEnd);
+        return gradient;
+      };
+
       const chartOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 300 },
-        scales: {
-          x: { display: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#666', maxRotation: 0, font: { size: 9 } } },
-          y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#888' } }
+        animation: {
+          duration: 750,
+          easing: 'easeInOutQuart'
         },
-        plugins: { legend: { display: false } }
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        scales: {
+          x: {
+            display: true,
+            grid: {
+              color: 'rgba(255,255,255,0.03)',
+              drawBorder: false
+            },
+            ticks: {
+              color: '#666',
+              maxRotation: 0,
+              font: { size: 9, family: "'Segoe UI', sans-serif" },
+              maxTicksLimit: 8
+            },
+            border: { display: false }
+          },
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(255,255,255,0.06)',
+              drawBorder: false
+            },
+            ticks: {
+              color: '#888',
+              font: { size: 10, family: "'Segoe UI', sans-serif" },
+              padding: 8
+            },
+            border: { display: false }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(20, 25, 35, 0.95)',
+            titleColor: '#fff',
+            bodyColor: '#ccc',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1,
+            cornerRadius: 8,
+            padding: 12,
+            titleFont: { size: 12, weight: '600' },
+            bodyFont: { size: 11 },
+            displayColors: true,
+            boxPadding: 4
+          }
+        }
       };
 
-      // Gráfico de Filas P0-P3
+      // Gráfico de Filas P0-P3 - Estilo elegante com gradientes
+      const ctx2d = ctxQueues.getContext('2d');
       chartQueues = new Chart(ctxQueues, {
         type: 'line',
         data: {
           labels: pipelineHistory.labels,
           datasets: [
-            { label: 'P0', data: pipelineHistory.p0, borderColor: '#3FCFD5', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 },
-            { label: 'P1', data: pipelineHistory.p1, borderColor: '#00A2FF', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 },
-            { label: 'P2', data: pipelineHistory.p2, borderColor: '#f59e0b', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 },
-            { label: 'P3', data: pipelineHistory.p3, borderColor: '#a855f7', backgroundColor: 'transparent', tension: 0.3, pointRadius: 2, borderWidth: 2 }
+            {
+              label: 'P0',
+              data: pipelineHistory.p0,
+              borderColor: '#06d6a0',
+              backgroundColor: createGradient(ctx2d, 'rgba(6, 214, 160, 0.25)', 'rgba(6, 214, 160, 0)'),
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: '#06d6a0',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2,
+              borderWidth: 2.5
+            },
+            {
+              label: 'P1',
+              data: pipelineHistory.p1,
+              borderColor: '#118ab2',
+              backgroundColor: createGradient(ctx2d, 'rgba(17, 138, 178, 0.2)', 'rgba(17, 138, 178, 0)'),
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: '#118ab2',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2,
+              borderWidth: 2.5
+            },
+            {
+              label: 'P2',
+              data: pipelineHistory.p2,
+              borderColor: '#ffd166',
+              backgroundColor: createGradient(ctx2d, 'rgba(255, 209, 102, 0.2)', 'rgba(255, 209, 102, 0)'),
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: '#ffd166',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2,
+              borderWidth: 2.5
+            },
+            {
+              label: 'P3',
+              data: pipelineHistory.p3,
+              borderColor: '#ef476f',
+              backgroundColor: createGradient(ctx2d, 'rgba(239, 71, 111, 0.2)', 'rgba(239, 71, 111, 0)'),
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: '#ef476f',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2,
+              borderWidth: 2.5
+            }
           ]
         },
         options: {
           ...chartOptions,
           plugins: {
-            legend: { display: true, position: 'top', labels: { color: '#888', boxWidth: 12, padding: 8, font: { size: 10 } } }
+            ...chartOptions.plugins,
+            legend: {
+              display: true,
+              position: 'top',
+              align: 'end',
+              labels: {
+                color: '#aaa',
+                boxWidth: 14,
+                boxHeight: 14,
+                padding: 15,
+                font: { size: 11, weight: '500' },
+                usePointStyle: true,
+                pointStyle: 'circle'
+              }
+            }
           },
-          scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, max: 500, title: { display: true, text: 'Msgs na fila', color: '#888' } } }
+          scales: {
+            ...chartOptions.scales,
+            y: {
+              ...chartOptions.scales.y,
+              max: 500,
+              title: {
+                display: true,
+                text: 'Msgs na fila',
+                color: '#777',
+                font: { size: 11, weight: '500' }
+              }
+            }
+          }
         }
       });
 
-      // Gráfico de Latência
+      // Gráfico de Latência - Vermelho com gradiente suave
+      const ctxLat2d = ctxLatency.getContext('2d');
+      const latencyGradient = ctxLat2d.createLinearGradient(0, 0, 0, 180);
+      latencyGradient.addColorStop(0, 'rgba(239, 68, 68, 0.4)');
+      latencyGradient.addColorStop(0.5, 'rgba(239, 68, 68, 0.15)');
+      latencyGradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+
       chartLatency = new Chart(ctxLatency, {
         type: 'line',
         data: {
           labels: pipelineHistory.labels,
           datasets: [{
+            label: 'Latência',
             data: pipelineHistory.latency,
             borderColor: '#ef4444',
-            backgroundColor: 'rgba(239,68,68,0.15)',
+            backgroundColor: latencyGradient,
             fill: true,
-            tension: 0.3,
+            tension: 0.4,
             pointRadius: 0,
-            borderWidth: 2
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#ef4444',
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 2,
+            borderWidth: 3
           }]
         },
-        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { display: true, text: 'Delay (s)', color: '#888' } } } }
+        options: {
+          ...chartOptions,
+          scales: {
+            ...chartOptions.scales,
+            y: {
+              ...chartOptions.scales.y,
+              title: {
+                display: true,
+                text: 'Delay (segundos)',
+                color: '#777',
+                font: { size: 11, weight: '500' }
+              }
+            }
+          }
+        }
       });
 
-      // Gráfico de Throughput
+      // Gráfico de Throughput - Verde com gradiente vibrante
+      const ctxThr2d = ctxThroughput.getContext('2d');
+      const throughputGradient = ctxThr2d.createLinearGradient(0, 0, 0, 180);
+      throughputGradient.addColorStop(0, 'rgba(34, 197, 94, 0.4)');
+      throughputGradient.addColorStop(0.5, 'rgba(34, 197, 94, 0.15)');
+      throughputGradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
+
       chartThroughput = new Chart(ctxThroughput, {
         type: 'line',
         data: {
           labels: pipelineHistory.labels,
           datasets: [{
+            label: 'Throughput',
             data: pipelineHistory.throughput,
             borderColor: '#22c55e',
-            backgroundColor: 'rgba(34,197,94,0.15)',
+            backgroundColor: throughputGradient,
             fill: true,
-            tension: 0.3,
+            tension: 0.4,
             pointRadius: 0,
-            borderWidth: 2
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#22c55e',
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 2,
+            borderWidth: 3
           }]
         },
-        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { display: true, text: 'Inserções/min', color: '#888' } } } }
+        options: {
+          ...chartOptions,
+          scales: {
+            ...chartOptions.scales,
+            y: {
+              ...chartOptions.scales.y,
+              title: {
+                display: true,
+                text: 'Inserções/min',
+                color: '#777',
+                font: { size: 11, weight: '500' }
+              }
+            }
+          }
+        }
       });
 
       window.chartLatency = chartLatency;
