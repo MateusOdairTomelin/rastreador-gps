@@ -37,6 +37,17 @@ class VeiculoService {
               estado_ignicao: true,
               ultima_conexao: true
             }
+          },
+          tags: {
+            include: {
+              tag: {
+                select: {
+                  id: true,
+                  nome: true,
+                  cor: true
+                }
+              }
+            }
           }
         },
         orderBy: { placa: 'asc' },

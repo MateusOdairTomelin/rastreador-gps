@@ -8715,12 +8715,13 @@
                     <th>Tipo</th>
                     <th>Rastreador</th>
                     <th>Status</th>
+                    <th>Tags</th>
                     <th>Acoes</th>
                   </tr>
                 </thead>
                 <tbody id="veiculos-tbody">
                   <tr>
-                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-light);">
+                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-light);">
                       Carregando veiculos...
                     </td>
                   </tr>
@@ -23611,7 +23612,7 @@
     async function carregarVeiculosSecao() {
       try {
         const tbody = document.getElementById('veiculos-tbody');
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;">Carregando...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">Carregando...</td></tr>';
 
         const response = await authFetch(`${API_URL}/veiculos`);
         if (!response.ok) throw new Error('Erro ao carregar veiculos');
@@ -23627,7 +23628,7 @@
       } catch (error) {
         console.error('[Veiculos] Erro ao carregar:', error);
         document.getElementById('veiculos-tbody').innerHTML = `
-          <tr><td colspan="6" style="text-align: center; padding: 40px; color: #ef4444;">
+          <tr><td colspan="7" style="text-align: center; padding: 40px; color: #ef4444;">
             Erro ao carregar veiculos: ${error.message}
           </td></tr>`;
       }
@@ -23661,7 +23662,7 @@
       const tbody = document.getElementById('veiculos-tbody');
 
       if (veiculosSecaoFiltrados.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-light);">Nenhum veiculo encontrado</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-light);">Nenhum veiculo encontrado</td></tr>';
         return;
       }
 
@@ -23680,6 +23681,14 @@
         const veiculoDesc = [v.marca, v.modelo].filter(Boolean).join(' ') || '-';
         const anoDisplay = v.ano ? `(${v.ano})` : '';
 
+        // Renderizar tags do veículo
+        const tagsHtml = (v.tags && v.tags.length > 0)
+          ? v.tags.map(vt => {
+              const tag = vt.tag;
+              return `<span style="display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin: 1px; background: ${tag.cor || '#666'}22; color: ${tag.cor || '#666'}; border: 1px solid ${tag.cor || '#666'}44;">${escapeHtml(tag.nome)}</span>`;
+            }).join('')
+          : '<span style="color: var(--text-light); font-size: 11px;">-</span>';
+
         return `
           <tr>
             <td><span style="background: var(--primary); color: white; padding: 4px 10px; border-radius: 6px; font-weight: 600;">${v.placa}</span></td>
@@ -23687,6 +23696,7 @@
             <td>${v.tipo_veiculo || '-'}</td>
             <td>${dispositivoBadge}</td>
             <td>${statusBadge}</td>
+            <td style="max-width: 200px;">${tagsHtml}</td>
             <td style="white-space: nowrap;">
               <button onclick="editarVeiculoSecao(${v.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✎</button>
               ${dispositivo
