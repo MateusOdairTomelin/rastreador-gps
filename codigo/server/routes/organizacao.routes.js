@@ -12,6 +12,7 @@ const authService = require('../services/auth.service');
 const perfilPermissaoService = require('../services/perfil-permissao.service');
 const { autenticar, apenasSuperAdmin, apenasAdmin } = require('../middleware/auth.middleware');
 const { tenantContext, verificarRoleOrg } = require('../middleware/tenant.middleware');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // ==================== PLANOS (PÚBLICO) ====================
 
@@ -40,7 +41,7 @@ router.get('/planos', async (req, res) => {
  * PUT /api/planos/:id/email
  * Atualizar email de contato do plano (super_admin)
  */
-router.put('/planos/:id/email', autenticar, apenasSuperAdmin, async (req, res) => {
+router.put('/planos/:id/email', autenticar, verificarPermissao('planos', 'editar'), async (req, res) => {
   try {
     const { id } = req.params;
     const { email_contato } = req.body;
@@ -512,7 +513,7 @@ router.get('/organizacoes/acessiveis', autenticar, async (req, res) => {
  * GET /api/organizacoes
  * Listar todas as organizações (super_admin)
  */
-router.get('/organizacoes', autenticar, apenasSuperAdmin, async (req, res) => {
+router.get('/organizacoes', autenticar, verificarPermissao('organizacoes', 'listar'), async (req, res) => {
   try {
     const { status, busca } = req.query;
     const organizacoes = await organizacaoService.listarTodas({ status, busca });
@@ -534,7 +535,7 @@ router.get('/organizacoes', autenticar, apenasSuperAdmin, async (req, res) => {
  * POST /api/organizacoes
  * Criar nova organização (super_admin)
  */
-router.post('/organizacoes', autenticar, apenasSuperAdmin, async (req, res) => {
+router.post('/organizacoes', autenticar, verificarPermissao('organizacoes', 'criar'), async (req, res) => {
   try {
     const { nome, slug, cnpj, email, telefone, plano_id, cor_primaria, cor_secundaria, config_tema, logo_url } = req.body;
 
@@ -567,7 +568,7 @@ router.post('/organizacoes', autenticar, apenasSuperAdmin, async (req, res) => {
  * GET /api/organizacoes/:id
  * Detalhes de uma organização (super_admin)
  */
-router.get('/organizacoes/:id', autenticar, apenasSuperAdmin, async (req, res) => {
+router.get('/organizacoes/:id', autenticar, verificarPermissao('organizacoes', 'listar'), async (req, res) => {
   try {
     const organizacao = await organizacaoService.buscarPorId(parseInt(req.params.id));
 
@@ -595,7 +596,7 @@ router.get('/organizacoes/:id', autenticar, apenasSuperAdmin, async (req, res) =
  * PUT /api/organizacoes/:id
  * Atualizar organização (super_admin)
  */
-router.put('/organizacoes/:id', autenticar, apenasSuperAdmin, async (req, res) => {
+router.put('/organizacoes/:id', autenticar, verificarPermissao('organizacoes', 'editar'), async (req, res) => {
   try {
     const organizacao = await organizacaoService.atualizar(
       parseInt(req.params.id),
@@ -619,7 +620,7 @@ router.put('/organizacoes/:id', autenticar, apenasSuperAdmin, async (req, res) =
  * DELETE /api/organizacoes/:id
  * Excluir organização (super_admin)
  */
-router.delete('/organizacoes/:id', autenticar, apenasSuperAdmin, async (req, res) => {
+router.delete('/organizacoes/:id', autenticar, verificarPermissao('organizacoes', 'excluir'), async (req, res) => {
   try {
     await organizacaoService.deletar(parseInt(req.params.id));
 
@@ -640,7 +641,7 @@ router.delete('/organizacoes/:id', autenticar, apenasSuperAdmin, async (req, res
  * GET /api/organizacoes/:id/estatisticas
  * Estatísticas de uma organização (super_admin)
  */
-router.get('/organizacoes/:id/estatisticas', autenticar, apenasSuperAdmin, async (req, res) => {
+router.get('/organizacoes/:id/estatisticas', autenticar, verificarPermissao('organizacoes', 'listar'), async (req, res) => {
   try {
     const estatisticas = await organizacaoService.obterEstatisticas(parseInt(req.params.id));
 
@@ -662,7 +663,7 @@ router.get('/organizacoes/:id/estatisticas', autenticar, apenasSuperAdmin, async
  * Transferir organização para novo pai (super_admin)
  * Body: { novo_parent_id: number | null }
  */
-router.post('/organizacoes/:id/transferir', autenticar, apenasSuperAdmin, async (req, res) => {
+router.post('/organizacoes/:id/transferir', autenticar, verificarPermissao('organizacoes', 'editar'), async (req, res) => {
   try {
     const { novo_parent_id } = req.body;
     const resultado = await organizacaoService.transferirOrganizacao(
@@ -690,7 +691,7 @@ router.post('/organizacoes/:id/transferir', autenticar, apenasSuperAdmin, async 
  * Absorver organização (mover todos recursos para outra e deletar)
  * Body: { destino_id: number }
  */
-router.post('/organizacoes/:id/absorver', autenticar, apenasSuperAdmin, async (req, res) => {
+router.post('/organizacoes/:id/absorver', autenticar, verificarPermissao('organizacoes', 'excluir'), async (req, res) => {
   try {
     const { destino_id } = req.body;
 
@@ -726,7 +727,7 @@ router.post('/organizacoes/:id/absorver', autenticar, apenasSuperAdmin, async (r
  * Absorção RECURSIVA - absorve org + TODOS os sub-tenants de uma vez
  * Body: { destino_id: number }
  */
-router.post('/organizacoes/:id/absorver-recursivo', autenticar, apenasSuperAdmin, async (req, res) => {
+router.post('/organizacoes/:id/absorver-recursivo', autenticar, verificarPermissao('organizacoes', 'excluir'), async (req, res) => {
   try {
     const { destino_id } = req.body;
 
@@ -763,7 +764,7 @@ router.post('/organizacoes/:id/absorver-recursivo', autenticar, apenasSuperAdmin
  * GET /api/usuarios
  * Listar todos os usuários (super_admin)
  */
-router.get('/usuarios', autenticar, apenasSuperAdmin, async (req, res) => {
+router.get('/usuarios', autenticar, verificarPermissao('usuarios', 'listar'), async (req, res) => {
   try {
     const usuarios = await organizacaoService.listarTodosUsuarios();
 
@@ -784,7 +785,7 @@ router.get('/usuarios', autenticar, apenasSuperAdmin, async (req, res) => {
  * POST /api/usuarios
  * Criar novo usuário (super_admin)
  */
-router.post('/usuarios', autenticar, apenasSuperAdmin, async (req, res) => {
+router.post('/usuarios', autenticar, verificarPermissao('usuarios', 'criar'), async (req, res) => {
   try {
     const { nome, email, senha, organizacao_id, role_org, role, organizacoes_permitidas, perfil_id } = req.body;
 
@@ -866,7 +867,7 @@ router.post('/usuarios', autenticar, apenasSuperAdmin, async (req, res) => {
  * PUT /api/usuarios/:id
  * Atualizar usuário (super_admin)
  */
-router.put('/usuarios/:id', autenticar, apenasSuperAdmin, async (req, res) => {
+router.put('/usuarios/:id', autenticar, verificarPermissao('usuarios', 'editar'), async (req, res) => {
   try {
     const usuarioId = parseInt(req.params.id);
     const { perfil_id, ...updateData } = req.body;
@@ -947,7 +948,7 @@ router.put('/usuarios/:id', autenticar, apenasSuperAdmin, async (req, res) => {
  * DELETE /api/usuarios/:id
  * Excluir usuário (super_admin)
  */
-router.delete('/usuarios/:id', autenticar, apenasSuperAdmin, async (req, res) => {
+router.delete('/usuarios/:id', autenticar, verificarPermissao('usuarios', 'excluir'), async (req, res) => {
   try {
     const usuarioId = parseInt(req.params.id);
     await organizacaoService.deletarUsuarioGlobal(usuarioId);

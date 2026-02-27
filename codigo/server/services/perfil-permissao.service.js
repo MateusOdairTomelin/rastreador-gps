@@ -11,7 +11,7 @@ const prisma = require('../db/prisma');
 const MODULOS = {
   dashboard: {
     nome: 'Dashboard',
-    acoes: ['visualizar', 'exportar']
+    acoes: ['listar', 'editar', 'visualizar', 'exportar']
   },
   veiculos: {
     nome: 'Veículos',
@@ -23,11 +23,11 @@ const MODULOS = {
   },
   monitoramento: {
     nome: 'Monitoramento',
-    acoes: ['visualizar', 'comandos', 'historico', 'tempo_real']
+    acoes: ['listar', 'visualizar', 'comandos', 'historico', 'tempo_real']
   },
   relatorios: {
     nome: 'Relatórios',
-    acoes: ['visualizar', 'criar', 'exportar', 'agendar']
+    acoes: ['listar', 'criar', 'editar', 'excluir', 'exportar', 'agendar', 'visualizar']
   },
   geofences: {
     nome: 'Cercas Virtuais',
@@ -35,7 +35,7 @@ const MODULOS = {
   },
   viagens: {
     nome: 'Viagens',
-    acoes: ['listar', 'visualizar', 'exportar', 'analise']
+    acoes: ['listar', 'criar', 'editar', 'visualizar', 'exportar', 'analise']
   },
   alertas: {
     nome: 'Alertas/Notificações',
@@ -51,7 +51,7 @@ const MODULOS = {
   },
   auditoria: {
     nome: 'Auditoria',
-    acoes: ['visualizar', 'exportar', 'filtrar_todas_orgs']
+    acoes: ['listar', 'exportar', 'visualizar', 'filtrar_todas_orgs']
   },
   configuracoes: {
     nome: 'Configurações',
@@ -63,11 +63,15 @@ const MODULOS = {
   },
   lgpd: {
     nome: 'LGPD',
-    acoes: ['visualizar', 'exportar_dados', 'solicitar_exclusao', 'consentimentos']
+    acoes: ['listar', 'configurar', 'exportar', 'excluir', 'executar', 'visualizar']
   },
   notificacoes: {
     nome: 'Notificações',
-    acoes: ['visualizar', 'configurar', 'telegram', 'email', 'push']
+    acoes: ['listar', 'editar', 'configurar', 'visualizar', 'telegram', 'email', 'push']
+  },
+  graficos: {
+    nome: 'Gráficos',
+    acoes: ['listar', 'visualizar', 'criar', 'exportar']
   },
   status: {
     nome: 'Status',
@@ -85,13 +89,21 @@ const MODULOS = {
     nome: 'Perfil',
     acoes: ['visualizar', 'editar', 'alterar_senha']
   },
-  graficos: {
-    nome: 'Gráficos',
-    acoes: ['visualizar', 'criar', 'exportar']
-  },
   debug: {
     nome: 'Debug',
     acoes: ['visualizar', 'logs', 'pacotes', 'avancado']
+  },
+  perfis: {
+    nome: 'Perfis de Permissão',
+    acoes: ['listar', 'criar', 'editar', 'excluir']
+  },
+  planos: {
+    nome: 'Planos de Assinatura',
+    acoes: ['listar', 'criar', 'editar', 'excluir']
+  },
+  sistema: {
+    nome: 'Configurações do Sistema',
+    acoes: ['visualizar', 'configurar', 'executar']
   }
 };
 

@@ -11,6 +11,7 @@ const prisma = require('../db/prisma');
 
 // ✅ Multi-tenant: Middleware de verificação de propriedade
 const { verificarDispositivoTenant, criarFiltroDispositivosTenant } = require('../middleware/tenant-device.middleware');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // Servico de pontos de referencia
 let gpsReferencia = null;
@@ -196,7 +197,7 @@ const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
 // GET /api/gps-ai/status - Status do serviço de IA
-router.get('/status', async (req, res) => {
+router.get('/status', verificarPermissao('sistema', 'visualizar'), async (req, res) => {
   const stats = gpsAI.getStats();
 
   // Verificar status do OSRM
@@ -234,7 +235,7 @@ router.get('/status', async (req, res) => {
 
 // GET /api/gps-ai/:imei/corrigir-rota - Corrige rota histórica
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/corrigir-rota', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/corrigir-rota', verificarPermissao('sistema', 'visualizar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const horas = parseInt(req.query.horas) || 24;
 
@@ -326,7 +327,7 @@ router.get('/:imei/corrigir-rota', verificarDispositivoTenant, asyncHandler(asyn
 
 // GET /api/gps-ai/:imei/analisar - Analisa qualidade dos dados GPS
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/analisar', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/analisar', verificarPermissao('sistema', 'visualizar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const horas = parseInt(req.query.horas) || 24;
 
@@ -484,7 +485,7 @@ router.get('/:imei/analisar', verificarDispositivoTenant, asyncHandler(async (re
 
 // POST /api/gps-ai/:imei/treinar - Treina modelo com dados históricos
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.post('/:imei/treinar', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.post('/:imei/treinar', verificarPermissao('sistema', 'configurar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const horas = parseInt(req.body.horas) || 24;
 
@@ -498,7 +499,7 @@ router.post('/:imei/treinar', verificarDispositivoTenant, asyncHandler(async (re
 
 // POST /api/gps-ai/:imei/resetar - Reseta filtro do dispositivo
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.post('/:imei/resetar', verificarDispositivoTenant, (req, res) => {
+router.post('/:imei/resetar', verificarPermissao('sistema', 'configurar'), verificarDispositivoTenant, (req, res) => {
   const { imei } = req.params;
 
   gpsAI.resetarDispositivo(imei);
@@ -511,7 +512,7 @@ router.post('/:imei/resetar', verificarDispositivoTenant, (req, res) => {
 
 // GET /api/gps-ai/:imei/comparar - Compara rota original vs corrigida (para visualização)
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/comparar', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/comparar', verificarPermissao('sistema', 'visualizar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const horas = parseInt(req.query.horas) || 6;
 
@@ -583,7 +584,7 @@ router.get('/:imei/comparar', verificarDispositivoTenant, asyncHandler(async (re
 }));
 
 // GET /api/gps-ai/historico-correcoes - Histórico de correções realizadas
-router.get('/historico-correcoes', asyncHandler(async (req, res) => {
+router.get('/historico-correcoes', verificarPermissao('sistema', 'visualizar'), asyncHandler(async (req, res) => {
   const limite = parseInt(req.query.limite) || 100;
 
   try {
@@ -610,7 +611,7 @@ router.get('/historico-correcoes', asyncHandler(async (req, res) => {
 // ==================== TREINAMENTO SUPERVISIONADO ====================
 
 // GET /api/gps-ai/treinamento/pendentes - Rotas pendentes de revisão
-router.get('/treinamento/pendentes', asyncHandler(async (req, res) => {
+router.get('/treinamento/pendentes', verificarPermissao('sistema', 'visualizar'), asyncHandler(async (req, res) => {
   const { imei, limite } = req.query;
 
   const rotas = await gpsAI.listarCorrecoesPendentes(imei, parseInt(limite) || 50);
@@ -636,7 +637,7 @@ router.get('/treinamento/pendentes', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/gps-ai/treinamento/estatisticas - Estatísticas de treinamento
-router.get('/treinamento/estatisticas', asyncHandler(async (req, res) => {
+router.get('/treinamento/estatisticas', verificarPermissao('sistema', 'visualizar'), asyncHandler(async (req, res) => {
   const stats = await gpsAI.getEstatisticasTreinamento();
 
   res.json({
@@ -646,7 +647,7 @@ router.get('/treinamento/estatisticas', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/gps-ai/treinamento/rota/:id - Detalhes de uma rota para revisão
-router.get('/treinamento/rota/:id', asyncHandler(async (req, res) => {
+router.get('/treinamento/rota/:id', verificarPermissao('sistema', 'visualizar'), asyncHandler(async (req, res) => {
   const correcaoId = parseInt(req.params.id);
 
   // Buscar a correção inicial
@@ -727,7 +728,7 @@ router.get('/treinamento/rota/:id', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/gps-ai/treinamento/aprovar - Aprovar uma correção
-router.post('/treinamento/aprovar', asyncHandler(async (req, res) => {
+router.post('/treinamento/aprovar', verificarPermissao('sistema', 'configurar'), asyncHandler(async (req, res) => {
   const { correcao_id, avaliacao, comentario } = req.body;
 
   if (!correcao_id) {
@@ -751,7 +752,7 @@ router.post('/treinamento/aprovar', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/gps-ai/treinamento/rejeitar - Rejeitar uma correção
-router.post('/treinamento/rejeitar', asyncHandler(async (req, res) => {
+router.post('/treinamento/rejeitar', verificarPermissao('sistema', 'configurar'), asyncHandler(async (req, res) => {
   const { correcao_id, motivo } = req.body;
 
   if (!correcao_id) {
@@ -774,7 +775,7 @@ router.post('/treinamento/rejeitar', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/gps-ai/treinamento/avaliar-rota - Aprovar/rejeitar toda uma rota
-router.post('/treinamento/avaliar-rota', asyncHandler(async (req, res) => {
+router.post('/treinamento/avaliar-rota', verificarPermissao('sistema', 'configurar'), asyncHandler(async (req, res) => {
   const { correcao_ids, aprovado, avaliacao, comentario } = req.body;
 
   if (!correcao_ids || !Array.isArray(correcao_ids)) {
@@ -803,7 +804,7 @@ router.post('/treinamento/avaliar-rota', asyncHandler(async (req, res) => {
 
 // GET /api/gps-ai/:imei/referencias/estatisticas - Estatisticas de pontos de referencia
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/referencias/estatisticas', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/referencias/estatisticas', verificarPermissao('sistema', 'visualizar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
 
   if (!gpsReferencia) {
@@ -827,7 +828,7 @@ router.get('/:imei/referencias/estatisticas', verificarDispositivoTenant, asyncH
 
 // GET /api/gps-ai/:imei/referencias/pontos - Lista pontos de referencia
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/referencias/pontos', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/referencias/pontos', verificarPermissao('sistema', 'visualizar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const horas = parseInt(req.query.horas) || 24;
 
@@ -873,7 +874,7 @@ router.get('/:imei/referencias/pontos', verificarDispositivoTenant, asyncHandler
 
 // POST /api/gps-ai/:imei/referencias/treinar - Treina IA usando pontos de referencia
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.post('/:imei/referencias/treinar', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.post('/:imei/referencias/treinar', verificarPermissao('sistema', 'configurar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
 
   if (!gpsReferencia) {
@@ -908,7 +909,7 @@ router.post('/:imei/referencias/treinar', verificarDispositivoTenant, asyncHandl
 
 // POST /api/gps-ai/:imei/referencias/validar - Valida uma correcao usando referencias
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.post('/:imei/referencias/validar', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.post('/:imei/referencias/validar', verificarPermissao('sistema', 'configurar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const { lat_original, lon_original, lat_corrigido, lon_corrigido } = req.body;
 
@@ -959,7 +960,7 @@ router.post('/:imei/referencias/validar', verificarDispositivoTenant, asyncHandl
 
 // POST /api/gps-ai/:imei/referencias/sugerir - Sugere correcao baseada em referencias
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.post('/:imei/referencias/sugerir', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.post('/:imei/referencias/sugerir', verificarPermissao('sistema', 'configurar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const { latitude, longitude } = req.body;
 

@@ -12,6 +12,8 @@ const express = require('express');
 const router = express.Router();
 const { pipeline, PIPELINE_CONFIG } = require('../services/gps-pipeline.service');
 const gpsAI = require('../services/gps-ai-correction.service');
+const { autenticar } = require('../middleware/auth.middleware');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // ==================== ESTATÍSTICAS ====================
 
@@ -19,7 +21,7 @@ const gpsAI = require('../services/gps-ai-correction.service');
  * GET /api/gps-pipeline/stats
  * Retorna estatísticas do pipeline
  */
-router.get('/stats', (req, res) => {
+router.get('/stats', autenticar, verificarPermissao('sistema', 'visualizar'), (req, res) => {
   try {
     const stats = pipeline.getStats();
     res.json({
@@ -44,7 +46,7 @@ router.get('/stats', (req, res) => {
  * GET /api/gps-pipeline/ai-stats
  * Retorna estatísticas detalhadas da IA
  */
-router.get('/ai-stats', (req, res) => {
+router.get('/ai-stats', autenticar, verificarPermissao('sistema', 'visualizar'), (req, res) => {
   try {
     const stats = gpsAI.getStats();
     res.json({
@@ -74,7 +76,7 @@ router.get('/ai-stats', (req, res) => {
  *   imei: string
  * }
  */
-router.post('/test', async (req, res) => {
+router.post('/test', autenticar, verificarPermissao('sistema', 'configurar'), async (req, res) => {
   try {
     const { latitude, longitude, velocidade, direcao, hdop, imei } = req.body;
 
@@ -125,7 +127,7 @@ router.post('/test', async (req, res) => {
  *   pontos: Array<{latitude, longitude, velocidade, direcao, hdop, timestamp}>
  * }
  */
-router.post('/test-batch', async (req, res) => {
+router.post('/test-batch', autenticar, verificarPermissao('sistema', 'configurar'), async (req, res) => {
   try {
     const { imei, pontos } = req.body;
 
@@ -179,7 +181,7 @@ router.post('/test-batch', async (req, res) => {
  * GET /api/gps-pipeline/config
  * Retorna configuração atual do pipeline
  */
-router.get('/config', (req, res) => {
+router.get('/config', autenticar, verificarPermissao('sistema', 'visualizar'), (req, res) => {
   res.json({
     sucesso: true,
     dados: PIPELINE_CONFIG
@@ -196,7 +198,7 @@ router.get('/config', (req, res) => {
  *   mapMatching?: { enabled?: boolean, provider?: string, ... }
  * }
  */
-router.post('/config', (req, res) => {
+router.post('/config', autenticar, verificarPermissao('sistema', 'configurar'), (req, res) => {
   try {
     const { kalman, ai, mapMatching } = req.body;
 
@@ -230,7 +232,7 @@ router.post('/config', (req, res) => {
  * POST /api/gps-pipeline/reset-kalman/:imei
  * Reseta o filtro de Kalman de um dispositivo específico
  */
-router.post('/reset-kalman/:imei', (req, res) => {
+router.post('/reset-kalman/:imei', autenticar, verificarPermissao('sistema', 'configurar'), (req, res) => {
   try {
     const { imei } = req.params;
     pipeline.resetKalman(imei);
@@ -251,7 +253,7 @@ router.post('/reset-kalman/:imei', (req, res) => {
  * POST /api/gps-pipeline/save-model
  * Força salvamento do modelo de IA
  */
-router.post('/save-model', async (req, res) => {
+router.post('/save-model', autenticar, verificarPermissao('sistema', 'configurar'), async (req, res) => {
   try {
     await gpsAI.saveModel();
 
@@ -277,7 +279,7 @@ router.post('/save-model', async (req, res) => {
  *   imei: string
  * }
  */
-router.post('/train', (req, res) => {
+router.post('/train', autenticar, verificarPermissao('sistema', 'configurar'), (req, res) => {
   try {
     const { posicao_errada, posicao_correta, imei } = req.body;
 
@@ -309,7 +311,7 @@ router.post('/train', (req, res) => {
  * GET /api/gps-pipeline/regions
  * Lista regiões onde a IA tem dados de treinamento
  */
-router.get('/regions', (req, res) => {
+router.get('/regions', autenticar, verificarPermissao('sistema', 'visualizar'), (req, res) => {
   try {
     // Acessar regionModels via stats (não exposto diretamente)
     const stats = gpsAI.getStats();
@@ -333,7 +335,7 @@ router.get('/regions', (req, res) => {
  * GET /api/gps-pipeline/help
  * Retorna documentação da API
  */
-router.get('/help', (req, res) => {
+router.get('/help', autenticar, verificarPermissao('sistema', 'visualizar'), (req, res) => {
   res.json({
     sucesso: true,
     dados: {

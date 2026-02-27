@@ -7,6 +7,7 @@ const router = express.Router();
 const perfilService = require('../services/perfil-permissao.service');
 const { MODULOS } = require('../services/perfil-permissao.service');
 const { autenticar, apenasAdmin } = require('../middleware/auth.middleware');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // Cache de permissões por usuário (TTL 30s)
 const permissoesCache = new Map();
@@ -27,7 +28,7 @@ router.get('/modulos', autenticar, (req, res) => {
  * GET /api/perfis-permissao
  * Listar perfis (da organização + sistema)
  */
-router.get('/', autenticar, async (req, res) => {
+router.get('/', autenticar, verificarPermissao('perfis', 'listar'), async (req, res) => {
   try {
     const organizacao_id = req.usuario.role === 'super_admin'
       ? req.query.organizacao_id ? parseInt(req.query.organizacao_id) : null
@@ -52,7 +53,7 @@ router.get('/', autenticar, async (req, res) => {
  * GET /api/perfis-permissao/:id
  * Buscar perfil por ID
  */
-router.get('/:id', autenticar, async (req, res) => {
+router.get('/:id', autenticar, verificarPermissao('perfis', 'listar'), async (req, res) => {
   try {
     const perfil = await perfilService.buscarPorId(parseInt(req.params.id));
 
@@ -80,7 +81,7 @@ router.get('/:id', autenticar, async (req, res) => {
  * POST /api/perfis-permissao
  * Criar novo perfil
  */
-router.post('/', autenticar, apenasAdmin, async (req, res) => {
+router.post('/', autenticar, verificarPermissao('perfis', 'criar'), async (req, res) => {
   try {
     const { nome, descricao, permissoes, organizacao_id } = req.body;
 
@@ -121,7 +122,7 @@ router.post('/', autenticar, apenasAdmin, async (req, res) => {
  * PUT /api/perfis-permissao/:id
  * Atualizar perfil
  */
-router.put('/:id', autenticar, apenasAdmin, async (req, res) => {
+router.put('/:id', autenticar, verificarPermissao('perfis', 'editar'), async (req, res) => {
   try {
     const perfil = await perfilService.atualizar(
       parseInt(req.params.id),
@@ -145,7 +146,7 @@ router.put('/:id', autenticar, apenasAdmin, async (req, res) => {
  * DELETE /api/perfis-permissao/:id
  * Excluir perfil
  */
-router.delete('/:id', autenticar, apenasAdmin, async (req, res) => {
+router.delete('/:id', autenticar, verificarPermissao('perfis', 'excluir'), async (req, res) => {
   try {
     await perfilService.excluir(parseInt(req.params.id));
 
@@ -166,7 +167,7 @@ router.delete('/:id', autenticar, apenasAdmin, async (req, res) => {
  * POST /api/perfis-permissao/:id/usuarios/:usuarioId
  * Associar perfil a um usuário
  */
-router.post('/:id/usuarios/:usuarioId', autenticar, apenasAdmin, async (req, res) => {
+router.post('/:id/usuarios/:usuarioId', autenticar, verificarPermissao('usuarios', 'editar'), async (req, res) => {
   try {
     const perfil_id = parseInt(req.params.id);
     const usuario_id = parseInt(req.params.usuarioId);
@@ -195,7 +196,7 @@ router.post('/:id/usuarios/:usuarioId', autenticar, apenasAdmin, async (req, res
  * DELETE /api/perfis-permissao/:id/usuarios/:usuarioId
  * Remover perfil de um usuário
  */
-router.delete('/:id/usuarios/:usuarioId', autenticar, apenasAdmin, async (req, res) => {
+router.delete('/:id/usuarios/:usuarioId', autenticar, verificarPermissao('usuarios', 'editar'), async (req, res) => {
   try {
     const perfil_id = parseInt(req.params.id);
     const usuario_id = parseInt(req.params.usuarioId);
@@ -226,7 +227,7 @@ router.delete('/:id/usuarios/:usuarioId', autenticar, apenasAdmin, async (req, r
  * DELETE /api/perfis-permissao/usuarios/:usuarioId/perfis
  * Remover todos os perfis de um usuário
  */
-router.delete('/usuarios/:usuarioId/perfis', autenticar, apenasAdmin, async (req, res) => {
+router.delete('/usuarios/:usuarioId/perfis', autenticar, verificarPermissao('usuarios', 'editar'), async (req, res) => {
   try {
     const usuario_id = parseInt(req.params.usuarioId);
 

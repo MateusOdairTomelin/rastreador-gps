@@ -23,6 +23,7 @@ const insightRoutes = require('./insight.routes'); // ✅ Insights de IA (análi
 const lgpdRoutes = require('./lgpd.routes'); // ✅ LGPD: Consentimentos e Exclusão de Dados
 const relatoriosRoutes = require('./relatorios.routes'); // ✅ Relatórios Avançados (Velocidade, Ocioso, Quilometragem, Frota)
 const perfilPermissaoRoutes = require('./perfil-permissao.routes'); // ✅ Perfis de Permissão
+const auditoriaRoutes = require('./auditoria.routes'); // ✅ Auditoria: Logs de ações
 const infraestruturaRoutes = require('./infraestrutura.routes'); // ✅ Monitoramento Docker/Infraestrutura
 const { autenticar, autenticarOpcional, apenasAdmin, apenasSuperAdmin } = require('../middleware/auth.middleware'); // ✅ Middleware de autenticação
 const { tenantContext } = require('../middleware/tenant.middleware'); // ✅ Multi-tenant: Contexto
@@ -550,6 +551,7 @@ router.use('/insights', autenticar, tenantContext, insightRoutes); // ✅ Insigh
 router.use('/lgpd', lgpdRoutes); // ✅ LGPD: Consentimentos e Exclusão de Dados (autenticação no próprio arquivo)
 router.use('/relatorios', autenticar, tenantContext, relatoriosRoutes); // ✅ Relatórios Avançados
 router.use('/perfis-permissao', perfilPermissaoRoutes); // ✅ Perfis de Permissão (autenticação no próprio arquivo)
+router.use('/auditoria', auditoriaRoutes); // ✅ Auditoria: Logs de ações (autenticação no próprio arquivo)
 
 // ============ ENDPOINTS DE COMANDOS (PROTEGIDO) ============
 

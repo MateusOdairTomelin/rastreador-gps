@@ -18,6 +18,7 @@ const lgpdService = require('../services/lgpd.service');
 const dataRetentionService = require('../services/data-retention.service');
 const lgpdReportService = require('../services/lgpd-report.service');
 const { autenticar, apenasAdmin, apenasSuperAdmin } = require('../middleware/auth.middleware');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 const { exportacaoDadosLimiter, exclusaoDadosLimiter } = require('../middleware/rate-limit.middleware');
 
 /**
@@ -212,7 +213,7 @@ router.post('/solicitar-exclusao', autenticar, exclusaoDadosLimiter, async (req,
  * GET /api/lgpd/solicitacoes-exclusao
  * Listar solicitações de exclusão (admin)
  */
-router.get('/solicitacoes-exclusao', autenticar, apenasAdmin, async (req, res) => {
+router.get('/solicitacoes-exclusao', autenticar, verificarPermissao('lgpd', 'listar'), async (req, res) => {
   try {
     const { status, usuario_id } = req.query;
     const filtros = {
@@ -240,7 +241,7 @@ router.get('/solicitacoes-exclusao', autenticar, apenasAdmin, async (req, res) =
  * POST /api/lgpd/processar-exclusao/:id
  * Processar solicitação de exclusão (admin)
  */
-router.post('/processar-exclusao/:id', autenticar, apenasAdmin, async (req, res) => {
+router.post('/processar-exclusao/:id', autenticar, verificarPermissao('lgpd', 'excluir'), async (req, res) => {
   try {
     const { id } = req.params;
     const { aprovar, motivo_recusa } = req.body;
@@ -294,7 +295,7 @@ router.get('/meus-dados', autenticar, exportacaoDadosLimiter, async (req, res) =
  * DELETE /api/lgpd/dispositivo/:id
  * Excluir dispositivo com todos os dados (cascata)
  */
-router.delete('/dispositivo/:id', autenticar, apenasAdmin, async (req, res) => {
+router.delete('/dispositivo/:id', autenticar, verificarPermissao('lgpd', 'excluir'), async (req, res) => {
   try {
     const { id } = req.params;
     const { confirmar } = req.body;
@@ -326,7 +327,7 @@ router.delete('/dispositivo/:id', autenticar, apenasAdmin, async (req, res) => {
  * DELETE /api/lgpd/motorista/:id
  * Anonimizar dados de motorista
  */
-router.delete('/motorista/:id', autenticar, apenasAdmin, async (req, res) => {
+router.delete('/motorista/:id', autenticar, verificarPermissao('lgpd', 'excluir'), async (req, res) => {
   try {
     const { id } = req.params;
     const { confirmar } = req.body;
@@ -360,7 +361,7 @@ router.delete('/motorista/:id', autenticar, apenasAdmin, async (req, res) => {
  * GET /api/lgpd/retencao/politicas
  * Obter políticas de retenção de dados (admin)
  */
-router.get('/retencao/politicas', autenticar, apenasAdmin, (req, res) => {
+router.get('/retencao/politicas', autenticar, verificarPermissao('lgpd', 'configurar'), (req, res) => {
   const politicas = dataRetentionService.getPolicies();
 
   res.json({
@@ -384,7 +385,7 @@ router.get('/retencao/politicas', autenticar, apenasAdmin, (req, res) => {
  * GET /api/lgpd/retencao/estimativa
  * Obter estimativa de dados a serem excluídos (admin)
  */
-router.get('/retencao/estimativa', autenticar, apenasAdmin, async (req, res) => {
+router.get('/retencao/estimativa', autenticar, verificarPermissao('lgpd', 'configurar'), async (req, res) => {
   try {
     const estimativa = await dataRetentionService.getCleanupEstimate();
 
@@ -406,7 +407,7 @@ router.get('/retencao/estimativa', autenticar, apenasAdmin, async (req, res) => 
  * GET /api/lgpd/retencao/status
  * Obter status da última execução da limpeza (admin)
  */
-router.get('/retencao/status', autenticar, apenasAdmin, (req, res) => {
+router.get('/retencao/status', autenticar, verificarPermissao('lgpd', 'configurar'), (req, res) => {
   const status = dataRetentionService.getLastRunStats();
 
   res.json({
@@ -423,7 +424,7 @@ router.get('/retencao/status', autenticar, apenasAdmin, (req, res) => {
  * POST /api/lgpd/retencao/executar
  * Executar limpeza manual (super admin)
  */
-router.post('/retencao/executar', autenticar, apenasSuperAdmin, async (req, res) => {
+router.post('/retencao/executar', autenticar, verificarPermissao('lgpd', 'executar'), async (req, res) => {
   try {
     console.log(`[LGPD] Limpeza manual iniciada por ${req.usuario.email}`);
 
@@ -449,7 +450,7 @@ router.post('/retencao/executar', autenticar, apenasSuperAdmin, async (req, res)
  * GET /api/lgpd/admin/relatorio-pdf
  * Gerar relatório de conformidade LGPD em PDF (super admin)
  */
-router.get('/admin/relatorio-pdf', autenticar, apenasSuperAdmin, async (req, res) => {
+router.get('/admin/relatorio-pdf', autenticar, verificarPermissao('lgpd', 'exportar'), async (req, res) => {
   try {
     const { organizacao_id, data_inicio, data_fim } = req.query;
 
@@ -481,7 +482,7 @@ router.get('/admin/relatorio-pdf', autenticar, apenasSuperAdmin, async (req, res
  * GET /api/lgpd/admin/pendentes-notificar
  * Obter usuários/motoristas pendentes para notificação (admin)
  */
-router.get('/admin/pendentes-notificar', autenticar, apenasAdmin, async (req, res) => {
+router.get('/admin/pendentes-notificar', autenticar, verificarPermissao('lgpd', 'listar'), async (req, res) => {
   try {
     const organizacaoId = req.usuario.role === 'super_admin'
       ? (req.query.organizacao_id ? parseInt(req.query.organizacao_id) : null)
@@ -511,7 +512,7 @@ router.get('/admin/pendentes-notificar', autenticar, apenasAdmin, async (req, re
  * GET /api/lgpd/admin/logs-acesso
  * Obter logs de acesso a dados pessoais (super admin)
  */
-router.get('/admin/logs-acesso', autenticar, apenasSuperAdmin, async (req, res) => {
+router.get('/admin/logs-acesso', autenticar, verificarPermissao('lgpd', 'listar'), async (req, res) => {
   try {
     const { usuario_id, data_inicio, data_fim, limit = 100 } = req.query;
 
@@ -543,7 +544,7 @@ router.get('/admin/logs-acesso', autenticar, apenasSuperAdmin, async (req, res) 
  * GET /api/lgpd/admin/estatisticas
  * Obter estatísticas gerais LGPD (super admin)
  */
-router.get('/admin/estatisticas', autenticar, apenasSuperAdmin, async (req, res) => {
+router.get('/admin/estatisticas', autenticar, verificarPermissao('lgpd', 'listar'), async (req, res) => {
   try {
     const estatisticas = await lgpdService.obterEstatisticasLGPD();
 
@@ -564,7 +565,7 @@ router.get('/admin/estatisticas', autenticar, apenasSuperAdmin, async (req, res)
  * GET /api/lgpd/admin/organizacoes
  * Listar todas organizações com status LGPD (super admin)
  */
-router.get('/admin/organizacoes', autenticar, apenasSuperAdmin, async (req, res) => {
+router.get('/admin/organizacoes', autenticar, verificarPermissao('lgpd', 'listar'), async (req, res) => {
   try {
     const organizacoes = await lgpdService.listarOrganizacoesComStatusLGPD();
 
@@ -586,7 +587,7 @@ router.get('/admin/organizacoes', autenticar, apenasSuperAdmin, async (req, res)
  * Listar todos usuários com status de consentimento (super admin)
  * Query params: organizacao_id (opcional)
  */
-router.get('/admin/usuarios', autenticar, apenasSuperAdmin, async (req, res) => {
+router.get('/admin/usuarios', autenticar, verificarPermissao('lgpd', 'listar'), async (req, res) => {
   try {
     const { organizacao_id } = req.query;
     const filtros = {};
@@ -614,7 +615,7 @@ router.get('/admin/usuarios', autenticar, apenasSuperAdmin, async (req, res) => 
  * Admin: apenas da sua organização
  * Super admin: todas ou filtradas por organizacao_id
  */
-router.get('/admin/motoristas', autenticar, apenasAdmin, async (req, res) => {
+router.get('/admin/motoristas', autenticar, verificarPermissao('lgpd', 'listar'), async (req, res) => {
   try {
     let organizacaoId;
 
@@ -650,7 +651,7 @@ router.get('/admin/motoristas', autenticar, apenasAdmin, async (req, res) => {
  * GET /api/lgpd/admin/usuarios-organizacao
  * Listar usuários da própria organização (admin)
  */
-router.get('/admin/usuarios-organizacao', autenticar, apenasAdmin, async (req, res) => {
+router.get('/admin/usuarios-organizacao', autenticar, verificarPermissao('lgpd', 'listar'), async (req, res) => {
   try {
     const organizacaoId = req.usuario.organizacao_id;
 
@@ -684,7 +685,7 @@ router.get('/admin/usuarios-organizacao', autenticar, apenasAdmin, async (req, r
  * Revogar consentimentos de um usuário (forçar reaceite)
  * Apenas admin da organização
  */
-router.post('/admin/revogar-usuario/:id', autenticar, apenasAdmin, async (req, res) => {
+router.post('/admin/revogar-usuario/:id', autenticar, verificarPermissao('lgpd', 'excluir'), async (req, res) => {
   try {
     const usuarioId = parseInt(req.params.id);
     const adminOrgId = req.usuario.organizacao_id;
@@ -734,7 +735,7 @@ router.post('/admin/revogar-usuario/:id', autenticar, apenasAdmin, async (req, r
  * Revogar consentimentos de um motorista (forçar reaceite no APP)
  * Apenas admin da organização
  */
-router.post('/admin/revogar-motorista/:id', autenticar, apenasAdmin, async (req, res) => {
+router.post('/admin/revogar-motorista/:id', autenticar, verificarPermissao('lgpd', 'excluir'), async (req, res) => {
   try {
     const motoristaId = parseInt(req.params.id);
     const adminOrgId = req.usuario.organizacao_id;
