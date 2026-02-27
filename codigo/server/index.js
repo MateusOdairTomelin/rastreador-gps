@@ -116,6 +116,92 @@ app.use('/api', dynamicRateLimiter);
 
 console.log('[RateLimit] ✅ Rate limiting ativado com limites diferenciados por endpoint');
 
+// ============ RESTRIÇÃO DE IP (TEMPORÁRIA) ============
+// Para desativar: IP_RESTRICTION_ENABLED=false no .env ou docker-compose
+const IP_RESTRICTION_ENABLED = process.env.IP_RESTRICTION_ENABLED !== 'false';
+
+// IPs permitidos para acesso ao painel web (VPN e IPs autorizados)
+const ALLOWED_IPS = [
+  '187.85.161.250',   // VPN empresa
+  '189.28.210.114',   // IP autorizado
+  '127.0.0.1',        // localhost
+  '::1',              // localhost IPv6
+];
+
+// Ranges internos (Docker, redes privadas)
+const INTERNAL_RANGES = ['172.', '192.168.', '10.'];
+
+// Rotas do app mobile - acesso livre (sem restrição de IP)
+const MOBILE_APP_ROUTES = [
+  '/api/motorista',
+  '/api/auth-motorista',
+  '/api/auth/login',      // Login também livre para app
+  '/api/auth/refresh',    // Refresh token
+  '/api/status',          // Health check
+  '/health',              // Health check
+];
+
+const ipRestrictionMiddleware = (req, res, next) => {
+  // Extrair IP real (considerando proxy/load balancer)
+  let clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+                 req.headers['x-real-ip'] ||
+                 req.ip ||
+                 req.connection?.remoteAddress || '';
+
+  // Limpar prefixo IPv6-mapped IPv4
+  clientIp = clientIp.replace('::ffff:', '');
+
+  // 1. Rotas do app mobile - acesso livre
+  const isMobileRoute = MOBILE_APP_ROUTES.some(route => req.path.startsWith(route));
+  if (isMobileRoute) {
+    return next();
+  }
+
+  // 2. Arquivos estáticos públicos - acesso livre
+  if (req.path.startsWith('/assets/') ||
+      req.path.endsWith('.css') ||
+      req.path.endsWith('.js') ||
+      req.path.endsWith('.ico') ||
+      req.path.endsWith('.png') ||
+      req.path.endsWith('.jpg') ||
+      req.path.endsWith('.svg') ||
+      req.path.endsWith('.woff') ||
+      req.path.endsWith('.woff2')) {
+    return next();
+  }
+
+  // 3. IP na lista de permitidos
+  if (ALLOWED_IPS.includes(clientIp)) {
+    return next();
+  }
+
+  // 4. IP em range interno (Docker, redes privadas)
+  const isInternal = INTERNAL_RANGES.some(range => clientIp.startsWith(range));
+  if (isInternal) {
+    return next();
+  }
+
+  // 5. Bloquear acesso
+  console.warn(`[IP-Restrict] ❌ Acesso negado: IP=${clientIp} Path=${req.path}`);
+  return res.status(403).json({
+    sucesso: false,
+    erro: 'Acesso não autorizado',
+    mensagem: 'Seu IP não está autorizado a acessar este recurso',
+    ip: clientIp
+  });
+};
+
+// Aplicar restrição de IP (apenas se habilitada)
+if (IP_RESTRICTION_ENABLED) {
+  app.use(ipRestrictionMiddleware);
+  console.log('[IP-Restrict] ✅ Restrição de IP ATIVADA (temporária)');
+  console.log('[IP-Restrict] IPs permitidos:', ALLOWED_IPS.join(', '));
+  console.log('[IP-Restrict] Rotas livres (app):', MOBILE_APP_ROUTES.join(', '));
+  console.log('[IP-Restrict] Para desativar: IP_RESTRICTION_ENABLED=false');
+} else {
+  console.log('[IP-Restrict] ⚠️ Restrição de IP DESATIVADA');
+}
+
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
