@@ -6,6 +6,7 @@
 
 const express = require('express');
 const router = express.Router();
+const prisma = require('../db/prisma');
 const organizacaoService = require('../services/organizacao.service');
 const authService = require('../services/auth.service');
 const perfilPermissaoService = require('../services/perfil-permissao.service');
@@ -785,7 +786,7 @@ router.get('/usuarios', autenticar, apenasSuperAdmin, async (req, res) => {
  */
 router.post('/usuarios', autenticar, apenasSuperAdmin, async (req, res) => {
   try {
-    const { nome, email, senha, organizacao_id, role_org, role, organizacoes_permitidas } = req.body;
+    const { nome, email, senha, organizacao_id, role_org, role, organizacoes_permitidas, perfil_id } = req.body;
 
     if (!email || !senha) {
       return res.status(400).json({
@@ -794,15 +795,46 @@ router.post('/usuarios', autenticar, apenasSuperAdmin, async (req, res) => {
       });
     }
 
+    // Verificar se perfil tem acesso global para determinar role automaticamente
+    let roleAutomatico = role || 'usuario';
+    if (perfil_id) {
+      try {
+        const perfil = await prisma.perfilPermissao.findUnique({ where: { id: parseInt(perfil_id) } });
+        if (perfil) {
+          const permissoes = typeof perfil.permissoes === 'string' ? JSON.parse(perfil.permissoes) : perfil.permissoes;
+          if (permissoes?._acesso_global === true || perfil.nome === 'Acesso Total') {
+            roleAutomatico = 'super_admin';
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao verificar perfil para role:', e);
+      }
+    }
+
     const usuario = await organizacaoService.criarUsuarioGlobal({
       nome,
       email,
       senha,
       organizacao_id: organizacao_id ? parseInt(organizacao_id) : null,
       role_org,
-      role,
+      role: roleAutomatico,
       organizacoes_permitidas
     });
+
+    // Associar perfil ao usuário se fornecido
+    if (perfil_id && usuario.id) {
+      try {
+        await prisma.usuarioPerfilPermissao.create({
+          data: {
+            usuario_id: usuario.id,
+            perfil_id: parseInt(perfil_id),
+            organizacao_id: roleAutomatico === 'super_admin' ? null : (organizacao_id ? parseInt(organizacao_id) : null)
+          }
+        });
+      } catch (perfilError) {
+        console.error('Erro ao associar perfil:', perfilError);
+      }
+    }
 
     // Registrar auditoria
     await authService.registrarAuditoria(
@@ -810,7 +842,7 @@ router.post('/usuarios', autenticar, apenasSuperAdmin, async (req, res) => {
       'CRIAR_USUARIO',
       'usuario',
       usuario.id.toString(),
-      `Usuário criado: ${nome || email} (${role || 'usuario'})`,
+      `Usuário criado: ${nome || email} (${roleAutomatico})`,
       req.ip,
       req.get('User-Agent'),
       true,
@@ -837,10 +869,53 @@ router.post('/usuarios', autenticar, apenasSuperAdmin, async (req, res) => {
 router.put('/usuarios/:id', autenticar, apenasSuperAdmin, async (req, res) => {
   try {
     const usuarioId = parseInt(req.params.id);
+    const { perfil_id, ...updateData } = req.body;
+
+    // Verificar se perfil tem acesso global para determinar role automaticamente
+    if (perfil_id) {
+      try {
+        const perfil = await prisma.perfilPermissao.findUnique({ where: { id: parseInt(perfil_id) } });
+        if (perfil) {
+          const permissoes = typeof perfil.permissoes === 'string' ? JSON.parse(perfil.permissoes) : perfil.permissoes;
+          if (permissoes?._acesso_global === true || perfil.nome === 'Acesso Total') {
+            updateData.role = 'super_admin';
+          } else if (!updateData.role) {
+            updateData.role = 'usuario';
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao verificar perfil para role:', e);
+      }
+    }
+
     const usuario = await organizacaoService.atualizarUsuarioGlobal(
       usuarioId,
-      req.body
+      updateData
     );
+
+    // Atualizar perfil do usuário se fornecido
+    if (perfil_id !== undefined) {
+      try {
+        // Remover perfis anteriores
+        await prisma.usuarioPerfilPermissao.deleteMany({
+          where: { usuario_id: usuarioId }
+        });
+
+        // Associar novo perfil se fornecido
+        if (perfil_id) {
+          const roleAtual = updateData.role || usuario.role;
+          await prisma.usuarioPerfilPermissao.create({
+            data: {
+              usuario_id: usuarioId,
+              perfil_id: parseInt(perfil_id),
+              organizacao_id: roleAtual === 'super_admin' ? null : (updateData.organizacao_id ? parseInt(updateData.organizacao_id) : null)
+            }
+          });
+        }
+      } catch (perfilError) {
+        console.error('Erro ao atualizar perfil:', perfilError);
+      }
+    }
 
     // Registrar auditoria
     await authService.registrarAuditoria(

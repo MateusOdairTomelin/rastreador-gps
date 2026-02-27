@@ -10677,17 +10677,19 @@
           <input type="password" id="user-senha" placeholder="Mínimo 6 caracteres" minlength="6">
         </div>
 
-        <!-- Role Global - Visível apenas para super_admin -->
-        <div class="form-group" id="user-role-global-group" style="display:none;">
-          <label>Tipo de Usuário</label>
-          <select id="user-role-global" onchange="toggleOrgFields()">
-            <option value="usuario">Usuário Normal</option>
-            <option value="super_admin">Super Administrador</option>
+        <!-- Perfil de Permissão (OBRIGATÓRIO - define acesso) -->
+        <div class="form-group" id="user-perfil-group">
+          <label>Perfil de Acesso *</label>
+          <select id="user-perfil" required onchange="onPerfilChange()">
+            <option value="">Selecione um perfil...</option>
           </select>
-          <small style="color: var(--text-light); font-size: 11px;">Super Admin pode ter acesso a todas ou organizações específicas</small>
+          <small style="color: var(--text-light); font-size: 11px;">O perfil define as permissões e escopo de acesso do usuário</small>
         </div>
 
-        <!-- Seleção de Organizações para Super Admin -->
+        <!-- Campo oculto para role (será preenchido automaticamente) -->
+        <input type="hidden" id="user-role-global" value="usuario">
+
+        <!-- Seleção de Organizações para Acesso Global -->
         <div class="form-group" id="super-admin-orgs-group" style="display:none;">
           <label style="margin-bottom: 8px; display: block;">Acesso às Organizações</label>
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
@@ -10719,14 +10721,7 @@
           </div>
         </div>
 
-        <!-- Perfil de Permissão -->
-        <div class="form-group" id="user-perfil-group">
-          <label>Perfil de Permissão</label>
-          <select id="user-perfil">
-            <option value="">Nenhum (usar role padrão)</option>
-          </select>
-          <small style="color: var(--text-light); font-size: 11px;">Perfil personalizado define exatamente o que o usuário pode acessar</small>
-        </div>
+        <!-- Perfil duplicado removido - agora está no início do form -->
 
         <!-- Status do Usuário (apenas na edição) -->
         <div class="form-group" id="user-status-group" style="display:none;">
@@ -18822,8 +18817,7 @@
         const title = document.getElementById('user-modal-title');
         const senhaGroup = document.getElementById('user-senha-group');
         const senhaInput = document.getElementById('user-senha');
-        const roleGlobalGroup = document.getElementById('user-role-global-group');
-        const roleGlobalSelect = document.getElementById('user-role-global');
+        const roleGlobalInput = document.getElementById('user-role-global');
         const perfilSelect = document.getElementById('user-perfil');
         const statusGroup = document.getElementById('user-status-group');
         const statusSelect = document.getElementById('user-ativo');
@@ -18840,34 +18834,20 @@
         if (statusGroup) statusGroup.style.display = 'none';
         if (statusSelect) statusSelect.value = 'true';
 
-        // Mostrar campo de role global apenas para super_admin
-        // Verificar role do usuário atual
-        const usuarioStr = localStorage.getItem('usuario') || sessionStorage.getItem('usuario');
-        let isSuperAdmin = false;
-        if (usuarioStr) {
-          try {
-            const usr = JSON.parse(usuarioStr);
-            isSuperAdmin = usr.role === 'super_admin';
-          } catch(e) {}
-        }
-
-        if (isSuperAdmin || window.currentUser?.role === 'super_admin') {
-          if (roleGlobalGroup) roleGlobalGroup.style.display = 'block';
-        } else {
-          if (roleGlobalGroup) roleGlobalGroup.style.display = 'none';
-        }
-
         // Reset role global para usuario normal
-        if (roleGlobalSelect) {
-          roleGlobalSelect.value = 'usuario';
-          toggleOrgFields();
-        }
+        if (roleGlobalInput) roleGlobalInput.value = 'usuario';
 
         // Carregar perfis disponíveis
         await carregarPerfisParaSelect();
 
+        // Carregar organizações
+        await carregarOrgsParaSelect();
+
+        // Reset campos de org para estado padrão
+        toggleOrgFieldsBasedOnRole('usuario');
+
         if (userId) {
-          title.textContent = 'Editar Administrador';
+          title.textContent = 'Editar Usuário';
           senhaInput.required = false;
           senhaInput.placeholder = 'Deixe vazio para manter atual';
           const user = usuariosCache.find(u => parseInt(u.id) === parseInt(userId));
@@ -18876,10 +18856,18 @@
             document.getElementById('user-nome').value = user.nome || '';
             document.getElementById('user-email').value = user.email;
 
-            // Verificar se é super_admin
-            if (user.role === 'super_admin' && roleGlobalSelect) {
-              roleGlobalSelect.value = 'super_admin';
-              toggleOrgFields();
+            // Carregar perfil do usuário primeiro (vai definir o role automaticamente)
+            if (user.perfis?.length > 0 && perfilSelect) {
+              const perfilId = user.perfis[0].perfil_id || user.perfis[0].perfil?.id || user.perfis[0].id || '';
+              perfilSelect.value = perfilId;
+              // Disparar onchange para ajustar campos
+              onPerfilChange();
+            }
+
+            // Se é super_admin, ajustar campos de orgs
+            if (user.role === 'super_admin') {
+              if (roleGlobalInput) roleGlobalInput.value = 'super_admin';
+              toggleOrgFieldsBasedOnRole('super_admin');
 
               // Carregar organizações permitidas do super_admin
               if (user.organizacoes_permitidas) {
@@ -18888,25 +18876,18 @@
                   renderizarOrgsSuperAdmin(orgsPermitidas);
                 } catch (e) {
                   console.error('Erro ao parsear organizacoes_permitidas:', e);
-                  renderizarOrgsSuperAdmin([]);
+                  renderizarOrgsSuperAdmin(['todas']);
                 }
               } else {
-                // Sem restrição = todas as organizações
                 renderizarOrgsSuperAdmin(['todas']);
               }
             }
 
+            // Preencher org e role de org
             if (user.organizacoes?.length > 0) {
               const orgId = user.organizacoes[0].organizacao_id || user.organizacoes[0].organizacao?.id || user.organizacoes[0].id;
               document.getElementById('user-org').value = orgId;
               document.getElementById('user-role-org').value = user.organizacoes[0].role || 'operador';
-            }
-
-            // Carregar perfil do usuário
-            if (user.perfis?.length > 0 && perfilSelect) {
-              // Acessar perfil_id ou perfil.id dependendo da estrutura retornada
-              const perfilId = user.perfis[0].perfil_id || user.perfis[0].perfil?.id || user.perfis[0].id || '';
-              perfilSelect.value = perfilId;
             }
 
             // Mostrar e preencher status do usuário (apenas na edição)
@@ -18918,18 +18899,20 @@
             }
           }
         } else {
-          title.textContent = 'Novo Administrador';
+          title.textContent = 'Novo Usuário';
           senhaInput.required = true;
           senhaInput.placeholder = 'Mínimo 6 caracteres';
         }
 
-        await carregarOrgsParaSelect();
         modal.style.display = 'flex';
       } catch (error) {
         console.error('Erro ao abrir modal de usuário:', error);
         toastError('Erro ao abrir formulário: ' + error.message);
       }
     }
+
+    // Cache de perfis com info de acesso global
+    let perfisComAcessoGlobal = {};
 
     // Carregar perfis para o select do modal de usuário
     async function carregarPerfisParaSelect() {
@@ -18938,7 +18921,8 @@
         console.warn('Select de perfil não encontrado');
         return;
       }
-      select.innerHTML = '<option value="">Nenhum (usar role padrão)</option>';
+      select.innerHTML = '<option value="">Selecione um perfil...</option>';
+      perfisComAcessoGlobal = {};
 
       try {
         const response = await authFetch(`${API_URL}/perfis-permissao`);
@@ -18946,7 +18930,17 @@
           const data = await response.json();
           (data.perfis || []).forEach(perfil => {
             const tipo = perfil.sistema ? ' [Sistema]' : '';
-            select.innerHTML += `<option value="${perfil.id}">${escapeHtml(perfil.nome)}${tipo}</option>`;
+            // Verificar se perfil tem acesso global (parse permissoes se for string)
+            let permissoes = perfil.permissoes;
+            if (typeof permissoes === 'string') {
+              try { permissoes = JSON.parse(permissoes); } catch(e) { permissoes = {}; }
+            }
+            const temAcessoGlobal = permissoes?._acesso_global === true || perfil.nome === 'Acesso Total';
+            perfisComAcessoGlobal[perfil.id] = temAcessoGlobal;
+
+            // Indicar visualmente perfis com acesso global
+            const globalLabel = temAcessoGlobal ? ' 🌐' : '';
+            select.innerHTML += `<option value="${perfil.id}" data-global="${temAcessoGlobal}">${escapeHtml(perfil.nome)}${tipo}${globalLabel}</option>`;
           });
         }
       } catch (error) {
@@ -18954,33 +18948,58 @@
       }
     }
 
-    // Toggle campos de organização baseado na role global
-    function toggleOrgFields() {
-      const roleGlobalEl = document.getElementById('user-role-global');
+    // Quando perfil muda, mostrar/ocultar campos de organização
+    function onPerfilChange() {
+      const perfilSelect = document.getElementById('user-perfil');
+      const roleGlobalInput = document.getElementById('user-role-global');
+      const perfilId = perfilSelect?.value;
+
+      if (!perfilId) {
+        // Nenhum perfil selecionado - mostrar campos de org simples
+        toggleOrgFieldsBasedOnRole('usuario');
+        if (roleGlobalInput) roleGlobalInput.value = 'usuario';
+        return;
+      }
+
+      // Verificar se perfil tem acesso global
+      const temAcessoGlobal = perfisComAcessoGlobal[parseInt(perfilId)] || false;
+
+      if (temAcessoGlobal) {
+        // Perfil com acesso global -> mostrar seleção de múltiplas orgs
+        toggleOrgFieldsBasedOnRole('super_admin');
+        if (roleGlobalInput) roleGlobalInput.value = 'super_admin';
+      } else {
+        // Perfil normal -> mostrar org única
+        toggleOrgFieldsBasedOnRole('usuario');
+        if (roleGlobalInput) roleGlobalInput.value = 'usuario';
+      }
+    }
+
+    // Toggle baseado no role (chamado por onPerfilChange)
+    function toggleOrgFieldsBasedOnRole(role) {
       const orgFields = document.getElementById('org-fields');
       const orgSelect = document.getElementById('user-org');
       const superAdminOrgsGroup = document.getElementById('super-admin-orgs-group');
 
-      if (!roleGlobalEl || !orgFields) return;
-
-      const roleGlobal = roleGlobalEl.value;
-
-      if (roleGlobal === 'super_admin') {
-        orgFields.style.display = 'none';
+      if (role === 'super_admin') {
+        if (orgFields) orgFields.style.display = 'none';
         if (orgSelect) orgSelect.required = false;
-        // Mostrar seleção de organizações para super_admin
         if (superAdminOrgsGroup) {
           superAdminOrgsGroup.style.display = 'block';
-          renderizarOrgsSuperAdmin();
+          renderizarOrgsSuperAdmin(['todas']);
         }
       } else {
-        orgFields.style.display = 'block';
+        if (orgFields) orgFields.style.display = 'block';
         if (orgSelect) orgSelect.required = true;
-        // Esconder seleção de organizações para super_admin
-        if (superAdminOrgsGroup) {
-          superAdminOrgsGroup.style.display = 'none';
-        }
+        if (superAdminOrgsGroup) superAdminOrgsGroup.style.display = 'none';
       }
+    }
+
+    // Toggle campos de organização baseado na role global (mantido para compatibilidade)
+    function toggleOrgFields() {
+      const roleGlobalEl = document.getElementById('user-role-global');
+      if (!roleGlobalEl) return;
+      toggleOrgFieldsBasedOnRole(roleGlobalEl.value);
     }
 
     // Renderizar lista de organizações para super_admin
@@ -19042,14 +19061,23 @@
       event.preventDefault();
 
       const userId = document.getElementById('user-id').value;
-      const roleGlobal = document.getElementById('user-role-global').value;
-      const isSuperAdmin = roleGlobal === 'super_admin';
       const perfilId = document.getElementById('user-perfil').value;
+
+      // Validar que um perfil foi selecionado
+      if (!perfilId) {
+        toastWarning('Selecione um perfil de acesso');
+        return;
+      }
+
+      // Determinar role baseado no perfil selecionado
+      const temAcessoGlobal = perfisComAcessoGlobal[parseInt(perfilId)] || false;
+      const isSuperAdmin = temAcessoGlobal;
 
       const dados = {
         nome: document.getElementById('user-nome').value,
         email: document.getElementById('user-email').value,
-        role: isSuperAdmin ? 'super_admin' : 'usuario'
+        role: isSuperAdmin ? 'super_admin' : 'usuario',
+        perfil_id: parseInt(perfilId) // Enviar perfil para backend associar
       };
 
       // Adicionar status ativo apenas quando editando (não na criação)
@@ -19109,36 +19137,7 @@
         }
 
         const resultado = await response.json();
-        const novoUserId = userId || resultado.usuario?.id;
-
-        // Associar perfil ao usuário se selecionado
-        if (novoUserId && perfilId) {
-          try {
-            // Primeiro remover perfis anteriores
-            await authFetch(`${API_URL}/perfis-permissao/usuarios/${novoUserId}/perfis`, {
-              method: 'DELETE'
-            });
-
-            // Associar novo perfil
-            const orgId = isSuperAdmin ? null : dados.organizacao_id;
-            await authFetch(`${API_URL}/perfis-permissao/${perfilId}/usuarios/${novoUserId}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ organizacao_id: orgId })
-            });
-          } catch (perfilError) {
-            console.error('Erro ao associar perfil:', perfilError);
-          }
-        } else if (novoUserId && !perfilId) {
-          // Remover perfis se nenhum foi selecionado
-          try {
-            await authFetch(`${API_URL}/perfis-permissao/usuarios/${novoUserId}/perfis`, {
-              method: 'DELETE'
-            });
-          } catch (e) {
-            // Ignorar erro
-          }
-        }
+        // Perfil já foi associado pelo backend
 
         toastSuccess(userId ? 'Usuário atualizado!' : 'Usuário criado!');
         fecharModalUsuario();
