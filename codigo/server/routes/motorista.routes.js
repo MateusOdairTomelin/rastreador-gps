@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const motoristaService = require('../services/motorista.service');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // Autenticação já é aplicada no index.js via: router.use('/motoristas', autenticar, tenantContext, motoristaRoutes)
 
@@ -14,7 +15,7 @@ const motoristaService = require('../services/motorista.service');
  * GET /api/motoristas
  * Listar motoristas da organização
  */
-router.get('/', async (req, res) => {
+router.get('/', verificarPermissao('motoristas', 'listar'), async (req, res) => {
   try {
     const { ativo, busca, page, limit } = req.query;
 
@@ -39,7 +40,7 @@ router.get('/', async (req, res) => {
  * GET /api/motoristas/cnh-vencida
  * Listar motoristas com CNH vencida
  */
-router.get('/cnh-vencida', async (req, res) => {
+router.get('/cnh-vencida', verificarPermissao('motoristas', 'listar'), async (req, res) => {
   try {
     const motoristas = await motoristaService.verificarCnhVencida(req.organizacao_id);
 
@@ -58,7 +59,7 @@ router.get('/cnh-vencida', async (req, res) => {
  * GET /api/motoristas/cnh-vencendo
  * Listar motoristas com CNH próxima do vencimento
  */
-router.get('/cnh-vencendo', async (req, res) => {
+router.get('/cnh-vencendo', verificarPermissao('motoristas', 'listar'), async (req, res) => {
   try {
     const dias = parseInt(req.query.dias) || 30;
     const motoristas = await motoristaService.verificarCnhProximaVencer(req.organizacao_id, dias);
@@ -79,7 +80,7 @@ router.get('/cnh-vencendo', async (req, res) => {
  * GET /api/motoristas/:id
  * Buscar motorista por ID
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', verificarPermissao('motoristas', 'listar'), async (req, res) => {
   try {
     const motorista = await motoristaService.buscarPorId(
       parseInt(req.params.id),
@@ -101,7 +102,7 @@ router.get('/:id', async (req, res) => {
  * POST /api/motoristas
  * Criar novo motorista
  */
-router.post('/', async (req, res) => {
+router.post('/', verificarPermissao('motoristas', 'criar'), async (req, res) => {
   try {
     const { nome, cpf, telefone, email, foto_url, cnh_numero, cnh_categoria, cnh_validade } = req.body;
 
@@ -131,7 +132,7 @@ router.post('/', async (req, res) => {
  * PUT /api/motoristas/:id
  * Atualizar motorista
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', verificarPermissao('motoristas', 'editar'), async (req, res) => {
   try {
     const motorista = await motoristaService.atualizar(
       parseInt(req.params.id),
@@ -150,7 +151,7 @@ router.put('/:id', async (req, res) => {
  * DELETE /api/motoristas/:id
  * Excluir motorista
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verificarPermissao('motoristas', 'excluir'), async (req, res) => {
   try {
     await motoristaService.excluir(
       parseInt(req.params.id),
@@ -168,7 +169,7 @@ router.delete('/:id', async (req, res) => {
  * POST /api/motoristas/:id/vincular/:dispositivo_id
  * Vincular motorista a um veículo
  */
-router.post('/:id/vincular/:dispositivo_id', async (req, res) => {
+router.post('/:id/vincular/:dispositivo_id', verificarPermissao('motoristas', 'editar'), async (req, res) => {
   try {
     const resultado = await motoristaService.vincularVeiculo(
       parseInt(req.params.id),
@@ -188,7 +189,7 @@ router.post('/:id/vincular/:dispositivo_id', async (req, res) => {
  * DELETE /api/motoristas/desvincular/:dispositivo_id
  * Desvincular motorista de um veículo
  */
-router.delete('/desvincular/:dispositivo_id', async (req, res) => {
+router.delete('/desvincular/:dispositivo_id', verificarPermissao('motoristas', 'editar'), async (req, res) => {
   try {
     const resultado = await motoristaService.desvincularVeiculo(
       parseInt(req.params.dispositivo_id),
@@ -206,7 +207,7 @@ router.delete('/desvincular/:dispositivo_id', async (req, res) => {
  * GET /api/motoristas/:id/historico
  * Histórico de veículos de um motorista
  */
-router.get('/:id/historico', async (req, res) => {
+router.get('/:id/historico', verificarPermissao('motoristas', 'listar'), async (req, res) => {
   try {
     const historico = await motoristaService.historicoMotorista(
       parseInt(req.params.id),
@@ -224,7 +225,7 @@ router.get('/:id/historico', async (req, res) => {
  * GET /api/motoristas/veiculo/:dispositivo_id/historico
  * Histórico de motoristas de um veículo
  */
-router.get('/veiculo/:dispositivo_id/historico', async (req, res) => {
+router.get('/veiculo/:dispositivo_id/historico', verificarPermissao('motoristas', 'listar'), async (req, res) => {
   try {
     const historico = await motoristaService.historicoVeiculo(
       parseInt(req.params.dispositivo_id),
@@ -243,7 +244,7 @@ router.get('/veiculo/:dispositivo_id/historico', async (req, res) => {
  * Buscar motorista que estava vinculado ao veículo em um momento específico
  * Query params: timestamp (ISO string)
  */
-router.get('/veiculo/:dispositivo_id/periodo', async (req, res) => {
+router.get('/veiculo/:dispositivo_id/periodo', verificarPermissao('motoristas', 'listar'), async (req, res) => {
   try {
     const { timestamp } = req.query;
 

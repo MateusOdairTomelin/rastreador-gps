@@ -13,6 +13,7 @@ const http = require('http');
 
 // Multi-tenant: Middleware de verificação de propriedade
 const { verificarDispositivoTenant } = require('../middleware/tenant-device.middleware');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // Serviço de limite de velocidade por via
 const velocidadeViaService = require('../services/velocidade-via.service');
@@ -168,7 +169,7 @@ async function buscarHistoricoRastreadores(veiculo_id, inicio, fim) {
  * - tipoAlarme: string - filtrar por tipo de alarme
  * Multi-tenant: Verifica propriedade do dispositivo
  */
-router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/csv', verificarPermissao('relatorios', 'exportar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const {
@@ -1270,7 +1271,7 @@ router.get('/:imei/csv', verificarDispositivoTenant, async (req, res) => {
  * - tipoAlarme: string - filtrar por tipo de alarme
  * Multi-tenant: Verifica propriedade do dispositivo
  */
-router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/pdf', verificarPermissao('relatorios', 'exportar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const {
@@ -2860,7 +2861,7 @@ router.get('/:imei/pdf', verificarDispositivoTenant, async (req, res) => {
  * Retorna dados formatados para gerar PDF no cliente (com mapa)
  * Multi-tenant: Verifica propriedade do dispositivo
  */
-router.get('/:imei/dados-relatorio', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/dados-relatorio', verificarPermissao('relatorios', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const { dataInicio, dataFim } = req.query;
@@ -3393,7 +3394,7 @@ async function downloadOSMTiles(bounds, zoom, maxTiles = 16) {
  * - dataFim: Data final (ISO string)
  * - modulos: string - lista separada por vírgula dos módulos a incluir
  */
-router.get('/:imei/xlsx', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/xlsx', verificarPermissao('relatorios', 'exportar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const {

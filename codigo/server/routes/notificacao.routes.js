@@ -15,12 +15,13 @@ const express = require('express');
 const router = express.Router();
 const notificationService = require('../services/notification.service');
 const telegramService = require('../services/telegram.service');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
 // GET /api/notificacoes - Listar
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', verificarPermissao('notificacoes', 'listar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   if (!organizacao_id) {
     return res.status(400).json({ sucesso: false, mensagem: 'Organização não identificada' });
@@ -47,7 +48,7 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/notificacoes/count - Contar não lidas
-router.get('/count', asyncHandler(async (req, res) => {
+router.get('/count', verificarPermissao('notificacoes', 'listar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   if (!organizacao_id) {
     return res.status(400).json({ sucesso: false, mensagem: 'Organização não identificada' });
@@ -62,7 +63,7 @@ router.get('/count', asyncHandler(async (req, res) => {
 }));
 
 // GET /api/notificacoes/config - Obter configuração
-router.get('/config', asyncHandler(async (req, res) => {
+router.get('/config', verificarPermissao('notificacoes', 'configurar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   if (!organizacao_id) {
     return res.status(400).json({ sucesso: false, mensagem: 'Organização não identificada' });
@@ -88,7 +89,7 @@ router.get('/config', asyncHandler(async (req, res) => {
 }));
 
 // PUT /api/notificacoes/config - Atualizar configuração
-router.put('/config', asyncHandler(async (req, res) => {
+router.put('/config', verificarPermissao('notificacoes', 'configurar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   if (!organizacao_id) {
     return res.status(400).json({ sucesso: false, mensagem: 'Organização não identificada' });
@@ -125,7 +126,7 @@ router.put('/config', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/notificacoes/config/telegram/validar - Validar bot Telegram
-router.post('/config/telegram/validar', asyncHandler(async (req, res) => {
+router.post('/config/telegram/validar', verificarPermissao('notificacoes', 'configurar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   const { bot_token, chat_id } = req.body;
 
@@ -153,7 +154,7 @@ router.post('/config/telegram/validar', asyncHandler(async (req, res) => {
 
 // PATCH /api/notificacoes/todas-lidas - Marcar todas como lidas
 // IMPORTANTE: Esta rota deve vir ANTES de /:id/lida
-router.patch('/todas-lidas', asyncHandler(async (req, res) => {
+router.patch('/todas-lidas', verificarPermissao('notificacoes', 'editar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   if (!organizacao_id) {
     return res.status(400).json({ sucesso: false, mensagem: 'Organização não identificada' });
@@ -168,7 +169,7 @@ router.patch('/todas-lidas', asyncHandler(async (req, res) => {
 }));
 
 // PATCH /api/notificacoes/:id/lida - Marcar como lida
-router.patch('/:id/lida', asyncHandler(async (req, res) => {
+router.patch('/:id/lida', verificarPermissao('notificacoes', 'editar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   const { id } = req.params;
 

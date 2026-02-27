@@ -8,6 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const insightService = require('../services/insight.service');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // ✅ Cache de insights (TTL 10s)
 const insightsCache = new Map();
@@ -27,7 +28,7 @@ function invalidateOrgCache(orgId) {
  * Listar insights da organização
  * Query: ?lido=false&arquivado=false&tipo=motorista&prioridade=alta&limit=50&offset=0
  */
-router.get('/', async (req, res) => {
+router.get('/', verificarPermissao('dashboard', 'listar'), async (req, res) => {
   try {
     const { lido, arquivado, tipo, prioridade, limit, offset } = req.query;
 
@@ -61,7 +62,7 @@ router.get('/', async (req, res) => {
  * GET /api/insights/resumo
  * Resumo de insights para dashboard
  */
-router.get('/resumo', async (req, res) => {
+router.get('/resumo', verificarPermissao('dashboard', 'listar'), async (req, res) => {
   try {
     // Cache para resumo (TTL 10s)
     const cacheKey = `resumo:${req.organizacao_id}`;
@@ -85,7 +86,7 @@ router.get('/resumo', async (req, res) => {
  * POST /api/insights/gerar
  * Gerar novos insights (manual)
  */
-router.post('/gerar', async (req, res) => {
+router.post('/gerar', verificarPermissao('dashboard', 'editar'), async (req, res) => {
   try {
     console.log(`[Insights] Gerando insights manual para org ${req.organizacao_id}`);
 
@@ -106,7 +107,7 @@ router.post('/gerar', async (req, res) => {
  * GET /api/insights/:id
  * Buscar insight por ID
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', verificarPermissao('dashboard', 'listar'), async (req, res) => {
   try {
     const insight = await insightService.buscarPorId(
       parseInt(req.params.id),
@@ -128,7 +129,7 @@ router.get('/:id', async (req, res) => {
  * POST /api/insights/:id/lido
  * Marcar insight como lido
  */
-router.post('/:id/lido', async (req, res) => {
+router.post('/:id/lido', verificarPermissao('dashboard', 'editar'), async (req, res) => {
   try {
     const insight = await insightService.marcarComoLido(
       parseInt(req.params.id),
@@ -147,7 +148,7 @@ router.post('/:id/lido', async (req, res) => {
  * POST /api/insights/marcar-todos-lidos
  * Marcar todos os insights como lidos
  */
-router.post('/marcar-todos-lidos', async (req, res) => {
+router.post('/marcar-todos-lidos', verificarPermissao('dashboard', 'editar'), async (req, res) => {
   try {
     const resultado = await insightService.marcarTodosComoLidos(req.organizacao_id);
     invalidateOrgCache(req.organizacao_id);
@@ -162,7 +163,7 @@ router.post('/marcar-todos-lidos', async (req, res) => {
  * POST /api/insights/:id/arquivar
  * Arquivar insight
  */
-router.post('/:id/arquivar', async (req, res) => {
+router.post('/:id/arquivar', verificarPermissao('dashboard', 'editar'), async (req, res) => {
   try {
     const insight = await insightService.arquivar(
       parseInt(req.params.id),

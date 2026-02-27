@@ -10,6 +10,7 @@ const prisma = require('../db/prisma');
 
 // ✅ Multi-tenant: Middleware de verificação de propriedade
 const { verificarDispositivoTenant, criarFiltroTenant } = require('../middleware/tenant-device.middleware');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // Wrapper para async/await
 const asyncHandler = (fn) => (req, res, next) =>
@@ -17,7 +18,7 @@ const asyncHandler = (fn) => (req, res, next) =>
 
 // GET /api/velocidade - Lista todos dispositivos com links para gráficos
 // ✅ Multi-tenant: Filtra dispositivos por organização
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', verificarPermissao('monitoramento', 'listar'), asyncHandler(async (req, res) => {
   // Construir filtro de tenant
   const tenantFilter = criarFiltroTenant(req);
 
@@ -55,7 +56,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
 // GET /api/velocidade/:imei/historico - Dados de velocidade em JSON
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/historico', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/historico', verificarPermissao('monitoramento', 'historico'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const horas = parseInt(req.query.horas) || 24;
   const limite = parseInt(req.query.limite) || 1000;
@@ -143,7 +144,7 @@ router.get('/:imei/historico', verificarDispositivoTenant, asyncHandler(async (r
 
 // GET /api/velocidade/:imei/grafico - Página HTML com gráfico interativo
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/grafico', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/grafico', verificarPermissao('graficos', 'listar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const horas = parseInt(req.query.horas) || 24;
 
@@ -472,7 +473,7 @@ router.get('/:imei/grafico', verificarDispositivoTenant, asyncHandler(async (req
 
 // GET /api/velocidade/:imei/exportar - Exportar dados em CSV
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/exportar', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/exportar', verificarPermissao('relatorios', 'exportar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const horas = parseInt(req.query.horas) || 24;
 
@@ -522,7 +523,7 @@ router.get('/:imei/exportar', verificarDispositivoTenant, asyncHandler(async (re
 
 // GET /api/velocidade/comparar - Comparar velocidade de múltiplos dispositivos
 // ✅ Multi-tenant: Filtra dispositivos por organização
-router.get('/comparar/grafico', asyncHandler(async (req, res) => {
+router.get('/comparar/grafico', verificarPermissao('graficos', 'listar'), asyncHandler(async (req, res) => {
   const imeis = req.query.imeis?.split(',') || [];
   const horas = parseInt(req.query.horas) || 24;
 

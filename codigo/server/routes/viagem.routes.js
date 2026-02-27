@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const viagemService = require('../services/viagem.service');
 const prisma = require('../db/prisma');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // ✅ Correção GPS via OSRM Map-Matching (IA removida - OSRM é mais eficiente)
 const GPS_CORRECAO_DISPONIVEL = true;
@@ -318,7 +319,7 @@ async function processarRotaComIA(pontos, dispositivoId, imei) {
 
 // GET /api/viagens/:imei/atual - Viagem atual em andamento
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/atual', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/atual', verificarPermissao('viagens', 'listar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
 
   const resultado = await viagemService.getViagemAtual(imei);
@@ -338,7 +339,7 @@ router.get('/:imei/atual', verificarDispositivoTenant, asyncHandler(async (req, 
 
 // GET /api/viagens/:imei/historico - Histórico de viagens
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/historico', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/historico', verificarPermissao('viagens', 'listar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const limite = parseInt(req.query.limite) || 100;
   const { dataInicio, dataFim } = req.query;
@@ -380,7 +381,7 @@ router.get('/:imei/historico', verificarDispositivoTenant, asyncHandler(async (r
 
 // GET /api/viagens/:imei/estatisticas - Estatísticas de um período
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/estatisticas', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/estatisticas', verificarPermissao('viagens', 'listar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const { dataInicio, dataFim } = req.query;
 
@@ -409,7 +410,7 @@ router.get('/:imei/estatisticas', verificarDispositivoTenant, asyncHandler(async
 // GET /api/viagens/:imei/:viagemId/rota - Trajeto de uma viagem específica
 // ⚠️ Correção de IA desativada por padrão - requer aprovação prévia
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/:viagemId/rota', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/:viagemId/rota', verificarPermissao('viagens', 'visualizar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei, viagemId } = req.params;
   const { corrigido } = req.query;
 
@@ -539,7 +540,7 @@ router.get('/:imei/:viagemId/rota', verificarDispositivoTenant, asyncHandler(asy
 // GET /api/viagens/:imei/atual/rota - Trajeto da viagem em andamento
 // ⚠️ Correção de IA desativada por padrão - requer aprovação prévia
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/atual/rota', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/atual/rota', verificarPermissao('viagens', 'visualizar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei } = req.params;
   const { corrigido } = req.query;
 
@@ -662,7 +663,7 @@ router.get('/:imei/atual/rota', verificarDispositivoTenant, asyncHandler(async (
 // GET /api/viagens/:imei/:viagemId/preview-correcao - Preview da correção (antes de aplicar)
 // Retorna rota original e rota corrigida lado a lado para aprovação
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/:viagemId/preview-correcao', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/:viagemId/preview-correcao', verificarPermissao('viagens', 'analise'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei, viagemId } = req.params;
 
   if (!GPS_CORRECAO_DISPONIVEL) {
@@ -860,7 +861,7 @@ router.get('/:imei/:viagemId/preview-correcao', verificarDispositivoTenant, asyn
 
 // GET /api/viagens/:imei/:viagemId/pre-analise - Pre-analisa viagem antes de corrigir
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/:viagemId/pre-analise', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/:viagemId/pre-analise', verificarPermissao('viagens', 'analise'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei, viagemId } = req.params;
 
   // Buscar dispositivo
@@ -978,7 +979,7 @@ router.get('/:imei/:viagemId/pre-analise', verificarDispositivoTenant, asyncHand
 
 // POST /api/viagens/:imei/:viagemId/aprovar-correcao - Aprovar correção proposta
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.post('/:imei/:viagemId/aprovar-correcao', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.post('/:imei/:viagemId/aprovar-correcao', verificarPermissao('viagens', 'editar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei, viagemId } = req.params;
   const { avaliacao, comentario } = req.body;
 
@@ -1062,7 +1063,7 @@ router.post('/:imei/:viagemId/aprovar-correcao', verificarDispositivoTenant, asy
 // GET /api/viagens/:imei/:viagemId/pontos-corrigidos - Buscar pontos corrigidos aprovados
 // ✅ Retorna pontos corrigidos da aprovação se existir, senão retorna null
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/:viagemId/pontos-corrigidos', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/:viagemId/pontos-corrigidos', verificarPermissao('viagens', 'visualizar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei, viagemId } = req.params;
 
   // Buscar dispositivo
@@ -1146,7 +1147,7 @@ router.get('/:imei/:viagemId/pontos-corrigidos', verificarDispositivoTenant, asy
 
 // POST /api/viagens/:imei/:viagemId/rejeitar-correcao - Rejeitar correção proposta
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.post('/:imei/:viagemId/rejeitar-correcao', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.post('/:imei/:viagemId/rejeitar-correcao', verificarPermissao('viagens', 'editar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei, viagemId } = req.params;
   const { avaliacao, comentario } = req.body;
 
@@ -1214,7 +1215,7 @@ router.post('/:imei/:viagemId/rejeitar-correcao', verificarDispositivoTenant, as
 
 // GET /api/viagens/pendentes-aprovacao - Listar viagens pendentes de aprovação
 // ✅ Multi-tenant: Filtra viagens apenas dos dispositivos da organização
-router.get('/pendentes-aprovacao', asyncHandler(async (req, res) => {
+router.get('/pendentes-aprovacao', verificarPermissao('viagens', 'listar'), asyncHandler(async (req, res) => {
   const limite = parseInt(req.query.limite) || 50;
 
   // ✅ Multi-tenant: Construir filtro de dispositivos da organização
@@ -1273,7 +1274,7 @@ router.get('/pendentes-aprovacao', asyncHandler(async (req, res) => {
 
 // GET /api/viagens/:imei/:viagemId/rota-estradas - Buscar rota encaixada nas estradas via OSRM
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/:viagemId/rota-estradas', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/:viagemId/rota-estradas', verificarPermissao('viagens', 'visualizar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei, viagemId } = req.params;
 
   // Buscar dispositivo
@@ -1367,7 +1368,7 @@ router.get('/:imei/:viagemId/rota-estradas', verificarDispositivoTenant, asyncHa
 
 // GET /api/viagens/:imei/:viagemId/paradas - Detectar paradas em uma viagem
 // ✅ Multi-tenant: Verifica propriedade do dispositivo
-router.get('/:imei/:viagemId/paradas', verificarDispositivoTenant, asyncHandler(async (req, res) => {
+router.get('/:imei/:viagemId/paradas', verificarPermissao('viagens', 'visualizar'), verificarDispositivoTenant, asyncHandler(async (req, res) => {
   const { imei, viagemId } = req.params;
   const minDuracao = parseInt(req.query.minDuracao) || 2; // Mínimo 2 minutos para considerar parada
 
@@ -1386,7 +1387,7 @@ router.get('/:imei/:viagemId/paradas', verificarDispositivoTenant, asyncHandler(
 
 // POST /api/viagens/processar-retroativas - Processar viagens retroativas para dispositivos sem viagens
 // ✅ Multi-tenant: Processa apenas dispositivos da organização
-router.post('/processar-retroativas', asyncHandler(async (req, res) => {
+router.post('/processar-retroativas', verificarPermissao('viagens', 'criar'), asyncHandler(async (req, res) => {
   const { imei, force } = req.body;
 
   console.log('[Viagens Retroativas] Iniciando processamento...');

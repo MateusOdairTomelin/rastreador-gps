@@ -5,6 +5,7 @@ const fetch = require('node-fetch');
 
 // ✅ Multi-tenant: Middleware de verificação de propriedade
 const { verificarDispositivoTenant } = require('../middleware/tenant-device.middleware');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // ✅ Suporte a dispositivos OBD2 (Teltonika, X3Tech, etc)
 const { supportsOBD2 } = require('../constants/device-types');
@@ -53,7 +54,7 @@ const LIMITES_VELOCIDADE = {
  * GET /api/analise-rota/:imei/analisar?horas=24
  * ✅ Multi-tenant: Verifica propriedade do dispositivo
  */
-router.get('/:imei/analisar', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/analisar', verificarPermissao('viagens', 'analise'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const horas = parseInt(req.query.horas) || 24;
@@ -307,7 +308,7 @@ function toRad(deg) {
  * Ajusta os pontos GPS para seguir as estradas reais
  * GET /api/analise-rota/:imei/rota-suavizada?horas=24&snapToRoad=true
  */
-router.get('/:imei/rota-suavizada', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/rota-suavizada', verificarPermissao('viagens', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const horas = parseInt(req.query.horas) || 24;
@@ -392,7 +393,7 @@ router.get('/:imei/rota-suavizada', verificarDispositivoTenant, async (req, res)
  * ⚠️ ALTERADO: Não aplica correção automaticamente - usuário deve aprovar
  * GET /api/analise-rota/:imei/pontos-gps?horas=24
  */
-router.get('/:imei/pontos-gps', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/pontos-gps', verificarPermissao('monitoramento', 'historico'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const horas = parseInt(req.query.horas) || 24;
@@ -499,7 +500,7 @@ router.get('/:imei/pontos-gps', verificarDispositivoTenant, async (req, res) => 
  * GET /api/analise-rota/:imei/preview-correcao-ia?horas=24
  * GET /api/analise-rota/:imei/preview-correcao-ia?dataInicio=ISO&dataFim=ISO (para viagens específicas)
  */
-router.get('/:imei/preview-correcao-ia', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/preview-correcao-ia', verificarPermissao('viagens', 'analise'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const { dataInicio, dataFim } = req.query;
@@ -651,7 +652,7 @@ router.get('/:imei/preview-correcao-ia', verificarDispositivoTenant, async (req,
  * POST /api/analise-rota/:imei/aplicar-correcao-ia
  * Body: { horas: 24 } ou { dataInicio: ISO, dataFim: ISO } para viagens específicas
  */
-router.post('/:imei/aplicar-correcao-ia', verificarDispositivoTenant, async (req, res) => {
+router.post('/:imei/aplicar-correcao-ia', verificarPermissao('viagens', 'editar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const { horas, ajustes_aprovados, dataInicio, dataFim } = req.body;
@@ -803,7 +804,7 @@ router.post('/:imei/aplicar-correcao-ia', verificarDispositivoTenant, async (req
  * GET /api/analise-rota/:imei/preview-snap-road?horas=24
  * GET /api/analise-rota/:imei/preview-snap-road?dataInicio=ISO&dataFim=ISO (para viagens específicas)
  */
-router.get('/:imei/preview-snap-road', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/preview-snap-road', verificarPermissao('viagens', 'analise'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const { dataInicio, dataFim } = req.query;
@@ -960,7 +961,7 @@ router.get('/:imei/preview-snap-road', verificarDispositivoTenant, async (req, r
  * APLICAR correção snap-to-road - Ajusta pontos GPS às estradas reais
  * POST /api/analise-rota/:imei/aplicar-snap-road
  */
-router.post('/:imei/aplicar-snap-road', verificarDispositivoTenant, async (req, res) => {
+router.post('/:imei/aplicar-snap-road', verificarPermissao('viagens', 'editar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const { horas } = req.body;
@@ -1570,7 +1571,7 @@ async function gerarSugestoesMicroAjustes(pontos, dispositivoId = null) {
  * Usa curvas de Bezier para criar trajetórias realistas entre pontos GPS
  * GET /api/analise-rota/:imei/rota-precisa?horas=24
  */
-router.get('/:imei/rota-precisa', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/rota-precisa', verificarPermissao('viagens', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const horas = parseInt(req.query.horas) || 24;
@@ -2124,7 +2125,7 @@ function catmullRom(p0, p1, p2, p3, t) {
  *
  * GET /api/analise-rota/:imei/rota-otimizada?horas=24&kalman=true&osrm=false
  */
-router.get('/:imei/rota-otimizada', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/rota-otimizada', verificarPermissao('viagens', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const horas = parseInt(req.query.horas) || 24;
@@ -2236,7 +2237,7 @@ router.get('/config/filtro-gps', (req, res) => {
  * Inclui: taxa de confiança, aprendizados, correções, maturidade
  * GET /api/analise-rota/:imei/estatisticas-ia
  */
-router.get('/:imei/estatisticas-ia', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/estatisticas-ia', verificarPermissao('viagens', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
 
@@ -2275,7 +2276,7 @@ router.get('/:imei/estatisticas-ia', verificarDispositivoTenant, async (req, res
  * ✅ Obtém estatísticas globais de treinamento da IA
  * GET /api/analise-rota/estatisticas-ia-global
  */
-router.get('/estatisticas-ia-global', async (req, res) => {
+router.get('/estatisticas-ia-global', verificarPermissao('viagens', 'listar'), async (req, res) => {
   try {
     if (!gpsAI) {
       return res.status(503).json({
@@ -2313,7 +2314,7 @@ router.get('/estatisticas-ia-global', async (req, res) => {
  *   comentario: string       // Comentário opcional
  * }
  */
-router.post('/:imei/feedback-correcao', verificarDispositivoTenant, async (req, res) => {
+router.post('/:imei/feedback-correcao', verificarPermissao('viagens', 'editar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const { correcao_id, aprovado, avaliacao, comentario } = req.body;
@@ -2444,7 +2445,7 @@ router.post('/:imei/feedback-correcao', verificarDispositivoTenant, async (req, 
  *   horas: number
  * }
  */
-router.post('/:imei/feedback-lote', verificarDispositivoTenant, async (req, res) => {
+router.post('/:imei/feedback-lote', verificarPermissao('viagens', 'editar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const { feedbacks, horas } = req.body;
@@ -2544,7 +2545,7 @@ router.post('/:imei/feedback-lote', verificarDispositivoTenant, async (req, res)
  * ✅ Lista correções pendentes de validação
  * GET /api/analise-rota/:imei/correcoes-pendentes?horas=24
  */
-router.get('/:imei/correcoes-pendentes', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/correcoes-pendentes', verificarPermissao('viagens', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const horas = parseInt(req.query.horas) || 24;
@@ -2612,7 +2613,7 @@ router.get('/:imei/correcoes-pendentes', verificarDispositivoTenant, async (req,
  * ✅ Histórico de feedbacks do usuário
  * GET /api/analise-rota/:imei/historico-feedbacks?dias=30
  */
-router.get('/:imei/historico-feedbacks', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/historico-feedbacks', verificarPermissao('viagens', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const dias = parseInt(req.query.dias) || 30;
@@ -2681,7 +2682,7 @@ router.get('/:imei/historico-feedbacks', verificarDispositivoTenant, async (req,
  * ✅ Estatísticas de aprendizado do dispositivo
  * GET /api/analise-rota/:imei/estatisticas-aprendizado
  */
-router.get('/:imei/estatisticas-aprendizado', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/estatisticas-aprendizado', verificarPermissao('viagens', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
 
@@ -2731,7 +2732,7 @@ router.get('/:imei/estatisticas-aprendizado', verificarDispositivoTenant, async 
  *
  * GET /api/analise-rota/:imei/comparativo-ia?horas=24
  */
-router.get('/:imei/comparativo-ia', verificarDispositivoTenant, async (req, res) => {
+router.get('/:imei/comparativo-ia', verificarPermissao('viagens', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const horas = parseInt(req.query.horas) || 24;

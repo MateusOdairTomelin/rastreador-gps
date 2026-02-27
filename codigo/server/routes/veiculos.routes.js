@@ -9,6 +9,7 @@ const express = require('express');
 const router = express.Router();
 const veiculoService = require('../services/veiculo.service');
 const consultaPlacaService = require('../services/consulta-placa.service');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // Cache de veículos (TTL 5s)
 const veiculosCache = new Map();
@@ -24,7 +25,7 @@ const VEICULOS_CACHE_TTL = 5000;
  * Consulta dados do veículo em API externa pela placa
  * Retorna: marca, modelo, ano, cor, etc.
  */
-router.get('/consulta-placa/:placa', async (req, res) => {
+router.get('/consulta-placa/:placa', verificarPermissao('veiculos', 'listar'), async (req, res) => {
   try {
     const { placa } = req.params;
 
@@ -60,7 +61,7 @@ router.get('/consulta-placa/:placa', async (req, res) => {
  * GET /api/veiculos
  * Listar veículos da organização
  */
-router.get('/', async (req, res) => {
+router.get('/', verificarPermissao('veiculos', 'listar'), async (req, res) => {
   try {
     const { busca, page, limit } = req.query;
 
@@ -94,7 +95,7 @@ router.get('/', async (req, res) => {
  * GET /api/veiculos/:id
  * Buscar veículo por ID
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', verificarPermissao('veiculos', 'listar'), async (req, res) => {
   try {
     const veiculo = await veiculoService.buscarPorId(
       parseInt(req.params.id),
@@ -116,7 +117,7 @@ router.get('/:id', async (req, res) => {
  * GET /api/veiculos/placa/:placa
  * Buscar veículo por placa
  */
-router.get('/placa/:placa', async (req, res) => {
+router.get('/placa/:placa', verificarPermissao('veiculos', 'listar'), async (req, res) => {
   try {
     const veiculo = await veiculoService.buscarPorPlaca(
       req.params.placa,
@@ -138,7 +139,7 @@ router.get('/placa/:placa', async (req, res) => {
  * POST /api/veiculos
  * Criar novo veículo
  */
-router.post('/', async (req, res) => {
+router.post('/', verificarPermissao('veiculos', 'criar'), async (req, res) => {
   try {
     const { placa, modelo, marca, ano, cor, tipo_veiculo, chassi, renavam } = req.body;
 
@@ -171,7 +172,7 @@ router.post('/', async (req, res) => {
  * PUT /api/veiculos/:id
  * Atualizar veículo
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', verificarPermissao('veiculos', 'editar'), async (req, res) => {
   try {
     const veiculo = await veiculoService.atualizar(
       parseInt(req.params.id),
@@ -191,7 +192,7 @@ router.put('/:id', async (req, res) => {
  * DELETE /api/veiculos/:id
  * Excluir veículo
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verificarPermissao('veiculos', 'excluir'), async (req, res) => {
   try {
     await veiculoService.excluir(
       parseInt(req.params.id),
@@ -211,7 +212,7 @@ router.delete('/:id', async (req, res) => {
  * Vincular dispositivo a um veículo
  * Body: { dispositivo_id: 123 }
  */
-router.post('/:id/vincular', async (req, res) => {
+router.post('/:id/vincular', verificarPermissao('veiculos', 'editar'), async (req, res) => {
   try {
     const { dispositivo_id } = req.body;
 
@@ -241,7 +242,7 @@ router.post('/:id/vincular', async (req, res) => {
  * Desvincular dispositivo atual do veículo
  * Body: { dispositivo_id: 123 }
  */
-router.post('/:id/desvincular', async (req, res) => {
+router.post('/:id/desvincular', verificarPermissao('veiculos', 'editar'), async (req, res) => {
   try {
     const { dispositivo_id } = req.body;
 
@@ -270,7 +271,7 @@ router.post('/:id/desvincular', async (req, res) => {
  * Trocar rastreador do veículo
  * Body: { novo_imei: "356354870702322" }
  */
-router.post('/:id/trocar-dispositivo', async (req, res) => {
+router.post('/:id/trocar-dispositivo', verificarPermissao('veiculos', 'editar'), async (req, res) => {
   try {
     const { novo_imei } = req.body;
 
@@ -299,7 +300,7 @@ router.post('/:id/trocar-dispositivo', async (req, res) => {
  * GET /api/veiculos/:id/dispositivos
  * Histórico de dispositivos do veículo
  */
-router.get('/:id/dispositivos', async (req, res) => {
+router.get('/:id/dispositivos', verificarPermissao('veiculos', 'listar'), async (req, res) => {
   try {
     const historico = await veiculoService.historicoDispositivos(
       parseInt(req.params.id),
@@ -318,7 +319,7 @@ router.get('/:id/dispositivos', async (req, res) => {
  * Histórico completo de localizações do veículo
  * Query: ?dataInicio=2024-01-01&dataFim=2024-12-31&limit=1000
  */
-router.get('/:id/historico', async (req, res) => {
+router.get('/:id/historico', verificarPermissao('monitoramento', 'historico'), async (req, res) => {
   try {
     const { dataInicio, dataFim, limit } = req.query;
 
@@ -344,7 +345,7 @@ router.get('/:id/historico', async (req, res) => {
  * Viagens do veículo (agregadas de todos os dispositivos)
  * Query: ?dataInicio=2024-01-01&dataFim=2024-12-31&page=1&limit=50
  */
-router.get('/:id/viagens', async (req, res) => {
+router.get('/:id/viagens', verificarPermissao('viagens', 'listar'), async (req, res) => {
   try {
     const { dataInicio, dataFim, page, limit } = req.query;
 
@@ -370,7 +371,7 @@ router.get('/:id/viagens', async (req, res) => {
  * GET /api/veiculos/:id/estatisticas
  * Estatísticas agregadas do veículo
  */
-router.get('/:id/estatisticas', async (req, res) => {
+router.get('/:id/estatisticas', verificarPermissao('veiculos', 'listar'), async (req, res) => {
   try {
     const estatisticas = await veiculoService.getEstatisticas(
       parseInt(req.params.id),

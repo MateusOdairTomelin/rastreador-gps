@@ -8,6 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const tagService = require('../services/tag.service');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // ============ CRUD DE TAGS ============
 
@@ -15,7 +16,7 @@ const tagService = require('../services/tag.service');
  * GET /api/tags
  * Listar tags da organização
  */
-router.get('/', async (req, res) => {
+router.get('/', verificarPermissao('veiculos', 'listar'), async (req, res) => {
   try {
     const { busca, ativo } = req.query;
 
@@ -35,7 +36,7 @@ router.get('/', async (req, res) => {
  * GET /api/tags/estatisticas
  * Estatísticas das tags
  */
-router.get('/estatisticas', async (req, res) => {
+router.get('/estatisticas', verificarPermissao('veiculos', 'listar'), async (req, res) => {
   try {
     const estatisticas = await tagService.getEstatisticas(req.organizacao_id);
     res.json({ sucesso: true, ...estatisticas });
@@ -49,7 +50,7 @@ router.get('/estatisticas', async (req, res) => {
  * GET /api/tags/:id
  * Buscar tag por ID
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', verificarPermissao('veiculos', 'listar'), async (req, res) => {
   try {
     const tag = await tagService.buscarPorId(
       parseInt(req.params.id),
@@ -71,7 +72,7 @@ router.get('/:id', async (req, res) => {
  * POST /api/tags
  * Criar nova tag
  */
-router.post('/', async (req, res) => {
+router.post('/', verificarPermissao('veiculos', 'criar'), async (req, res) => {
   try {
     const { nome, cor, descricao } = req.body;
 
@@ -99,7 +100,7 @@ router.post('/', async (req, res) => {
  * PUT /api/tags/:id
  * Atualizar tag
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', verificarPermissao('veiculos', 'editar'), async (req, res) => {
   try {
     const tag = await tagService.atualizar(
       parseInt(req.params.id),
@@ -119,7 +120,7 @@ router.put('/:id', async (req, res) => {
  * DELETE /api/tags/:id
  * Excluir tag
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verificarPermissao('veiculos', 'excluir'), async (req, res) => {
   try {
     await tagService.excluir(
       parseInt(req.params.id),
@@ -140,7 +141,7 @@ router.delete('/:id', async (req, res) => {
  * GET /api/tags/:id/veiculos
  * Listar veículos de uma tag
  */
-router.get('/:id/veiculos', async (req, res) => {
+router.get('/:id/veiculos', verificarPermissao('veiculos', 'listar'), async (req, res) => {
   try {
     const veiculos = await tagService.buscarVeiculosPorTag(
       parseInt(req.params.id),
@@ -159,7 +160,7 @@ router.get('/:id/veiculos', async (req, res) => {
  * Vincular tag a um veículo
  * Body: { veiculo_id: 123 }
  */
-router.post('/:id/vincular', async (req, res) => {
+router.post('/:id/vincular', verificarPermissao('veiculos', 'editar'), async (req, res) => {
   try {
     const { veiculo_id } = req.body;
 
@@ -189,7 +190,7 @@ router.post('/:id/vincular', async (req, res) => {
  * Desvincular tag de um veículo
  * Body: { veiculo_id: 123 }
  */
-router.post('/:id/desvincular', async (req, res) => {
+router.post('/:id/desvincular', verificarPermissao('veiculos', 'editar'), async (req, res) => {
   try {
     const { veiculo_id } = req.body;
 
@@ -220,7 +221,7 @@ router.post('/:id/desvincular', async (req, res) => {
  * GET /api/tags/veiculo/:veiculo_id
  * Listar tags de um veículo
  */
-router.get('/veiculo/:veiculo_id', async (req, res) => {
+router.get('/veiculo/:veiculo_id', verificarPermissao('veiculos', 'listar'), async (req, res) => {
   try {
     const tags = await tagService.buscarTagsVeiculo(
       parseInt(req.params.veiculo_id),
@@ -239,7 +240,7 @@ router.get('/veiculo/:veiculo_id', async (req, res) => {
  * Definir tags de um veículo (substitui todas)
  * Body: { tag_ids: [1, 2, 3] }
  */
-router.put('/veiculo/:veiculo_id', async (req, res) => {
+router.put('/veiculo/:veiculo_id', verificarPermissao('veiculos', 'editar'), async (req, res) => {
   try {
     const { tag_ids } = req.body;
 

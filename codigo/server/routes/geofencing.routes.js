@@ -18,6 +18,7 @@
 const express = require('express');
 const router = express.Router();
 const geofencingService = require('../services/geofencing.service');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // Wrapper para async/await
 const asyncHandler = (fn) => (req, res, next) =>
@@ -28,7 +29,7 @@ const asyncHandler = (fn) => (req, res, next) =>
 /**
  * POST /api/geofencing - Criar nova cerca
  */
-router.post('/', asyncHandler(async (req, res) => {
+router.post('/', verificarPermissao('geofences', 'criar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
 
   if (!organizacao_id) {
@@ -90,7 +91,7 @@ router.post('/', asyncHandler(async (req, res) => {
 /**
  * GET /api/geofencing - Listar cercas da organização
  */
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', verificarPermissao('geofences', 'listar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
 
   if (!organizacao_id) {
@@ -130,7 +131,7 @@ router.get('/', asyncHandler(async (req, res) => {
 /**
  * GET /api/geofencing/estatisticas - Estatísticas de geofencing
  */
-router.get('/estatisticas', asyncHandler(async (req, res) => {
+router.get('/estatisticas', verificarPermissao('geofences', 'listar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
 
   if (!organizacao_id) {
@@ -151,7 +152,7 @@ router.get('/estatisticas', asyncHandler(async (req, res) => {
 /**
  * GET /api/geofencing/eventos - Todos eventos da organização
  */
-router.get('/eventos', asyncHandler(async (req, res) => {
+router.get('/eventos', verificarPermissao('geofences', 'alertas'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
 
   if (!organizacao_id) {
@@ -191,7 +192,7 @@ router.get('/eventos', asyncHandler(async (req, res) => {
 /**
  * GET /api/geofencing/dispositivo/:imei/eventos - Eventos por dispositivo
  */
-router.get('/dispositivo/:imei/eventos', asyncHandler(async (req, res) => {
+router.get('/dispositivo/:imei/eventos', verificarPermissao('geofences', 'alertas'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   const { imei } = req.params;
   const { limite } = req.query;
@@ -226,7 +227,7 @@ router.get('/dispositivo/:imei/eventos', asyncHandler(async (req, res) => {
 /**
  * GET /api/geofencing/dispositivo/:imei/status - Status atual do dispositivo
  */
-router.get('/dispositivo/:imei/status', asyncHandler(async (req, res) => {
+router.get('/dispositivo/:imei/status', verificarPermissao('geofences', 'listar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   const { imei } = req.params;
 
@@ -255,7 +256,7 @@ router.get('/dispositivo/:imei/status', asyncHandler(async (req, res) => {
 /**
  * GET /api/geofencing/:id - Detalhes de uma cerca
  */
-router.get('/:id', asyncHandler(async (req, res) => {
+router.get('/:id', verificarPermissao('geofences', 'listar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   const { id } = req.params;
 
@@ -297,7 +298,7 @@ router.get('/:id', asyncHandler(async (req, res) => {
 /**
  * PUT /api/geofencing/:id - Atualizar cerca
  */
-router.put('/:id', asyncHandler(async (req, res) => {
+router.put('/:id', verificarPermissao('geofences', 'editar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   const { id } = req.params;
 
@@ -327,7 +328,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
 /**
  * DELETE /api/geofencing/:id - Deletar cerca
  */
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', verificarPermissao('geofences', 'excluir'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   const { id } = req.params;
 
@@ -356,7 +357,7 @@ router.delete('/:id', asyncHandler(async (req, res) => {
 /**
  * PATCH /api/geofencing/:id/toggle - Ativar/desativar cerca
  */
-router.patch('/:id/toggle', asyncHandler(async (req, res) => {
+router.patch('/:id/toggle', verificarPermissao('geofences', 'editar'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   const { id } = req.params;
 
@@ -386,7 +387,7 @@ router.patch('/:id/toggle', asyncHandler(async (req, res) => {
 /**
  * GET /api/geofencing/:id/eventos - Eventos de uma cerca específica
  */
-router.get('/:id/eventos', asyncHandler(async (req, res) => {
+router.get('/:id/eventos', verificarPermissao('geofences', 'alertas'), asyncHandler(async (req, res) => {
   const organizacao_id = req.tenant?.id;
   const { id } = req.params;
   const { limite } = req.query;

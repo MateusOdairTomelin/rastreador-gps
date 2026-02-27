@@ -14,6 +14,7 @@ const prisma = require('../db/prisma');
 
 // Multi-tenant: Middleware de verificação de propriedade
 const { verificarDispositivoTenant } = require('../middleware/tenant-device.middleware');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // Serviço de limite de velocidade por via
 const velocidadeViaService = require('../services/velocidade-via.service');
@@ -232,7 +233,7 @@ function formatarMotoristasParaExibicao(motoristas) {
  * - dataFim: Data final (ISO string)
  * - formato: csv ou pdf (default: csv)
  */
-router.get('/velocidade/:imei', verificarDispositivoTenant, async (req, res) => {
+router.get('/velocidade/:imei', verificarPermissao('relatorios', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const {
@@ -698,7 +699,7 @@ Data/Hora,Velocidade (km/h),Limite (km/h),Excesso (km/h),Latitude,Longitude,Via
  * GET /api/relatorios/ocioso/:imei
  * Relatório detalhado de tempo ocioso (veículo parado com motor ligado)
  */
-router.get('/ocioso/:imei', verificarDispositivoTenant, async (req, res) => {
+router.get('/ocioso/:imei', verificarPermissao('relatorios', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const {
@@ -961,7 +962,7 @@ Início,Fim,Duração (min),Latitude,Longitude,Em Andamento
  * GET /api/relatorios/quilometragem/:imei
  * Relatório detalhado de quilometragem diária
  */
-router.get('/quilometragem/:imei', verificarDispositivoTenant, async (req, res) => {
+router.get('/quilometragem/:imei', verificarPermissao('relatorios', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const {
@@ -1209,7 +1210,7 @@ Data,Primeira Localização,Última Localização,Distância (km),Registros
  * GET /api/relatorios/frota
  * Relatório resumido de toda a frota (todos os veículos da organização)
  */
-router.get('/frota', async (req, res) => {
+router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res) => {
   try {
     const {
       dataInicio,
@@ -1612,7 +1613,7 @@ Placa,Veículo,Motorista(s),IMEI,Status,Distância (km),Tempo Movimento,Tempo Oc
  * GET /api/relatorios/operacao/:imei
  * Relatório de tempo de operação do veículo (motor ligado)
  */
-router.get('/operacao/:imei', verificarDispositivoTenant, async (req, res) => {
+router.get('/operacao/:imei', verificarPermissao('relatorios', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const {
@@ -1820,7 +1821,7 @@ Data,Tempo Operação (min),Tempo Movimento (min),Tempo Ocioso (min),Eficiência
  * GET /api/relatorios/paradas/:imei
  * Relatório de paradas longas (veículo parado por mais de X minutos)
  */
-router.get('/paradas/:imei', verificarDispositivoTenant, async (req, res) => {
+router.get('/paradas/:imei', verificarPermissao('relatorios', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const {
@@ -2008,7 +2009,7 @@ Início,Fim,Duração (min),Latitude,Longitude,Em Andamento
  * GET /api/relatorios/ranking
  * Ranking dos condutores/veículos por performance
  */
-router.get('/ranking', async (req, res) => {
+router.get('/ranking', verificarPermissao('relatorios', 'listar'), async (req, res) => {
   try {
     const {
       dataInicio,
@@ -2167,7 +2168,7 @@ Posição,Placa,Veículo,Motorista(s),Km,Tempo Movimento,Tempo Ocioso,Eficiênci
  * GET /api/relatorios/consumo/:imei
  * Relatório de consumo estimado de combustível
  */
-router.get('/consumo/:imei', verificarDispositivoTenant, async (req, res) => {
+router.get('/consumo/:imei', verificarPermissao('relatorios', 'listar'), verificarDispositivoTenant, async (req, res) => {
   try {
     const { imei } = req.params;
     const {
@@ -2337,7 +2338,7 @@ Data,Quilometragem (km),Consumo Estimado (L)
  * POST /relatorios/personalizado/pdf
  * Gera PDF com colunas e dados personalizados
  */
-router.post('/personalizado/pdf', async (req, res) => {
+router.post('/personalizado/pdf', verificarPermissao('relatorios', 'exportar'), async (req, res) => {
   try {
     const { colunas, dados, filtros, titulo } = req.body;
 

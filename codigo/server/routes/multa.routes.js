@@ -12,6 +12,7 @@
 const express = require('express');
 const router = express.Router();
 const multaService = require('../services/multa.service');
+const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // Autenticação já é aplicada no index.js via: router.use('/multas', autenticar, tenantContext, multaRoutes)
 
@@ -21,7 +22,7 @@ const multaService = require('../services/multa.service');
  * GET /api/multas
  * Listar multas da organização com filtros
  */
-router.get('/', async (req, res) => {
+router.get('/', verificarPermissao('relatorios', 'listar'), async (req, res) => {
   try {
     const {
       veiculo_id,
@@ -61,7 +62,7 @@ router.get('/', async (req, res) => {
  * GET /api/multas/estatisticas
  * Dashboard com estatísticas de multas
  */
-router.get('/estatisticas', async (req, res) => {
+router.get('/estatisticas', verificarPermissao('relatorios', 'listar'), async (req, res) => {
   try {
     const { data_inicio, data_fim } = req.query;
 
@@ -84,7 +85,7 @@ router.get('/estatisticas', async (req, res) => {
  * GET /api/multas/proximas-vencer
  * Multas próximas do vencimento
  */
-router.get('/proximas-vencer', async (req, res) => {
+router.get('/proximas-vencer', verificarPermissao('relatorios', 'listar'), async (req, res) => {
   try {
     const dias = parseInt(req.query.dias) || 7;
 
@@ -106,7 +107,7 @@ router.get('/proximas-vencer', async (req, res) => {
  * GET /api/multas/nic-pendentes
  * Multas com NIC pendente
  */
-router.get('/nic-pendentes', async (req, res) => {
+router.get('/nic-pendentes', verificarPermissao('relatorios', 'listar'), async (req, res) => {
   try {
     const multas = await multaService.nicPendentes(req.organizacao_id);
 
@@ -125,7 +126,7 @@ router.get('/nic-pendentes', async (req, res) => {
  * GET /api/multas/:id
  * Buscar multa por ID
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', verificarPermissao('relatorios', 'listar'), async (req, res) => {
   try {
     const multa = await multaService.buscarPorId(
       parseInt(req.params.id),
@@ -149,7 +150,7 @@ router.get('/:id', async (req, res) => {
  * POST /api/multas
  * Criar nova multa
  */
-router.post('/', async (req, res) => {
+router.post('/', verificarPermissao('relatorios', 'criar'), async (req, res) => {
   try {
     const {
       veiculo_id,
@@ -219,7 +220,7 @@ router.post('/', async (req, res) => {
  * PUT /api/multas/:id
  * Atualizar multa
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', verificarPermissao('relatorios', 'editar'), async (req, res) => {
   try {
     const multa = await multaService.atualizar(
       parseInt(req.params.id),
@@ -239,7 +240,7 @@ router.put('/:id', async (req, res) => {
  * DELETE /api/multas/:id
  * Excluir multa
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verificarPermissao('relatorios', 'excluir'), async (req, res) => {
   try {
     await multaService.excluir(
       parseInt(req.params.id),
@@ -260,7 +261,7 @@ router.delete('/:id', async (req, res) => {
  * POST /api/multas/:id/identificar-motorista
  * Tenta identificar o motorista via GPS
  */
-router.post('/:id/identificar-motorista', async (req, res) => {
+router.post('/:id/identificar-motorista', verificarPermissao('relatorios', 'editar'), async (req, res) => {
   try {
     const multa = await multaService.buscarPorId(
       parseInt(req.params.id),
@@ -310,7 +311,7 @@ router.post('/:id/identificar-motorista', async (req, res) => {
  * POST /api/multas/:id/validar-localizacao
  * Valida se o veículo estava no local da infração
  */
-router.post('/:id/validar-localizacao', async (req, res) => {
+router.post('/:id/validar-localizacao', verificarPermissao('relatorios', 'listar'), async (req, res) => {
   try {
     const { latitude, longitude, raio_metros } = req.body;
 
@@ -352,7 +353,7 @@ router.post('/:id/validar-localizacao', async (req, res) => {
  * POST /api/multas/:id/pagar
  * Registrar pagamento de multa
  */
-router.post('/:id/pagar', async (req, res) => {
+router.post('/:id/pagar', verificarPermissao('relatorios', 'editar'), async (req, res) => {
   try {
     const { valor_pago, data_pagamento, comprovante_url } = req.body;
 
@@ -387,7 +388,7 @@ router.post('/:id/pagar', async (req, res) => {
  * POST /api/multas/:id/nic
  * Enviar NIC (Notificação de Identificação do Condutor)
  */
-router.post('/:id/nic', async (req, res) => {
+router.post('/:id/nic', verificarPermissao('relatorios', 'editar'), async (req, res) => {
   try {
     const { motorista_id } = req.body;
 
@@ -415,7 +416,7 @@ router.post('/:id/nic', async (req, res) => {
  * POST /api/multas/:id/recursos
  * Criar recurso para uma multa
  */
-router.post('/:id/recursos', async (req, res) => {
+router.post('/:id/recursos', verificarPermissao('relatorios', 'criar'), async (req, res) => {
   try {
     const { tipo, data_protocolo, numero_protocolo, motivo, anexos } = req.body;
 
@@ -458,7 +459,7 @@ router.post('/:id/recursos', async (req, res) => {
  * PUT /api/multas/:multa_id/recursos/:recurso_id
  * Atualizar recurso (resultado)
  */
-router.put('/:multa_id/recursos/:recurso_id', async (req, res) => {
+router.put('/:multa_id/recursos/:recurso_id', verificarPermissao('relatorios', 'editar'), async (req, res) => {
   try {
     const { status, data_resultado, resultado, anexos } = req.body;
 
