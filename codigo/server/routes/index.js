@@ -1403,17 +1403,28 @@ router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) =
       });
 
       if (recentLocs.length > 0) {
-        const delays = recentLocs.map(l => {
+        // Calcular todos os delays
+        const allDelays = recentLocs.map(l => {
           const ts = new Date(l.timestamp);
           const ca = new Date(l.created_at);
           return Math.round((ca - ts) / 1000);
-        }).filter(d => d >= 0 && d < 86400); // Filtrar valores absurdos
+        });
 
-        if (delays.length > 0) {
-          latencyData.avg = Math.round(delays.reduce((a, b) => a + b, 0) / delays.length);
-          latencyData.min = Math.min(...delays);
-          latencyData.max = Math.max(...delays);
+        // Filtrar outliers: apenas delays entre 0 e 600s (10 min)
+        // Delays > 10 min geralmente indicam problema no dispositivo (GPS travado)
+        const OUTLIER_THRESHOLD = 600; // 10 minutos
+        const validDelays = allDelays.filter(d => d >= 0 && d <= OUTLIER_THRESHOLD);
+        const outlierCount = allDelays.filter(d => d < 0 || d > OUTLIER_THRESHOLD).length;
+
+        if (validDelays.length > 0) {
+          latencyData.avg = Math.round(validDelays.reduce((a, b) => a + b, 0) / validDelays.length);
+          latencyData.min = Math.min(...validDelays);
+          latencyData.max = Math.max(...validDelays);
         }
+
+        // Adicionar info de outliers para debug
+        latencyData.outliers = outlierCount;
+        latencyData.totalSamples = allDelays.length;
 
         latencyData.lastInsert = new Date(recentLocs[0].created_at).toLocaleTimeString('pt-BR');
 
@@ -1451,6 +1462,7 @@ router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) =
       const fiveMinAgo = new Date(Date.now() - 300000);
 
       // Buscar contagem por tipo de dispositivo
+      // Filtro de outliers: ignora delays > 600s (10 min) - geralmente GPS travado
       const tipoStats = await prisma.$queryRaw`
         SELECT
           d.tipo,
@@ -1458,7 +1470,14 @@ router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) =
           COUNT(DISTINCT CASE WHEN d.status = 'online' THEN d.id END) as online,
           COUNT(l.id) FILTER (WHERE l.created_at >= ${oneMinAgo}) as inserts_1min,
           COUNT(l.id) FILTER (WHERE l.created_at >= ${fiveMinAgo}) as inserts_5min,
-          ROUND((AVG(EXTRACT(EPOCH FROM (l.created_at - l.timestamp))) FILTER (WHERE l.created_at >= ${fiveMinAgo}))::numeric, 1) as avg_delay_sec
+          ROUND((AVG(EXTRACT(EPOCH FROM (l.created_at - l.timestamp))) FILTER (
+            WHERE l.created_at >= ${fiveMinAgo}
+            AND EXTRACT(EPOCH FROM (l.created_at - l.timestamp)) BETWEEN 0 AND 600
+          ))::numeric, 1) as avg_delay_sec,
+          COUNT(l.id) FILTER (
+            WHERE l.created_at >= ${fiveMinAgo}
+            AND EXTRACT(EPOCH FROM (l.created_at - l.timestamp)) > 600
+          ) as outliers
         FROM dispositivos d
         LEFT JOIN localizacoes l ON l.dispositivo_id = d.id AND l.created_at >= ${fiveMinAgo}
         WHERE d.tipo IS NOT NULL
@@ -1472,7 +1491,8 @@ router.get('/system/pipeline-debug', autenticar, apenasAdmin, async (req, res) =
         online: Number(s.online) || 0,
         inserts1min: Number(s.inserts_1min) || 0,
         inserts5min: Number(s.inserts_5min) || 0,
-        avgDelaySec: Number(s.avg_delay_sec) || 0
+        avgDelaySec: Number(s.avg_delay_sec) || 0,
+        outliers: Number(s.outliers) || 0 // Dispositivos com GPS travado (delay > 10min)
       }));
     } catch (e) {
       console.warn('[PipelineDebug] Erro ao buscar stats por tipo:', e.message);
