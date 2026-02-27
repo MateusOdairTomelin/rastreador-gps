@@ -11415,25 +11415,34 @@
       console.log('[Permissões] Aplicando na interface...', permissoesUsuario);
 
       // Mapeamento de menu -> módulo/ação necessária
+      // IMPORTANTE: As ações devem corresponder às usadas no backend (verificarPermissao)
       const menuPermissoes = {
-        'nav-dashboard': { modulo: 'dashboard', acao: 'visualizar' },
-        'nav-mapa': { modulo: 'monitoramento', acao: 'visualizar' },
-        'nav-dispositivos': { modulo: 'dispositivos', acao: 'listar' },
+        // Menu Principal
+        'nav-dashboard': { modulo: 'dashboard', acao: 'listar' },
+        'nav-mapa': { modulo: 'monitoramento', acao: 'listar' },
+        'nav-dispositivos': { modulo: 'veiculos', acao: 'listar' },
         'nav-geofencing': { modulo: 'geofences', acao: 'listar' },
-        'nav-relatorios': { modulo: 'relatorios', acao: 'visualizar' },
+        'nav-relatorios': { modulo: 'relatorios', acao: 'listar' },
         'nav-motoristas': { modulo: 'motoristas', acao: 'listar' },
-        'nav-lgpd': { modulo: 'lgpd', acao: 'visualizar' },
-        'nav-auditoria': { modulo: 'auditoria', acao: 'visualizar' },
+        'nav-veiculos': { modulo: 'veiculos', acao: 'listar' },
+        'nav-tags': { modulo: 'veiculos', acao: 'listar' },
+        'nav-trajetos': { modulo: 'viagens', acao: 'listar' },
+        'nav-info-veiculo': { modulo: 'veiculos', acao: 'listar' },
+        'nav-multas': { modulo: 'relatorios', acao: 'listar' },
+        'nav-lgpd': { modulo: 'lgpd', acao: 'listar' },
+        'nav-auditoria': { modulo: 'auditoria', acao: 'listar' },
+        // Menu Admin
         'nav-organizacoes': { modulo: 'organizacoes', acao: 'listar' },
         'nav-usuarios': { modulo: 'usuarios', acao: 'listar' },
-        'nav-planos': { modulo: 'configuracoes', acao: 'avancadas' },
-        'nav-dispositivos-pendentes': { modulo: 'dispositivos', acao: 'listar' },
-        'nav-notificacoes': { modulo: 'notificacoes', acao: 'visualizar' },
-        'nav-status': { modulo: 'status', acao: 'visualizar' },
-        'nav-diagnostico': { modulo: 'diagnostico', acao: 'visualizar' },
-        'nav-heartbeat': { modulo: 'heartbeat', acao: 'visualizar' },
-        'nav-perfis': { modulo: 'usuarios', acao: 'perfis' },
-        'nav-debug': { modulo: 'debug', acao: 'visualizar' }
+        'nav-planos': { modulo: 'planos', acao: 'listar' },
+        'nav-dispositivos-pendentes': { modulo: 'veiculos', acao: 'listar' },
+        'nav-perfis': { modulo: 'perfis', acao: 'listar' },
+        // Menu Técnico
+        'nav-notificacoes': { modulo: 'notificacoes', acao: 'listar' },
+        'nav-status': { modulo: 'sistema', acao: 'visualizar' },
+        'nav-diagnostico': { modulo: 'sistema', acao: 'visualizar' },
+        'nav-heartbeat': { modulo: 'sistema', acao: 'visualizar' },
+        'nav-debug': { modulo: 'sistema', acao: 'visualizar' }
       };
 
       // Aplicar visibilidade em cada menu
@@ -11448,11 +11457,11 @@
         elemento.style.display = permitido ? '' : 'none';
 
         // Verificar se algum item do menu admin está visível
-        if (['nav-organizacoes', 'nav-usuarios', 'nav-planos', 'nav-dispositivos-pendentes'].includes(menuId) && permitido) {
+        if (['nav-organizacoes', 'nav-usuarios', 'nav-planos', 'nav-dispositivos-pendentes', 'nav-perfis'].includes(menuId) && permitido) {
           menuAdminVisivel = true;
         }
         // Verificar se algum item do menu técnico está visível
-        if (['nav-notificacoes', 'nav-status', 'nav-diagnostico', 'nav-heartbeat', 'nav-perfis', 'nav-debug'].includes(menuId) && permitido) {
+        if (['nav-notificacoes', 'nav-status', 'nav-diagnostico', 'nav-heartbeat', 'nav-debug'].includes(menuId) && permitido) {
           menuTecnicoVisivel = true;
         }
       }
@@ -11469,18 +11478,34 @@
         menuTecnico.style.display = menuTecnicoVisivel ? 'flex' : 'none';
       }
 
-      // Botões de criar nas seções
+      // Botões de criar nas seções (usar IDs corretos do HTML)
       const botoesAcao = {
-        // Dispositivos
-        'btn-criar-dispositivo': { modulo: 'dispositivos', acao: 'criar' },
-        // Geofences (formulário inteiro)
+        // Dispositivos/Veículos
+        'btn-criar-dispositivo': { modulo: 'veiculos', acao: 'criar' },
+        'btn-novo-dispositivo': { modulo: 'veiculos', acao: 'criar' },
+        // Geofences
         'btn-criar-geofence': { modulo: 'geofences', acao: 'criar' },
+        'btn-nova-cerca': { modulo: 'geofences', acao: 'criar' },
+        // Motoristas
+        'btn-criar-motorista': { modulo: 'motoristas', acao: 'criar' },
+        'btn-novo-motorista': { modulo: 'motoristas', acao: 'criar' },
         // Organizações
         'btn-criar-organizacao': { modulo: 'organizacoes', acao: 'criar' },
+        'btn-nova-organizacao': { modulo: 'organizacoes', acao: 'criar' },
         // Usuários
         'btn-criar-usuario': { modulo: 'usuarios', acao: 'criar' },
+        'btn-novo-usuario': { modulo: 'usuarios', acao: 'criar' },
         // Perfis de Permissão
-        'btn-criar-perfil': { modulo: 'usuarios', acao: 'perfis' }
+        'btn-criar-perfil': { modulo: 'perfis', acao: 'criar' },
+        'btn-novo-perfil': { modulo: 'perfis', acao: 'criar' },
+        // Tags
+        'btn-criar-tag': { modulo: 'veiculos', acao: 'criar' },
+        'btn-nova-tag': { modulo: 'veiculos', acao: 'criar' },
+        // Multas
+        'btn-criar-multa': { modulo: 'relatorios', acao: 'criar' },
+        'btn-nova-multa': { modulo: 'relatorios', acao: 'criar' },
+        // Notificações
+        'btn-config-notificacao': { modulo: 'notificacoes', acao: 'configurar' }
       };
 
       for (const [btnId, perm] of Object.entries(botoesAcao)) {
@@ -11496,7 +11521,40 @@
         btnCriarVeiculo.style.display = 'none';
       }
 
+      // Ocultar botões de ação inline usando data-attributes
+      // Buscar todos os botões com data-permissao
+      document.querySelectorAll('[data-permissao-modulo]').forEach(btn => {
+        const modulo = btn.getAttribute('data-permissao-modulo');
+        const acao = btn.getAttribute('data-permissao-acao');
+        if (modulo && acao) {
+          btn.style.display = temPermissao(modulo, acao) ? '' : 'none';
+        }
+      });
+
       console.log('[Permissões] Interface atualizada - Admin:', menuAdminVisivel, 'Tecnico:', menuTecnicoVisivel);
+    }
+
+    // Função auxiliar para gerar botão de editar com verificação de permissão
+    function btnEditar(modulo, onclick, titulo = 'Editar') {
+      if (!temPermissao(modulo, 'editar')) return '';
+      return `<button onclick="${onclick}" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="${titulo}">✎</button>`;
+    }
+
+    // Função auxiliar para gerar botão de excluir com verificação de permissão
+    function btnExcluir(modulo, onclick, titulo = 'Excluir') {
+      if (!temPermissao(modulo, 'excluir')) return '';
+      return `<button onclick="${onclick}" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; color: #ef4444;" title="${titulo}">✕</button>`;
+    }
+
+    // Função auxiliar para gerar coluna de ações com verificação de permissão
+    function gerarColAcoes(modulo, editarFn, excluirFn, id) {
+      const btnEdit = temPermissao(modulo, 'editar')
+        ? `<button onclick="${editarFn}(${id})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Editar">✎</button>`
+        : '';
+      const btnDel = temPermissao(modulo, 'excluir')
+        ? `<button onclick="${excluirFn}(${id})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; color: #ef4444;" title="Excluir">✕</button>`
+        : '';
+      return btnEdit || btnDel ? `<td style="padding: 12px; text-align: right;">${btnEdit}${btnDel}</td>` : '<td></td>';
     }
 
     // ============ CARREGAR INFO DO USUÁRIO E ORGANIZAÇÃO ============
@@ -13394,9 +13452,9 @@
                 <span style="padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: ${g.ativo ? 'var(--success)' : 'var(--text-muted)'}; color: white;">
                   ${g.ativo ? 'Ativa' : 'Inativa'}
                 </span>
-                <button onclick="editarGeofence(${geoId})" class="btn btn-secondary" style="padding: 6px 10px;">✎</button>
-                <button onclick="toggleGeofence(${geoId})" class="btn btn-secondary" style="padding: 6px 10px;">${g.ativo ? '‖' : '▷'}</button>
-                <button onclick="deletarGeofence(${geoId}, '${nomeSeguro.replace(/'/g, "\\'")}')" class="btn btn-secondary" style="padding: 6px 10px; color: var(--danger);">✕</button>
+                ${temPermissao('geofences', 'editar') ? `<button onclick="editarGeofence(${geoId})" class="btn btn-secondary" style="padding: 6px 10px;">✎</button>` : ''}
+                ${temPermissao('geofences', 'editar') ? `<button onclick="toggleGeofence(${geoId})" class="btn btn-secondary" style="padding: 6px 10px;">${g.ativo ? '‖' : '▷'}</button>` : ''}
+                ${temPermissao('geofences', 'excluir') ? `<button onclick="deletarGeofence(${geoId}, '${nomeSeguro.replace(/'/g, "\\'")}')" class="btn btn-secondary" style="padding: 6px 10px; color: var(--danger);">✕</button>` : ''}
               </div>
             </div>
           `}).join('');
@@ -17343,11 +17401,11 @@
             <td style="padding: 12px;">${org._count?.usuarios || 0} / ${org.plano?.max_usuarios || '∞'}</td>
             <td style="padding: 12px;"><span style="padding: 4px 12px; border-radius: 20px; font-size: 12px; background: var(--${statusInfo.class}); color: white;">${statusInfo.icon} ${statusInfo.text}</span></td>
             <td style="padding: 12px; white-space: nowrap;">
-              <button onclick="editarOrg(${org.id})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Editar">✎</button>
-              <button onclick="transferirOrg(${org.id}, '${nomeSeguro}')" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Transferir para outro pai">⇄</button>
-              <button onclick="absorverOrg(${org.id}, '${nomeSeguro}')" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Absorver (só esta org)">↓</button>
-              <button onclick="absorverRecursivoOrg(${org.id}, '${nomeSeguro}')" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Absorver TUDO (org + sub-tenants)">↻</button>
-              <button onclick="excluirOrg(${org.id})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Excluir">✕</button>
+              ${temPermissao('organizacoes', 'editar') ? `<button onclick="editarOrg(${org.id})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Editar">✎</button>` : ''}
+              ${temPermissao('organizacoes', 'editar') ? `<button onclick="transferirOrg(${org.id}, '${nomeSeguro}')" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Transferir para outro pai">⇄</button>` : ''}
+              ${temPermissao('organizacoes', 'excluir') ? `<button onclick="absorverOrg(${org.id}, '${nomeSeguro}')" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Absorver (só esta org)">↓</button>` : ''}
+              ${temPermissao('organizacoes', 'excluir') ? `<button onclick="absorverRecursivoOrg(${org.id}, '${nomeSeguro}')" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Absorver TUDO (org + sub-tenants)">↻</button>` : ''}
+              ${temPermissao('organizacoes', 'excluir') ? `<button onclick="excluirOrg(${org.id})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Excluir">✕</button>` : ''}
             </td>
           </tr>
         `;
@@ -18271,8 +18329,8 @@
             <td style="padding: 12px;"><span style="padding: 4px 12px; border-radius: 20px; font-size: 12px; background: ${user.role === 'super_admin' ? 'var(--primary)' : 'var(--accent)'}; color: white;">${roleSeguro}</span></td>
             <td style="padding: 12px;"><span style="padding: 4px 12px; border-radius: 20px; font-size: 12px; background: var(--${statusClass}); color: white;">${statusText}</span></td>
             <td style="padding: 12px;">
-              <button onclick="editarUsuario(${userId})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Editar">✎</button>
-              <button onclick="excluirUsuario(${userId})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Excluir">✕</button>
+              ${temPermissao('usuarios', 'editar') ? `<button onclick="editarUsuario(${userId})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Editar">✎</button>` : ''}
+              ${temPermissao('usuarios', 'excluir') ? `<button onclick="excluirUsuario(${userId})" style="background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px;" title="Excluir">✕</button>` : ''}
             </td>
           </tr>
         `;
@@ -18543,8 +18601,13 @@
 
         const permissoes = Object.keys(perfil.permissoes || {}).map(m => MODULOS_PERMISSAO[m]?.nome || m).join(', ');
 
-        const acoes = `<button onclick="editarPerfil(${perfil.id})" style="padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 4px;">Editar</button>
-           <button onclick="excluirPerfil(${perfil.id})" style="padding: 4px 8px; background: var(--danger); color: white; border: none; border-radius: 4px; cursor: pointer;">Excluir</button>`;
+        const btnEditar = temPermissao('perfis', 'editar')
+          ? `<button onclick="editarPerfil(${perfil.id})" style="padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 4px;">Editar</button>`
+          : '';
+        const btnExcluir = temPermissao('perfis', 'excluir') && !perfil.sistema
+          ? `<button onclick="excluirPerfil(${perfil.id})" style="padding: 4px 8px; background: var(--danger); color: white; border: none; border-radius: 4px; cursor: pointer;">Excluir</button>`
+          : '';
+        const acoes = btnEditar + btnExcluir;
 
         return `
           <tr style="border-bottom: 1px solid var(--border);">
@@ -23134,9 +23197,9 @@
             <td><span style="background: ${statusCores[multa.status] || '#6b7280'}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase;">${multa.status || '-'}</span></td>
             <td style="white-space: nowrap;">
               <button onclick="visualizarMulta(${multa.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Visualizar">👁</button>
-              <button onclick="editarMulta(${multa.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✎</button>
-              ${multa.status === 'pendente' ? `<button onclick="registrarPagamentoMulta(${multa.id})" class="btn btn-sm btn-success" style="padding: 4px 8px; margin-right: 4px;" title="Registrar Pagamento">💰</button>` : ''}
-              <button onclick="excluirMulta(${multa.id})" class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Excluir">🗑</button>
+              ${temPermissao('relatorios', 'editar') ? `<button onclick="editarMulta(${multa.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✎</button>` : ''}
+              ${temPermissao('relatorios', 'editar') && multa.status === 'pendente' ? `<button onclick="registrarPagamentoMulta(${multa.id})" class="btn btn-sm btn-success" style="padding: 4px 8px; margin-right: 4px;" title="Registrar Pagamento">💰</button>` : ''}
+              ${temPermissao('relatorios', 'excluir') ? `<button onclick="excluirMulta(${multa.id})" class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Excluir">🗑</button>` : ''}
             </td>
           </tr>
         `;
@@ -24329,8 +24392,8 @@
               </span>
             </td>
             <td style="white-space: nowrap;">
-              <button onclick="editarMotoristaSecao(${m.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✎</button>
-              <button onclick="excluirMotoristaSecao(${m.id}, '${escapeHtml(m.nome)}')" class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Excluir">🗑</button>
+              ${temPermissao('motoristas', 'editar') ? `<button onclick="editarMotoristaSecao(${m.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✎</button>` : ''}
+              ${temPermissao('motoristas', 'excluir') ? `<button onclick="excluirMotoristaSecao(${m.id}, '${escapeHtml(m.nome)}')" class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Excluir">🗑</button>` : ''}
             </td>
           </tr>
         `;
@@ -24610,12 +24673,12 @@
             <td>${statusBadge}</td>
             <td style="max-width: 200px;">${tagsHtml}</td>
             <td style="white-space: nowrap;">
-              <button onclick="editarVeiculoSecao(${v.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✎</button>
-              ${dispositivo
+              ${temPermissao('veiculos', 'editar') ? `<button onclick="editarVeiculoSecao(${v.id})" class="btn btn-sm" style="padding: 4px 8px; margin-right: 4px;" title="Editar">✎</button>` : ''}
+              ${temPermissao('veiculos', 'editar') ? (dispositivo
                 ? `<button onclick="desvincularDispositivoSecao(${v.id}, ${dispositivo.id})" class="btn btn-sm btn-warning" style="padding: 4px 8px; margin-right: 4px;" title="Desvincular">[-]</button>`
                 : `<button onclick="abrirModalVincularSecao(${v.id}, '${v.placa}')" class="btn btn-sm btn-success" style="padding: 4px 8px; margin-right: 4px;" title="Vincular">◦</button>`
-              }
-              <button onclick="excluirVeiculoSecao(${v.id}, '${v.placa}')" class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Excluir">🗑</button>
+              ) : ''}
+              ${temPermissao('veiculos', 'excluir') ? `<button onclick="excluirVeiculoSecao(${v.id}, '${v.placa}')" class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Excluir">🗑</button>` : ''}
             </td>
           </tr>
         `;
@@ -25281,9 +25344,9 @@
                   <button onclick="gerenciarVeiculosTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: var(--primary); cursor: pointer; padding: 4px 8px; text-decoration: underline;" title="Gerenciar veículos">${tag.totalVeiculos || 0}</button>
                 </td>
                 <td style="text-align: right; padding: 10px 8px;">
-                  <button onclick="gerenciarVeiculosTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: var(--primary); cursor: pointer; padding: 4px 8px;" title="Vincular veículos">◦</button>
-                  <button onclick="editarTag(${tag.id})" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 8px;" title="Editar">✎</button>
-                  <button onclick="excluirTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px 8px;" title="Excluir">✕</button>
+                  ${temPermissao('veiculos', 'editar') ? `<button onclick="gerenciarVeiculosTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: var(--primary); cursor: pointer; padding: 4px 8px;" title="Vincular veículos">◦</button>` : ''}
+                  ${temPermissao('veiculos', 'editar') ? `<button onclick="editarTag(${tag.id})" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 8px;" title="Editar">✎</button>` : ''}
+                  ${temPermissao('veiculos', 'excluir') ? `<button onclick="excluirTag(${tag.id}, '${escapeHtml(tag.nome)}')" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px 8px;" title="Excluir">✕</button>` : ''}
                 </td>
               </tr>
             `).join('')}
