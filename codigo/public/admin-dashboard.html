@@ -18535,27 +18535,31 @@
 
     // ============ PERFIS DE PERMISSÃO ============
 
-    // Módulos disponíveis (sincronizado com backend)
+    // Módulos disponíveis (sincronizado com backend e menuPermissoes)
+    // IMPORTANTE: 'listar' é a ação padrão para visibilidade de menus
     const MODULOS_PERMISSAO = {
-      dashboard: { nome: 'Dashboard', acoes: ['visualizar', 'exportar'] },
+      dashboard: { nome: 'Dashboard', acoes: ['listar', 'visualizar', 'exportar'] },
       veiculos: { nome: 'Veículos', acoes: ['listar', 'criar', 'editar', 'excluir', 'exportar', 'importar'] },
       motoristas: { nome: 'Motoristas', acoes: ['listar', 'criar', 'editar', 'excluir', 'exportar', 'importar'] },
-      monitoramento: { nome: 'Monitoramento', acoes: ['visualizar', 'comandos', 'historico', 'tempo_real'] },
-      relatorios: { nome: 'Relatórios', acoes: ['visualizar', 'criar', 'exportar', 'agendar'] },
+      monitoramento: { nome: 'Mapa/Monitoramento', acoes: ['listar', 'visualizar', 'comandos', 'historico', 'tempo_real'] },
+      relatorios: { nome: 'Relatórios', acoes: ['listar', 'visualizar', 'criar', 'exportar', 'agendar'] },
       geofences: { nome: 'Cercas Virtuais', acoes: ['listar', 'criar', 'editar', 'excluir', 'alertas'] },
-      viagens: { nome: 'Viagens', acoes: ['listar', 'visualizar', 'exportar', 'analise'] },
-      alertas: { nome: 'Alertas/Notificações', acoes: ['listar', 'criar', 'editar', 'excluir', 'configurar'] },
+      viagens: { nome: 'Viagens/Trajetos', acoes: ['listar', 'visualizar', 'exportar', 'analise'] },
+      alertas: { nome: 'Alertas', acoes: ['listar', 'criar', 'editar', 'excluir', 'configurar'] },
       usuarios: { nome: 'Usuários', acoes: ['listar', 'criar', 'editar', 'excluir', 'perfis'] },
       organizacoes: { nome: 'Organizações', acoes: ['listar', 'criar', 'editar', 'excluir', 'configurar', 'criar_subtenant', 'gerenciar_subtenants'] },
-      auditoria: { nome: 'Auditoria', acoes: ['visualizar', 'exportar', 'filtrar_todas_orgs'] },
+      auditoria: { nome: 'Auditoria', acoes: ['listar', 'visualizar', 'exportar', 'filtrar_todas_orgs'] },
       configuracoes: { nome: 'Configurações', acoes: ['visualizar', 'editar', 'avancadas'] },
       dispositivos: { nome: 'Dispositivos/Rastreadores', acoes: ['listar', 'criar', 'editar', 'excluir', 'comandos', 'diagnostico'] },
-      lgpd: { nome: 'LGPD', acoes: ['visualizar', 'exportar_dados', 'solicitar_exclusao', 'consentimentos'] },
-      notificacoes: { nome: 'Notificações', acoes: ['visualizar', 'configurar', 'telegram', 'email', 'push'] },
+      lgpd: { nome: 'LGPD', acoes: ['listar', 'visualizar', 'exportar_dados', 'solicitar_exclusao', 'consentimentos'] },
+      notificacoes: { nome: 'Notificações', acoes: ['listar', 'visualizar', 'configurar', 'telegram', 'email', 'push'] },
+      perfis: { nome: 'Perfis de Permissão', acoes: ['listar', 'criar', 'editar', 'excluir'] },
+      planos: { nome: 'Planos', acoes: ['listar', 'criar', 'editar', 'excluir'] },
+      sistema: { nome: 'Sistema/Técnico', acoes: ['visualizar', 'configurar', 'logs', 'debug'] },
       status: { nome: 'Status', acoes: ['visualizar', 'painel', 'heartbeat'] },
       diagnostico: { nome: 'Diagnóstico', acoes: ['visualizar', 'executar', 'logs'] },
       heartbeat: { nome: 'Heartbeat', acoes: ['visualizar', 'configurar', 'historico'] },
-      perfil: { nome: 'Perfil', acoes: ['visualizar', 'editar', 'alterar_senha'] },
+      perfil: { nome: 'Meu Perfil', acoes: ['visualizar', 'editar', 'alterar_senha'] },
       graficos: { nome: 'Gráficos', acoes: ['visualizar', 'criar', 'exportar'] },
       debug: { nome: 'Debug', acoes: ['visualizar', 'logs', 'pacotes', 'avancado'] }
     };
