@@ -123,6 +123,7 @@ const IP_RESTRICTION_ENABLED = process.env.IP_RESTRICTION_ENABLED !== 'false';
 // IPs permitidos para acesso ao painel web (VPN e IPs autorizados)
 const ALLOWED_IPS = [
   '187.85.161.250',   // VPN empresa
+  '187.85.164.97',    // VPN empresa (range alternativo)
   '189.28.210.114',   // IP autorizado
   '127.0.0.1',        // localhost
   '::1',              // localhost IPv6
