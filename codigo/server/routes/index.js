@@ -19,6 +19,7 @@ const motoristaRoutes = require('./motorista.routes'); // ✅ Cadastro de Motori
 const veiculosRoutes = require('./veiculos.routes'); // ✅ Gestão de Veículos (separado de Dispositivos)
 const multaRoutes = require('./multa.routes'); // ✅ Gestão de Multas de Trânsito
 const tagRoutes = require('./tag.routes'); // ✅ Tags de Veículos (categorização)
+const grupoRoutes = require('./grupo.routes'); // ✅ Grupos de Tags (controle de acesso hierárquico)
 const insightRoutes = require('./insight.routes'); // ✅ Insights de IA (análise automática)
 const lgpdRoutes = require('./lgpd.routes'); // ✅ LGPD: Consentimentos e Exclusão de Dados
 const relatoriosRoutes = require('./relatorios.routes'); // ✅ Relatórios Avançados (Velocidade, Ocioso, Quilometragem, Frota)
@@ -547,6 +548,7 @@ router.use('/motoristas', autenticar, tenantContext, motoristaRoutes); // ✅ Ca
 router.use('/veiculos', autenticar, tenantContext, veiculosRoutes); // ✅ Gestão de Veículos (permite trocar rastreador sem perder histórico)
 router.use('/multas', autenticar, tenantContext, multaRoutes); // ✅ Gestão de Multas de Trânsito
 router.use('/tags', autenticar, tenantContext, tagRoutes); // ✅ Tags de Veículos (categorização por região, tipo, etc)
+router.use('/grupos', grupoRoutes); // ✅ Grupos de Tags (autenticação no próprio arquivo)
 router.use('/insights', autenticar, tenantContext, insightRoutes); // ✅ Insights de IA (análise automática de padrões)
 router.use('/lgpd', lgpdRoutes); // ✅ LGPD: Consentimentos e Exclusão de Dados (autenticação no próprio arquivo)
 router.use('/relatorios', autenticar, tenantContext, relatoriosRoutes); // ✅ Relatórios Avançados
