@@ -19,7 +19,7 @@ const MODULOS = {
   },
   motoristas: {
     nome: 'Motoristas',
-    acoes: ['listar', 'criar', 'editar', 'excluir', 'exportar', 'importar']
+    acoes: ['listar', 'criar', 'editar', 'excluir', 'vincular', 'exportar', 'importar']
   },
   monitoramento: {
     nome: 'Monitoramento',

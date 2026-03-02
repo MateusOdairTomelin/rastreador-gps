@@ -169,7 +169,7 @@ router.delete('/:id', verificarPermissao('motoristas', 'excluir'), async (req, r
  * POST /api/motoristas/:id/vincular/:dispositivo_id
  * Vincular motorista a um veículo
  */
-router.post('/:id/vincular/:dispositivo_id', verificarPermissao('motoristas', 'editar'), async (req, res) => {
+router.post('/:id/vincular/:dispositivo_id', verificarPermissao('motoristas', 'vincular'), async (req, res) => {
   try {
     const resultado = await motoristaService.vincularVeiculo(
       parseInt(req.params.id),
@@ -189,7 +189,7 @@ router.post('/:id/vincular/:dispositivo_id', verificarPermissao('motoristas', 'e
  * DELETE /api/motoristas/desvincular/:dispositivo_id
  * Desvincular motorista de um veículo
  */
-router.delete('/desvincular/:dispositivo_id', verificarPermissao('motoristas', 'editar'), async (req, res) => {
+router.delete('/desvincular/:dispositivo_id', verificarPermissao('motoristas', 'vincular'), async (req, res) => {
   try {
     const resultado = await motoristaService.desvincularVeiculo(
       parseInt(req.params.dispositivo_id),
