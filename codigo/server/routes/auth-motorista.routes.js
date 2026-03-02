@@ -170,10 +170,15 @@ router.get('/me', autenticarMotorista, async (req, res) => {
  * Requer: Token de motorista válido
  * Body:
  * - imei: string (15 dígitos do QR Code)
+ * - duracaoHoras: number (opcional - por quanto tempo quer ficar vinculado, 1-720h)
+ *
+ * Comportamento:
+ * - Se o veículo já tem outro motorista, desvincula automaticamente o anterior
+ * - Se o motorista já está em outro veículo, desvincula do anterior primeiro
  */
 router.post('/vincular', autenticarMotorista, async (req, res) => {
   try {
-    const { imei } = req.body;
+    const { imei, duracaoHoras } = req.body;
 
     if (!imei) {
       return res.status(400).json({
@@ -182,10 +187,23 @@ router.post('/vincular', autenticarMotorista, async (req, res) => {
       });
     }
 
+    // Validar duração (se informada)
+    let duracao = null;
+    if (duracaoHoras) {
+      duracao = parseInt(duracaoHoras);
+      if (isNaN(duracao) || duracao < 1 || duracao > 720) { // 1h a 30 dias
+        return res.status(400).json({
+          erro: true,
+          mensagem: 'Duração deve ser entre 1 e 720 horas (30 dias)'
+        });
+      }
+    }
+
     const resultado = await authMotoristaService.vincularPorImei(
       req.motorista.id,
       imei,
-      req.motorista.organizacao_id
+      req.motorista.organizacao_id,
+      duracao
     );
 
     res.json(resultado);

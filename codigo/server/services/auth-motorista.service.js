@@ -370,7 +370,7 @@ class AuthMotoristaService {
   /**
    * Vincular motorista a veículo via IMEI (QR Code)
    */
-  async vincularPorImei(motoristaId, imei, organizacaoId) {
+  async vincularPorImei(motoristaId, imei, organizacaoId, duracaoHoras = null) {
     // Validar IMEI
     const imeiLimpo = imei.replace(/\D/g, '');
     if (imeiLimpo.length !== 15) {
@@ -396,12 +396,21 @@ class AuthMotoristaService {
       throw new Error('Veículo não pertence à sua organização.');
     }
 
-    // Verificar se já está vinculado a outro motorista
-    if (dispositivo.motorista_id && dispositivo.motorista_id !== motoristaId) {
-      throw new Error(`Veículo já vinculado a: ${dispositivo.motorista.nome}`);
+    // Se já está vinculado ao mesmo motorista, apenas retornar sucesso
+    if (dispositivo.motorista_id === motoristaId) {
+      return {
+        sucesso: true,
+        mensagem: 'Você já está vinculado a este veículo!',
+        veiculo: {
+          id: dispositivo.id,
+          imei: dispositivo.imei,
+          placa: dispositivo.placa,
+          veiculo: dispositivo.veiculo
+        }
+      };
     }
 
-    // Verificar se motorista já está vinculado a outro veículo
+    // Se motorista já está vinculado a OUTRO veículo, desvincular primeiro
     const motoristaAtual = await prisma.motorista.findUnique({
       where: { id: motoristaId },
       include: {
@@ -414,40 +423,70 @@ class AuthMotoristaService {
     if (motoristaAtual.dispositivos.length > 0) {
       const outroVeiculo = motoristaAtual.dispositivos[0];
       if (outroVeiculo.id !== dispositivo.id) {
-        throw new Error(`Você já está vinculado ao veículo: ${outroVeiculo.placa}`);
+        // Desvincular do veículo anterior
+        console.log(`[AuthMotorista] Auto-desvinculando motorista ${motoristaId} do veículo ${outroVeiculo.placa}`);
+        await prisma.historicoMotorista.updateMany({
+          where: {
+            dispositivo_id: outroVeiculo.id,
+            motorista_id: motoristaId,
+            fim: null
+          },
+          data: { fim: new Date() }
+        });
+        await prisma.dispositivo.update({
+          where: { id: outroVeiculo.id },
+          data: { motorista_id: null }
+        });
       }
     }
 
-    // Fechar vinculação anterior do veículo (se houver)
-    if (dispositivo.motorista_id) {
+    // ✅ NOVO: Se veículo já tem outro motorista, DESVINCULAR o anterior automaticamente
+    let motoristaAnterior = null;
+    if (dispositivo.motorista_id && dispositivo.motorista_id !== motoristaId) {
+      motoristaAnterior = dispositivo.motorista;
+      console.log(`[AuthMotorista] Auto-desvinculando motorista anterior ${motoristaAnterior.nome} do veículo ${dispositivo.placa}`);
+
+      // Fechar vinculação anterior no histórico
       await prisma.historicoMotorista.updateMany({
         where: {
           dispositivo_id: dispositivo.id,
+          motorista_id: dispositivo.motorista_id,
           fim: null
         },
         data: { fim: new Date() }
       });
     }
 
-    // Vincular motorista ao veículo
+    // Vincular novo motorista ao veículo
     await prisma.dispositivo.update({
       where: { id: dispositivo.id },
       data: { motorista_id: motoristaId }
     });
 
-    // Criar registro de histórico
+    // Criar registro de histórico com duração prevista (se informada)
+    const historicoData = {
+      dispositivo_id: dispositivo.id,
+      motorista_id: motoristaId
+    };
+
+    // Se duração foi informada, podemos usar para notificações futuras
+    // Por enquanto, apenas logamos
+    if (duracaoHoras) {
+      console.log(`[AuthMotorista] Vínculo com duração prevista: ${duracaoHoras}h`);
+    }
+
     await prisma.historicoMotorista.create({
-      data: {
-        dispositivo_id: dispositivo.id,
-        motorista_id: motoristaId
-      }
+      data: historicoData
     });
 
     console.log(`[AuthMotorista] Vinculação: motorista ${motoristaId} -> veículo ${dispositivo.placa} (IMEI: ${imeiLimpo})`);
 
     return {
       sucesso: true,
-      mensagem: 'Veículo vinculado com sucesso!',
+      mensagem: motoristaAnterior
+        ? `Veículo vinculado! (${motoristaAnterior.nome} foi desvinculado)`
+        : 'Veículo vinculado com sucesso!',
+      motoristaAnteriorDesvinculado: motoristaAnterior ? motoristaAnterior.nome : null,
       veiculo: {
         id: dispositivo.id,
         imei: dispositivo.imei,
