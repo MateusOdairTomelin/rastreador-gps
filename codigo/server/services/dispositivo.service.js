@@ -28,9 +28,27 @@ class DispositivoService {
 
   // Get all devices with latest location and OBD2 data
   // ✅ Multi-tenant: Filtra por organizacao_id quando fornecido
-  async getAll(tenantFilter = {}) {
+  // ✅ Filtro por tags: Se tagIds fornecido, filtra dispositivos vinculados a veículos com essas tags
+  async getAll(tenantFilter = {}, tagIds = null) {
+    const where = { ...tenantFilter };
+
+    // Filtrar por tags permitidas (via veículo vinculado)
+    if (tagIds !== null && tagIds.length > 0) {
+      where.veiculo_rel = {
+        tags: {
+          some: {
+            tag_id: { in: tagIds }
+          }
+        }
+      };
+    } else if (tagIds !== null && tagIds.length === 0) {
+      // Usuário tem restrição mas nenhuma tag permitida = sem acesso
+      return [];
+    }
+    // tagIds === null significa acesso total (sem filtro)
+
     return await prisma.dispositivo.findMany({
-      where: tenantFilter,
+      where,
       include: {
         localizacoes: {
           orderBy: { timestamp: 'desc' },

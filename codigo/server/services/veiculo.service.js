@@ -12,8 +12,14 @@ const { ACOES } = require('./auditoria.service');
 class VeiculoService {
   /**
    * Listar veículos de uma organização
+   * @param {number} organizacao_id - ID da organização
+   * @param {Object} options - Opções de filtro
+   * @param {string} options.busca - Busca por placa/modelo/marca
+   * @param {number} options.page - Página atual
+   * @param {number} options.limit - Limite por página
+   * @param {number[]|null} options.tagIds - IDs das tags permitidas (null = sem filtro)
    */
-  async listar(organizacao_id, { busca, page = 1, limit = 50 } = {}) {
+  async listar(organizacao_id, { busca, page = 1, limit = 50, tagIds = null } = {}) {
     const where = { organizacao_id };
 
     if (busca) {
@@ -23,6 +29,24 @@ class VeiculoService {
         { marca: { contains: busca, mode: 'insensitive' } }
       ];
     }
+
+    // Filtrar por tags permitidas (se houver restrição)
+    if (tagIds !== null && tagIds.length > 0) {
+      where.tags = {
+        some: {
+          tag_id: { in: tagIds }
+        }
+      };
+    } else if (tagIds !== null && tagIds.length === 0) {
+      // Usuário tem restrição mas nenhuma tag permitida = sem acesso a nenhum veículo
+      return {
+        veiculos: [],
+        total: 0,
+        page,
+        totalPages: 0
+      };
+    }
+    // tagIds === null significa acesso total (sem filtro)
 
     const [veiculos, total] = await Promise.all([
       prisma.veiculo.findMany({

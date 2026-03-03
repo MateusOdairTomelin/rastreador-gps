@@ -7,6 +7,7 @@ const obd2Service = require('../services/obd2.service');
 const alarmeService = require('../services/alarme.service');
 const heartbeatService = require('../services/heartbeat.service');
 const consultaPlacaService = require('../services/consulta-placa.service');
+const grupoService = require('../services/grupo.service');
 const { getAllDeviceTypes, getDeviceTypeInfo, getHomologatedDeviceTypes, getDefaultConfig, supportsOBD2 } = require('../constants/device-types');
 const { getAllVehicleProfiles, getVehicleProfile, suggestProfileByYear } = require('../constants/vehicle-profiles');
 const calibracaoService = require('../services/calibracao.service');
@@ -509,14 +510,22 @@ router.post('/', verificarPermissao('veiculos', 'criar'), asyncHandler(async (re
 // GET /api/dispositivos - List all devices
 // ✅ Multi-tenant: Filtra por organizacao_id do usuário
 // ✅ Suporta filtro por status_uso: ?status_uso=ativo|disponivel|inativo
+// ✅ Filtro por tags permitidas do usuário (hierarquia de grupos)
 // ✅ Cache com TTL de 5s para evitar sobrecarga
 router.get('/', asyncHandler(async (req, res) => {
   const { status_uso } = req.query;
 
-  // Gerar chave de cache: tenant_id + status_uso
+  // Obter tags permitidas do usuário (null = acesso total)
+  let tagIdsPermitidas = null;
+  if (req.usuario?.id) {
+    tagIdsPermitidas = await grupoService.obterTagsPermitidas(req.usuario.id);
+  }
+
+  // Gerar chave de cache: tenant_id + status_uso + tags
   const tenantId = req.tenant?.id || 'global';
   const statusKey = status_uso || 'default';
-  const cacheKey = `${tenantId}:${statusKey}`;
+  const tagsKey = tagIdsPermitidas ? tagIdsPermitidas.sort().join(',') : 'all';
+  const cacheKey = `${tenantId}:${statusKey}:${tagsKey}`;
 
   // Verificar cache válido
   const cached = dispositivosCache.get(cacheKey);
@@ -549,7 +558,7 @@ router.get('/', asyncHandler(async (req, res) => {
     filter.status_uso = { not: 'inativo' };
   }
 
-  const dispositivos = await dispositivoService.getAll(filter);
+  const dispositivos = await dispositivoService.getAll(filter, tagIdsPermitidas);
 
   // Transform to match frontend expectations
   const dados = dispositivos.map((d) => {

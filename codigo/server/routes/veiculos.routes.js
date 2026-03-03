@@ -9,6 +9,7 @@ const express = require('express');
 const router = express.Router();
 const veiculoService = require('../services/veiculo.service');
 const consultaPlacaService = require('../services/consulta-placa.service');
+const grupoService = require('../services/grupo.service');
 const { verificarPermissao } = require('../middleware/permissao.middleware');
 
 // Cache de veículos (TTL 5s)
@@ -60,13 +61,21 @@ router.get('/consulta-placa/:placa', verificarPermissao('veiculos', 'listar'), a
 /**
  * GET /api/veiculos
  * Listar veículos da organização
+ * Filtra por tags permitidas do usuário (se houver restrições)
  */
 router.get('/', verificarPermissao('veiculos', 'listar'), async (req, res) => {
   try {
     const { busca, page, limit } = req.query;
 
-    // Cache key: org + busca + page + limit
-    const cacheKey = `${req.organizacao_id}:${busca || ''}:${page || 1}:${limit || 50}`;
+    // Obter tags permitidas do usuário (null = acesso total)
+    let tagIdsPermitidas = null;
+    if (req.usuario?.id) {
+      tagIdsPermitidas = await grupoService.obterTagsPermitidas(req.usuario.id);
+    }
+
+    // Cache key: org + busca + page + limit + tags
+    const tagsKey = tagIdsPermitidas ? tagIdsPermitidas.sort().join(',') : 'all';
+    const cacheKey = `${req.organizacao_id}:${busca || ''}:${page || 1}:${limit || 50}:${tagsKey}`;
     const cached = veiculosCache.get(cacheKey);
     if (cached && (Date.now() - cached.time) < VEICULOS_CACHE_TTL) {
       return res.json(cached.data);
@@ -75,7 +84,8 @@ router.get('/', verificarPermissao('veiculos', 'listar'), async (req, res) => {
     const resultado = await veiculoService.listar(req.organizacao_id, {
       busca,
       page: parseInt(page) || 1,
-      limit: parseInt(limit) || 50
+      limit: parseInt(limit) || 50,
+      tagIds: tagIdsPermitidas  // null = sem filtro, array = filtrar por essas tags
     });
 
     const response = {
