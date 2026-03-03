@@ -10318,7 +10318,7 @@
     </div>
     <button class="sidebar-right-toggle collapsed" id="sidebar-right-toggle" onclick="toggleSidebarRight()" title="Alertas de Veículos Ociosos">
       <span class="toggle-badge hidden" id="toggle-badge">0</span>
-      ▶
+      <span class="toggle-arrow">▶</span>
     </button>
 
     <!-- Toast de notificação de veículos ociosos -->
@@ -13874,14 +13874,27 @@
         sidebar.classList.toggle('collapsed');
         toggle.classList.toggle('collapsed');
 
-        // Atualizar ícone (preservando o badge)
+        // Atualizar ícone corretamente (evita duplicação)
         const isCollapsed = sidebar.classList.contains('collapsed');
-        // Limpar texto mas manter badge
-        Array.from(toggle.childNodes).forEach(node => {
-          if (node.nodeType === Node.TEXT_NODE) {
-            node.textContent = isCollapsed ? ' ▶' : ' ◀';
+        const arrowSpan = toggle.querySelector('.toggle-arrow');
+        if (arrowSpan) {
+          arrowSpan.textContent = isCollapsed ? '▶' : '◀';
+        }
+      }
+
+      // Fechar sidebar direita (chamado ao trocar de seção)
+      function fecharSidebarRight() {
+        const sidebar = document.getElementById('sidebar-right');
+        const toggle = document.getElementById('sidebar-right-toggle');
+
+        if (sidebar && !sidebar.classList.contains('collapsed')) {
+          sidebar.classList.add('collapsed');
+          toggle.classList.add('collapsed');
+          const arrowSpan = toggle.querySelector('.toggle-arrow');
+          if (arrowSpan) {
+            arrowSpan.textContent = '▶';
           }
-        });
+        }
       }
 
       // Atualizar badge do toggle
@@ -13940,11 +13953,10 @@
         if (sidebar.classList.contains('collapsed')) {
           sidebar.classList.remove('collapsed');
           toggle.classList.remove('collapsed');
-          Array.from(toggle.childNodes).forEach(node => {
-            if (node.nodeType === Node.TEXT_NODE) {
-              node.textContent = ' ◀';
-            }
-          });
+          const arrowSpan = toggle.querySelector('.toggle-arrow');
+          if (arrowSpan) {
+            arrowSpan.textContent = '◀';
+          }
           atualizarBadgeToggle(0);
         }
         fecharToastOcioso();
@@ -14094,6 +14106,7 @@
 
       // Expor funções globalmente
       window.toggleSidebarRight = toggleSidebarRight;
+      window.fecharSidebarRight = fecharSidebarRight;
       window.atualizarThresholdOcioso = atualizarThresholdOcioso;
       window.verDetalhesVeiculo = verDetalhesVeiculo;
       window.fecharToastOcioso = fecharToastOcioso;
@@ -14516,6 +14529,11 @@
     };
 
     function switchSection(name, updateHash = true) {
+      // Fechar sidebar de ociosos ao trocar de seção (exceto mapa/dispositivos)
+      if (name !== 'dispositivos' && name !== 'mapa') {
+        fecharSidebarRight();
+      }
+
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
