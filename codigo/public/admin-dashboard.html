@@ -8581,9 +8581,27 @@
                 <h2 style="margin: 0; color: var(--primary);">≡ Logs de Auditoria</h2>
                 <p style="margin: 5px 0 0 0; color: var(--text-light);">Histórico de ações realizadas no sistema</p>
               </div>
-              <button onclick="carregarAuditoria()" class="btn btn-secondary" style="padding: 8px 16px;">
-                ↻ Atualizar
-              </button>
+              <div style="display: flex; gap: 8px;">
+                <button onclick="carregarAuditoria()" class="btn btn-secondary" style="padding: 8px 16px;">
+                  ↻ Atualizar
+                </button>
+                <div class="dropdown" style="position: relative;" id="export-auditoria-dropdown">
+                  <button onclick="toggleExportAuditoriaMenu()" class="btn btn-primary" style="padding: 8px 16px;">
+                    ⬇ Exportar
+                  </button>
+                  <div id="export-auditoria-menu" class="dropdown-menu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; min-width: 150px;">
+                    <button onclick="exportarAuditoria('csv')" style="display: block; width: 100%; padding: 10px 16px; border: none; background: none; color: var(--text); text-align: left; cursor: pointer; font-size: 14px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'">
+                      📄 CSV
+                    </button>
+                    <button onclick="exportarAuditoria('xlsx')" style="display: block; width: 100%; padding: 10px 16px; border: none; background: none; color: var(--text); text-align: left; cursor: pointer; font-size: 14px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'">
+                      📊 Excel (XLSX)
+                    </button>
+                    <button onclick="exportarAuditoria('pdf')" style="display: block; width: 100%; padding: 10px 16px; border: none; background: none; color: var(--text); text-align: left; cursor: pointer; font-size: 14px;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='none'">
+                      📑 PDF
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -18588,6 +18606,144 @@
         `;
       }).join('');
     }
+
+    // Toggle menu de exportação da auditoria
+    function toggleExportAuditoriaMenu() {
+      const menu = document.getElementById('export-auditoria-menu');
+      if (menu.style.display === 'none') {
+        menu.style.display = 'block';
+        // Fechar ao clicar fora
+        setTimeout(() => {
+          document.addEventListener('click', fecharExportAuditoriaMenu);
+        }, 10);
+      } else {
+        menu.style.display = 'none';
+      }
+    }
+
+    function fecharExportAuditoriaMenu(e) {
+      const dropdown = document.getElementById('export-auditoria-dropdown');
+      if (dropdown && !dropdown.contains(e?.target)) {
+        document.getElementById('export-auditoria-menu').style.display = 'none';
+        document.removeEventListener('click', fecharExportAuditoriaMenu);
+      }
+    }
+
+    // Exportar logs de auditoria
+    async function exportarAuditoria(formato) {
+      // Verificar permissão
+      if (!temPermissao('auditoria', 'exportar')) {
+        toastError('Você não tem permissão para exportar logs de auditoria');
+        return;
+      }
+
+      // Fechar menu
+      document.getElementById('export-auditoria-menu').style.display = 'none';
+
+      if (!auditoriaCache || auditoriaCache.length === 0) {
+        toastWarning('Nenhum log para exportar. Carregue os dados primeiro.');
+        return;
+      }
+
+      toastInfo(`Gerando arquivo ${formato.toUpperCase()}...`);
+
+      try {
+        // Preparar dados
+        const dados = auditoriaCache.map(log => ({
+          'Data/Hora': new Date(log.created_at).toLocaleString('pt-BR'),
+          'Usuário': log.usuario?.nome || log.usuario?.email || 'Sistema',
+          'Email': log.usuario?.email || '-',
+          'Organização': log.organizacao?.nome || '-',
+          'Ação': log.acao,
+          'Recurso': log.recurso || '-',
+          'Recurso ID': log.recurso_id || '-',
+          'Detalhes': log.detalhes || '-',
+          'IP': log.ip || '-',
+          'User Agent': log.user_agent || '-',
+          'Sucesso': log.sucesso ? 'Sim' : 'Não'
+        }));
+
+        const dataStr = new Date().toISOString().split('T')[0];
+        const nomeArquivo = `auditoria_${dataStr}`;
+
+        if (formato === 'csv') {
+          exportarCSV(dados, nomeArquivo);
+        } else if (formato === 'xlsx') {
+          exportarXLSX(dados, nomeArquivo, 'Logs de Auditoria');
+        } else if (formato === 'pdf') {
+          exportarAuditoriaPDF(dados, nomeArquivo);
+        }
+
+        toastSuccess(`Arquivo ${formato.toUpperCase()} gerado com sucesso!`);
+      } catch (error) {
+        console.error('Erro ao exportar auditoria:', error);
+        toastError('Erro ao gerar arquivo: ' + error.message);
+      }
+    }
+
+    // Exportar auditoria para PDF
+    function exportarAuditoriaPDF(dados, nomeArquivo) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('l', 'mm', 'a4'); // Landscape para caber mais colunas
+
+      // Título
+      doc.setFontSize(18);
+      doc.setTextColor(63, 207, 213);
+      doc.text('Logs de Auditoria', 14, 15);
+
+      // Subtítulo com data
+      doc.setFontSize(10);
+      doc.setTextColor(128);
+      doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 22);
+      doc.text(`Total de registros: ${dados.length}`, 14, 27);
+
+      // Preparar dados para a tabela (colunas principais)
+      const colunas = ['Data/Hora', 'Usuário', 'Organização', 'Ação', 'Recurso', 'IP', 'Sucesso'];
+      const linhas = dados.map(d => [
+        d['Data/Hora'],
+        d['Usuário'].substring(0, 25),
+        d['Organização'].substring(0, 20),
+        d['Ação'],
+        d['Recurso'].substring(0, 15),
+        d['IP'],
+        d['Sucesso']
+      ]);
+
+      // Tabela
+      doc.autoTable({
+        head: [colunas],
+        body: linhas,
+        startY: 32,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [63, 207, 213],
+          textColor: 255,
+          fontSize: 9,
+          fontStyle: 'bold'
+        },
+        bodyStyles: {
+          fontSize: 8
+        },
+        columnStyles: {
+          0: { cellWidth: 35 },
+          1: { cellWidth: 40 },
+          2: { cellWidth: 35 },
+          3: { cellWidth: 40 },
+          4: { cellWidth: 30 },
+          5: { cellWidth: 30 },
+          6: { cellWidth: 15 }
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245]
+        },
+        margin: { left: 14, right: 14 }
+      });
+
+      doc.save(`${nomeArquivo}.pdf`);
+    }
+
+    window.toggleExportAuditoriaMenu = toggleExportAuditoriaMenu;
+    window.exportarAuditoria = exportarAuditoria;
 
     // ============ PERFIS DE PERMISSÃO ============
 
