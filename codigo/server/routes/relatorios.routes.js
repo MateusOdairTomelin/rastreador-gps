@@ -1219,8 +1219,41 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
       formato = 'csv',
       imei, // Filtro opcional por veículo(s) - pode ser string única ou array
       tags,  // Filtro opcional por tags - pode ser string única ou array de IDs
-      motorista // Filtro opcional por motorista(s) - pode ser ID único ou array de IDs
+      motorista, // Filtro opcional por motorista(s) - pode ser ID único ou array de IDs
+      // Filtros avançados
+      modulos = '', // Módulos a incluir no relatório
+      soExcessos = 'false', // Só mostrar excessos de velocidade
+      velAcima80 = 'false',
+      velAcima100 = 'false',
+      velAcima120 = 'false',
+      incluirExcessos = 'false', // Incluir detalhes de excessos
+      incluirViagens = 'false',
+      incluirScore = 'false',
+      incluirOcioso = 'false',
+      geofenceIds = '',
+      tiposAlarme = ''
     } = req.query;
+
+    // Parsear filtros booleanos
+    const filtroSoExcessos = soExcessos === 'true';
+    const filtroVelAcima80 = velAcima80 === 'true';
+    const filtroVelAcima100 = velAcima100 === 'true';
+    const filtroVelAcima120 = velAcima120 === 'true';
+    const incluirDetalhesExcessos = incluirExcessos === 'true';
+    const incluirDetalhesViagens = incluirViagens === 'true';
+
+    // Determinar limite de velocidade baseado nos filtros
+    let limiteVelocidadeFiltro = 0;
+    if (filtroVelAcima120) limiteVelocidadeFiltro = 120;
+    else if (filtroVelAcima100) limiteVelocidadeFiltro = 100;
+    else if (filtroVelAcima80) limiteVelocidadeFiltro = 80;
+    else if (filtroSoExcessos) limiteVelocidadeFiltro = 80; // Padrão para excessos
+
+    console.log('[Relatórios/frota] Filtros:', {
+      soExcessos: filtroSoExcessos,
+      limiteVelocidade: limiteVelocidadeFiltro,
+      modulos
+    });
 
     // Multi-tenant: usar filtro do tenant
     const tenantFilter = req.tenantFilter || {};
@@ -1314,19 +1347,27 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
     }
 
     // Calcular estatísticas para cada veículo (em paralelo para maior velocidade)
-    const LIMITE_EXCESSO_PADRAO = 80; // Limite padrão para visão geral (relatório detalhado usa limites precisos)
+    const LIMITE_EXCESSO_PADRAO = limiteVelocidadeFiltro > 0 ? limiteVelocidadeFiltro : 80;
 
     // Se filtrar por poucos veículos, buscar todos os registros para precisão
     // Se buscar muitos, limitar para performance (10000 = ~27h de dados a 6 pkt/min)
     const limiteRegistros = dispositivos.length <= 5 ? undefined : 10000;
 
     const processarVeiculo = async (dispositivo) => {
+      // Construir where para localizações
+      const whereLocalizacao = {
+        dispositivo_id: dispositivo.id,
+        timestamp: { gte: inicio, lte: fim }
+      };
+
+      // Se filtro de velocidade ativo, só buscar registros acima do limite
+      if (limiteVelocidadeFiltro > 0) {
+        whereLocalizacao.velocidade = { gt: limiteVelocidadeFiltro };
+      }
+
       // Buscar localizações com campos mínimos necessários
       const localizacoes = await prisma.localizacao.findMany({
-        where: {
-          dispositivo_id: dispositivo.id,
-          timestamp: { gte: inicio, lte: fim }
-        },
+        where: whereLocalizacao,
         select: {
           timestamp: true,
           latitude: true,
@@ -1338,6 +1379,17 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
         orderBy: { timestamp: 'asc' },
         take: limiteRegistros
       });
+
+      // Se filtro de velocidade ativo, também buscar total de registros no período (para estatísticas)
+      let totalRegistrosNoPeriodo = localizacoes.length;
+      if (limiteVelocidadeFiltro > 0) {
+        totalRegistrosNoPeriodo = await prisma.localizacao.count({
+          where: {
+            dispositivo_id: dispositivo.id,
+            timestamp: { gte: inicio, lte: fim }
+          }
+        });
+      }
 
       // Buscar última localização (posição atual)
       const ultimaLocalizacao = await prisma.localizacao.findFirst({
@@ -1357,6 +1409,12 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
       let tempoOcioso = 0;
       let velocidadeMax = 0;
       let excessosVelocidade = 0;
+
+      // Contadores de excessos por faixa
+      let excessos80_100 = 0;
+      let excessos100_120 = 0;
+      let excessos120plus = 0;
+      let listaExcessos = []; // Detalhes de cada excesso
 
       for (let i = 1; i < localizacoes.length; i++) {
         const loc = localizacoes[i];
@@ -1385,9 +1443,43 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
             velocidadeMax = loc.velocidade;
           }
 
-          // Excesso simplificado para visão geral
-          if (loc.velocidade > LIMITE_EXCESSO_PADRAO) {
+          // Contar excessos por faixa
+          if (loc.velocidade > 120) {
+            excessos120plus++;
             excessosVelocidade++;
+            if (incluirDetalhesExcessos && listaExcessos.length < 50) {
+              listaExcessos.push({
+                timestamp: loc.timestamp,
+                velocidade: loc.velocidade,
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                faixa: '120+'
+              });
+            }
+          } else if (loc.velocidade > 100) {
+            excessos100_120++;
+            excessosVelocidade++;
+            if (incluirDetalhesExcessos && listaExcessos.length < 50) {
+              listaExcessos.push({
+                timestamp: loc.timestamp,
+                velocidade: loc.velocidade,
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                faixa: '100-120'
+              });
+            }
+          } else if (loc.velocidade > 80) {
+            excessos80_100++;
+            excessosVelocidade++;
+            if (incluirDetalhesExcessos && listaExcessos.length < 50) {
+              listaExcessos.push({
+                timestamp: loc.timestamp,
+                velocidade: loc.velocidade,
+                latitude: loc.latitude,
+                longitude: loc.longitude,
+                faixa: '80-100'
+              });
+            }
           }
         } else {
           // Parado - verificar se é ocioso ou desligado
@@ -1441,7 +1533,14 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
         tempoOciosoMinutos: Math.round(tempoOcioso),
         velocidadeMax: velocidadeMax,
         excessosVelocidade: excessosVelocidade,
-        totalRegistros: localizacoes.length,
+        // Excessos por faixa
+        excessos80_100: excessos80_100,
+        excessos100_120: excessos100_120,
+        excessos120plus: excessos120plus,
+        // Detalhes de excessos (se solicitado)
+        listaExcessos: incluirDetalhesExcessos ? listaExcessos : undefined,
+        totalRegistros: limiteVelocidadeFiltro > 0 ? totalRegistrosNoPeriodo : localizacoes.length,
+        registrosFiltrados: limiteVelocidadeFiltro > 0 ? localizacoes.length : undefined,
         tags: veiculoTags
       };
     };
@@ -1595,22 +1694,45 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
       resumoSheet.getCell('A3').value = `Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`;
       resumoSheet.getCell('A4').value = `Gerado em: ${formatDateTime(new Date())}`;
 
-      // Estatísticas gerais
-      resumoSheet.getCell('A6').value = 'ESTATÍSTICAS GERAIS';
-      resumoSheet.getCell('A6').font = { bold: true, size: 12 };
+      // Filtros aplicados
+      let filtrosTexto = [];
+      if (limiteVelocidadeFiltro > 0) filtrosTexto.push(`Velocidade > ${limiteVelocidadeFiltro} km/h`);
+      if (filtrosTexto.length > 0) {
+        resumoSheet.getCell('A5').value = `Filtros: ${filtrosTexto.join(', ')}`;
+        resumoSheet.getCell('A5').font = { italic: true, color: { argb: 'FF666666' } };
+      }
 
-      resumoSheet.getCell('A7').value = 'Total de Veículos:';
-      resumoSheet.getCell('B7').value = estatisticas.totalVeiculos;
-      resumoSheet.getCell('A8').value = 'Veículos Ativos:';
-      resumoSheet.getCell('B8').value = estatisticas.veiculosAtivos;
-      resumoSheet.getCell('A9').value = 'Distância Total (km):';
-      resumoSheet.getCell('B9').value = parseFloat(estatisticas.distanciaTotalFrota);
-      resumoSheet.getCell('A10').value = 'Média por Veículo (km):';
-      resumoSheet.getCell('B10').value = parseFloat(estatisticas.mediaKmVeiculo);
+      // Estatísticas gerais
+      resumoSheet.getCell('A7').value = 'ESTATÍSTICAS GERAIS';
+      resumoSheet.getCell('A7').font = { bold: true, size: 12 };
+
+      resumoSheet.getCell('A8').value = 'Total de Veículos:';
+      resumoSheet.getCell('B8').value = estatisticas.totalVeiculos;
+      resumoSheet.getCell('A9').value = 'Veículos Ativos:';
+      resumoSheet.getCell('B9').value = estatisticas.veiculosAtivos;
+      resumoSheet.getCell('A10').value = 'Distância Total (km):';
+      resumoSheet.getCell('B10').value = parseFloat(estatisticas.distanciaTotalFrota);
+      resumoSheet.getCell('A11').value = 'Média por Veículo (km):';
+      resumoSheet.getCell('B11').value = parseFloat(estatisticas.mediaKmVeiculo);
+
+      // Total de excessos
+      const totalExcessos = resumoFrota.reduce((sum, v) => sum + v.excessosVelocidade, 0);
+      const totalExcessos80 = resumoFrota.reduce((sum, v) => sum + v.excessos80_100, 0);
+      const totalExcessos100 = resumoFrota.reduce((sum, v) => sum + v.excessos100_120, 0);
+      const totalExcessos120 = resumoFrota.reduce((sum, v) => sum + v.excessos120plus, 0);
+      resumoSheet.getCell('D8').value = 'Total Excessos:';
+      resumoSheet.getCell('E8').value = totalExcessos;
+      resumoSheet.getCell('D9').value = '80-100 km/h:';
+      resumoSheet.getCell('E9').value = totalExcessos80;
+      resumoSheet.getCell('D10').value = '100-120 km/h:';
+      resumoSheet.getCell('E10').value = totalExcessos100;
+      resumoSheet.getCell('D11').value = '>120 km/h:';
+      resumoSheet.getCell('E11').value = totalExcessos120;
+      resumoSheet.getCell('E11').font = { color: { argb: 'FFFF0000' } };
 
       // Cabeçalho da tabela
-      const headerRow = resumoSheet.getRow(12);
-      const headers = ['Placa', 'Veículo', 'Motorista(s)', 'IMEI', 'Status', 'Distância (km)', 'Tempo Movimento', 'Tempo Ocioso', 'Vel. Máxima', 'Registros'];
+      const headerRow = resumoSheet.getRow(14);
+      const headers = ['Placa', 'Veículo', 'Motorista(s)', 'IMEI', 'Dist (km)', 'T.Mov', 'T.Ocioso', 'V.Máx', 'Excessos', '80-100', '100-120', '>120', 'Registros'];
       headers.forEach((h, i) => {
         const cell = headerRow.getCell(i + 1);
         cell.value = h;
@@ -1621,30 +1743,41 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
 
       // Dados dos veículos
       resumoFrota.forEach((veiculo, idx) => {
-        const row = resumoSheet.getRow(13 + idx);
+        const row = resumoSheet.getRow(15 + idx);
         row.getCell(1).value = veiculo.placa;
         row.getCell(2).value = veiculo.veiculo;
         row.getCell(3).value = veiculo.motoristas || 'N/A';
         row.getCell(4).value = veiculo.imei;
-        row.getCell(5).value = veiculo.status;
-        row.getCell(6).value = parseFloat(veiculo.distanciaTotal);
-        row.getCell(7).value = veiculo.tempoMovimento;
-        row.getCell(8).value = veiculo.tempoOcioso;
-        row.getCell(9).value = veiculo.velocidadeMax;
-        row.getCell(10).value = veiculo.totalRegistros;
+        row.getCell(5).value = parseFloat(veiculo.distanciaTotal);
+        row.getCell(6).value = veiculo.tempoMovimento;
+        row.getCell(7).value = veiculo.tempoOcioso;
+        row.getCell(8).value = veiculo.velocidadeMax;
+        row.getCell(9).value = veiculo.excessosVelocidade;
+        row.getCell(10).value = veiculo.excessos80_100;
+        row.getCell(11).value = veiculo.excessos100_120;
+        row.getCell(12).value = veiculo.excessos120plus;
+        row.getCell(13).value = veiculo.totalRegistros;
+
+        // Destacar excessos graves em vermelho
+        if (veiculo.excessos120plus > 0) {
+          row.getCell(12).font = { color: { argb: 'FFFF0000' }, bold: true };
+        }
 
         // Zebrado
         if (idx % 2 === 0) {
           row.eachCell(cell => {
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+            if (!cell.font?.color) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+            }
           });
         }
       });
 
       // Ajustar larguras
       resumoSheet.columns = [
-        { width: 12 }, { width: 20 }, { width: 25 }, { width: 18 }, { width: 10 },
-        { width: 12 }, { width: 15 }, { width: 15 }, { width: 12 }, { width: 10 }
+        { width: 12 }, { width: 18 }, { width: 22 }, { width: 18 }, { width: 10 },
+        { width: 10 }, { width: 10 }, { width: 8 }, { width: 9 }, { width: 8 },
+        { width: 8 }, { width: 8 }, { width: 10 }
       ];
 
       // Enviar arquivo
@@ -1655,22 +1788,34 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
 
     } else {
       // Gerar CSV (padrão)
-      let csvContent = `RESUMO DA FROTA
-Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
-Gerado em: ${formatDateTime(new Date())}
+      const totalExcessos = resumoFrota.reduce((sum, v) => sum + v.excessosVelocidade, 0);
+      const totalExcessos80 = resumoFrota.reduce((sum, v) => sum + v.excessos80_100, 0);
+      const totalExcessos100 = resumoFrota.reduce((sum, v) => sum + v.excessos100_120, 0);
+      const totalExcessos120 = resumoFrota.reduce((sum, v) => sum + v.excessos120plus, 0);
 
+      let filtrosTexto = [];
+      if (limiteVelocidadeFiltro > 0) filtrosTexto.push(`Velocidade > ${limiteVelocidadeFiltro} km/h`);
+
+      let csvContent = `RESUMO DA FROTA
+Período;${formatDateTime(inicio)} até ${formatDateTime(fim)}
+Gerado em;${formatDateTime(new Date())}
+${filtrosTexto.length > 0 ? `Filtros aplicados;${filtrosTexto.join(', ')}\n` : ''}
 === ESTATÍSTICAS GERAIS ===
-Total de Veículos: ${estatisticas.totalVeiculos}
-Veículos Ativos no Período: ${estatisticas.veiculosAtivos}
-Distância Total da Frota: ${estatisticas.distanciaTotalFrota} km
-Média por Veículo: ${estatisticas.mediaKmVeiculo} km
+Total de Veículos;${estatisticas.totalVeiculos}
+Veículos Ativos no Período;${estatisticas.veiculosAtivos}
+Distância Total da Frota;${estatisticas.distanciaTotalFrota} km
+Média por Veículo;${estatisticas.mediaKmVeiculo} km
+Total de Excessos;${totalExcessos}
+Excessos 80-100 km/h;${totalExcessos80}
+Excessos 100-120 km/h;${totalExcessos100}
+Excessos >120 km/h;${totalExcessos120}
 
 === DETALHAMENTO POR VEÍCULO ===
-Placa,Veículo,Motorista(s),IMEI,Status,Distância (km),Tempo Movimento,Tempo Ocioso,Velocidade Máxima (km/h),Total Registros
+Placa;Veículo;Motorista(s);IMEI;Status;Distância (km);Tempo Movimento;Tempo Ocioso;Vel.Máxima;Excessos Total;80-100;100-120;>120;Registros
 `;
 
       for (const veiculo of resumoFrota) {
-        csvContent += `${veiculo.placa},"${veiculo.veiculo}","${veiculo.motoristas}",${veiculo.imei},${veiculo.status},${veiculo.distanciaTotal},"${veiculo.tempoMovimento}","${veiculo.tempoOcioso}",${veiculo.velocidadeMax},${veiculo.totalRegistros}\n`;
+        csvContent += `${veiculo.placa};"${veiculo.veiculo}";"${veiculo.motoristas}";${veiculo.imei};${veiculo.status};${veiculo.distanciaTotal};"${veiculo.tempoMovimento}";"${veiculo.tempoOcioso}";${veiculo.velocidadeMax};${veiculo.excessosVelocidade};${veiculo.excessos80_100};${veiculo.excessos100_120};${veiculo.excessos120plus};${veiculo.totalRegistros}\n`;
       }
 
       const filename = `resumo_frota_${formatDateForFilename(new Date())}.csv`;

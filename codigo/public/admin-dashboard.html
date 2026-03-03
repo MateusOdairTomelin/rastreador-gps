@@ -23491,6 +23491,39 @@
           Array.from(motoristasCheckboxSelecionados).forEach(id => params.append('motorista', id));
         }
 
+        // Adicionar módulos selecionados
+        const modulos = getModulosSelecionados();
+        if (modulos.length > 0) {
+          params.set('modulos', modulos.join(','));
+        }
+
+        // Adicionar filtros avançados
+        const filtrosAv = getFiltrosAvancados();
+
+        // Filtros de velocidade
+        if (filtrosAv.velocidade.apenasExcessos) params.set('soExcessos', 'true');
+        if (filtrosAv.velocidade.acima80) params.set('velAcima80', 'true');
+        if (filtrosAv.velocidade.acima100) params.set('velAcima100', 'true');
+        if (filtrosAv.velocidade.acima120) params.set('velAcima120', 'true');
+
+        // Geofencing
+        if (filtrosAv.geofences.length > 0) {
+          params.set('geofenceIds', filtrosAv.geofences.join(','));
+        }
+
+        // Tipos de alarme
+        if (filtrosAv.alarmes.length > 0) {
+          params.set('tiposAlarme', filtrosAv.alarmes.join(','));
+        }
+
+        // Viagens
+        if (filtrosAv.viagem.incluir) params.set('incluirViagens', 'true');
+
+        // Performance
+        if (filtrosAv.performance.score) params.set('incluirScore', 'true');
+        if (filtrosAv.performance.excessos) params.set('incluirExcessos', 'true');
+        if (filtrosAv.performance.ocioso) params.set('incluirOcioso', 'true');
+
         const url = `${API_URL}/relatorios/frota?${params.toString()}`;
         console.log('[Relatório Frota] URL:', url);
 
