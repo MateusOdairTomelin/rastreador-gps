@@ -85,6 +85,8 @@ export interface VincularResponse {
   sucesso: boolean;
   mensagem: string;
   veiculo: Veiculo;
+  motorista_desvinculado?: string; // Nome do motorista que foi desvinculado
+  vinculo_expira_em?: string; // Data/hora de expiração do vínculo
 }
 
 export interface DesvincularResponse {

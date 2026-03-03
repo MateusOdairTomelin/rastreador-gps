@@ -24,6 +24,15 @@ export default function ScanScreen() {
   const [scannedIMEI, setScannedIMEI] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isVinculando, setIsVinculando] = useState(false);
+  const [duracaoSelecionada, setDuracaoSelecionada] = useState<number | undefined>(undefined);
+
+  // Opcoes de duracao do vinculo
+  const opcoesDuracao = [
+    { label: '8 horas', value: 8 },
+    { label: '12 horas', value: 12 },
+    { label: '24 horas', value: 24 },
+    { label: 'Sem limite', value: undefined },
+  ];
 
   useEffect(() => {
     const getCameraPermissions = async () => {
@@ -116,13 +125,20 @@ export default function ScanScreen() {
     if (!scannedIMEI) return;
 
     setIsVinculando(true);
-    const result = await vincular(scannedIMEI);
+    const result = await vincular(scannedIMEI, duracaoSelecionada);
     setIsVinculando(false);
     setShowModal(false);
 
     if (result.success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Sucesso', result.message, [
+
+      // Montar mensagem de sucesso
+      let mensagem = result.message;
+      if (result.motoristaDesvinculado) {
+        mensagem += `\n\n${result.motoristaDesvinculado} foi desvinculado automaticamente.`;
+      }
+
+      Alert.alert('Sucesso', mensagem, [
         { text: 'OK', onPress: () => router.push('/(main)/home') },
       ]);
     } else {
@@ -137,6 +153,7 @@ export default function ScanScreen() {
     setShowModal(false);
     setScanned(false);
     setScannedIMEI(null);
+    setDuracaoSelecionada(undefined);
   };
 
   return (
@@ -192,6 +209,32 @@ export default function ScanScreen() {
             <Ionicons name="qr-code" size={48} color={Colors.primary} />
             <Text style={styles.modalTitle}>QR Code Detectado</Text>
             <Text style={styles.modalText}>IMEI: {scannedIMEI}</Text>
+
+            {/* Seletor de duracao */}
+            <Text style={styles.duracaoLabel}>Tempo de vinculo:</Text>
+            <View style={styles.duracaoContainer}>
+              {opcoesDuracao.map((opcao) => (
+                <TouchableOpacity
+                  key={opcao.label}
+                  style={[
+                    styles.duracaoButton,
+                    duracaoSelecionada === opcao.value && styles.duracaoButtonSelected,
+                  ]}
+                  onPress={() => setDuracaoSelecionada(opcao.value)}
+                  disabled={isVinculando}
+                >
+                  <Text
+                    style={[
+                      styles.duracaoButtonText,
+                      duracaoSelecionada === opcao.value && styles.duracaoButtonTextSelected,
+                    ]}
+                  >
+                    {opcao.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <Text style={styles.modalSubtext}>
               Deseja vincular-se a este veiculo?
             </Text>
@@ -398,6 +441,41 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     marginBottom: 24,
+  },
+  duracaoLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 16,
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+  },
+  duracaoContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+    width: '100%',
+  },
+  duracaoButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#F9FAFB',
+  },
+  duracaoButtonSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + '15',
+  },
+  duracaoButtonText: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  duracaoButtonTextSelected: {
+    color: Colors.primary,
+    fontWeight: '600',
   },
   modalButtons: {
     flexDirection: 'row',

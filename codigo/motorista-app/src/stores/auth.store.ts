@@ -18,7 +18,7 @@ interface AuthState {
   login: (cpf: string) => Promise<{ success: boolean; needsConsent: boolean }>;
   logout: () => Promise<void>;
   refreshData: () => Promise<void>;
-  vincular: (imei: string) => Promise<{ success: boolean; message: string }>;
+  vincular: (imei: string, duracaoHoras?: number) => Promise<{ success: boolean; message: string; motoristaDesvinculado?: string }>;
   desvincular: () => Promise<{ success: boolean; message: string }>;
   aceitarTermos: () => Promise<void>;
   clearError: () => void;
@@ -179,18 +179,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   // Vincular a veiculo
-  vincular: async (imei: string) => {
+  vincular: async (imei: string, duracaoHoras?: number) => {
     try {
       set({ isLoading: true, error: null });
 
-      const response = await apiService.vincular(imei);
+      const response = await apiService.vincular(imei, duracaoHoras);
 
       if (response.sucesso) {
         set({
           veiculo: response.veiculo,
           isLoading: false,
         });
-        return { success: true, message: response.mensagem };
+        return {
+          success: true,
+          message: response.mensagem,
+          motoristaDesvinculado: response.motorista_desvinculado
+        };
       }
 
       set({ isLoading: false });

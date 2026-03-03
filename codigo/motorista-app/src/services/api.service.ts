@@ -169,8 +169,12 @@ class ApiService {
 
   // ========== Vinculacao ==========
 
-  async vincular(imei: string): Promise<VincularResponse> {
-    const { data } = await this.api.post<VincularResponse>('/auth-motorista/vincular', { imei });
+  async vincular(imei: string, duracaoHoras?: number): Promise<VincularResponse> {
+    const payload: { imei: string; duracaoHoras?: number } = { imei };
+    if (duracaoHoras) {
+      payload.duracaoHoras = duracaoHoras;
+    }
+    const { data } = await this.api.post<VincularResponse>('/auth-motorista/vincular', payload);
     return data;
   }
 
