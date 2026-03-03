@@ -6965,6 +6965,19 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
+  <!-- Menu de exportação auditoria (position:fixed para evitar clipping) -->
+  <div id="export-auditoria-menu" style="display: none; position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 99999; min-width: 160px;">
+    <button onclick="exportarAuditoria('csv')" style="display: block; width: 100%; padding: 12px 16px; border: none; background: transparent; color: #e2e8f0; text-align: left; cursor: pointer; font-size: 14px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='transparent'">
+      📄 CSV
+    </button>
+    <button onclick="exportarAuditoria('xlsx')" style="display: block; width: 100%; padding: 12px 16px; border: none; background: transparent; color: #e2e8f0; text-align: left; cursor: pointer; font-size: 14px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='transparent'">
+      📊 Excel (XLSX)
+    </button>
+    <button onclick="exportarAuditoria('pdf')" style="display: block; width: 100%; padding: 12px 16px; border: none; background: transparent; color: #e2e8f0; text-align: left; cursor: pointer; font-size: 14px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='transparent'">
+      📑 PDF
+    </button>
+  </div>
+
   <!-- Animated Background -->
   <div class="aurora-bg"></div>
   <div class="floating-orb floating-orb-1"></div>
@@ -8585,22 +8598,9 @@
                 <button onclick="carregarAuditoria()" class="btn btn-secondary" style="padding: 8px 16px;">
                   ↻ Atualizar
                 </button>
-                <div style="position: relative;" id="export-auditoria-dropdown">
-                  <button onclick="toggleExportAuditoriaMenu()" class="btn btn-primary" style="padding: 8px 16px;">
-                    ⬇ Exportar
-                  </button>
-                  <div id="export-auditoria-menu" style="display: none; position: absolute; right: 0; bottom: 100%; margin-bottom: 4px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; box-shadow: 0 -4px 20px rgba(0,0,0,0.4); z-index: 9999; min-width: 160px;">
-                    <button onclick="exportarAuditoria('csv')" style="display: block; width: 100%; padding: 12px 16px; border: none; background: transparent; color: #e2e8f0; text-align: left; cursor: pointer; font-size: 14px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='transparent'">
-                      📄 CSV
-                    </button>
-                    <button onclick="exportarAuditoria('xlsx')" style="display: block; width: 100%; padding: 12px 16px; border: none; background: transparent; color: #e2e8f0; text-align: left; cursor: pointer; font-size: 14px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='transparent'">
-                      📊 Excel (XLSX)
-                    </button>
-                    <button onclick="exportarAuditoria('pdf')" style="display: block; width: 100%; padding: 12px 16px; border: none; background: transparent; color: #e2e8f0; text-align: left; cursor: pointer; font-size: 14px;" onmouseover="this.style.background='#334155'" onmouseout="this.style.background='transparent'">
-                      📑 PDF
-                    </button>
-                  </div>
-                </div>
+                <button id="btn-export-auditoria" onclick="toggleExportAuditoriaMenu()" class="btn btn-primary" style="padding: 8px 16px;">
+                  ⬇ Exportar
+                </button>
               </div>
             </div>
           </div>
@@ -18610,8 +18610,15 @@
     // Toggle menu de exportação da auditoria
     function toggleExportAuditoriaMenu() {
       const menu = document.getElementById('export-auditoria-menu');
-      if (menu.style.display === 'none') {
+      const btn = document.getElementById('btn-export-auditoria');
+
+      if (menu.style.display === 'none' || !menu.style.display) {
+        // Posicionar o menu abaixo do botão
+        const rect = btn.getBoundingClientRect();
+        menu.style.top = (rect.bottom + 4) + 'px';
+        menu.style.left = (rect.right - 160) + 'px'; // Alinha à direita do botão
         menu.style.display = 'block';
+
         // Fechar ao clicar fora
         setTimeout(() => {
           document.addEventListener('click', fecharExportAuditoriaMenu);
@@ -18622,9 +18629,10 @@
     }
 
     function fecharExportAuditoriaMenu(e) {
-      const dropdown = document.getElementById('export-auditoria-dropdown');
-      if (dropdown && !dropdown.contains(e?.target)) {
-        document.getElementById('export-auditoria-menu').style.display = 'none';
+      const menu = document.getElementById('export-auditoria-menu');
+      const btn = document.getElementById('btn-export-auditoria');
+      if (menu && !menu.contains(e?.target) && e?.target !== btn) {
+        menu.style.display = 'none';
         document.removeEventListener('click', fecharExportAuditoriaMenu);
       }
     }
