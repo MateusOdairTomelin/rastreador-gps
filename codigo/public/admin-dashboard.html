@@ -10186,6 +10186,10 @@
                         <input type="checkbox" id="perf-km" class="perf-checkbox" onchange="atualizarPerformanceSelecionada()">
                         Quilometragem
                       </label>
+                      <label class="dropdown-checkbox-item" style="border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px;">
+                        <input type="checkbox" id="perf-localizacoes" class="perf-checkbox" onchange="atualizarPerformanceSelecionada()">
+                        Localizacoes Detalhadas
+                      </label>
                     </div>
                     <div class="dropdown-actions">
                       <button onclick="limparPerformanceFiltro()" class="dropdown-btn-cancel">Limpar</button>
@@ -22486,7 +22490,7 @@
 
     // ============ PERFORMANCE DROPDOWN ============
 
-    let performanceOpcoes = { score: false, excessos: false, ocioso: false, km: false };
+    let performanceOpcoes = { score: false, excessos: false, ocioso: false, km: false, localizacoes: false };
 
     function togglePerformanceDropdown() {
       closeAllDropdowns('performance-dropdown');
@@ -22508,7 +22512,7 @@
 
     function limparPerformanceFiltro() {
       document.querySelectorAll('.perf-checkbox').forEach(cb => cb.checked = false);
-      performanceOpcoes = { score: false, excessos: false, ocioso: false, km: false };
+      performanceOpcoes = { score: false, excessos: false, ocioso: false, km: false, localizacoes: false };
       document.getElementById('performance-label').textContent = 'Performance';
       document.getElementById('performance-dropdown').style.display = 'none';
     }
@@ -22519,7 +22523,8 @@
         score: document.getElementById('perf-score')?.checked || false,
         excessos: document.getElementById('perf-excessos')?.checked || false,
         ocioso: document.getElementById('perf-ocioso')?.checked || false,
-        km: document.getElementById('perf-km')?.checked || false
+        km: document.getElementById('perf-km')?.checked || false,
+        localizacoes: document.getElementById('perf-localizacoes')?.checked || false
       };
       const label = document.getElementById('performance-label');
       const count = Object.values(performanceOpcoes).filter(v => v).length;

@@ -1230,6 +1230,7 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
       incluirViagens = 'false',
       incluirScore = 'false',
       incluirOcioso = 'false',
+      incluirLocalizacoes = 'false', // Incluir localizações detalhadas por veículo
       geofenceIds = '',
       tiposAlarme = ''
     } = req.query;
@@ -1243,11 +1244,15 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
     const incluirDetalhesViagens = incluirViagens === 'true';
     const incluirDetalhesScore = incluirScore === 'true';
     const incluirDetalhesOcioso = incluirOcioso === 'true';
+    const incluirDetalhesLocalizacoes = incluirLocalizacoes === 'true';
 
     // Parsear IDs de geofences e tipos de alarme
     const geofenceIdsFiltro = geofenceIds ? geofenceIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
     const tiposAlarmeFiltro = tiposAlarme ? tiposAlarme.split(',').filter(t => t.trim()) : [];
     const modulosSelecionados = modulos ? modulos.split(',').filter(m => m.trim()) : [];
+
+    // Flag para incluir localizações (via parâmetro ou módulo)
+    const deveIncluirLocalizacoes = incluirDetalhesLocalizacoes || modulosSelecionados.includes('localizacoes');
 
     // Determinar limite de velocidade baseado nos filtros
     let limiteVelocidadeFiltro = 0;
@@ -1567,6 +1572,52 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
       let geofencesVisitados = [];
       // Por enquanto, geofences não são processados no relatório consolidado
 
+      // Se incluir localizações (via parâmetro ou módulo "localizacoes"), buscar todas
+      // Limitar pontos por veículo baseado na quantidade total de veículos
+      // Para escalar bem: 1000 veículos × 500 pontos = 500k registros (ok)
+      // Se poucos veículos, permite mais pontos
+      let localizacoesDetalhadas = [];
+      if (deveIncluirLocalizacoes) {
+        const maxPontosPorVeiculo = dispositivos.length > 100 ? 500 :
+                                     dispositivos.length > 50 ? 1000 :
+                                     dispositivos.length > 10 ? 2000 : 5000;
+
+        // Buscar localizações completas (sem filtro de velocidade)
+        const todasLocalizacoes = limiteVelocidadeFiltro > 0
+          ? await prisma.localizacao.findMany({
+              where: {
+                dispositivo_id: dispositivo.id,
+                timestamp: { gte: inicio, lte: fim }
+              },
+              select: {
+                timestamp: true,
+                latitude: true,
+                longitude: true,
+                velocidade: true,
+                ignicao: true,
+                estado_ignicao: true,
+                direcao: true,
+                altitude: true,
+                satelites: true
+              },
+              orderBy: { timestamp: 'asc' },
+              take: maxPontosPorVeiculo
+            })
+          : localizacoes.slice(0, maxPontosPorVeiculo); // Se não tinha filtro, limitar
+
+        localizacoesDetalhadas = todasLocalizacoes.map(loc => ({
+          timestamp: loc.timestamp,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          velocidade: loc.velocidade || 0,
+          ignicao: loc.ignicao,
+          estado: loc.estado_ignicao || (loc.ignicao ? 'ligado' : 'desligado'),
+          direcao: loc.direcao || 0,
+          altitude: loc.altitude || 0,
+          satelites: loc.satelites || 0
+        }));
+      }
+
       return {
         placa: dispositivo.placa || 'N/A',
         veiculo: dispositivo.veiculo || 'N/A',
@@ -1608,12 +1659,21 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
         tempoViagens: formatarTempo(tempoViagens),
         // Geofences
         geofencesVisitados: geofencesVisitados.length,
-        dentroGeofence: dentroGeofence
+        dentroGeofence: dentroGeofence,
+        // Localizações detalhadas (se solicitado via parâmetro ou módulo)
+        localizacoes: deveIncluirLocalizacoes ? localizacoesDetalhadas : undefined
       };
     };
 
-    // Processar todos os veículos em paralelo
-    const resumoFrota = await Promise.all(dispositivos.map(processarVeiculo));
+    // Processar veículos em batches para não sobrecarregar o banco
+    // Com 1000 veículos, processar 50 por vez
+    const BATCH_SIZE = 50;
+    const resumoFrota = [];
+    for (let i = 0; i < dispositivos.length; i += BATCH_SIZE) {
+      const batch = dispositivos.slice(i, i + BATCH_SIZE);
+      const resultados = await Promise.all(batch.map(processarVeiculo));
+      resumoFrota.push(...resultados);
+    }
 
     // Ordenar por distância (maior primeiro)
     resumoFrota.sort((a, b) => parseFloat(b.distanciaTotal) - parseFloat(a.distanciaTotal));
@@ -1871,6 +1931,50 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
         { width: 8 }, { width: 8 }, { width: 10 }
       ];
 
+      // Se incluir localizações, adicionar aba "Localizacoes" com dados de todos os veículos
+      if (deveIncluirLocalizacoes) {
+        const locSheet = workbook.addWorksheet('Localizacoes');
+
+        // Cabeçalho
+        const locHeaderRow = locSheet.getRow(1);
+        const locHeaders = ['Placa', 'Veículo', 'Data/Hora', 'Latitude', 'Longitude', 'Velocidade (km/h)', 'Ignição', 'Estado', 'Direção', 'Satélites'];
+        locHeaders.forEach((h, i) => {
+          const cell = locHeaderRow.getCell(i + 1);
+          cell.value = h;
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3F51B5' } };
+          cell.alignment = { horizontal: 'center' };
+        });
+
+        // Dados - todas as localizações de todos os veículos
+        let rowIdx = 2;
+        for (const veiculo of resumoFrota) {
+          if (veiculo.localizacoes && veiculo.localizacoes.length > 0) {
+            for (const loc of veiculo.localizacoes) {
+              const row = locSheet.getRow(rowIdx++);
+              row.getCell(1).value = veiculo.placa;
+              row.getCell(2).value = veiculo.veiculo;
+              row.getCell(3).value = formatDateTime(loc.timestamp);
+              row.getCell(4).value = loc.latitude;
+              row.getCell(5).value = loc.longitude;
+              row.getCell(6).value = loc.velocidade;
+              row.getCell(7).value = loc.ignicao ? 'Sim' : 'Não';
+              row.getCell(8).value = loc.estado;
+              row.getCell(9).value = loc.direcao;
+              row.getCell(10).value = loc.satelites;
+            }
+          }
+        }
+
+        // Ajustar larguras da aba de localizações
+        locSheet.columns = [
+          { width: 12 }, { width: 18 }, { width: 20 }, { width: 14 }, { width: 14 },
+          { width: 12 }, { width: 10 }, { width: 12 }, { width: 10 }, { width: 10 }
+        ];
+
+        console.log(`[Relatório Frota] Localizações: ${rowIdx - 2} registros adicionados ao Excel`);
+      }
+
       // Enviar arquivo
       const filename = `resumo_frota_${formatDateForFilename(new Date())}.xlsx`;
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -1943,6 +2047,34 @@ ${headerCols.join(';')}
         if (temGeofences) rowCols.push(veiculo.geofencesVisitados);
         rowCols.push(veiculo.totalRegistros);
         csvContent += rowCols.join(';') + '\n';
+      }
+
+      // Se incluir localizações, adicionar seção separada
+      if (deveIncluirLocalizacoes) {
+        csvContent += '\n\n=== LOCALIZAÇÕES DETALHADAS ===\n';
+        csvContent += 'Placa;Veículo;Data/Hora;Latitude;Longitude;Velocidade (km/h);Ignição;Estado;Direção;Satélites\n';
+
+        let totalLocs = 0;
+        for (const veiculo of resumoFrota) {
+          if (veiculo.localizacoes && veiculo.localizacoes.length > 0) {
+            for (const loc of veiculo.localizacoes) {
+              csvContent += [
+                veiculo.placa,
+                `"${veiculo.veiculo}"`,
+                formatDateTime(loc.timestamp),
+                loc.latitude,
+                loc.longitude,
+                loc.velocidade,
+                loc.ignicao ? 'Sim' : 'Não',
+                loc.estado,
+                loc.direcao,
+                loc.satelites
+              ].join(';') + '\n';
+              totalLocs++;
+            }
+          }
+        }
+        console.log(`[Relatório Frota] Localizações: ${totalLocs} registros adicionados ao CSV`);
       }
 
       const filename = `resumo_frota_${formatDateForFilename(new Date())}.csv`;
