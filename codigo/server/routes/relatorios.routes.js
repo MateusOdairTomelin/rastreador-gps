@@ -1529,15 +1529,15 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
           timestamp: { gte: inicio, lte: fim }
         };
         if (tiposAlarmeFiltro.length > 0) {
-          whereAlarme.tipo = { in: tiposAlarmeFiltro };
+          whereAlarme.tipo_alarme = { in: tiposAlarmeFiltro };
         }
         const alarmes = await prisma.alarme.findMany({
           where: whereAlarme,
-          select: { tipo: true }
+          select: { tipo_alarme: true }
         });
         totalAlarmes = alarmes.length;
         alarmes.forEach(a => {
-          alarmesPorTipo[a.tipo] = (alarmesPorTipo[a.tipo] || 0) + 1;
+          alarmesPorTipo[a.tipo_alarme] = (alarmesPorTipo[a.tipo_alarme] || 0) + 1;
         });
       }
 
@@ -1562,23 +1562,10 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
         });
       }
 
-      // Verificar geofences (se filtro ativo)
+      // Geofences - TODO: Implementar quando tabela de eventos existir
       let dentroGeofence = false;
       let geofencesVisitados = [];
-      if (geofenceIdsFiltro.length > 0) {
-        // Buscar eventos de geofence no período
-        const eventosGeo = await prisma.eventoGeofence.findMany({
-          where: {
-            dispositivo_id: dispositivo.id,
-            geofence_id: { in: geofenceIdsFiltro },
-            timestamp: { gte: inicio, lte: fim }
-          },
-          select: { geofence_id: true, tipo: true },
-          distinct: ['geofence_id']
-        });
-        geofencesVisitados = [...new Set(eventosGeo.map(e => e.geofence_id))];
-        dentroGeofence = geofencesVisitados.length > 0;
-      }
+      // Por enquanto, geofences não são processados no relatório consolidado
 
       return {
         placa: dispositivo.placa || 'N/A',
