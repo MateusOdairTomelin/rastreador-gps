@@ -10914,6 +10914,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- DOMPurify para sanitização de HTML e prevenção de XSS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+  <!-- SheetJS para exportação Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- jsPDF para exportação PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <script>
     const API_URL = '/api';
 
@@ -18635,6 +18640,72 @@
         menu.style.display = 'none';
         document.removeEventListener('click', fecharExportAuditoriaMenu);
       }
+    }
+
+    // Função genérica para exportar dados para CSV
+    function exportarCSV(dados, nomeArquivo) {
+      if (!dados || dados.length === 0) {
+        toastWarning('Nenhum dado para exportar');
+        return;
+      }
+
+      // Pegar cabeçalhos das chaves do primeiro objeto
+      const headers = Object.keys(dados[0]);
+
+      // Criar linhas CSV
+      const csvRows = [];
+      csvRows.push(headers.join(';')); // Header com ponto e vírgula (melhor para Excel BR)
+
+      dados.forEach(row => {
+        const values = headers.map(h => {
+          let val = row[h] ?? '';
+          // Escapar aspas e valores com ponto e vírgula
+          val = String(val).replace(/"/g, '""');
+          if (val.includes(';') || val.includes('"') || val.includes('\n')) {
+            val = `"${val}"`;
+          }
+          return val;
+        });
+        csvRows.push(values.join(';'));
+      });
+
+      // Criar blob e download
+      const csvContent = '\uFEFF' + csvRows.join('\n'); // BOM para UTF-8
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${nomeArquivo}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Função genérica para exportar dados para Excel (XLSX)
+    function exportarXLSX(dados, nomeArquivo, nomePlanilha = 'Dados') {
+      if (!dados || dados.length === 0) {
+        toastWarning('Nenhum dado para exportar');
+        return;
+      }
+
+      // Verificar se SheetJS está disponível
+      if (typeof XLSX === 'undefined') {
+        toastError('Biblioteca XLSX não carregada');
+        return;
+      }
+
+      // Criar workbook e worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(dados);
+
+      // Ajustar largura das colunas
+      const headers = Object.keys(dados[0]);
+      ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length, 15) }));
+
+      // Adicionar worksheet ao workbook
+      XLSX.utils.book_append_sheet(wb, ws, nomePlanilha);
+
+      // Gerar arquivo e download
+      XLSX.writeFile(wb, `${nomeArquivo}.xlsx`);
     }
 
     // Exportar logs de auditoria
