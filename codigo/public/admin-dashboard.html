@@ -23448,78 +23448,89 @@
     }
     window.exportarRelatorioVeiculo = exportarRelatorioVeiculo;
 
-    // Exportar em lote - usa módulos do dropdown chip
+    // Exportar em lote - relatório consolidado de todos os veículos selecionados
     async function exportarRelatorioLote(formato) {
       console.log('[Relatório Lote] Formato:', formato, 'Selecionados:', veiculosSelecionados.size);
 
       if (veiculosSelecionados.size === 0) {
-        toastWarning('Selecione pelo menos um veiculo para exportar. Use as caixas de selecao na primeira coluna.');
+        toastWarning('Selecione pelo menos um veículo para exportar. Use as caixas de seleção na tabela ou "Selecionar Todos".');
         return;
       }
 
-      const modulos = getModulosSelecionados();
-      if (modulos.length === 0) {
-        toastWarning('Selecione pelo menos um modulo no filtro "Modulos" antes de exportar.');
-        return;
-      }
+      try {
+        const periodo = obterPeriodoRelatorio();
+        const params = new URLSearchParams({
+          dataInicio: periodo.inicio.toISOString(),
+          dataFim: periodo.fim.toISOString(),
+          formato: formato
+        });
 
-      const tipoRelatorio = document.getElementById('rel-filtro-tipo')?.value || 'geral';
-
-      if (tipoRelatorio === 'geral') {
-        // Exportar resumo da frota
-        try {
-          const periodo = obterPeriodoRelatorio();
-          const params = new URLSearchParams({
-            dataInicio: periodo.inicio.toISOString(),
-            dataFim: periodo.fim.toISOString(),
-            formato: formato
+        // Adicionar IMEIs selecionados (se não forem todos)
+        const totalVeiculos = relatoriosVeiculosFiltrados?.length || 0;
+        if (veiculosSelecionados.size < totalVeiculos) {
+          // Enviar apenas os selecionados
+          Array.from(veiculosSelecionados).forEach(imei => {
+            params.append('imei', imei);
           });
+        }
+        // Se selecionou todos, não envia imei (API retorna todos do tenant)
 
-          const url = `${API_URL}/relatorios/frota?${params.toString()}`;
-          console.log('[Relatório Frota] URL:', url);
-
-          // Mostrar loading
-          const loadingMsg = document.createElement('div');
-          loadingMsg.id = 'export-loading';
-          loadingMsg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:20px 40px;border-radius:10px;z-index:9999;';
-          loadingMsg.innerHTML = ' Gerando relatório da frota...';
-          document.body.appendChild(loadingMsg);
-
-          const response = await authFetch(url);
-
-          document.getElementById('export-loading')?.remove();
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.mensagem || `Erro ${response.status}`);
+        // Adicionar filtro de tags (se não for "Todos")
+        const tagsTodosChecked = document.getElementById('tags-todos')?.checked || false;
+        if (!tagsTodosChecked) {
+          const tagsSelecionadas = getTagsSelecionadasRelatorio();
+          if (tagsSelecionadas.length > 0) {
+            tagsSelecionadas.forEach(tagId => params.append('tags', tagId));
           }
-
-          const blob = await response.blob();
-          const downloadUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = downloadUrl;
-          a.download = `resumo_frota_${new Date().toISOString().split('T')[0]}.${formato}`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(downloadUrl);
-
-        } catch (error) {
-          document.getElementById('export-loading')?.remove();
-          console.error('[Relatório Frota] Erro:', error);
-          toastError('Erro ao gerar relatório da frota: ' + error.message);
         }
-      } else {
-        // Exportar cada veículo selecionado
-        let count = 0;
-        for (const imei of veiculosSelecionados) {
-          count++;
-          console.log(`[Relatório Lote] Exportando ${count}/${veiculosSelecionados.size}: ${imei}`);
-          await exportarRelatorioIndividual(imei, formato);
-          // Pequeno delay entre downloads
-          await new Promise(r => setTimeout(r, 500));
+
+        // Adicionar filtro de motorista
+        if (filtroMotoristaAtual === 'especifico' && motoristaSelecionadoId) {
+          params.append('motorista', motoristaSelecionadoId);
+        } else if (filtroMotoristaAtual === 'multiplos' && motoristasCheckboxSelecionados.size > 0) {
+          Array.from(motoristasCheckboxSelecionados).forEach(id => params.append('motorista', id));
         }
-        toastSuccess(count + ' relatório(s) exportado(s) com sucesso!');
+
+        const url = `${API_URL}/relatorios/frota?${params.toString()}`;
+        console.log('[Relatório Frota] URL:', url);
+
+        // Mostrar loading com progresso
+        const loadingMsg = document.createElement('div');
+        loadingMsg.id = 'export-loading';
+        loadingMsg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);color:white;padding:30px 50px;border-radius:12px;z-index:9999;text-align:center;';
+        loadingMsg.innerHTML = `
+          <div style="font-size: 24px; margin-bottom: 15px;">⏳</div>
+          <div style="font-size: 16px; font-weight: bold;">Gerando relatório consolidado...</div>
+          <div style="font-size: 14px; color: #aaa; margin-top: 10px;">${veiculosSelecionados.size} veículo(s) selecionado(s)</div>
+          <div style="font-size: 12px; color: #888; margin-top: 5px;">Isso pode levar alguns segundos</div>
+        `;
+        document.body.appendChild(loadingMsg);
+
+        const response = await authFetch(url);
+
+        document.getElementById('export-loading')?.remove();
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.mensagem || `Erro ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `resumo_frota_${veiculosSelecionados.size}veiculos_${new Date().toISOString().split('T')[0]}.${formato}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
+
+        toastSuccess(`Relatório consolidado gerado com ${veiculosSelecionados.size} veículo(s)!`);
+
+      } catch (error) {
+        document.getElementById('export-loading')?.remove();
+        console.error('[Relatório Frota] Erro:', error);
+        toastError('Erro ao gerar relatório: ' + error.message);
       }
     }
     window.exportarRelatorioLote = exportarRelatorioLote;

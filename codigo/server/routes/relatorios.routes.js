@@ -10,6 +10,7 @@
 const express = require('express');
 const router = express.Router();
 const PDFDocument = require('pdfkit');
+const ExcelJS = require('exceljs');
 const prisma = require('../db/prisma');
 
 // Multi-tenant: Middleware de verificação de propriedade
@@ -1575,8 +1576,85 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
 
       doc.end();
 
+    } else if (formato === 'xlsx') {
+      // Gerar Excel
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Sistema de Rastreamento';
+      workbook.created = new Date();
+
+      // Aba de Resumo
+      const resumoSheet = workbook.addWorksheet('Resumo');
+
+      // Título
+      resumoSheet.mergeCells('A1:J1');
+      resumoSheet.getCell('A1').value = 'RESUMO DA FROTA';
+      resumoSheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FF3F51B5' } };
+      resumoSheet.getCell('A1').alignment = { horizontal: 'center' };
+
+      // Período e data de geração
+      resumoSheet.getCell('A3').value = `Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}`;
+      resumoSheet.getCell('A4').value = `Gerado em: ${formatDateTime(new Date())}`;
+
+      // Estatísticas gerais
+      resumoSheet.getCell('A6').value = 'ESTATÍSTICAS GERAIS';
+      resumoSheet.getCell('A6').font = { bold: true, size: 12 };
+
+      resumoSheet.getCell('A7').value = 'Total de Veículos:';
+      resumoSheet.getCell('B7').value = estatisticas.totalVeiculos;
+      resumoSheet.getCell('A8').value = 'Veículos Ativos:';
+      resumoSheet.getCell('B8').value = estatisticas.veiculosAtivos;
+      resumoSheet.getCell('A9').value = 'Distância Total (km):';
+      resumoSheet.getCell('B9').value = parseFloat(estatisticas.distanciaTotalFrota);
+      resumoSheet.getCell('A10').value = 'Média por Veículo (km):';
+      resumoSheet.getCell('B10').value = parseFloat(estatisticas.mediaKmVeiculo);
+
+      // Cabeçalho da tabela
+      const headerRow = resumoSheet.getRow(12);
+      const headers = ['Placa', 'Veículo', 'Motorista(s)', 'IMEI', 'Status', 'Distância (km)', 'Tempo Movimento', 'Tempo Ocioso', 'Vel. Máxima', 'Registros'];
+      headers.forEach((h, i) => {
+        const cell = headerRow.getCell(i + 1);
+        cell.value = h;
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3F51B5' } };
+        cell.alignment = { horizontal: 'center' };
+      });
+
+      // Dados dos veículos
+      resumoFrota.forEach((veiculo, idx) => {
+        const row = resumoSheet.getRow(13 + idx);
+        row.getCell(1).value = veiculo.placa;
+        row.getCell(2).value = veiculo.veiculo;
+        row.getCell(3).value = veiculo.motoristas || 'N/A';
+        row.getCell(4).value = veiculo.imei;
+        row.getCell(5).value = veiculo.status;
+        row.getCell(6).value = parseFloat(veiculo.distanciaTotal);
+        row.getCell(7).value = veiculo.tempoMovimento;
+        row.getCell(8).value = veiculo.tempoOcioso;
+        row.getCell(9).value = veiculo.velocidadeMax;
+        row.getCell(10).value = veiculo.totalRegistros;
+
+        // Zebrado
+        if (idx % 2 === 0) {
+          row.eachCell(cell => {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+          });
+        }
+      });
+
+      // Ajustar larguras
+      resumoSheet.columns = [
+        { width: 12 }, { width: 20 }, { width: 25 }, { width: 18 }, { width: 10 },
+        { width: 12 }, { width: 15 }, { width: 15 }, { width: 12 }, { width: 10 }
+      ];
+
+      // Enviar arquivo
+      const filename = `resumo_frota_${formatDateForFilename(new Date())}.xlsx`;
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      await workbook.xlsx.write(res);
+
     } else {
-      // Gerar CSV
+      // Gerar CSV (padrão)
       let csvContent = `RESUMO DA FROTA
 Período: ${formatDateTime(inicio)} até ${formatDateTime(fim)}
 Gerado em: ${formatDateTime(new Date())}
