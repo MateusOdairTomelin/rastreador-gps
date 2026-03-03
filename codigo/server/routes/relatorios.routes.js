@@ -1241,6 +1241,13 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
     const filtroVelAcima120 = velAcima120 === 'true';
     const incluirDetalhesExcessos = incluirExcessos === 'true';
     const incluirDetalhesViagens = incluirViagens === 'true';
+    const incluirDetalhesScore = incluirScore === 'true';
+    const incluirDetalhesOcioso = incluirOcioso === 'true';
+
+    // Parsear IDs de geofences e tipos de alarme
+    const geofenceIdsFiltro = geofenceIds ? geofenceIds.split(',').map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
+    const tiposAlarmeFiltro = tiposAlarme ? tiposAlarme.split(',').filter(t => t.trim()) : [];
+    const modulosSelecionados = modulos ? modulos.split(',').filter(m => m.trim()) : [];
 
     // Determinar limite de velocidade baseado nos filtros
     let limiteVelocidadeFiltro = 0;
@@ -1252,7 +1259,10 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
     console.log('[Relatórios/frota] Filtros:', {
       soExcessos: filtroSoExcessos,
       limiteVelocidade: limiteVelocidadeFiltro,
-      modulos
+      modulos: modulosSelecionados,
+      geofences: geofenceIdsFiltro,
+      alarmes: tiposAlarmeFiltro,
+      viagens: incluirDetalhesViagens
     });
 
     // Multi-tenant: usar filtro do tenant
@@ -1510,6 +1520,66 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
         cor: vt.tag.cor
       })) || [];
 
+      // Buscar alarmes no período (se filtro de alarmes ativo ou módulo selecionado)
+      let totalAlarmes = 0;
+      let alarmesPorTipo = {};
+      if (tiposAlarmeFiltro.length > 0 || modulosSelecionados.includes('alarmes')) {
+        const whereAlarme = {
+          dispositivo_id: dispositivo.id,
+          timestamp: { gte: inicio, lte: fim }
+        };
+        if (tiposAlarmeFiltro.length > 0) {
+          whereAlarme.tipo = { in: tiposAlarmeFiltro };
+        }
+        const alarmes = await prisma.alarme.findMany({
+          where: whereAlarme,
+          select: { tipo: true }
+        });
+        totalAlarmes = alarmes.length;
+        alarmes.forEach(a => {
+          alarmesPorTipo[a.tipo] = (alarmesPorTipo[a.tipo] || 0) + 1;
+        });
+      }
+
+      // Buscar viagens no período (se incluirViagens ativo ou módulo selecionado)
+      let totalViagens = 0;
+      let kmViagens = 0;
+      let tempoViagens = 0;
+      if (incluirDetalhesViagens || modulosSelecionados.includes('viagens')) {
+        const viagens = await prisma.viagem.findMany({
+          where: {
+            dispositivo_id: dispositivo.id,
+            inicio: { gte: inicio, lte: fim }
+          },
+          select: { distancia_km: true, inicio: true, fim: true }
+        });
+        totalViagens = viagens.length;
+        viagens.forEach(v => {
+          kmViagens += v.distancia_km || 0;
+          if (v.inicio && v.fim) {
+            tempoViagens += (new Date(v.fim) - new Date(v.inicio)) / (1000 * 60);
+          }
+        });
+      }
+
+      // Verificar geofences (se filtro ativo)
+      let dentroGeofence = false;
+      let geofencesVisitados = [];
+      if (geofenceIdsFiltro.length > 0) {
+        // Buscar eventos de geofence no período
+        const eventosGeo = await prisma.eventoGeofence.findMany({
+          where: {
+            dispositivo_id: dispositivo.id,
+            geofence_id: { in: geofenceIdsFiltro },
+            timestamp: { gte: inicio, lte: fim }
+          },
+          select: { geofence_id: true, tipo: true },
+          distinct: ['geofence_id']
+        });
+        geofencesVisitados = [...new Set(eventosGeo.map(e => e.geofence_id))];
+        dentroGeofence = geofencesVisitados.length > 0;
+      }
+
       return {
         placa: dispositivo.placa || 'N/A',
         veiculo: dispositivo.veiculo || 'N/A',
@@ -1541,7 +1611,17 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
         listaExcessos: incluirDetalhesExcessos ? listaExcessos : undefined,
         totalRegistros: limiteVelocidadeFiltro > 0 ? totalRegistrosNoPeriodo : localizacoes.length,
         registrosFiltrados: limiteVelocidadeFiltro > 0 ? localizacoes.length : undefined,
-        tags: veiculoTags
+        tags: veiculoTags,
+        // Alarmes
+        totalAlarmes: totalAlarmes,
+        alarmesPorTipo: alarmesPorTipo,
+        // Viagens
+        totalViagens: totalViagens,
+        kmViagens: kmViagens.toFixed(2),
+        tempoViagens: formatarTempo(tempoViagens),
+        // Geofences
+        geofencesVisitados: geofencesVisitados.length,
+        dentroGeofence: dentroGeofence
       };
     };
 
@@ -1697,8 +1777,11 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
       // Filtros aplicados
       let filtrosTexto = [];
       if (limiteVelocidadeFiltro > 0) filtrosTexto.push(`Velocidade > ${limiteVelocidadeFiltro} km/h`);
+      if (geofenceIdsFiltro.length > 0) filtrosTexto.push(`${geofenceIdsFiltro.length} geofence(s)`);
+      if (tiposAlarmeFiltro.length > 0) filtrosTexto.push(`Alarmes: ${tiposAlarmeFiltro.join(', ')}`);
+      if (incluirDetalhesViagens) filtrosTexto.push('Incluir viagens');
       if (filtrosTexto.length > 0) {
-        resumoSheet.getCell('A5').value = `Filtros: ${filtrosTexto.join(', ')}`;
+        resumoSheet.getCell('A5').value = `Filtros: ${filtrosTexto.join(' | ')}`;
         resumoSheet.getCell('A5').font = { italic: true, color: { argb: 'FF666666' } };
       }
 
@@ -1730,9 +1813,20 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
       resumoSheet.getCell('E11').value = totalExcessos120;
       resumoSheet.getCell('E11').font = { color: { argb: 'FFFF0000' } };
 
-      // Cabeçalho da tabela
+      // Construir cabeçalhos dinamicamente baseado nos filtros
       const headerRow = resumoSheet.getRow(14);
-      const headers = ['Placa', 'Veículo', 'Motorista(s)', 'IMEI', 'Dist (km)', 'T.Mov', 'T.Ocioso', 'V.Máx', 'Excessos', '80-100', '100-120', '>120', 'Registros'];
+      let headers = ['Placa', 'Veículo', 'Motorista(s)', 'IMEI', 'Dist (km)', 'T.Mov', 'T.Ocioso', 'V.Máx', 'Excessos', '80-100', '100-120', '>120'];
+
+      // Adicionar colunas extras baseado nos filtros
+      const temAlarmes = tiposAlarmeFiltro.length > 0 || modulosSelecionados.includes('alarmes');
+      const temViagens = incluirDetalhesViagens || modulosSelecionados.includes('viagens');
+      const temGeofences = geofenceIdsFiltro.length > 0;
+
+      if (temAlarmes) headers.push('Alarmes');
+      if (temViagens) headers.push('Viagens', 'Km Viag.');
+      if (temGeofences) headers.push('Geofences');
+      headers.push('Registros');
+
       headers.forEach((h, i) => {
         const cell = headerRow.getCell(i + 1);
         cell.value = h;
@@ -1744,23 +1838,33 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
       // Dados dos veículos
       resumoFrota.forEach((veiculo, idx) => {
         const row = resumoSheet.getRow(15 + idx);
-        row.getCell(1).value = veiculo.placa;
-        row.getCell(2).value = veiculo.veiculo;
-        row.getCell(3).value = veiculo.motoristas || 'N/A';
-        row.getCell(4).value = veiculo.imei;
-        row.getCell(5).value = parseFloat(veiculo.distanciaTotal);
-        row.getCell(6).value = veiculo.tempoMovimento;
-        row.getCell(7).value = veiculo.tempoOcioso;
-        row.getCell(8).value = veiculo.velocidadeMax;
-        row.getCell(9).value = veiculo.excessosVelocidade;
-        row.getCell(10).value = veiculo.excessos80_100;
-        row.getCell(11).value = veiculo.excessos100_120;
-        row.getCell(12).value = veiculo.excessos120plus;
-        row.getCell(13).value = veiculo.totalRegistros;
+        let col = 1;
+        row.getCell(col++).value = veiculo.placa;
+        row.getCell(col++).value = veiculo.veiculo;
+        row.getCell(col++).value = veiculo.motoristas || 'N/A';
+        row.getCell(col++).value = veiculo.imei;
+        row.getCell(col++).value = parseFloat(veiculo.distanciaTotal);
+        row.getCell(col++).value = veiculo.tempoMovimento;
+        row.getCell(col++).value = veiculo.tempoOcioso;
+        row.getCell(col++).value = veiculo.velocidadeMax;
+        row.getCell(col++).value = veiculo.excessosVelocidade;
+        row.getCell(col++).value = veiculo.excessos80_100;
+        row.getCell(col++).value = veiculo.excessos100_120;
+        const col120 = col;
+        row.getCell(col++).value = veiculo.excessos120plus;
+
+        // Colunas extras
+        if (temAlarmes) row.getCell(col++).value = veiculo.totalAlarmes;
+        if (temViagens) {
+          row.getCell(col++).value = veiculo.totalViagens;
+          row.getCell(col++).value = parseFloat(veiculo.kmViagens);
+        }
+        if (temGeofences) row.getCell(col++).value = veiculo.geofencesVisitados;
+        row.getCell(col++).value = veiculo.totalRegistros;
 
         // Destacar excessos graves em vermelho
         if (veiculo.excessos120plus > 0) {
-          row.getCell(12).font = { color: { argb: 'FFFF0000' }, bold: true };
+          row.getCell(col120).font = { color: { argb: 'FFFF0000' }, bold: true };
         }
 
         // Zebrado
@@ -1792,14 +1896,31 @@ router.get('/frota', verificarPermissao('relatorios', 'listar'), async (req, res
       const totalExcessos80 = resumoFrota.reduce((sum, v) => sum + v.excessos80_100, 0);
       const totalExcessos100 = resumoFrota.reduce((sum, v) => sum + v.excessos100_120, 0);
       const totalExcessos120 = resumoFrota.reduce((sum, v) => sum + v.excessos120plus, 0);
+      const totalAlarmes = resumoFrota.reduce((sum, v) => sum + v.totalAlarmes, 0);
+      const totalViagens = resumoFrota.reduce((sum, v) => sum + v.totalViagens, 0);
+
+      // Verificar quais colunas extras incluir
+      const temAlarmes = tiposAlarmeFiltro.length > 0 || modulosSelecionados.includes('alarmes');
+      const temViagens = incluirDetalhesViagens || modulosSelecionados.includes('viagens');
+      const temGeofences = geofenceIdsFiltro.length > 0;
 
       let filtrosTexto = [];
       if (limiteVelocidadeFiltro > 0) filtrosTexto.push(`Velocidade > ${limiteVelocidadeFiltro} km/h`);
+      if (geofenceIdsFiltro.length > 0) filtrosTexto.push(`${geofenceIdsFiltro.length} geofence(s)`);
+      if (tiposAlarmeFiltro.length > 0) filtrosTexto.push(`Alarmes: ${tiposAlarmeFiltro.join(', ')}`);
+      if (incluirDetalhesViagens) filtrosTexto.push('Incluir viagens');
+
+      // Construir cabeçalho dinamicamente
+      let headerCols = ['Placa', 'Veículo', 'Motorista(s)', 'IMEI', 'Status', 'Distância (km)', 'Tempo Movimento', 'Tempo Ocioso', 'Vel.Máxima', 'Excessos Total', '80-100', '100-120', '>120'];
+      if (temAlarmes) headerCols.push('Alarmes');
+      if (temViagens) headerCols.push('Viagens', 'Km Viagens');
+      if (temGeofences) headerCols.push('Geofences');
+      headerCols.push('Registros');
 
       let csvContent = `RESUMO DA FROTA
 Período;${formatDateTime(inicio)} até ${formatDateTime(fim)}
 Gerado em;${formatDateTime(new Date())}
-${filtrosTexto.length > 0 ? `Filtros aplicados;${filtrosTexto.join(', ')}\n` : ''}
+${filtrosTexto.length > 0 ? `Filtros aplicados;${filtrosTexto.join(' | ')}\n` : ''}
 === ESTATÍSTICAS GERAIS ===
 Total de Veículos;${estatisticas.totalVeiculos}
 Veículos Ativos no Período;${estatisticas.veiculosAtivos}
@@ -1809,13 +1930,32 @@ Total de Excessos;${totalExcessos}
 Excessos 80-100 km/h;${totalExcessos80}
 Excessos 100-120 km/h;${totalExcessos100}
 Excessos >120 km/h;${totalExcessos120}
-
+${temAlarmes ? `Total de Alarmes;${totalAlarmes}\n` : ''}${temViagens ? `Total de Viagens;${totalViagens}\n` : ''}
 === DETALHAMENTO POR VEÍCULO ===
-Placa;Veículo;Motorista(s);IMEI;Status;Distância (km);Tempo Movimento;Tempo Ocioso;Vel.Máxima;Excessos Total;80-100;100-120;>120;Registros
+${headerCols.join(';')}
 `;
 
       for (const veiculo of resumoFrota) {
-        csvContent += `${veiculo.placa};"${veiculo.veiculo}";"${veiculo.motoristas}";${veiculo.imei};${veiculo.status};${veiculo.distanciaTotal};"${veiculo.tempoMovimento}";"${veiculo.tempoOcioso}";${veiculo.velocidadeMax};${veiculo.excessosVelocidade};${veiculo.excessos80_100};${veiculo.excessos100_120};${veiculo.excessos120plus};${veiculo.totalRegistros}\n`;
+        let rowCols = [
+          veiculo.placa,
+          `"${veiculo.veiculo}"`,
+          `"${veiculo.motoristas}"`,
+          veiculo.imei,
+          veiculo.status,
+          veiculo.distanciaTotal,
+          `"${veiculo.tempoMovimento}"`,
+          `"${veiculo.tempoOcioso}"`,
+          veiculo.velocidadeMax,
+          veiculo.excessosVelocidade,
+          veiculo.excessos80_100,
+          veiculo.excessos100_120,
+          veiculo.excessos120plus
+        ];
+        if (temAlarmes) rowCols.push(veiculo.totalAlarmes);
+        if (temViagens) rowCols.push(veiculo.totalViagens, veiculo.kmViagens);
+        if (temGeofences) rowCols.push(veiculo.geofencesVisitados);
+        rowCols.push(veiculo.totalRegistros);
+        csvContent += rowCols.join(';') + '\n';
       }
 
       const filename = `resumo_frota_${formatDateForFilename(new Date())}.csv`;
