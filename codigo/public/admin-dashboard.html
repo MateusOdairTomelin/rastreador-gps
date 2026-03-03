@@ -9176,20 +9176,46 @@
         <!-- TAGS SECTION -->
         <section class="section" id="section-tags">
           <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-              <div style="display: flex; align-items: center; gap: 16px;">
-                <h2 style="color: var(--primary); font-size: 1.2rem; margin: 0;">Tags</h2>
-                <span id="stat-total-tags" style="background: var(--bg-card); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; color: var(--text-muted);">0 tags</span>
-              </div>
-              <button onclick="abrirModalNovaTag()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">+ Nova Tag</button>
+            <!-- Tabs: Tags / Grupos -->
+            <div style="display: flex; border-bottom: 1px solid var(--border); margin-bottom: 16px;">
+              <button id="tab-tags" onclick="mudarTabTags('tags')" style="padding: 12px 24px; background: none; border: none; border-bottom: 2px solid var(--primary); color: var(--primary); cursor: pointer; font-weight: 600; font-size: 0.95rem;">Tags</button>
+              <button id="tab-grupos" onclick="mudarTabTags('grupos')" style="padding: 12px 24px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); cursor: pointer; font-weight: 500; font-size: 0.95rem;">Grupos</button>
             </div>
 
-            <!-- Busca -->
-            <input type="text" id="tags-busca" placeholder="Buscar tag..." oninput="filtrarTags()" style="width: 100%; max-width: 300px; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; margin-bottom: 16px;">
+            <!-- CONTEÚDO: TAGS -->
+            <div id="conteudo-tags">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <span id="stat-total-tags" style="background: var(--bg-card); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; color: var(--text-muted);">0 tags</span>
+                </div>
+                <button onclick="abrirModalNovaTag()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">+ Nova Tag</button>
+              </div>
 
-            <!-- Lista de Tags -->
-            <div id="tags-lista" style="max-height: 500px; overflow-y: auto;">
-              <div style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando...</div>
+              <!-- Busca -->
+              <input type="text" id="tags-busca" placeholder="Buscar tag..." oninput="filtrarTags()" style="width: 100%; max-width: 300px; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; margin-bottom: 16px;">
+
+              <!-- Lista de Tags -->
+              <div id="tags-lista" style="max-height: 500px; overflow-y: auto;">
+                <div style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando...</div>
+              </div>
+            </div>
+
+            <!-- CONTEÚDO: GRUPOS -->
+            <div id="conteudo-grupos" style="display: none;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <span id="stat-total-grupos" style="background: var(--bg-card); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; color: var(--text-muted);">0 grupos</span>
+                </div>
+                <button onclick="abrirModalNovoGrupo()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">+ Novo Grupo</button>
+              </div>
+
+              <!-- Busca -->
+              <input type="text" id="grupos-busca" placeholder="Buscar grupo..." oninput="filtrarGrupos()" style="width: 100%; max-width: 300px; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; margin-bottom: 16px;">
+
+              <!-- Lista de Grupos -->
+              <div id="grupos-lista" style="max-height: 500px; overflow-y: auto;">
+                <div style="text-align: center; padding: 40px; color: var(--text-muted);">Carregando...</div>
+              </div>
             </div>
           </div>
         </section>
@@ -10722,6 +10748,18 @@
         </div>
 
         <!-- Perfil duplicado removido - agora está no início do form -->
+
+        <!-- Acesso a Veículos (Grupos/Tags) -->
+        <div class="form-group" id="user-grupos-tags-group" style="display:none; margin-top: 16px;">
+          <label style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+            <span>Acesso a Veículos</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(se vazio, acesso total)</span>
+          </label>
+          <div id="user-grupos-tags-container" style="max-height: 250px; overflow-y: auto; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-light);">
+            <div style="text-align: center; color: var(--text-muted); padding: 16px;">Carregando grupos...</div>
+          </div>
+          <small style="color: var(--text-light); font-size: 11px; margin-top: 4px; display: block;">Marque os grupos e tags que o usuário pode visualizar. Deixe vazio para acesso total.</small>
+        </div>
 
         <!-- Status do Usuário (apenas na edição) -->
         <div class="form-group" id="user-status-group" style="display:none;">
@@ -18964,11 +19002,27 @@
                 statusSelect.value = user.ativo !== false ? 'true' : 'false';
               }
             }
+
+            // Carregar permissões de grupos/tags se não for super_admin
+            if (user.role !== 'super_admin') {
+              const gruposTagsGroup = document.getElementById('user-grupos-tags-group');
+              if (gruposTagsGroup) {
+                gruposTagsGroup.style.display = 'block';
+                await carregarGruposTagsParaUsuario(user.id);
+              }
+            }
           }
         } else {
           title.textContent = 'Novo Usuário';
           senhaInput.required = true;
           senhaInput.placeholder = 'Mínimo 6 caracteres';
+
+          // Preparar seção de grupos/tags para novo usuário
+          const gruposTagsGroup = document.getElementById('user-grupos-tags-group');
+          if (gruposTagsGroup) {
+            gruposTagsGroup.style.display = 'block';
+            await carregarGruposTagsParaUsuario(null);
+          }
         }
 
         modal.style.display = 'flex';
@@ -19047,6 +19101,7 @@
       const orgFields = document.getElementById('org-fields');
       const orgSelect = document.getElementById('user-org');
       const superAdminOrgsGroup = document.getElementById('super-admin-orgs-group');
+      const gruposTagsGroup = document.getElementById('user-grupos-tags-group');
 
       if (role === 'super_admin') {
         if (orgFields) orgFields.style.display = 'none';
@@ -19055,10 +19110,14 @@
           superAdminOrgsGroup.style.display = 'block';
           renderizarOrgsSuperAdmin(['todas']);
         }
+        // Super admin não precisa de permissões de grupos/tags (acesso total)
+        if (gruposTagsGroup) gruposTagsGroup.style.display = 'none';
       } else {
         if (orgFields) orgFields.style.display = 'block';
         if (orgSelect) orgSelect.required = true;
         if (superAdminOrgsGroup) superAdminOrgsGroup.style.display = 'none';
+        // Usuário normal pode ter restrições de grupos/tags
+        if (gruposTagsGroup) gruposTagsGroup.style.display = 'block';
       }
     }
 
@@ -19206,6 +19265,14 @@
         const resultado = await response.json();
         // Perfil já foi associado pelo backend
 
+        // Se não for super_admin, salvar permissões de grupos/tags
+        if (!isSuperAdmin) {
+          const usuarioIdFinal = userId || resultado.usuario?.id;
+          if (usuarioIdFinal) {
+            await salvarPermissoesGruposTagsUsuario(usuarioIdFinal);
+          }
+        }
+
         toastSuccess(userId ? 'Usuário atualizado!' : 'Usuário criado!');
         fecharModalUsuario();
         carregarUsuarios();
@@ -19214,6 +19281,154 @@
         toastError(error.message);
       }
     }
+
+    // Carregar grupos/tags para o modal de usuário
+    async function carregarGruposTagsParaUsuario(usuarioId = null) {
+      const container = document.getElementById('user-grupos-tags-container');
+      if (!container) return;
+
+      container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 16px;">Carregando grupos...</div>';
+
+      try {
+        // Carregar grupos disponíveis
+        const gruposRes = await authFetch(`${API_URL}/grupos`);
+        const gruposData = await gruposRes.json();
+        const grupos = gruposData.grupos || [];
+
+        // Carregar permissões atuais do usuário se estiver editando
+        let permissoesAtuais = { grupos: [], tagsEspecificas: [] };
+        if (usuarioId) {
+          try {
+            const permRes = await authFetch(`${API_URL}/grupos/usuario/${usuarioId}/permissoes`);
+            const permData = await permRes.json();
+            if (permData.sucesso) {
+              permissoesAtuais = {
+                grupos: permData.grupos || [],
+                tagsEspecificas: permData.tagsEspecificas || []
+              };
+            }
+          } catch (e) {
+            console.warn('[GruposTags] Erro ao carregar permissões:', e);
+          }
+        }
+
+        // Se não há grupos, mostrar mensagem
+        if (grupos.length === 0) {
+          container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 16px;">Nenhum grupo criado. <a href="#" onclick="mudarTabTags(\'grupos\'); fecharModalUsuario();" style="color: var(--primary);">Criar grupos</a></div>';
+          return;
+        }
+
+        // Construir árvore de grupos e tags
+        const gruposPermitidos = new Set(permissoesAtuais.grupos.map(g => g.id));
+        const tagsEspecificas = new Set(permissoesAtuais.tagsEspecificas.map(t => t.id));
+
+        let html = '';
+        for (const grupo of grupos) {
+          const grupoMarcado = gruposPermitidos.has(grupo.id);
+          const temTags = grupo.tags && grupo.tags.length > 0;
+
+          html += `
+            <div style="margin-bottom: 12px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">
+              <div style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--surface); cursor: pointer;" onclick="toggleGrupoExpand(${grupo.id})">
+                <span id="grupo-expand-${grupo.id}" style="font-size: 0.8rem; color: var(--text-muted);">${temTags ? '▶' : ''}</span>
+                <input type="checkbox" id="grupo-check-${grupo.id}" value="${grupo.id}" class="grupo-checkbox" onchange="onGrupoCheckChange(${grupo.id})" ${grupoMarcado ? 'checked' : ''} style="accent-color: var(--primary);">
+                <span style="width: 12px; height: 12px; border-radius: 3px; background: ${grupo.cor || '#6b7280'};"></span>
+                <span style="font-weight: 500;">${escapeHtml(grupo.nome)}</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">(${grupo.tags?.length || 0} tags)</span>
+              </div>
+              ${temTags ? `
+                <div id="grupo-tags-${grupo.id}" style="display: none; padding: 8px 12px 8px 36px; background: var(--bg-light); border-top: 1px solid var(--border);">
+                  ${grupo.tags.map(tag => {
+                    const tagMarcada = tagsEspecificas.has(tag.id);
+                    return `
+                      <label style="display: flex; align-items: center; gap: 6px; padding: 4px 0; cursor: pointer;">
+                        <input type="checkbox" value="${tag.id}" class="tag-checkbox" data-grupo="${grupo.id}" ${grupoMarcado || tagMarcada ? 'checked' : ''} ${grupoMarcado ? 'disabled' : ''} style="accent-color: var(--primary);">
+                        <span style="width: 10px; height: 10px; border-radius: 2px; background: ${tag.cor || '#3B82F6'};"></span>
+                        <span>${escapeHtml(tag.nome)}</span>
+                      </label>
+                    `;
+                  }).join('')}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }
+
+        container.innerHTML = html;
+      } catch (error) {
+        console.error('[GruposTags] Erro ao carregar:', error);
+        container.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 16px;">Erro ao carregar grupos</div>';
+      }
+    }
+
+    // Expandir/colapsar tags de um grupo
+    function toggleGrupoExpand(grupoId) {
+      const tagsDiv = document.getElementById(`grupo-tags-${grupoId}`);
+      const expandIcon = document.getElementById(`grupo-expand-${grupoId}`);
+      if (tagsDiv) {
+        const isHidden = tagsDiv.style.display === 'none';
+        tagsDiv.style.display = isHidden ? 'block' : 'none';
+        if (expandIcon) expandIcon.textContent = isHidden ? '▼' : '▶';
+      }
+    }
+
+    // Quando grupo é marcado, marca todas as tags
+    function onGrupoCheckChange(grupoId) {
+      const grupoCheck = document.getElementById(`grupo-check-${grupoId}`);
+      const tagCheckboxes = document.querySelectorAll(`.tag-checkbox[data-grupo="${grupoId}"]`);
+
+      tagCheckboxes.forEach(cb => {
+        cb.checked = grupoCheck.checked;
+        cb.disabled = grupoCheck.checked; // Desabilita se grupo inteiro está marcado
+      });
+    }
+
+    // Salvar permissões de grupos/tags do usuário
+    async function salvarPermissoesGruposTagsUsuario(usuarioId) {
+      try {
+        const gruposCheckboxes = document.querySelectorAll('.grupo-checkbox:checked');
+        const tagCheckboxes = document.querySelectorAll('.tag-checkbox:checked:not(:disabled)');
+
+        // Montar estrutura de grupos com tags específicas
+        const grupos = [];
+        const gruposMarcados = new Set();
+
+        gruposCheckboxes.forEach(cb => {
+          const grupoId = parseInt(cb.value);
+          gruposMarcados.add(grupoId);
+          grupos.push({ grupoId, tagIds: [] }); // Grupo inteiro marcado = todas as tags
+        });
+
+        // Adicionar tags específicas (de grupos não marcados)
+        tagCheckboxes.forEach(cb => {
+          const grupoId = parseInt(cb.dataset.grupo);
+          const tagId = parseInt(cb.value);
+
+          if (!gruposMarcados.has(grupoId)) {
+            // Encontrar ou criar entrada para este grupo
+            let grupoEntry = grupos.find(g => g.grupoId === grupoId);
+            if (!grupoEntry) {
+              grupoEntry = { grupoId, tagIds: [] };
+              grupos.push(grupoEntry);
+            }
+            grupoEntry.tagIds.push(tagId);
+          }
+        });
+
+        // Salvar via API
+        await authFetch(`${API_URL}/grupos/usuario/${usuarioId}/permissoes`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ grupos })
+        });
+      } catch (error) {
+        console.error('[GruposTags] Erro ao salvar permissões:', error);
+        // Não impedir o salvamento do usuário
+      }
+    }
+
+    window.toggleGrupoExpand = toggleGrupoExpand;
+    window.onGrupoCheckChange = onGrupoCheckChange;
 
     // Excluir usuário
     async function excluirUsuario(userId) {
@@ -25737,6 +25952,312 @@
     window.gerenciarVeiculosTag = gerenciarVeiculosTag;
     window.filtrarVeiculosTag = filtrarVeiculosTag;
     window.salvarVeiculosTag = salvarVeiculosTag;
+
+    // ============ GRUPOS SECTION ============
+    let gruposCache = [];
+
+    // Mudar tab Tags/Grupos
+    function mudarTabTags(tab) {
+      const tabTags = document.getElementById('tab-tags');
+      const tabGrupos = document.getElementById('tab-grupos');
+      const conteudoTags = document.getElementById('conteudo-tags');
+      const conteudoGrupos = document.getElementById('conteudo-grupos');
+
+      if (tab === 'tags') {
+        tabTags.style.borderBottomColor = 'var(--primary)';
+        tabTags.style.color = 'var(--primary)';
+        tabGrupos.style.borderBottomColor = 'transparent';
+        tabGrupos.style.color = 'var(--text-muted)';
+        conteudoTags.style.display = 'block';
+        conteudoGrupos.style.display = 'none';
+      } else {
+        tabGrupos.style.borderBottomColor = 'var(--primary)';
+        tabGrupos.style.color = 'var(--primary)';
+        tabTags.style.borderBottomColor = 'transparent';
+        tabTags.style.color = 'var(--text-muted)';
+        conteudoGrupos.style.display = 'block';
+        conteudoTags.style.display = 'none';
+        if (gruposCache.length === 0) carregarGrupos();
+      }
+    }
+
+    async function carregarGrupos() {
+      try {
+        const response = await authFetch(`${API_URL}/grupos`);
+        if (!response.ok) throw new Error('Erro ao carregar grupos');
+
+        const data = await response.json();
+        if (data.sucesso) {
+          gruposCache = data.grupos || [];
+          renderizarGrupos();
+        }
+      } catch (error) {
+        console.error('[Grupos] Erro ao carregar:', error);
+        document.getElementById('grupos-lista').innerHTML = `<div style="text-align: center; padding: 40px; color: #ef4444;">Erro ao carregar grupos: ${error.message}</div>`;
+      }
+    }
+
+    function renderizarGrupos(filtro = '') {
+      const container = document.getElementById('grupos-lista');
+      const statEl = document.getElementById('stat-total-grupos');
+
+      let grupos = gruposCache;
+      if (filtro) {
+        grupos = gruposCache.filter(g => g.nome.toLowerCase().includes(filtro.toLowerCase()));
+      }
+
+      if (statEl) statEl.textContent = `${gruposCache.length} grupos`;
+
+      if (grupos.length === 0) {
+        container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted);">${filtro ? 'Nenhum grupo encontrado' : 'Nenhum grupo criado. Crie grupos para organizar suas tags.'}</div>`;
+        return;
+      }
+
+      container.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <th style="text-align: left; padding: 10px 8px; color: var(--text-muted); font-weight: 500; font-size: 0.85rem;">Nome</th>
+              <th style="text-align: center; padding: 10px 8px; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; width: 80px;">Tags</th>
+              <th style="text-align: center; padding: 10px 8px; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; width: 80px;">Usuarios</th>
+              <th style="text-align: right; padding: 10px 8px; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; width: 150px;">Acoes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${grupos.map(grupo => `
+              <tr style="border-bottom: 1px solid var(--border-light);" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 10px 8px;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 12px; height: 12px; border-radius: 3px; background: ${grupo.cor || '#6b7280'}; flex-shrink: 0;"></div>
+                    <div>
+                      <span style="font-weight: 500;">${escapeHtml(grupo.nome)}</span>
+                      ${grupo.descricao ? `<div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(grupo.descricao)}</div>` : ''}
+                    </div>
+                  </div>
+                </td>
+                <td style="text-align: center; padding: 10px 8px;">
+                  <button onclick="gerenciarTagsGrupo(${grupo.id}, '${escapeHtml(grupo.nome)}')" style="background: none; border: none; color: var(--primary); cursor: pointer; padding: 4px 8px; text-decoration: underline;" title="Gerenciar tags">${grupo.totalTags || 0}</button>
+                </td>
+                <td style="text-align: center; padding: 10px 8px; color: var(--text-muted);">${grupo.totalUsuarios || 0}</td>
+                <td style="text-align: right; padding: 10px 8px;">
+                  ${temPermissao('veiculos', 'editar') ? `<button onclick="gerenciarTagsGrupo(${grupo.id}, '${escapeHtml(grupo.nome)}')" style="background: none; border: none; color: var(--primary); cursor: pointer; padding: 4px 8px;" title="Vincular tags">◦</button>` : ''}
+                  ${temPermissao('veiculos', 'editar') ? `<button onclick="editarGrupo(${grupo.id})" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px 8px;" title="Editar">✎</button>` : ''}
+                  ${temPermissao('veiculos', 'excluir') ? `<button onclick="excluirGrupo(${grupo.id}, '${escapeHtml(grupo.nome)}')" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px 8px;" title="Excluir">✕</button>` : ''}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    function filtrarGrupos() {
+      const busca = document.getElementById('grupos-busca').value;
+      renderizarGrupos(busca);
+    }
+
+    function abrirModalNovoGrupo() {
+      const html = `
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <h3 style="margin: 0; color: var(--primary);">Novo Grupo</h3>
+          <div>
+            <label style="display: block; margin-bottom: 6px; color: var(--text-muted);">Nome do Grupo *</label>
+            <input type="text" id="grupo-nome" placeholder="Ex: O&M, Comercial, Frota Leve" style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 6px;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 6px; color: var(--text-muted);">Cor</label>
+            <input type="color" id="grupo-cor" value="#6b7280" style="width: 100%; height: 40px; border: none; border-radius: 6px; cursor: pointer;">
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 6px; color: var(--text-muted);">Descricao (opcional)</label>
+            <textarea id="grupo-descricao" placeholder="Descricao do grupo..." rows="2" style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 6px; resize: vertical;"></textarea>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 8px;">
+            <button onclick="fecharModal()" style="flex: 1; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: pointer;">Cancelar</button>
+            <button onclick="salvarGrupo()" style="flex: 1; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Criar Grupo</button>
+          </div>
+        </div>`;
+      showModal('Novo Grupo', html);
+    }
+
+    async function salvarGrupo(grupoId = null) {
+      const nome = document.getElementById('grupo-nome').value.trim();
+      const cor = document.getElementById('grupo-cor').value;
+      const descricao = document.getElementById('grupo-descricao').value.trim();
+
+      if (!nome) {
+        showToast('Nome do grupo e obrigatorio', 'error');
+        return;
+      }
+
+      try {
+        const url = grupoId ? `${API_URL}/grupos/${grupoId}` : `${API_URL}/grupos`;
+        const method = grupoId ? 'PUT' : 'POST';
+
+        const response = await authFetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome, cor, descricao })
+        });
+
+        const data = await response.json();
+        if (data.sucesso) {
+          showToast(grupoId ? 'Grupo atualizado!' : 'Grupo criado!', 'success');
+          fecharModal();
+          carregarGrupos();
+        } else {
+          throw new Error(data.erro || 'Erro ao salvar grupo');
+        }
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    }
+
+    async function editarGrupo(grupoId) {
+      try {
+        const response = await authFetch(`${API_URL}/grupos/${grupoId}`);
+        const data = await response.json();
+        if (!data.sucesso) throw new Error('Grupo nao encontrado');
+
+        const grupo = data.grupo;
+        const html = `
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <h3 style="margin: 0; color: var(--primary);">Editar Grupo</h3>
+            <div>
+              <label style="display: block; margin-bottom: 6px; color: var(--text-muted);">Nome do Grupo *</label>
+              <input type="text" id="grupo-nome" value="${escapeHtml(grupo.nome)}" style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 6px;">
+            </div>
+            <div>
+              <label style="display: block; margin-bottom: 6px; color: var(--text-muted);">Cor</label>
+              <input type="color" id="grupo-cor" value="${grupo.cor || '#6b7280'}" style="width: 100%; height: 40px; border: none; border-radius: 6px; cursor: pointer;">
+            </div>
+            <div>
+              <label style="display: block; margin-bottom: 6px; color: var(--text-muted);">Descricao (opcional)</label>
+              <textarea id="grupo-descricao" rows="2" style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 6px; resize: vertical;">${escapeHtml(grupo.descricao || '')}</textarea>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+              <button onclick="fecharModal()" style="flex: 1; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: pointer;">Cancelar</button>
+              <button onclick="salvarGrupo(${grupoId})" style="flex: 1; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Salvar</button>
+            </div>
+          </div>`;
+        showModal('Editar Grupo', html);
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    }
+
+    async function excluirGrupo(grupoId, nome) {
+      if (!confirm(`Deseja excluir o grupo "${nome}"? As tags vinculadas serao desassociadas.`)) return;
+
+      try {
+        const response = await authFetch(`${API_URL}/grupos/${grupoId}`, { method: 'DELETE' });
+        const data = await response.json();
+
+        if (data.sucesso) {
+          showToast('Grupo excluido!', 'success');
+          carregarGrupos();
+        } else {
+          throw new Error(data.erro || 'Erro ao excluir grupo');
+        }
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    }
+
+    // Gerenciar tags de um grupo
+    async function gerenciarTagsGrupo(grupoId, grupoNome) {
+      try {
+        const [grupoRes, tagsRes] = await Promise.all([
+          authFetch(`${API_URL}/grupos/${grupoId}`),
+          authFetch(`${API_URL}/tags`)
+        ]);
+
+        const grupoData = await grupoRes.json();
+        const tagsData = await tagsRes.json();
+
+        const grupo = grupoData.grupo;
+        const todasTags = tagsData.tags || [];
+        const tagsDoGrupo = new Set((grupo.tags || []).map(t => t.id));
+
+        const html = `
+          <div style="display: flex; flex-direction: column; gap: 16px; max-height: 70vh;">
+            <h3 style="margin: 0; color: var(--primary);">Vincular tags ao grupo "${escapeHtml(grupoNome)}"</h3>
+            <input type="text" id="busca-tags-grupo" placeholder="Buscar tag..." oninput="filtrarTagsGrupo()" style="width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px;">
+            <div id="lista-tags-grupo" style="overflow-y: auto; max-height: 400px; display: flex; flex-direction: column; gap: 4px;">
+              ${todasTags.map(t => `
+                <label data-nome="${t.nome.toLowerCase()}" style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--surface); border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
+                  <input type="checkbox" value="${t.id}" ${tagsDoGrupo.has(t.id) ? 'checked' : ''} style="accent-color: var(--primary);">
+                  <span style="width: 12px; height: 12px; border-radius: 2px; background: ${t.cor || '#3B82F6'};"></span>
+                  <span style="font-weight: 500; color: var(--text);">${escapeHtml(t.nome)}</span>
+                </label>
+              `).join('')}
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+              <button onclick="fecharModal()" style="flex: 1; background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: pointer;">Cancelar</button>
+              <button onclick="salvarTagsGrupo(${grupoId})" style="flex: 1; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Salvar</button>
+            </div>
+          </div>`;
+        showModal(`Tags - ${grupoNome}`, html);
+      } catch (error) {
+        console.error('[Grupos] Erro ao carregar tags:', error);
+        showToast(error.message, 'error');
+      }
+    }
+
+    function filtrarTagsGrupo() {
+      const busca = document.getElementById('busca-tags-grupo').value.toLowerCase();
+      const labels = document.querySelectorAll('#lista-tags-grupo label');
+      labels.forEach(label => {
+        const nome = label.dataset.nome;
+        label.style.display = nome.includes(busca) ? 'flex' : 'none';
+      });
+    }
+
+    async function salvarTagsGrupo(grupoId) {
+      try {
+        const checkboxes = document.querySelectorAll('#lista-tags-grupo input[type="checkbox"]');
+        const tagIds = [];
+        checkboxes.forEach(cb => {
+          if (cb.checked) tagIds.push(parseInt(cb.value));
+        });
+
+        // Primeiro desvincular todas as tags do grupo atual
+        const grupoRes = await authFetch(`${API_URL}/grupos/${grupoId}`);
+        const grupoData = await grupoRes.json();
+        const tagsAtuais = (grupoData.grupo?.tags || []).map(t => t.id);
+
+        for (const tagId of tagsAtuais) {
+          await authFetch(`${API_URL}/grupos/tags/${tagId}`, { method: 'DELETE' });
+        }
+
+        // Depois vincular as selecionadas
+        if (tagIds.length > 0) {
+          await authFetch(`${API_URL}/grupos/${grupoId}/tags`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tagIds })
+          });
+        }
+
+        fecharModal();
+        showToast(`Grupo atualizado com ${tagIds.length} tags`, 'success');
+        carregarGrupos();
+        carregarTags(); // Atualizar cache de tags tambem
+      } catch (error) {
+        console.error('[Grupos] Erro ao salvar tags:', error);
+        showToast(error.message, 'error');
+      }
+    }
+
+    window.mudarTabTags = mudarTabTags;
+    window.carregarGrupos = carregarGrupos;
+    window.abrirModalNovoGrupo = abrirModalNovoGrupo;
+    window.salvarGrupo = salvarGrupo;
+    window.editarGrupo = editarGrupo;
+    window.excluirGrupo = excluirGrupo;
+    window.gerenciarTagsGrupo = gerenciarTagsGrupo;
+    window.filtrarTagsGrupo = filtrarTagsGrupo;
+    window.salvarTagsGrupo = salvarTagsGrupo;
+    window.filtrarGrupos = filtrarGrupos;
 
     // ============ INSIGHTS MODAL ============
     let insightsCache = [];
