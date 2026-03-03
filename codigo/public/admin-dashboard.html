@@ -23532,15 +23532,16 @@
         const url = `${API_URL}/relatorios/frota?${params.toString()}`;
         console.log('[Relatório Frota] URL:', url);
 
-        // Mostrar loading com progresso
+        // Mostrar notificação discreta no canto (não bloqueia a interface)
         const loadingMsg = document.createElement('div');
         loadingMsg.id = 'export-loading';
-        loadingMsg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);color:white;padding:30px 50px;border-radius:12px;z-index:9999;text-align:center;';
+        loadingMsg.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--surface);color:var(--text);padding:12px 20px;border-radius:8px;z-index:9999;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,0.3);border:1px solid var(--border);min-width:280px;';
         loadingMsg.innerHTML = `
-          <div style="font-size: 24px; margin-bottom: 15px;">⏳</div>
-          <div style="font-size: 16px; font-weight: bold;">Gerando relatório consolidado...</div>
-          <div style="font-size: 14px; color: #aaa; margin-top: 10px;">${veiculosSelecionados.size} veículo(s) selecionado(s)</div>
-          <div style="font-size: 12px; color: #888; margin-top: 5px;">Isso pode levar alguns segundos</div>
+          <div class="spinner" style="width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;"></div>
+          <div>
+            <div style="font-size:14px;font-weight:500;">Gerando relatório...</div>
+            <div style="font-size:12px;color:var(--text-muted);">${veiculosSelecionados.size} veículo(s)</div>
+          </div>
         `;
         document.body.appendChild(loadingMsg);
 
