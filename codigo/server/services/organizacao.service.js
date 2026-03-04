@@ -826,23 +826,25 @@ class OrganizacaoService {
       data: updateData
     });
 
-    // Se foi fornecida uma organização, atualizar ou criar associação
+    // Se foi fornecida uma organização, SUBSTITUIR todas as associações anteriores
+    // Isso garante que o usuário só tenha acesso à organização selecionada
     if (organizacao_id && role_org) {
-      await prisma.usuarioOrganizacao.upsert({
-        where: {
-          usuario_id_organizacao_id: {
-            usuario_id: usuarioId,
-            organizacao_id: organizacao_id
-          }
-        },
-        update: { role: role_org },
-        create: {
+      // Primeiro, remover TODAS as associações antigas deste usuário
+      await prisma.usuarioOrganizacao.deleteMany({
+        where: { usuario_id: usuarioId }
+      });
+
+      // Depois, criar a nova associação única
+      await prisma.usuarioOrganizacao.create({
+        data: {
           usuario_id: usuarioId,
           organizacao_id: organizacao_id,
           role: role_org,
-          is_default: false
+          is_default: true
         }
       });
+
+      console.log(`[Usuário] Organização alterada: ID ${usuarioId} -> Org ${organizacao_id}`);
     }
 
     console.log(`[Usuário] Atualizado: ID ${usuarioId}, role: ${updateData.role || 'mantido'}`);
