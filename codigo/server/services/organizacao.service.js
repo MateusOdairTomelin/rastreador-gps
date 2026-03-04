@@ -681,34 +681,86 @@ class OrganizacaoService {
   /**
    * Listar todos os usuários (super_admin)
    */
-  async listarTodosUsuarios() {
-    return prisma.usuario.findMany({
-      select: {
-        id: true,
-        email: true,
-        nome: true,
-        role: true,
-        ativo: true,
-        ultimo_login: true,
-        created_at: true,
-        organizacoes_permitidas: true,
-        organizacoes: {
-          include: {
-            organizacao: {
-              select: { id: true, nome: true, slug: true }
+  async listarTodosUsuarios(options = {}) {
+    const { isSuperAdmin = false, organizacaoIds = [] } = options;
+
+    // Super admin vê todos os usuários
+    if (isSuperAdmin) {
+      return prisma.usuario.findMany({
+        select: {
+          id: true,
+          email: true,
+          nome: true,
+          role: true,
+          ativo: true,
+          ultimo_login: true,
+          created_at: true,
+          organizacoes_permitidas: true,
+          organizacoes: {
+            include: {
+              organizacao: {
+                select: { id: true, nome: true, slug: true }
+              }
+            }
+          },
+          perfis: {
+            include: {
+              perfil: {
+                select: { id: true, nome: true }
+              }
             }
           }
         },
-        perfis: {
-          include: {
-            perfil: {
-              select: { id: true, nome: true }
+        orderBy: { created_at: 'desc' }
+      });
+    }
+
+    // Admin de organização vê apenas usuários das suas organizações
+    if (organizacaoIds.length > 0) {
+      // Buscar IDs de usuários que pertencem às organizações
+      const associacoes = await prisma.usuarioOrganizacao.findMany({
+        where: {
+          organizacao_id: { in: organizacaoIds }
+        },
+        select: { usuario_id: true }
+      });
+
+      const usuarioIds = [...new Set(associacoes.map(a => a.usuario_id))];
+
+      return prisma.usuario.findMany({
+        where: {
+          id: { in: usuarioIds }
+        },
+        select: {
+          id: true,
+          email: true,
+          nome: true,
+          role: true,
+          ativo: true,
+          ultimo_login: true,
+          created_at: true,
+          organizacoes_permitidas: true,
+          organizacoes: {
+            include: {
+              organizacao: {
+                select: { id: true, nome: true, slug: true }
+              }
+            }
+          },
+          perfis: {
+            include: {
+              perfil: {
+                select: { id: true, nome: true }
+              }
             }
           }
-        }
-      },
-      orderBy: { created_at: 'desc' }
-    });
+        },
+        orderBy: { created_at: 'desc' }
+      });
+    }
+
+    // Sem organizações, retorna vazio
+    return [];
   }
 
   /**

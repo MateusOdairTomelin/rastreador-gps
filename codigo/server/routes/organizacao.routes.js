@@ -762,11 +762,26 @@ router.post('/organizacoes/:id/absorver-recursivo', autenticar, verificarPermiss
 
 /**
  * GET /api/usuarios
- * Listar todos os usuários (super_admin)
+ * Listar usuários (filtrado por organização se não for super_admin)
  */
 router.get('/usuarios', autenticar, verificarPermissao('usuarios', 'listar'), async (req, res) => {
   try {
-    const usuarios = await organizacaoService.listarTodosUsuarios();
+    const isSuperAdmin = req.usuario.role === 'super_admin';
+
+    // Obter IDs das organizações do usuário logado
+    let organizacaoIds = [];
+    if (!isSuperAdmin && req.usuario.id) {
+      const associacoes = await prisma.usuarioOrganizacao.findMany({
+        where: { usuario_id: req.usuario.id },
+        select: { organizacao_id: true }
+      });
+      organizacaoIds = associacoes.map(a => a.organizacao_id);
+    }
+
+    const usuarios = await organizacaoService.listarTodosUsuarios({
+      isSuperAdmin,
+      organizacaoIds
+    });
 
     res.json({
       sucesso: true,
