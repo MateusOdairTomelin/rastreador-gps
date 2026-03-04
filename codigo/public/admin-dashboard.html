@@ -14775,6 +14775,11 @@
         // API já retorna OBD2 e localização - não fazer chamadas extras
         // loadAllDevicesDetails(devices);  // REMOVIDO - causa delay
 
+        // Verificar se é super_admin para mostrar botão de migração
+        const usuarioStrDash = localStorage.getItem('usuario') || sessionStorage.getItem('usuario');
+        const usuarioDash = usuarioStrDash ? JSON.parse(usuarioStrDash) : null;
+        const isSuperAdminDash = usuarioDash?.role === 'super_admin';
+
         const tbody2 = document.querySelector('#all-devices-table tbody');
         tbody2.innerHTML = devices.map(d => {
           const veiculoSeguro = escapeHtml(d.veiculo || '—');
@@ -14789,6 +14794,8 @@
           const statusUsoBadge = statusUso === 'ativo' ? 'badge-success' : (statusUso === 'disponivel' ? 'badge-warning' : 'badge-danger');
           const statusUsoLabel = statusUso === 'ativo' ? 'Ativo' : (statusUso === 'disponivel' ? 'Disponível' : 'Inativo');
           const imeiEncoded = encodeURIComponent(d.imei);
+          // Botão de migração apenas para super_admin
+          const btnMigrarDash = isSuperAdminDash ? `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #8b5cf6;" onclick="event.stopPropagation(); abrirModalMigrar('${imeiSeguro.replace(/'/g, "\\'")}', '${veiculoSeguro.replace(/'/g, "\\'")}')" title="Migrar para outra organização">⇄</button>` : '';
           return `
           <tr class="clickable-row" onclick="focusOnVehicleFromTable('${imeiSeguro.replace(/'/g, "\\'")}')" title="Clique para ver no mapa">
             <td>${veiculoSeguro}</td>
@@ -14804,6 +14811,7 @@
               <button class="btn btn-primary" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); verNoMapa('${imeiSeguro.replace(/'/g, "\\'")}')">⌖ Mapa</button>
               <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); abrirInfoVeiculo('${imeiSeguro.replace(/'/g, "\\'")}')">≡ Detalhes</button>
               <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #f59e0b;" onclick="event.stopPropagation(); openEditModal('${imeiSeguro.replace(/'/g, "\\'")}')">✎ Editar</button>
+              ${btnMigrarDash}
               ${statusUso !== 'inativo' ? `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #6b7280;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'inativo')" title="Desativar rastreador">⊘</button>` : `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #10b981;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'disponivel')" title="Reativar como disponível">◉</button>`}
               <button class="btn btn-danger" style="padding: 6px 12px; font-size: 11px;" onclick="event.stopPropagation(); deleteDevice('${imeiSeguro.replace(/'/g, "\\'")}')">✕</button>
             </td>
