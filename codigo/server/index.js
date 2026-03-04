@@ -116,9 +116,9 @@ app.use('/api', dynamicRateLimiter);
 
 console.log('[RateLimit] ✅ Rate limiting ativado com limites diferenciados por endpoint');
 
-// ============ RESTRIÇÃO DE IP (DESATIVADA) ============
-// Para ativar: IP_RESTRICTION_ENABLED=true no .env ou docker-compose
-const IP_RESTRICTION_ENABLED = process.env.IP_RESTRICTION_ENABLED === 'true';
+// ============ RESTRIÇÃO DE IP (TEMPORÁRIA) ============
+// Para desativar: IP_RESTRICTION_ENABLED=false no .env ou docker-compose
+const IP_RESTRICTION_ENABLED = process.env.IP_RESTRICTION_ENABLED !== 'false';
 
 // IPs permitidos para acesso ao painel web (VPN e IPs autorizados)
 const ALLOWED_IPS = [
