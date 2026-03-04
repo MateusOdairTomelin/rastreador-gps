@@ -10753,10 +10753,12 @@
 
         <div id="org-fields">
           <div class="form-group">
-            <label>Organização *</label>
-            <select id="user-org" required>
-              <option value="">Selecione...</option>
-            </select>
+            <label style="margin-bottom: 8px; display: block;">Organizações com Acesso *</label>
+            <div id="user-orgs-lista" style="max-height: 200px; overflow-y: auto; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-light);">
+              <!-- Lista de organizações será inserida via JavaScript -->
+              <div style="text-align: center; color: var(--text-muted);">Carregando...</div>
+            </div>
+            <small style="color: var(--text-light); font-size: 11px; margin-top: 4px; display: block;">Selecione uma ou mais organizações que o usuário terá acesso</small>
           </div>
 
           <div class="form-group">
@@ -18436,15 +18438,19 @@
       }).join('');
     }
 
-    // Carregar organizações para select de usuário
+    // Carregar organizações para checkboxes de usuário
     async function carregarOrgsParaSelect() {
       if (!organizacoesCache.length) {
         await carregarOrganizacoes();
       }
-      const selectOrg = document.getElementById('user-org');
-      if (selectOrg) {
-        selectOrg.innerHTML = '<option value="">Selecione...</option>' +
-          organizacoesCache.map(o => `<option value="${parseInt(o.id) || 0}">${escapeHtml(o.nome)}</option>`).join('');
+      const listaOrgs = document.getElementById('user-orgs-lista');
+      if (listaOrgs) {
+        listaOrgs.innerHTML = organizacoesCache.map(o => `
+          <label style="display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: pointer;">
+            <input type="checkbox" class="user-org-checkbox" value="${parseInt(o.id) || 0}" style="width: 16px; height: 16px;">
+            <span>${escapeHtml(o.nome)}</span>
+          </label>
+        `).join('');
       }
     }
 
@@ -19505,13 +19511,17 @@
           dados.organizacoes_permitidas = orgsSelecionadas;
         }
       } else {
-        // Se não for super_admin, precisa de organização
-        const orgId = document.getElementById('user-org').value;
-        if (!orgId) {
-          toastWarning('Selecione uma organização');
+        // Se não for super_admin, coletar organizações selecionadas (múltiplas)
+        const orgsSelecionadas = [];
+        document.querySelectorAll('.user-org-checkbox:checked').forEach(cb => {
+          orgsSelecionadas.push(parseInt(cb.value));
+        });
+        if (orgsSelecionadas.length === 0) {
+          toastWarning('Selecione pelo menos uma organização');
           return;
         }
-        dados.organizacao_id = parseInt(orgId);
+        // Enviar como array de organizações
+        dados.organizacoes_ids = orgsSelecionadas;
         dados.role_org = document.getElementById('user-role-org').value;
       }
 

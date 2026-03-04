@@ -712,10 +712,10 @@ class OrganizacaoService {
   }
 
   /**
-   * Criar usuário e associar a uma organização (super_admin)
+   * Criar usuário e associar a uma ou mais organizações (super_admin)
    */
   async criarUsuarioGlobal(dados) {
-    const { nome, email, senha, organizacao_id, role_org, role, organizacoes_permitidas } = dados;
+    const { nome, email, senha, organizacao_id, organizacoes_ids, role_org, role, organizacoes_permitidas } = dados;
 
     // Verificar se email já existe
     const existente = await prisma.usuario.findUnique({
@@ -775,8 +775,23 @@ class OrganizacaoService {
         });
       }
       console.log(`[Usuário] Super_admin ${email} vinculado a ${orgsParaVincular.length} organizações`);
-    } else if (organizacao_id) {
-      // Usuário comum: vincular à organização especificada
+    }
+    // Múltiplas organizações (novo formato)
+    else if (organizacoes_ids && Array.isArray(organizacoes_ids) && organizacoes_ids.length > 0) {
+      for (let i = 0; i < organizacoes_ids.length; i++) {
+        await prisma.usuarioOrganizacao.create({
+          data: {
+            usuario_id: usuario.id,
+            organizacao_id: parseInt(organizacoes_ids[i]),
+            role: role_org || 'operador',
+            is_default: i === 0
+          }
+        });
+      }
+      console.log(`[Usuário] ${email} vinculado a ${organizacoes_ids.length} organização(ões)`);
+    }
+    // Compatibilidade: organização única (formato antigo)
+    else if (organizacao_id) {
       await prisma.usuarioOrganizacao.create({
         data: {
           usuario_id: usuario.id,
@@ -795,7 +810,7 @@ class OrganizacaoService {
    * Atualizar usuário (super_admin)
    */
   async atualizarUsuarioGlobal(usuarioId, dados) {
-    const { nome, email, senha, ativo, organizacao_id, role_org, role, organizacoes_permitidas } = dados;
+    const { nome, email, senha, ativo, organizacao_id, organizacoes_ids, role_org, role, organizacoes_permitidas } = dados;
 
     const updateData = {};
     if (nome) updateData.nome = nome;
@@ -826,15 +841,33 @@ class OrganizacaoService {
       data: updateData
     });
 
-    // Se foi fornecida uma organização, SUBSTITUIR todas as associações anteriores
-    // Isso garante que o usuário só tenha acesso à organização selecionada
-    if (organizacao_id && role_org) {
-      // Primeiro, remover TODAS as associações antigas deste usuário
+    // Se foram fornecidas MÚLTIPLAS organizações (novo formato)
+    if (organizacoes_ids && Array.isArray(organizacoes_ids) && organizacoes_ids.length > 0 && role_org) {
+      // Primeiro, remover TODAS as associações antigas
       await prisma.usuarioOrganizacao.deleteMany({
         where: { usuario_id: usuarioId }
       });
 
-      // Depois, criar a nova associação única
+      // Criar associações para cada organização selecionada
+      for (let i = 0; i < organizacoes_ids.length; i++) {
+        await prisma.usuarioOrganizacao.create({
+          data: {
+            usuario_id: usuarioId,
+            organizacao_id: parseInt(organizacoes_ids[i]),
+            role: role_org,
+            is_default: i === 0 // Primeira é a default
+          }
+        });
+      }
+
+      console.log(`[Usuário] Organizações atualizadas: ID ${usuarioId} -> ${organizacoes_ids.length} org(s): ${organizacoes_ids.join(', ')}`);
+    }
+    // Compatibilidade: Se fornecida uma única organização (formato antigo)
+    else if (organizacao_id && role_org) {
+      await prisma.usuarioOrganizacao.deleteMany({
+        where: { usuario_id: usuarioId }
+      });
+
       await prisma.usuarioOrganizacao.create({
         data: {
           usuario_id: usuarioId,
