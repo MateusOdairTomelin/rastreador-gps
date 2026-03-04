@@ -19267,10 +19267,16 @@
               }
             }
 
-            // Preencher org e role de org
+            // Preencher orgs (checkboxes) e role de org
             if (user.organizacoes?.length > 0) {
-              const orgId = user.organizacoes[0].organizacao_id || user.organizacoes[0].organizacao?.id || user.organizacoes[0].id;
-              document.getElementById('user-org').value = orgId;
+              // Marcar checkboxes das organizações do usuário
+              const orgIds = user.organizacoes.map(o =>
+                parseInt(o.organizacao_id || o.organizacao?.id || o.id)
+              );
+              document.querySelectorAll('.user-org-checkbox').forEach(cb => {
+                cb.checked = orgIds.includes(parseInt(cb.value));
+              });
+              // Usar role da primeira organização
               document.getElementById('user-role-org').value = user.organizacoes[0].role || 'operador';
             }
 
