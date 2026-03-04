@@ -125,6 +125,7 @@ const ALLOWED_IPS = [
   '187.85.161.250',   // VPN empresa
   '187.85.164.97',    // VPN empresa (range alternativo)
   '189.28.210.114',   // IP autorizado
+  '177.73.141.108',   // IP autorizado
   '127.0.0.1',        // localhost
   '::1',              // localhost IPv6
 ];
