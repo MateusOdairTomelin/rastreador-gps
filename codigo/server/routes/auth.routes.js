@@ -507,11 +507,26 @@ router.put('/senha', autenticar, async (req, res) => {
 
 /**
  * GET /api/auth/usuarios
- * Listar todos os usuários (apenas admin)
+ * Listar usuários (filtrado por organização se não for super_admin)
  */
 router.get('/usuarios', autenticar, apenasAdmin, async (req, res) => {
   try {
-    const usuarios = await authService.listarUsuarios();
+    const isSuperAdmin = req.usuario.role === 'super_admin';
+
+    // Obter IDs das organizações do usuário logado
+    let organizacaoIds = [];
+    if (!isSuperAdmin && req.usuario.id) {
+      const associacoes = await prisma.usuarioOrganizacao.findMany({
+        where: { usuario_id: req.usuario.id },
+        select: { organizacao_id: true }
+      });
+      organizacaoIds = associacoes.map(a => a.organizacao_id);
+    }
+
+    const usuarios = await authService.listarUsuarios({
+      isSuperAdmin,
+      organizacaoIds
+    });
 
     res.json({
       success: true,

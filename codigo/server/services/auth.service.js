@@ -610,20 +610,65 @@ class AuthService {
 
   /**
    * Listar usuários (apenas admin)
+   * @param {Object} options - Opções de filtro
+   * @param {boolean} options.isSuperAdmin - Se o usuário logado é super_admin
+   * @param {number[]} options.organizacaoIds - IDs das organizações do usuário logado
    */
-  async listarUsuarios() {
-    return prisma.usuario.findMany({
-      select: {
-        id: true,
-        email: true,
-        nome: true,
-        role: true,
-        ativo: true,
-        ultimo_login: true,
-        created_at: true
-      },
-      orderBy: { created_at: 'desc' }
-    });
+  async listarUsuarios(options = {}) {
+    const { isSuperAdmin = false, organizacaoIds = [] } = options;
+
+    // Super admin vê todos os usuários
+    if (isSuperAdmin) {
+      return prisma.usuario.findMany({
+        select: {
+          id: true,
+          email: true,
+          nome: true,
+          role: true,
+          ativo: true,
+          ultimo_login: true,
+          created_at: true
+        },
+        orderBy: { created_at: 'desc' }
+      });
+    }
+
+    // Admin de organização vê apenas usuários das suas organizações
+    if (organizacaoIds.length > 0) {
+      const associacoes = await prisma.usuarioOrganizacao.findMany({
+        where: {
+          organizacao_id: { in: organizacaoIds }
+        },
+        include: {
+          usuario: {
+            select: {
+              id: true,
+              email: true,
+              nome: true,
+              role: true,
+              ativo: true,
+              ultimo_login: true,
+              created_at: true
+            }
+          }
+        }
+      });
+
+      // Remover duplicatas (usuário pode estar em múltiplas orgs)
+      const usuariosMap = new Map();
+      associacoes.forEach(a => {
+        if (a.usuario) {
+          usuariosMap.set(a.usuario.id, a.usuario);
+        }
+      });
+
+      return Array.from(usuariosMap.values()).sort((a, b) =>
+        new Date(b.created_at) - new Date(a.created_at)
+      );
+    }
+
+    // Sem organizações, retorna vazio
+    return [];
   }
 
   /**
