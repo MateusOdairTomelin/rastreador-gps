@@ -1549,6 +1549,97 @@ router.put('/:imei/atribuir', apenasSuperAdmin, asyncHandler(async (req, res) =>
 }));
 
 /**
+ * PUT /api/dispositivos/:imei/migrar
+ * Migra dispositivo E veículo vinculado para outra organização (apenas super_admin)
+ * Mantém histórico de localizações e viagens
+ */
+router.put('/:imei/migrar', apenasSuperAdmin, asyncHandler(async (req, res) => {
+  const { imei } = req.params;
+  const { organizacao_destino_id, migrar_veiculo = true } = req.body;
+
+  if (!organizacao_destino_id) {
+    return res.status(400).json({
+      sucesso: false,
+      mensagem: 'organizacao_destino_id é obrigatório',
+    });
+  }
+
+  // Verificar se dispositivo existe
+  const dispositivo = await prisma.dispositivo.findUnique({
+    where: { imei },
+    include: { veiculo_rel: true }
+  });
+  if (!dispositivo) {
+    return res.status(404).json({
+      sucesso: false,
+      mensagem: 'Dispositivo não encontrado',
+    });
+  }
+
+  // Verificar organização de origem
+  const orgOrigem = dispositivo.organizacao_id
+    ? await prisma.organizacao.findUnique({ where: { id: dispositivo.organizacao_id } })
+    : null;
+
+  // Verificar organização de destino
+  const orgDestino = await prisma.organizacao.findUnique({
+    where: { id: parseInt(organizacao_destino_id) }
+  });
+  if (!orgDestino) {
+    return res.status(404).json({
+      sucesso: false,
+      mensagem: 'Organização de destino não encontrada',
+    });
+  }
+
+  // Verificar se já está na organização destino
+  if (dispositivo.organizacao_id === parseInt(organizacao_destino_id)) {
+    return res.status(400).json({
+      sucesso: false,
+      mensagem: 'Dispositivo já pertence a esta organização',
+    });
+  }
+
+  const resultado = {
+    dispositivo_migrado: false,
+    veiculo_migrado: false,
+    detalhes: []
+  };
+
+  // Migrar dispositivo
+  await prisma.dispositivo.update({
+    where: { imei },
+    data: { organizacao_id: parseInt(organizacao_destino_id) },
+  });
+  resultado.dispositivo_migrado = true;
+  resultado.detalhes.push(`Dispositivo ${imei} migrado`);
+
+  // Migrar veículo vinculado (se existir e se solicitado)
+  if (migrar_veiculo && dispositivo.veiculo_id && dispositivo.veiculo_rel) {
+    await prisma.veiculo.update({
+      where: { id: dispositivo.veiculo_id },
+      data: { organizacao_id: parseInt(organizacao_destino_id) },
+    });
+    resultado.veiculo_migrado = true;
+    resultado.detalhes.push(`Veículo ${dispositivo.veiculo_rel.placa || dispositivo.veiculo_id} migrado`);
+  }
+
+  console.log(`[Migração] ${imei}: ${orgOrigem?.nome || 'Sem org'} → ${orgDestino.nome}`);
+  if (resultado.veiculo_migrado) {
+    console.log(`[Migração] Veículo ${dispositivo.veiculo_rel?.placa} também migrado`);
+  }
+
+  res.json({
+    sucesso: true,
+    mensagem: `Dispositivo migrado para "${orgDestino.nome}"${resultado.veiculo_migrado ? ' (veículo incluído)' : ''}`,
+    origem: orgOrigem?.nome || 'Sem organização',
+    destino: orgDestino.nome,
+    ...resultado,
+    nota: 'Histórico de localizações e viagens foi mantido'
+  });
+}));
+
+/**
  * GET /api/dispositivos/estatisticas-globais
  * Estatísticas de todos os dispositivos (apenas super_admin)
  */

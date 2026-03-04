@@ -16277,6 +16277,11 @@
       }
       // Se vazio, a API retorna ativo + disponível por padrão
 
+      // Verificar se é super_admin para mostrar botão de migração
+      const usuarioStr = localStorage.getItem('usuario') || sessionStorage.getItem('usuario');
+      const usuario = usuarioStr ? JSON.parse(usuarioStr) : null;
+      const isSuperAdmin = usuario?.role === 'super_admin';
+
       try {
         const res = await authFetch(url);
         const response = await res.json();
@@ -16296,6 +16301,8 @@
           const statusUsoBadge = statusUso === 'ativo' ? 'badge-success' : (statusUso === 'disponivel' ? 'badge-warning' : 'badge-danger');
           const statusUsoLabel = statusUso === 'ativo' ? 'Ativo' : (statusUso === 'disponivel' ? 'Disponível' : 'Inativo');
           const imeiEncoded = encodeURIComponent(d.imei);
+          // Botão de migração apenas para super_admin
+          const btnMigrar = isSuperAdmin ? `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #8b5cf6;" onclick="event.stopPropagation(); abrirModalMigrar('${imeiSeguro.replace(/'/g, "\\'")}', '${veiculoSeguro.replace(/'/g, "\\'")}')" title="Migrar para outra organização">⇄</button>` : '';
           return `
           <tr class="clickable-row" onclick="focusOnVehicleFromTable('${imeiSeguro.replace(/'/g, "\\'")}')" title="Clique para ver no mapa">
             <td>${veiculoSeguro}</td>
@@ -16311,6 +16318,7 @@
               <button class="btn btn-primary" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); verNoMapa('${imeiSeguro.replace(/'/g, "\\'")}')">⌖ Mapa</button>
               <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px;" onclick="event.stopPropagation(); abrirInfoVeiculo('${imeiSeguro.replace(/'/g, "\\'")}')">≡ Detalhes</button>
               <button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #f59e0b;" onclick="event.stopPropagation(); openEditModal('${imeiSeguro.replace(/'/g, "\\'")}')">✎ Editar</button>
+              ${btnMigrar}
               ${statusUso !== 'inativo' ? `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #6b7280;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'inativo')" title="Desativar rastreador">⊘</button>` : `<button class="btn" style="padding: 6px 12px; font-size: 11px; margin-right: 5px; background: #10b981;" onclick="event.stopPropagation(); alterarStatusUso('${imeiSeguro.replace(/'/g, "\\'")}', 'disponivel')" title="Reativar como disponível">◉</button>`}
               <button class="btn btn-danger" style="padding: 6px 12px; font-size: 11px;" onclick="event.stopPropagation(); deleteDevice('${imeiSeguro.replace(/'/g, "\\'")}')">✕</button>
             </td>
@@ -19862,6 +19870,100 @@
       } catch (error) {
         console.error('Erro:', error);
         toastError('Erro ao atribuir dispositivo');
+      }
+    }
+
+    // ============ MIGRAÇÃO DE DISPOSITIVO ENTRE ORGANIZAÇÕES ============
+
+    async function abrirModalMigrar(imei, veiculo) {
+      const imeiSeguro = escapeHtml(imei);
+      const veiculoSeguro = escapeHtml(veiculo || imei);
+
+      // Carregar organizações
+      let orgsOptions = '<option value="">Carregando...</option>';
+      if (organizacoesCache.length > 0) {
+        orgsOptions = '<option value="">Selecione a organização destino...</option>' +
+          organizacoesCache.map(o => `<option value="${o.id}">${escapeHtml(o.nome)}</option>`).join('');
+      }
+
+      const modalHtml = `
+        <div class="modal" id="modal-migrar" style="display:flex;">
+          <div class="modal-content" style="max-width:450px;">
+            <div class="modal-header">
+              <span>Migrar Dispositivo</span>
+              <button onclick="document.getElementById('modal-migrar').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-light);">&times;</button>
+            </div>
+            <div style="padding:20px;">
+              <p style="margin-bottom:16px;">Migrar <strong>${veiculoSeguro}</strong> (${imeiSeguro}) para outra organização?</p>
+              <div class="form-group">
+                <label>Organização Destino</label>
+                <select id="select-org-migrar" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;">
+                  ${orgsOptions}
+                </select>
+              </div>
+              <div class="form-group" style="margin-top:12px;">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                  <input type="checkbox" id="migrar-veiculo" checked style="width:18px;height:18px;">
+                  <span>Migrar veículo vinculado junto</span>
+                </label>
+              </div>
+              <div style="background:var(--bg);padding:12px;border-radius:8px;margin-top:16px;font-size:13px;color:var(--text-light);">
+                <strong>Nota:</strong> O histórico de localizações e viagens será mantido.
+              </div>
+              <div style="display:flex;gap:12px;margin-top:20px;">
+                <button onclick="document.getElementById('modal-migrar').remove()" class="btn btn-secondary" style="flex:1;">Cancelar</button>
+                <button onclick="confirmarMigracao('${imeiSeguro.replace(/'/g, "\\'")}')" class="btn btn-primary" style="flex:1;background:#8b5cf6;">Migrar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      // Carregar organizações se ainda não carregadas
+      if (organizacoesCache.length === 0) {
+        carregarOrganizacoes().then(() => {
+          const select = document.getElementById('select-org-migrar');
+          if (select) {
+            select.innerHTML = '<option value="">Selecione a organização destino...</option>' +
+              organizacoesCache.map(o => `<option value="${o.id}">${escapeHtml(o.nome)}</option>`).join('');
+          }
+        });
+      }
+    }
+
+    async function confirmarMigracao(imei) {
+      const orgId = document.getElementById('select-org-migrar').value;
+      const migrarVeiculo = document.getElementById('migrar-veiculo').checked;
+
+      if (!orgId) {
+        toastWarning('Selecione a organização destino');
+        return;
+      }
+
+      try {
+        const response = await authFetch(`${API_URL}/dispositivos/${imei}/migrar`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            organizacao_destino_id: parseInt(orgId),
+            migrar_veiculo: migrarVeiculo
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.sucesso) {
+          toastSuccess(data.mensagem);
+          document.getElementById('modal-migrar').remove();
+          filtrarPorStatusUso(); // Recarrega a lista
+        } else {
+          toastError(data.mensagem || 'Erro ao migrar dispositivo');
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        toastError('Erro ao migrar dispositivo');
       }
     }
 
