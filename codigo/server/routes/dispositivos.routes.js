@@ -1551,11 +1551,11 @@ router.put('/:imei/atribuir', apenasSuperAdmin, asyncHandler(async (req, res) =>
 /**
  * PUT /api/dispositivos/:imei/migrar
  * Migra dispositivo E veículo vinculado para outra organização (apenas super_admin)
- * Mantém histórico de localizações e viagens
+ * Opção de manter ou excluir histórico de localizações e viagens
  */
 router.put('/:imei/migrar', apenasSuperAdmin, asyncHandler(async (req, res) => {
   const { imei } = req.params;
-  const { organizacao_destino_id, migrar_veiculo = true } = req.body;
+  const { organizacao_destino_id, migrar_veiculo = true, excluir_historico = false } = req.body;
 
   if (!organizacao_destino_id) {
     return res.status(400).json({
@@ -1603,8 +1603,47 @@ router.put('/:imei/migrar', apenasSuperAdmin, asyncHandler(async (req, res) => {
   const resultado = {
     dispositivo_migrado: false,
     veiculo_migrado: false,
+    historico_excluido: false,
+    localizacoes_excluidas: 0,
+    viagens_excluidas: 0,
     detalhes: []
   };
+
+  // Excluir histórico se solicitado (ANTES de migrar)
+  if (excluir_historico) {
+    // Excluir localizações
+    const locExcluidas = await prisma.localizacao.deleteMany({
+      where: { dispositivo_id: dispositivo.id }
+    });
+    resultado.localizacoes_excluidas = locExcluidas.count;
+    resultado.detalhes.push(`${locExcluidas.count} localizações excluídas`);
+
+    // Excluir viagens
+    const viagensExcluidas = await prisma.viagem.deleteMany({
+      where: { dispositivo_id: dispositivo.id }
+    });
+    resultado.viagens_excluidas = viagensExcluidas.count;
+    resultado.detalhes.push(`${viagensExcluidas.count} viagens excluídas`);
+
+    // Excluir dados OBD2
+    const obd2Excluidos = await prisma.dadosOBD2.deleteMany({
+      where: { dispositivo_id: dispositivo.id }
+    });
+    if (obd2Excluidos.count > 0) {
+      resultado.detalhes.push(`${obd2Excluidos.count} registros OBD2 excluídos`);
+    }
+
+    // Excluir alarmes
+    const alarmesExcluidos = await prisma.alarme.deleteMany({
+      where: { dispositivo_id: dispositivo.id }
+    });
+    if (alarmesExcluidos.count > 0) {
+      resultado.detalhes.push(`${alarmesExcluidos.count} alarmes excluídos`);
+    }
+
+    resultado.historico_excluido = true;
+    console.log(`[Migração] ${imei}: Histórico excluído - ${locExcluidas.count} locs, ${viagensExcluidas.count} viagens`);
+  }
 
   // Migrar dispositivo
   await prisma.dispositivo.update({
@@ -1625,17 +1664,14 @@ router.put('/:imei/migrar', apenasSuperAdmin, asyncHandler(async (req, res) => {
   }
 
   console.log(`[Migração] ${imei}: ${orgOrigem?.nome || 'Sem org'} → ${orgDestino.nome}`);
-  if (resultado.veiculo_migrado) {
-    console.log(`[Migração] Veículo ${dispositivo.veiculo_rel?.placa} também migrado`);
-  }
 
+  const msgHistorico = excluir_historico ? ' (histórico excluído)' : ' (histórico mantido)';
   res.json({
     sucesso: true,
-    mensagem: `Dispositivo migrado para "${orgDestino.nome}"${resultado.veiculo_migrado ? ' (veículo incluído)' : ''}`,
+    mensagem: `Dispositivo migrado para "${orgDestino.nome}"${resultado.veiculo_migrado ? ' com veículo' : ''}${msgHistorico}`,
     origem: orgOrigem?.nome || 'Sem organização',
     destino: orgDestino.nome,
-    ...resultado,
-    nota: 'Histórico de localizações e viagens foi mantido'
+    ...resultado
   });
 }));
 

@@ -19915,8 +19915,21 @@
                   <span>Migrar veículo vinculado junto</span>
                 </label>
               </div>
-              <div style="background:var(--bg);padding:12px;border-radius:8px;margin-top:16px;font-size:13px;color:var(--text-light);">
-                <strong>Nota:</strong> O histórico de localizações e viagens será mantido.
+              <div class="form-group" style="margin-top:16px;">
+                <label style="font-weight:600;margin-bottom:8px;display:block;">Histórico de dados:</label>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="radio" name="historico-opcao" value="manter" checked style="width:18px;height:18px;">
+                    <span>Manter histórico (localizações, viagens, OBD2)</span>
+                  </label>
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="radio" name="historico-opcao" value="excluir" style="width:18px;height:18px;">
+                    <span style="color:#ef4444;">Excluir histórico (começar do zero)</span>
+                  </label>
+                </div>
+              </div>
+              <div id="aviso-excluir-historico" style="background:#fef2f2;border:1px solid #fecaca;padding:12px;border-radius:8px;margin-top:12px;font-size:13px;color:#dc2626;display:none;">
+                <strong>Atenção:</strong> Ao excluir o histórico, todas as localizações, viagens, dados OBD2 e alarmes serão permanentemente removidos. Esta ação não pode ser desfeita!
               </div>
               <div style="display:flex;gap:12px;margin-top:20px;">
                 <button onclick="document.getElementById('modal-migrar').remove()" class="btn btn-secondary" style="flex:1;">Cancelar</button>
@@ -19928,6 +19941,18 @@
       `;
 
       document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      // Listener para mostrar/esconder aviso de excluir histórico
+      document.querySelectorAll('input[name="historico-opcao"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          const aviso = document.getElementById('aviso-excluir-historico');
+          if (e.target.value === 'excluir') {
+            aviso.style.display = 'block';
+          } else {
+            aviso.style.display = 'none';
+          }
+        });
+      });
 
       // Carregar organizações se ainda não carregadas
       if (organizacoesCache.length === 0) {
@@ -19944,10 +19969,20 @@
     async function confirmarMigracao(imei) {
       const orgId = document.getElementById('select-org-migrar').value;
       const migrarVeiculo = document.getElementById('migrar-veiculo').checked;
+      const excluirHistorico = document.querySelector('input[name="historico-opcao"]:checked')?.value === 'excluir';
 
       if (!orgId) {
         toastWarning('Selecione a organização destino');
         return;
+      }
+
+      // Confirmação extra se for excluir histórico
+      if (excluirHistorico) {
+        const confirmado = await confirmAction(
+          'Tem certeza que deseja EXCLUIR todo o histórico? Esta ação não pode ser desfeita!',
+          'Sim, excluir histórico'
+        );
+        if (!confirmado) return;
       }
 
       try {
@@ -19956,7 +19991,8 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             organizacao_destino_id: parseInt(orgId),
-            migrar_veiculo: migrarVeiculo
+            migrar_veiculo: migrarVeiculo,
+            excluir_historico: excluirHistorico
           })
         });
 
